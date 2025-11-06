@@ -1,3 +1,3 @@
-from . import tasks
+from . import tasks, crm
 
-__all__ = ["tasks"]
+__all__ = ["tasks", "crm"]

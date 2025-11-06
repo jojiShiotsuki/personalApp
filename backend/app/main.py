@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.database import init_db
-from app.routes import tasks
+from app.routes import tasks, crm
 
 app = FastAPI(
     title="Personal Productivity App",
@@ -20,6 +20,7 @@ app.add_middleware(
 
 # Register routers
 app.include_router(tasks.router)
+app.include_router(crm.router)
 
 @app.on_event("startup")
 async def startup_event():
