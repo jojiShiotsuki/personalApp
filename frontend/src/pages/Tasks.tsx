@@ -6,8 +6,10 @@ import TaskList from '@/components/TaskList';
 import { Filter } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+type FilterValue = TaskStatus | 'all';
+
 export default function Tasks() {
-  const [filter, setFilter] = useState<TaskStatus | 'all'>('all');
+  const [filter, setFilter] = useState<FilterValue>('all');
   const queryClient = useQueryClient();
 
   const { data: tasks = [], isLoading } = useQuery({
@@ -21,6 +23,10 @@ export default function Tasks() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
     },
+    onError: (error) => {
+      console.error('Failed to update task status:', error);
+      // TODO: Add toast notification when notification system is implemented
+    },
   });
 
   const handleStatusChange = (id: number, status: TaskStatus) => {
@@ -28,11 +34,10 @@ export default function Tasks() {
   };
 
   const handleTaskClick = (task: Task) => {
-    console.log('Task clicked:', task);
-    // TODO: Open task detail modal
+    // TODO: Open task detail modal in future implementation
   };
 
-  const filters = [
+  const filters: Array<{ label: string; value: FilterValue }> = [
     { label: 'All', value: 'all' },
     { label: 'Pending', value: TaskStatus.PENDING },
     { label: 'In Progress', value: TaskStatus.IN_PROGRESS },
@@ -56,7 +61,7 @@ export default function Tasks() {
           {filters.map((f) => (
             <button
               key={f.value}
-              onClick={() => setFilter(f.value as any)}
+              onClick={() => setFilter(f.value)}
               className={cn(
                 'px-4 py-2 text-sm font-medium rounded-lg transition-colors',
                 filter === f.value
@@ -81,6 +86,7 @@ export default function Tasks() {
             tasks={tasks}
             onStatusChange={handleStatusChange}
             onTaskClick={handleTaskClick}
+            isUpdating={updateStatusMutation.isPending}
           />
         )}
       </div>
