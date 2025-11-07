@@ -38,7 +38,7 @@ export default function AddInteractionModal({
       type: formData.get('type') as InteractionType,
       subject: formData.get('subject') as string || undefined,
       notes: formData.get('notes') as string || undefined,
-      interaction_date: formData.get('interaction_date') as string,
+      interaction_date: new Date(formData.get('interaction_date') as string).toISOString(),
     };
 
     createMutation.mutate(data);
