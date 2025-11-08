@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
+import { DragDropContext, Droppable, Draggable, DropResult, DroppableProvided, DroppableStateSnapshot, DraggableProvided, DraggableStateSnapshot } from '@hello-pangea/dnd';
 import { dealApi, contactApi } from '@/lib/api';
 import type { DealCreate } from '@/types';
 import { DealStage } from '@/types';
@@ -138,7 +138,7 @@ export default function Deals() {
 
                     {/* Droppable Area */}
                     <Droppable droppableId={stage.id}>
-                      {(provided, snapshot) => (
+                      {(provided: DroppableProvided, snapshot: DroppableStateSnapshot) => (
                         <div
                           ref={provided.innerRef}
                           {...provided.droppableProps}
@@ -158,7 +158,7 @@ export default function Deals() {
                                   draggableId={deal.id.toString()}
                                   index={index}
                                 >
-                                  {(provided, snapshot) => (
+                                  {(provided: DraggableProvided, snapshot: DraggableStateSnapshot) => (
                                     <div
                                       ref={provided.innerRef}
                                       {...provided.draggableProps}

@@ -34,7 +34,7 @@ export default function Tasks() {
     updateStatusMutation.mutate({ id, status });
   };
 
-  const handleTaskClick = (task: Task) => {
+  const handleTaskClick = (_task: Task) => {
     // TODO: Open task detail modal in future implementation
   };
 
