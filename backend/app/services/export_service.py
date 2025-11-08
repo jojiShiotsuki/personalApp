@@ -254,3 +254,89 @@ class ExportService:
                 })
 
         return cold
+
+    @classmethod
+    def _calculate_activity_trends(cls, db: Session, start_date: date, end_date: date):
+        """Calculate activity trends comparing current vs previous period"""
+        from datetime import timedelta
+
+        # Calculate period length
+        period_length = (end_date - start_date).days
+        prev_end = start_date
+        prev_start = start_date - timedelta(days=period_length)
+
+        # Tasks created
+        tasks_current = db.query(Task).filter(
+            Task.created_at >= start_date,
+            Task.created_at <= end_date
+        ).count()
+
+        tasks_previous = db.query(Task).filter(
+            Task.created_at >= prev_start,
+            Task.created_at < prev_end
+        ).count()
+
+        # Deals created
+        deals_current = db.query(Deal).filter(
+            Deal.created_at >= start_date,
+            Deal.created_at <= end_date
+        ).count()
+
+        deals_previous = db.query(Deal).filter(
+            Deal.created_at >= prev_start,
+            Deal.created_at < prev_end
+        ).count()
+
+        # Calculate percentage changes
+        def calc_pct_change(current, previous):
+            if previous == 0:
+                return 0 if current == 0 else 100
+            return ((current - previous) / previous) * 100
+
+        return {
+            'tasks_current': tasks_current,
+            'tasks_previous': tasks_previous,
+            'tasks_change_pct': calc_pct_change(tasks_current, tasks_previous),
+            'deals_current': deals_current,
+            'deals_previous': deals_previous,
+            'deals_change_pct': calc_pct_change(deals_current, deals_previous),
+        }
+
+    @classmethod
+    def _calculate_performance_metrics(cls, db: Session, start_date: date, end_date: date):
+        """Calculate task completion rate and average completion time"""
+        # Total tasks in period
+        total_tasks = db.query(Task).filter(
+            Task.created_at >= start_date,
+            Task.created_at <= end_date
+        ).count()
+
+        # Completed tasks in period
+        completed_tasks = db.query(Task).filter(
+            Task.created_at >= start_date,
+            Task.created_at <= end_date,
+            Task.status == TaskStatus.COMPLETED
+        ).count()
+
+        completion_rate = (completed_tasks / total_tasks * 100) if total_tasks > 0 else 0
+
+        # Calculate average completion time for tasks completed in this period
+        completed_with_times = db.query(Task).filter(
+            Task.completed_at >= start_date,
+            Task.completed_at <= end_date,
+            Task.completed_at.isnot(None)
+        ).all()
+
+        if completed_with_times:
+            completion_times = [
+                (task.completed_at - task.created_at).days
+                for task in completed_with_times
+            ]
+            avg_completion_time = sum(completion_times) / len(completion_times)
+        else:
+            avg_completion_time = 0
+
+        return {
+            'completion_rate': completion_rate,
+            'avg_completion_time': avg_completion_time,
+        }
