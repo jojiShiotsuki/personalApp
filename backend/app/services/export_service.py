@@ -43,11 +43,9 @@ class ExportService:
         report.append("## Task Summary")
         report.append("")
 
-        # Completed tasks
+        # Completed tasks - show all completed tasks regardless of date
         completed_tasks = db.query(Task).filter(
-            Task.status == TaskStatus.COMPLETED,
-            Task.completed_at >= start_date,
-            Task.completed_at <= end_date
+            Task.status == TaskStatus.COMPLETED
         ).all()
 
         report.append(f"### Completed Tasks ({len(completed_tasks)})")
@@ -157,17 +155,13 @@ class ExportService:
         # Pipeline Health
         report.append("### Pipeline Health")
 
-        # Closed deals in date range
+        # Closed deals - show all closed deals regardless of date
         closed_won = db.query(Deal).filter(
-            Deal.stage == DealStage.CLOSED_WON,
-            Deal.actual_close_date >= start_date,
-            Deal.actual_close_date <= end_date
+            Deal.stage == DealStage.CLOSED_WON
         ).all()
 
         closed_lost = db.query(Deal).filter(
-            Deal.stage == DealStage.CLOSED_LOST,
-            Deal.actual_close_date >= start_date,
-            Deal.actual_close_date <= end_date
+            Deal.stage == DealStage.CLOSED_LOST
         ).all()
 
         won_count = len(closed_won)

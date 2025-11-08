@@ -11,6 +11,37 @@ import {
 } from 'lucide-react';
 import { isPast, isToday, parseISO, format } from 'date-fns';
 
+// Helper function to format currency with abbreviations
+function formatCurrency(value: number): string {
+  // Handle invalid values
+  if (value === null || value === undefined || isNaN(value)) {
+    return '$0';
+  }
+
+  // Handle 0 or negative values
+  if (value === 0) return '$0';
+  if (value < 0) return `-${formatCurrency(Math.abs(value))}`;
+
+  // Billions
+  if (value >= 1000000000) {
+    return `$${(value / 1000000000).toFixed(1)}B`;
+  }
+  // Millions
+  if (value >= 1000000) {
+    return `$${(value / 1000000).toFixed(1)}M`;
+  }
+  // Tens of thousands and up
+  if (value >= 10000) {
+    return `$${Math.round(value / 1000)}k`;
+  }
+  // Thousands
+  if (value >= 1000) {
+    return `$${(value / 1000).toFixed(1)}k`;
+  }
+  // Under 1000
+  return `$${Math.round(value)}`;
+}
+
 export default function Dashboard() {
   const { data: allTasks = [] } = useQuery({
     queryKey: ['tasks', 'all'],
@@ -44,7 +75,10 @@ export default function Dashboard() {
       deal.stage !== DealStage.CLOSED_LOST
   );
   const pipelineValue = activeDeals.reduce(
-    (sum, deal) => sum + (deal.value || 0),
+    (sum, deal) => {
+      const value = Number(deal.value) || 0;
+      return sum + value;
+    },
     0
   );
   const wonDeals = allDeals.filter(
@@ -144,7 +178,7 @@ export default function Dashboard() {
               <div>
                 <p className="text-sm font-medium text-gray-600">Pipeline</p>
                 <p className="text-3xl font-bold text-gray-900 mt-2">
-                  ${(pipelineValue / 1000).toFixed(0)}k
+                  {formatCurrency(pipelineValue)}
                 </p>
               </div>
               <div className="p-3 bg-purple-100 rounded-full">
@@ -262,7 +296,7 @@ export default function Dashboard() {
                       Total Pipeline Value
                     </span>
                     <span className="text-2xl font-bold text-purple-600">
-                      ${pipelineValue.toLocaleString()}
+                      {formatCurrency(pipelineValue)}
                     </span>
                   </div>
                 </div>

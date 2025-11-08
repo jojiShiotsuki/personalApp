@@ -6,7 +6,7 @@ import { subDays, format } from 'date-fns';
 
 export default function Export() {
   const [dateRange, setDateRange] = useState({
-    start: format(subDays(new Date(), 7), 'yyyy-MM-dd'),
+    start: format(subDays(new Date(), 365), 'yyyy-MM-dd'), // Last year by default
     end: format(new Date(), 'yyyy-MM-dd'),
   });
   const [copied, setCopied] = useState(false);
@@ -125,6 +125,17 @@ export default function Export() {
             className="px-3 py-2 text-sm text-blue-600 hover:text-blue-700"
           >
             Last 30 days
+          </button>
+          <button
+            onClick={() =>
+              setDateRange({
+                start: format(subDays(new Date(), 365), 'yyyy-MM-dd'),
+                end: format(new Date(), 'yyyy-MM-dd'),
+              })
+            }
+            className="px-3 py-2 text-sm text-blue-600 hover:text-blue-700"
+          >
+            Last year
           </button>
         </div>
       </div>
