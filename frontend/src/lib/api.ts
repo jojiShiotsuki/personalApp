@@ -1,5 +1,5 @@
 import axios from 'axios';
-import {
+import type {
   Task,
   TaskCreate,
   TaskUpdate,
@@ -10,9 +10,11 @@ import {
   Interaction,
   InteractionCreate,
   ContextExport,
+} from '../types/index';
+import {
   TaskStatus,
   DealStage,
-} from '@/types';
+} from '../types/index';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 

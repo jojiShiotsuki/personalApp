@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
-import { Contact, InteractionType } from '@/types';
+import type { Contact } from '@/types';
+import { InteractionType } from '@/types';
 import { interactionApi } from '@/lib/api';
 import { X, Mail, Phone, Building2, User, Calendar, Phone as PhoneIcon, FileText, Edit } from 'lucide-react';
 import { formatDistanceToNow, format, isToday, isYesterday, parseISO } from 'date-fns';

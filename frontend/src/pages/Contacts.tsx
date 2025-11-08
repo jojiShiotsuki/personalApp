@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { contactApi } from '@/lib/api';
-import { Contact, ContactCreate, ContactStatus } from '@/types';
+import type { Contact, ContactCreate } from '@/types';
+import { ContactStatus } from '@/types';
 import { Plus, Search, User, Mail, Phone, Building2, X } from 'lucide-react';
 import ContactDetailModal from '@/components/ContactDetailModal';
 import AddInteractionModal from '@/components/AddInteractionModal';

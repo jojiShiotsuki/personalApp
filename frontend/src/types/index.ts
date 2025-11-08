@@ -13,7 +13,7 @@ export enum TaskStatus {
   DELAYED = "delayed",
 }
 
-export interface Task {
+export type Task = {
   id: number;
   title: string;
   description?: string;
@@ -26,7 +26,7 @@ export interface Task {
   completed_at?: string;
 }
 
-export interface TaskCreate {
+export type TaskCreate = {
   title: string;
   description?: string;
   due_date?: string;
@@ -35,7 +35,7 @@ export interface TaskCreate {
   status?: TaskStatus;
 }
 
-export interface TaskUpdate {
+export type TaskUpdate = {
   title?: string;
   description?: string;
   due_date?: string;
@@ -68,7 +68,7 @@ export enum InteractionType {
   NOTE = "note",
 }
 
-export interface Contact {
+export type Contact = {
   id: number;
   name: string;
   email?: string;
@@ -80,7 +80,7 @@ export interface Contact {
   updated_at: string;
 }
 
-export interface ContactCreate {
+export type ContactCreate = {
   name: string;
   email?: string;
   phone?: string;
@@ -89,7 +89,7 @@ export interface ContactCreate {
   notes?: string;
 }
 
-export interface Deal {
+export type Deal = {
   id: number;
   contact_id: number;
   title: string;
@@ -103,7 +103,7 @@ export interface Deal {
   updated_at: string;
 }
 
-export interface DealCreate {
+export type DealCreate = {
   contact_id: number;
   title: string;
   description?: string;
@@ -113,7 +113,7 @@ export interface DealCreate {
   expected_close_date?: string;
 }
 
-export interface Interaction {
+export type Interaction = {
   id: number;
   contact_id: number;
   type: InteractionType;
@@ -123,7 +123,7 @@ export interface Interaction {
   created_at: string;
 }
 
-export interface InteractionCreate {
+export type InteractionCreate = {
   contact_id: number;
   type: InteractionType;
   subject?: string;
@@ -132,7 +132,7 @@ export interface InteractionCreate {
 }
 
 // Export types
-export interface ContextExport {
+export type ContextExport = {
   markdown: string;
   start_date: string;
   end_date: string;

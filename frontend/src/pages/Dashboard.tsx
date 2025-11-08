@@ -1,0 +1,257 @@
+import { useQuery } from '@tanstack/react-query';
+import { taskApi, dealApi } from '@/lib/api';
+import { TaskStatus, DealStage } from '@/types';
+import {
+  CheckCircle2,
+  Clock,
+  AlertCircle,
+  TrendingUp,
+  Briefcase,
+  DollarSign,
+} from 'lucide-react';
+import { isPast, isToday, parseISO, format } from 'date-fns';
+
+export default function Dashboard() {
+  const { data: allTasks = [] } = useQuery({
+    queryKey: ['tasks', 'all'],
+    queryFn: () => taskApi.getAll(),
+  });
+
+  const { data: allDeals = [] } = useQuery({
+    queryKey: ['deals', 'all'],
+    queryFn: () => dealApi.getAll(),
+  });
+
+  // Calculate task metrics
+  const todayTasks = allTasks.filter((task) =>
+    task.due_date && isToday(parseISO(task.due_date))
+  );
+  const overdueTasks = allTasks.filter(
+    (task) =>
+      task.due_date &&
+      task.status !== TaskStatus.COMPLETED &&
+      isPast(parseISO(task.due_date)) &&
+      !isToday(parseISO(task.due_date))
+  );
+  const completedTasks = allTasks.filter(
+    (task) => task.status === TaskStatus.COMPLETED
+  );
+
+  // Calculate CRM metrics
+  const activeDeals = allDeals.filter(
+    (deal) =>
+      deal.stage !== DealStage.CLOSED_WON &&
+      deal.stage !== DealStage.CLOSED_LOST
+  );
+  const pipelineValue = activeDeals.reduce(
+    (sum, deal) => sum + (deal.value || 0),
+    0
+  );
+  const wonDeals = allDeals.filter(
+    (deal) => deal.stage === DealStage.CLOSED_WON
+  );
+  const lostDeals = allDeals.filter(
+    (deal) => deal.stage === DealStage.CLOSED_LOST
+  );
+  const winRate =
+    wonDeals.length + lostDeals.length > 0
+      ? (wonDeals.length / (wonDeals.length + lostDeals.length)) * 100
+      : 0;
+
+  return (
+    <div className="h-full bg-gray-100">
+      {/* Header */}
+      <div className="bg-white border-b px-8 py-6">
+        <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+        <p className="mt-1 text-sm text-gray-500">
+          Welcome back! Here's your overview
+        </p>
+      </div>
+
+      {/* Content */}
+      <div className="p-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          {/* Today's Tasks */}
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Today</p>
+                <p className="text-3xl font-bold text-gray-900 mt-2">
+                  {todayTasks.length}
+                </p>
+              </div>
+              <div className="p-3 bg-blue-100 rounded-full">
+                <Clock className="w-6 h-6 text-blue-600" />
+              </div>
+            </div>
+            <p className="text-sm text-gray-500 mt-4">Tasks due today</p>
+          </div>
+
+          {/* Overdue Tasks */}
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Overdue</p>
+                <p className="text-3xl font-bold text-red-600 mt-2">
+                  {overdueTasks.length}
+                </p>
+              </div>
+              <div className="p-3 bg-red-100 rounded-full">
+                <AlertCircle className="w-6 h-6 text-red-600" />
+              </div>
+            </div>
+            <p className="text-sm text-gray-500 mt-4">Need attention</p>
+          </div>
+
+          {/* Completed Tasks */}
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Completed</p>
+                <p className="text-3xl font-bold text-green-600 mt-2">
+                  {completedTasks.length}
+                </p>
+              </div>
+              <div className="p-3 bg-green-100 rounded-full">
+                <CheckCircle2 className="w-6 h-6 text-green-600" />
+              </div>
+            </div>
+            <p className="text-sm text-gray-500 mt-4">Tasks done</p>
+          </div>
+
+          {/* Pipeline Value */}
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Pipeline</p>
+                <p className="text-3xl font-bold text-gray-900 mt-2">
+                  ${(pipelineValue / 1000).toFixed(0)}k
+                </p>
+              </div>
+              <div className="p-3 bg-purple-100 rounded-full">
+                <DollarSign className="w-6 h-6 text-purple-600" />
+              </div>
+            </div>
+            <p className="text-sm text-gray-500 mt-4">{activeDeals.length} active deals</p>
+          </div>
+        </div>
+
+        {/* Two Column Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Task List Widget */}
+          <div className="bg-white rounded-lg shadow">
+            <div className="px-6 py-4 border-b">
+              <h2 className="text-lg font-semibold text-gray-900">
+                Upcoming Tasks
+              </h2>
+            </div>
+            <div className="p-6">
+              {allTasks.slice(0, 5).length > 0 ? (
+                <div className="space-y-3">
+                  {allTasks
+                    .filter((task) => task.status !== TaskStatus.COMPLETED)
+                    .slice(0, 5)
+                    .map((task) => (
+                      <div
+                        key={task.id}
+                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                      >
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-gray-900">
+                            {task.title}
+                          </p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            {task.due_date
+                              ? format(parseISO(task.due_date), 'MMM d')
+                              : 'No due date'}
+                          </p>
+                        </div>
+                        <span
+                          className={`px-2 py-1 text-xs rounded ${
+                            task.priority === 'urgent'
+                              ? 'bg-red-100 text-red-700'
+                              : task.priority === 'high'
+                              ? 'bg-orange-100 text-orange-700'
+                              : 'bg-gray-100 text-gray-700'
+                          }`}
+                        >
+                          {task.priority}
+                        </span>
+                      </div>
+                    ))}
+                </div>
+              ) : (
+                <p className="text-center text-gray-500 py-8">
+                  No pending tasks
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* CRM Stats Widget */}
+          <div className="bg-white rounded-lg shadow">
+            <div className="px-6 py-4 border-b">
+              <h2 className="text-lg font-semibold text-gray-900">
+                CRM Overview
+              </h2>
+            </div>
+            <div className="p-6">
+              <div className="space-y-4">
+                {/* Win Rate */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <TrendingUp className="w-5 h-5 text-green-600 mr-3" />
+                    <span className="text-sm font-medium text-gray-700">
+                      Win Rate
+                    </span>
+                  </div>
+                  <span className="text-lg font-bold text-green-600">
+                    {winRate.toFixed(0)}%
+                  </span>
+                </div>
+
+                {/* Active Deals */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <Briefcase className="w-5 h-5 text-blue-600 mr-3" />
+                    <span className="text-sm font-medium text-gray-700">
+                      Active Deals
+                    </span>
+                  </div>
+                  <span className="text-lg font-bold text-gray-900">
+                    {activeDeals.length}
+                  </span>
+                </div>
+
+                {/* Won Deals */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <CheckCircle2 className="w-5 h-5 text-green-600 mr-3" />
+                    <span className="text-sm font-medium text-gray-700">
+                      Closed Won
+                    </span>
+                  </div>
+                  <span className="text-lg font-bold text-gray-900">
+                    {wonDeals.length}
+                  </span>
+                </div>
+
+                {/* Total Pipeline */}
+                <div className="mt-6 pt-6 border-t">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-gray-700">
+                      Total Pipeline Value
+                    </span>
+                    <span className="text-2xl font-bold text-purple-600">
+                      ${pipelineValue.toLocaleString()}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

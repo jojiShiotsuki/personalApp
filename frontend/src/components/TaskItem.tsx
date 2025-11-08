@@ -1,4 +1,5 @@
-import { Task, TaskStatus, TaskPriority } from '@/types';
+import type { Task } from '@/types';
+import { TaskStatus, TaskPriority } from '@/types';
 import { format, isPast, isToday, isTomorrow, parseISO } from 'date-fns';
 import { Check, Clock, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';

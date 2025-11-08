@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { interactionApi } from '@/lib/api';
-import { InteractionCreate, InteractionType } from '@/types';
+import type { InteractionCreate } from '@/types';
+import { InteractionType } from '@/types';
 import { X } from 'lucide-react';
 
 interface AddInteractionModalProps {
