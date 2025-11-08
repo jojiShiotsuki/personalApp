@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -45,14 +45,23 @@ async def health_check():
 # Serve static files (frontend build)
 frontend_dist = Path(__file__).parent.parent / "frontend" / "dist"
 if frontend_dist.exists():
+    # Mount static assets
     app.mount("/assets", StaticFiles(directory=frontend_dist / "assets"), name="assets")
 
-    @app.get("/{full_path:path}")
-    async def serve_frontend(full_path: str):
-        """Serve frontend for all non-API routes"""
-        # API routes are already handled by routers above
-        file_path = frontend_dist / full_path
-        if file_path.exists() and file_path.is_file():
+    # Serve SPA for all non-API routes
+    @app.middleware("http")
+    async def serve_spa(request: Request, call_next):
+        # Let API routes and health check pass through
+        if request.url.path.startswith("/api/") or request.url.path == "/health":
+            return await call_next(request)
+
+        # Try to serve the requested file
+        file_path = frontend_dist / request.url.path.lstrip("/")
+        if file_path.is_file():
             return FileResponse(file_path)
-        # For SPA, return index.html for all other routes
-        return FileResponse(frontend_dist / "index.html")
+
+        # For all other routes (SPA routes), serve index.html
+        if not request.url.path.startswith("/assets/"):
+            return FileResponse(frontend_dist / "index.html")
+
+        return await call_next(request)
