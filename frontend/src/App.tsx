@@ -5,6 +5,7 @@ import Tasks from './pages/Tasks';
 import Contacts from './pages/Contacts';
 import Deals from './pages/Deals';
 import Export from './pages/Export';
+import CommandBar from './components/CommandBar';
 
 function App() {
   return (
@@ -18,6 +19,7 @@ function App() {
           <Route path="/export" element={<Export />} />
         </Routes>
       </Layout>
+      <CommandBar />
     </BrowserRouter>
   );
 }
