@@ -1,21 +1,42 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { taskApi } from '@/lib/api';
-import type { Task } from '@/types';
-import { TaskStatus } from '@/types';
+import type { Task, TaskCreate, TaskUpdate } from '@/types';
+import { TaskStatus, TaskPriority } from '@/types';
 import TaskList from '@/components/TaskList';
-import { Filter } from 'lucide-react';
+import { Filter, Plus, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 type FilterValue = TaskStatus | 'all';
 
 export default function Tasks() {
   const [filter, setFilter] = useState<FilterValue>('all');
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
   const queryClient = useQueryClient();
 
   const { data: tasks = [], isLoading } = useQuery({
     queryKey: ['tasks', filter],
     queryFn: () => taskApi.getAll(filter === 'all' ? undefined : filter),
+  });
+
+  const createMutation = useMutation({
+    mutationFn: (task: TaskCreate) => taskApi.create(task),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      setIsModalOpen(false);
+      setEditingTask(null);
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: TaskUpdate }) =>
+      taskApi.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      setIsModalOpen(false);
+      setEditingTask(null);
+    },
   });
 
   const updateStatusMutation = useMutation({
@@ -26,16 +47,47 @@ export default function Tasks() {
     },
     onError: (error) => {
       console.error('Failed to update task status:', error);
-      // TODO: Add toast notification when notification system is implemented
     },
   });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => taskApi.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+    },
+  });
+
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const data: TaskCreate = {
+      title: formData.get('title') as string,
+      description: formData.get('description') as string || undefined,
+      due_date: formData.get('due_date') as string || undefined,
+      due_time: formData.get('due_time') as string || undefined,
+      priority: (formData.get('priority') as TaskPriority) || TaskPriority.MEDIUM,
+      status: (formData.get('status') as TaskStatus) || TaskStatus.PENDING,
+    };
+
+    if (editingTask) {
+      updateMutation.mutate({ id: editingTask.id, data });
+    } else {
+      createMutation.mutate(data);
+    }
+  };
 
   const handleStatusChange = (id: number, status: TaskStatus) => {
     updateStatusMutation.mutate({ id, status });
   };
 
-  const handleTaskClick = (_task: Task) => {
-    // TODO: Open task detail modal in future implementation
+  const handleTaskClick = (task: Task) => {
+    setEditingTask(task);
+    setIsModalOpen(true);
+  };
+
+  const handleNewTask = () => {
+    setEditingTask(null);
+    setIsModalOpen(true);
   };
 
   const filters: Array<{ label: string; value: FilterValue }> = [
@@ -49,10 +101,21 @@ export default function Tasks() {
     <div className="h-full flex flex-col">
       {/* Header */}
       <div className="bg-white border-b px-8 py-6">
-        <h1 className="text-3xl font-bold text-gray-900">Tasks</h1>
-        <p className="mt-1 text-sm text-gray-500">
-          Manage your tasks and stay organized
-        </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Tasks</h1>
+            <p className="mt-1 text-sm text-gray-500">
+              Manage your tasks and stay organized
+            </p>
+          </div>
+          <button
+            onClick={handleNewTask}
+            className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            <Plus className="w-5 h-5 mr-2" />
+            New Task
+          </button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -87,10 +150,142 @@ export default function Tasks() {
             tasks={tasks}
             onStatusChange={handleStatusChange}
             onTaskClick={handleTaskClick}
+            onDelete={(id) => deleteMutation.mutate(id)}
             isUpdating={updateStatusMutation.isPending}
           />
         )}
       </div>
+
+      {/* Modal */}
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-2xl w-full max-w-md mx-4">
+            <div className="flex items-center justify-between px-6 py-4 border-b">
+              <h2 className="text-xl font-bold text-gray-900">
+                {editingTask ? 'Edit Task' : 'New Task'}
+              </h2>
+              <button
+                onClick={() => {
+                  setIsModalOpen(false);
+                  setEditingTask(null);
+                }}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmit} className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Title *
+                </label>
+                <input
+                  type="text"
+                  name="title"
+                  defaultValue={editingTask?.title}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Description
+                </label>
+                <textarea
+                  name="description"
+                  defaultValue={editingTask?.description}
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Due Date
+                  </label>
+                  <input
+                    type="date"
+                    name="due_date"
+                    defaultValue={editingTask?.due_date}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Due Time
+                  </label>
+                  <input
+                    type="time"
+                    name="due_time"
+                    defaultValue={editingTask?.due_time}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Priority
+                </label>
+                <select
+                  name="priority"
+                  defaultValue={editingTask?.priority || TaskPriority.MEDIUM}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value={TaskPriority.LOW}>Low</option>
+                  <option value={TaskPriority.MEDIUM}>Medium</option>
+                  <option value={TaskPriority.HIGH}>High</option>
+                  <option value={TaskPriority.URGENT}>Urgent</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Status
+                </label>
+                <select
+                  name="status"
+                  defaultValue={editingTask?.status || TaskStatus.PENDING}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value={TaskStatus.PENDING}>Pending</option>
+                  <option value={TaskStatus.IN_PROGRESS}>In Progress</option>
+                  <option value={TaskStatus.COMPLETED}>Completed</option>
+                  <option value={TaskStatus.DELAYED}>Delayed</option>
+                </select>
+              </div>
+
+              <div className="flex space-x-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsModalOpen(false);
+                    setEditingTask(null);
+                  }}
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={createMutation.isPending || updateMutation.isPending}
+                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+                >
+                  {createMutation.isPending || updateMutation.isPending
+                    ? 'Saving...'
+                    : editingTask
+                    ? 'Update'
+                    : 'Create'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

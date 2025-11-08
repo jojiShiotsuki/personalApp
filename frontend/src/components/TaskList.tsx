@@ -6,10 +6,11 @@ interface TaskListProps {
   tasks: Task[];
   onStatusChange: (id: number, status: TaskStatus) => void;
   onTaskClick: (task: Task) => void;
+  onDelete?: (id: number) => void;
   isUpdating?: boolean;
 }
 
-export default function TaskList({ tasks, onStatusChange, onTaskClick, isUpdating }: TaskListProps) {
+export default function TaskList({ tasks, onStatusChange, onTaskClick, onDelete, isUpdating }: TaskListProps) {
   if (tasks.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-12 text-center">
@@ -29,6 +30,7 @@ export default function TaskList({ tasks, onStatusChange, onTaskClick, isUpdatin
           task={task}
           onStatusChange={onStatusChange}
           onClick={() => onTaskClick(task)}
+          onDelete={onDelete}
           isUpdating={isUpdating}
         />
       ))}

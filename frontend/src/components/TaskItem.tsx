@@ -1,13 +1,14 @@
 import type { Task } from '@/types';
 import { TaskStatus, TaskPriority } from '@/types';
 import { format, isPast, isToday, isTomorrow, parseISO } from 'date-fns';
-import { Check, Clock, AlertCircle } from 'lucide-react';
+import { Check, Clock, AlertCircle, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface TaskItemProps {
   task: Task;
   onStatusChange: (id: number, status: TaskStatus) => void;
   onClick: () => void;
+  onDelete?: (id: number) => void;
   isUpdating?: boolean;
 }
 
@@ -25,8 +26,15 @@ const statusColors = {
   [TaskStatus.DELAYED]: 'bg-yellow-50',
 };
 
-export default function TaskItem({ task, onStatusChange, onClick, isUpdating }: TaskItemProps) {
+export default function TaskItem({ task, onStatusChange, onClick, onDelete, isUpdating }: TaskItemProps) {
   const isCompleted = task.status === TaskStatus.COMPLETED;
+
+  const handleDelete = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onDelete && confirm('Delete this task?')) {
+      onDelete(task.id);
+    }
+  };
 
   const getDueDateBadge = () => {
     if (!task.due_date) return null;
@@ -123,6 +131,17 @@ export default function TaskItem({ task, onStatusChange, onClick, isUpdating }: 
           )}
         </div>
       </div>
+
+      {/* Delete button */}
+      {onDelete && (
+        <button
+          onClick={handleDelete}
+          className="ml-3 p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+          title="Delete task"
+        >
+          <Trash2 className="w-4 h-4" />
+        </button>
+      )}
     </div>
   );
 }

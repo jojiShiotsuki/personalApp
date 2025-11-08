@@ -4,7 +4,7 @@ import { DragDropContext, Droppable, Draggable, DropResult, DroppableProvided, D
 import { dealApi, contactApi } from '@/lib/api';
 import type { DealCreate } from '@/types';
 import { DealStage } from '@/types';
-import { Plus, DollarSign, Calendar, TrendingUp, X } from 'lucide-react';
+import { Plus, DollarSign, Calendar, TrendingUp, X, Edit2, Trash2 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 
 const stageColors: Record<DealStage, string> = {
@@ -27,6 +27,7 @@ const stages = [
 
 export default function Deals() {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingDeal, setEditingDeal] = useState<any>(null);
   const [selectedStage, setSelectedStage] = useState<DealStage>(DealStage.LEAD);
   const queryClient = useQueryClient();
 
@@ -53,6 +54,24 @@ export default function Deals() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['deals'] });
       setIsModalOpen(false);
+      setEditingDeal(null);
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: Partial<DealCreate> }) =>
+      dealApi.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['deals'] });
+      setIsModalOpen(false);
+      setEditingDeal(null);
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => dealApi.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['deals'] });
     },
   });
 
@@ -78,7 +97,11 @@ export default function Deals() {
       expected_close_date: formData.get('expected_close_date') as string || undefined,
     };
 
-    createMutation.mutate(data);
+    if (editingDeal) {
+      updateMutation.mutate({ id: editingDeal.id, data });
+    } else {
+      createMutation.mutate(data);
+    }
   };
 
   const getDealsByStage = (stage: DealStage) => {
@@ -101,7 +124,11 @@ export default function Deals() {
             </p>
           </div>
           <button
-            onClick={() => setIsModalOpen(true)}
+            onClick={() => {
+              setEditingDeal(null);
+              setSelectedStage(DealStage.LEAD);
+              setIsModalOpen(true);
+            }}
             className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
             <Plus className="w-5 h-5 mr-2" />
@@ -203,6 +230,34 @@ export default function Deals() {
                                             </div>
                                           )}
                                         </div>
+
+                                        {/* Edit and Delete buttons */}
+                                        <div className="flex gap-2 mt-3 pt-3 border-t border-gray-200">
+                                          <button
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              setEditingDeal(deal);
+                                              setSelectedStage(deal.stage);
+                                              setIsModalOpen(true);
+                                            }}
+                                            className="flex-1 flex items-center justify-center px-2 py-1.5 text-xs text-gray-700 bg-gray-100 rounded hover:bg-gray-200 transition-colors"
+                                          >
+                                            <Edit2 className="w-3 h-3 mr-1" />
+                                            Edit
+                                          </button>
+                                          <button
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              if (confirm('Delete this deal?')) {
+                                                deleteMutation.mutate(deal.id);
+                                              }
+                                            }}
+                                            className="flex-1 flex items-center justify-center px-2 py-1.5 text-xs text-red-700 bg-red-100 rounded hover:bg-red-200 transition-colors"
+                                          >
+                                            <Trash2 className="w-3 h-3 mr-1" />
+                                            Delete
+                                          </button>
+                                        </div>
                                       </div>
                                     </div>
                                   )}
@@ -227,9 +282,14 @@ export default function Deals() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-2xl w-full max-w-md mx-4">
             <div className="flex items-center justify-between px-6 py-4 border-b">
-              <h2 className="text-xl font-bold text-gray-900">New Deal</h2>
+              <h2 className="text-xl font-bold text-gray-900">
+                {editingDeal ? 'Edit Deal' : 'New Deal'}
+              </h2>
               <button
-                onClick={() => setIsModalOpen(false)}
+                onClick={() => {
+                  setIsModalOpen(false);
+                  setEditingDeal(null);
+                }}
                 className="text-gray-400 hover:text-gray-600"
               >
                 <X className="w-6 h-6" />
@@ -244,6 +304,7 @@ export default function Deals() {
                 <input
                   type="text"
                   name="title"
+                  defaultValue={editingDeal?.title}
                   required
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
@@ -255,6 +316,7 @@ export default function Deals() {
                 </label>
                 <select
                   name="contact_id"
+                  defaultValue={editingDeal?.contact_id}
                   required
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
@@ -274,6 +336,7 @@ export default function Deals() {
                 <input
                   type="number"
                   name="value"
+                  defaultValue={editingDeal?.value}
                   step="0.01"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
@@ -305,7 +368,7 @@ export default function Deals() {
                   name="probability"
                   min="0"
                   max="100"
-                  defaultValue="50"
+                  defaultValue={editingDeal?.probability || 50}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
@@ -317,6 +380,7 @@ export default function Deals() {
                 <input
                   type="date"
                   name="expected_close_date"
+                  defaultValue={editingDeal?.expected_close_date}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
@@ -327,6 +391,7 @@ export default function Deals() {
                 </label>
                 <textarea
                   name="description"
+                  defaultValue={editingDeal?.description}
                   rows={3}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
@@ -335,17 +400,24 @@ export default function Deals() {
               <div className="flex space-x-3 pt-4">
                 <button
                   type="button"
-                  onClick={() => setIsModalOpen(false)}
+                  onClick={() => {
+                    setIsModalOpen(false);
+                    setEditingDeal(null);
+                  }}
                   className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  disabled={createMutation.isPending}
+                  disabled={createMutation.isPending || updateMutation.isPending}
                   className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
                 >
-                  {createMutation.isPending ? 'Creating...' : 'Create'}
+                  {createMutation.isPending || updateMutation.isPending
+                    ? 'Saving...'
+                    : editingDeal
+                    ? 'Update'
+                    : 'Create'}
                 </button>
               </div>
             </form>
