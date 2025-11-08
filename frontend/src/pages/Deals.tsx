@@ -7,6 +7,37 @@ import { DealStage } from '@/types';
 import { Plus, DollarSign, Calendar, TrendingUp, X, Edit2, Trash2 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 
+// Helper function to format currency with abbreviations
+function formatCurrency(value: number): string {
+  // Handle invalid values
+  if (value === null || value === undefined || isNaN(value)) {
+    return '$0';
+  }
+
+  // Handle 0 or negative values
+  if (value === 0) return '$0';
+  if (value < 0) return `-${formatCurrency(Math.abs(value))}`;
+
+  // Billions
+  if (value >= 1000000000) {
+    return `$${(value / 1000000000).toFixed(1)}B`;
+  }
+  // Millions
+  if (value >= 1000000) {
+    return `$${(value / 1000000).toFixed(1)}M`;
+  }
+  // Tens of thousands and up
+  if (value >= 10000) {
+    return `$${Math.round(value / 1000)}k`;
+  }
+  // Thousands
+  if (value >= 1000) {
+    return `$${(value / 1000).toFixed(1)}k`;
+  }
+  // Under 1000
+  return `$${Math.round(value)}`;
+}
+
 const stageColors: Record<DealStage, string> = {
   [DealStage.LEAD]: 'bg-gray-100 border-gray-300',
   [DealStage.PROSPECT]: 'bg-blue-100 border-blue-300',
@@ -158,7 +189,7 @@ export default function Deals() {
                           {stageDeals.length} deals
                         </span>
                         <span className="text-xs font-medium text-gray-700">
-                          ${(stageValue / 1000).toFixed(0)}k
+                          {formatCurrency(stageValue)}
                         </span>
                       </div>
                     </div>
@@ -210,7 +241,7 @@ export default function Deals() {
                                         {deal.value && (
                                           <div className="flex items-center text-sm text-gray-700">
                                             <DollarSign className="w-4 h-4 mr-1" />
-                                            ${deal.value.toLocaleString()}
+                                            {formatCurrency(deal.value)}
                                           </div>
                                         )}
 
