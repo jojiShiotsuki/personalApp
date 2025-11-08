@@ -197,3 +197,60 @@ class ExportService:
         report.append("")
 
         return "\n".join(report)
+
+    @classmethod
+    def _get_stalled_deals(cls, db: Session, days: int = 14):
+        """Get deals in active stages with no updates for N days"""
+        from datetime import datetime, timedelta
+        threshold = datetime.now() - timedelta(days=days)
+
+        return db.query(Deal).filter(
+            Deal.stage.in_([
+                DealStage.LEAD,
+                DealStage.PROSPECT,
+                DealStage.PROPOSAL,
+                DealStage.NEGOTIATION
+            ]),
+            Deal.updated_at < threshold
+        ).all()
+
+    @classmethod
+    def _get_stuck_tasks(cls, db: Session, days: int = 7):
+        """Get tasks in active status created more than N days ago"""
+        from datetime import datetime, timedelta
+        threshold = datetime.now() - timedelta(days=days)
+
+        return db.query(Task).filter(
+            Task.status.in_([TaskStatus.PENDING, TaskStatus.IN_PROGRESS]),
+            Task.created_at < threshold
+        ).all()
+
+    @classmethod
+    def _get_cold_contacts(cls, db: Session, days: int = 30):
+        """Get contacts with active deals but no recent interactions"""
+        from datetime import date, timedelta
+        threshold = date.today() - timedelta(days=days)
+
+        # Get contacts with active deals
+        contacts_with_deals = db.query(Contact).join(Deal).filter(
+            Deal.stage.in_([
+                DealStage.LEAD,
+                DealStage.PROSPECT,
+                DealStage.PROPOSAL,
+                DealStage.NEGOTIATION
+            ])
+        ).distinct().all()
+
+        cold = []
+        for contact in contacts_with_deals:
+            last_interaction = db.query(Interaction).filter(
+                Interaction.contact_id == contact.id
+            ).order_by(Interaction.interaction_date.desc()).first()
+
+            if not last_interaction or last_interaction.interaction_date < threshold:
+                cold.append({
+                    'contact': contact,
+                    'last_interaction_date': last_interaction.interaction_date if last_interaction else None
+                })
+
+        return cold
