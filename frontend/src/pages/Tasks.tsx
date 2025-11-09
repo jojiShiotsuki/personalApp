@@ -12,14 +12,14 @@ type FilterValue = TaskStatus | 'all' | 'today' | 'this_week' | 'this_month' | '
 type SortOption = 'dueDate' | 'priority' | 'createdDate' | 'title';
 
 // Date helper functions
-const isToday = (dateString: string | null): boolean => {
+const isToday = (dateString?: string | null): boolean => {
   if (!dateString) return false;
   const today = new Date();
   const taskDate = new Date(dateString);
   return taskDate.toDateString() === today.toDateString();
 };
 
-const isThisWeek = (dateString: string | null): boolean => {
+const isThisWeek = (dateString?: string | null): boolean => {
   if (!dateString) return false;
   const today = new Date();
   const taskDate = new Date(dateString);
@@ -31,7 +31,7 @@ const isThisWeek = (dateString: string | null): boolean => {
   return taskDate >= weekStart && taskDate < weekEnd;
 };
 
-const isThisMonth = (dateString: string | null): boolean => {
+const isThisMonth = (dateString?: string | null): boolean => {
   if (!dateString) return false;
   const today = new Date();
   const taskDate = new Date(dateString);
@@ -39,7 +39,7 @@ const isThisMonth = (dateString: string | null): boolean => {
          taskDate.getFullYear() === today.getFullYear();
 };
 
-const isOverdue = (dateString: string | null): boolean => {
+const isOverdue = (dateString?: string | null): boolean => {
   if (!dateString) return false;
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -50,8 +50,8 @@ const isOverdue = (dateString: string | null): boolean => {
 
 // Check if task falls within a specific week number (1-4)
 // Week 1 = 0-6 days from today, Week 2 = 7-13 days, etc.
-const isInWeek = (dateString: string | null, weekNumber: number): boolean => {
-  if (!dateString) return false;
+const isInWeek = (dateString?: string | null, weekNumber?: number): boolean => {
+  if (!dateString || !weekNumber) return false;
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const taskDate = new Date(dateString);

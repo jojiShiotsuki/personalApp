@@ -90,6 +90,13 @@ export default function TaskItem({ task, onStatusChange, onClick, onDelete, isUp
     }
   };
 
+  const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    e.stopPropagation();
+    if (onToggleSelect) {
+      onToggleSelect(task.id);
+    }
+  };
+
   const getDueDateBadge = () => {
     if (!task.due_date) return null;
 
@@ -191,7 +198,7 @@ export default function TaskItem({ task, onStatusChange, onClick, onDelete, isUp
           <input
             type="checkbox"
             checked={isSelected}
-            onChange={handleCheckboxClick}
+            onChange={handleCheckboxChange}
             onClick={handleCheckboxClick}
             className="flex-shrink-0 w-4 h-4 mt-1 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
           />
