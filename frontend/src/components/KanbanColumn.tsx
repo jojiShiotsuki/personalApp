@@ -44,7 +44,7 @@ export default function KanbanColumn({
     stage === DealStage.CLOSED_WON || stage === DealStage.CLOSED_LOST;
 
   return (
-    <div className="flex flex-col min-w-[280px] max-w-[320px]">
+    <div className="flex flex-col min-w-[240px] sm:min-w-[280px] max-w-[320px] flex-shrink-0">
       {/* Column Header */}
       <div
         className={cn(

@@ -109,7 +109,11 @@ export default function KanbanBoard({
 
   return (
     <DragDropContext onDragEnd={handleDragEnd}>
-      <div className="flex gap-4 overflow-x-auto pb-4 pt-2 px-2">
+      <div className="relative">
+        {/* Scroll hint for mobile */}
+        <div className="sm:hidden absolute top-0 right-0 bg-gradient-to-l from-gray-100 to-transparent w-8 h-full pointer-events-none z-10" />
+
+        <div className="flex gap-4 overflow-x-auto pb-4 pt-2 px-2">
         {STAGE_ORDER.map((stage) => (
           <KanbanColumn
             key={stage}
@@ -121,6 +125,7 @@ export default function KanbanBoard({
             onDeleteDeal={onDeleteDeal}
           />
         ))}
+        </div>
       </div>
     </DragDropContext>
   );

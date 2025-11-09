@@ -31,6 +31,7 @@ export default function DealCard({ deal, index, onEdit, onDelete }: DealCardProp
           {...provided.dragHandleProps}
           className={cn(
             'bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-3 group',
+            'min-h-[100px]',
             'hover:shadow-md transition-shadow cursor-grab active:cursor-grabbing',
             snapshot.isDragging && 'shadow-lg rotate-2'
           )}
