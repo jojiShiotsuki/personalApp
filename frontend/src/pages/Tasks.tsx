@@ -7,7 +7,9 @@ import TaskList from '@/components/TaskList';
 import { Filter, Plus, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-type FilterValue = TaskStatus | 'all' | 'today' | 'this_week' | 'this_month' | 'overdue';
+type FilterValue = TaskStatus | 'all' | 'today' | 'this_week' | 'this_month' | 'overdue'
+  | 'week1' | 'week2' | 'week3' | 'week4' | 'week5' | 'week6' | 'week7' | 'week8'
+  | 'week9' | 'week10' | 'week11' | 'week12';
 type SortOption = 'dueDate' | 'priority' | 'createdDate' | 'title';
 
 // Date helper functions
@@ -45,6 +47,22 @@ const isOverdue = (dateString: string | null): boolean => {
   const taskDate = new Date(dateString);
   taskDate.setHours(0, 0, 0, 0);
   return taskDate < today;
+};
+
+// Check if task falls within a specific week number (1-12)
+// Week 1 = 0-6 days from today, Week 2 = 7-13 days, etc.
+const isInWeek = (dateString: string | null, weekNumber: number): boolean => {
+  if (!dateString) return false;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const taskDate = new Date(dateString);
+  taskDate.setHours(0, 0, 0, 0);
+
+  const daysDiff = Math.floor((taskDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+  const weekStart = (weekNumber - 1) * 7;
+  const weekEnd = weekNumber * 7;
+
+  return daysDiff >= weekStart && daysDiff < weekEnd;
 };
 
 // Sort comparison functions
@@ -176,6 +194,18 @@ export default function Tasks() {
     { label: 'This Week', value: 'this_week' },
     { label: 'This Month', value: 'this_month' },
     { label: 'Overdue', value: 'overdue' },
+    { label: 'Week 1', value: 'week1' },
+    { label: 'Week 2', value: 'week2' },
+    { label: 'Week 3', value: 'week3' },
+    { label: 'Week 4', value: 'week4' },
+    { label: 'Week 5', value: 'week5' },
+    { label: 'Week 6', value: 'week6' },
+    { label: 'Week 7', value: 'week7' },
+    { label: 'Week 8', value: 'week8' },
+    { label: 'Week 9', value: 'week9' },
+    { label: 'Week 10', value: 'week10' },
+    { label: 'Week 11', value: 'week11' },
+    { label: 'Week 12', value: 'week12' },
     { label: 'Pending', value: TaskStatus.PENDING },
     { label: 'In Progress', value: TaskStatus.IN_PROGRESS },
     { label: 'Completed', value: TaskStatus.COMPLETED },
@@ -192,6 +222,20 @@ export default function Tasks() {
           if (filter === 'this_week') return isThisWeek(task.due_date);
           if (filter === 'this_month') return isThisMonth(task.due_date);
           if (filter === 'overdue') return isOverdue(task.due_date) && task.status !== TaskStatus.COMPLETED;
+
+          // Week-based filters (Week 1-12)
+          if (filter === 'week1') return isInWeek(task.due_date, 1);
+          if (filter === 'week2') return isInWeek(task.due_date, 2);
+          if (filter === 'week3') return isInWeek(task.due_date, 3);
+          if (filter === 'week4') return isInWeek(task.due_date, 4);
+          if (filter === 'week5') return isInWeek(task.due_date, 5);
+          if (filter === 'week6') return isInWeek(task.due_date, 6);
+          if (filter === 'week7') return isInWeek(task.due_date, 7);
+          if (filter === 'week8') return isInWeek(task.due_date, 8);
+          if (filter === 'week9') return isInWeek(task.due_date, 9);
+          if (filter === 'week10') return isInWeek(task.due_date, 10);
+          if (filter === 'week11') return isInWeek(task.due_date, 11);
+          if (filter === 'week12') return isInWeek(task.due_date, 12);
 
           // Status-based filters
           if (filter === TaskStatus.PENDING) return task.status === TaskStatus.PENDING;
@@ -247,24 +291,27 @@ export default function Tasks() {
 
       {/* Filters */}
       <div className="bg-gradient-to-r from-gray-50 to-white border-b px-8 py-4">
-        <div className="flex items-center space-x-2">
-          <Filter className="w-4 h-4 text-gray-400" />
-          {filters.map((f) => (
-            <button
-              key={f.value}
-              onClick={() => setFilter(f.value)}
-              className={cn(
-                'px-4 py-2 text-sm font-medium rounded-lg',
-                'transition-all duration-200',
-                'active:scale-95',
-                filter === f.value
-                  ? 'bg-blue-100 text-blue-700 shadow-sm'
-                  : 'text-gray-600 hover:bg-gray-100'
-              )}
-            >
-              {f.label}
-            </button>
-          ))}
+        <div className="flex items-start gap-2">
+          <Filter className="w-4 h-4 text-gray-400 mt-2 flex-shrink-0" />
+          <div className="flex flex-wrap gap-2">
+            {filters.map((f) => (
+              <button
+                key={f.value}
+                onClick={() => setFilter(f.value)}
+                className={cn(
+                  'px-4 py-2 text-sm font-medium rounded-lg',
+                  'transition-all duration-200',
+                  'active:scale-95',
+                  'whitespace-nowrap',
+                  filter === f.value
+                    ? 'bg-blue-100 text-blue-700 shadow-sm'
+                    : 'text-gray-600 hover:bg-gray-100'
+                )}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
