@@ -39,7 +39,6 @@ export default function Goals() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
   const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
-  const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
 
   const queryClient = useQueryClient();
 
