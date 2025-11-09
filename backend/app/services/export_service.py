@@ -4,7 +4,7 @@ from datetime import datetime, date, timedelta
 from typing import Optional
 from decimal import Decimal
 
-from app.models.task import Task, TaskStatus
+from app.models.task import Task, TaskStatus, TaskPriority
 from app.models.crm import Contact, Deal, Interaction, DealStage
 
 class ExportService:
@@ -366,11 +366,10 @@ class ExportService:
             )
 
         # Check for overdue urgent tasks
-        from datetime import date as dt_date
         overdue_urgent = db.query(Task).filter(
             Task.status.in_([TaskStatus.PENDING, TaskStatus.IN_PROGRESS]),
-            Task.due_date < dt_date.today(),
-            Task.priority == 'urgent'
+            Task.due_date < date.today(),
+            Task.priority == TaskPriority.URGENT
         ).all()
 
         if len(overdue_urgent) >= 5:
@@ -379,7 +378,6 @@ class ExportService:
             )
 
         # Check for high-value inactive deals
-        from datetime import datetime, timedelta
         inactive_threshold = datetime.now() - timedelta(days=14)
 
         inactive_high_value = db.query(Deal).filter(
