@@ -395,17 +395,6 @@ export default function Goals() {
                                                 {priorityConfig[goal.priority].label}
                                               </span>
 
-                                              {/* Progress */}
-                                              <div className="flex items-center gap-2">
-                                                <div className="w-32 h-2 bg-gray-200 rounded-full overflow-hidden">
-                                                  <div
-                                                    className="h-full bg-green-500 transition-all"
-                                                    style={{ width: `${goal.progress}%` }}
-                                                  />
-                                                </div>
-                                                <span className="text-xs text-gray-600">{goal.progress}%</span>
-                                              </div>
-
                                               {/* Target Date */}
                                               {goal.target_date && (
                                                 <span className="text-xs text-gray-500 flex items-center gap-1">
