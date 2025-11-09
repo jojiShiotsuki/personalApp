@@ -8,7 +8,7 @@ from app.models.task import Task
 from app.schemas.task import TaskParseRequest, TaskBulkParseRequest, TaskResponse
 from app.services.task_parser import TaskParser
 
-router = APIRouter(prefix="/api/tasks", tags=["tasks"])
+router = APIRouter(prefix="/api/task-parser", tags=["tasks"])
 
 @router.post("/parse", response_model=TaskResponse, status_code=201)
 def parse_and_create_task(request: TaskParseRequest, db: Session = Depends(get_db)):
@@ -28,7 +28,7 @@ def parse_and_create_task(request: TaskParseRequest, db: Session = Depends(get_d
     db.refresh(db_task)
     return db_task
 
-@router.post("/parse-bulk", response_model=List[TaskResponse])
+@router.post("/parsebulk", response_model=List[TaskResponse])
 def parse_and_create_bulk(
     request: TaskBulkParseRequest,
     db: Session = Depends(get_db)

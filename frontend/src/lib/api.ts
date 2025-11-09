@@ -62,12 +62,12 @@ export const taskApi = {
   },
 
   parse: async (text: string): Promise<Task> => {
-    const response = await api.post('/api/tasks/parse', { text });
+    const response = await api.post('/api/task-parser/parse', { text });
     return response.data;
   },
 
   parseBulk: async (lines: string[]): Promise<Task[]> => {
-    const response = await api.post('/api/tasks/parse-bulk', { lines });
+    const response = await api.post('/api/task-parser/parsebulk', { lines });
     return response.data;
   },
 };
