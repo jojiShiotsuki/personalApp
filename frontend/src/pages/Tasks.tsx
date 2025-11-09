@@ -63,6 +63,10 @@ export default function Tasks() {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
         e.preventDefault();
+        e.stopPropagation();
+        // Close any other modals and only open QuickAddModal
+        setIsModalOpen(false);
+        setEditingTask(null);
         setIsQuickAddOpen(true);
       }
     };
