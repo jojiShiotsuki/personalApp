@@ -98,11 +98,6 @@ export default function QuickAddModal({
         e.preventDefault();
         handleSubmit();
       }
-
-      // Debug: Check if Ctrl+K is reaching this handler
-      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
-        console.log('=== Ctrl+K REACHED QuickAddModal handler (should not happen!) ===');
-      }
     };
 
     window.addEventListener('keydown', handleKeyDown);
