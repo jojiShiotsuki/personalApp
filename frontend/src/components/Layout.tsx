@@ -32,7 +32,7 @@ export default function Layout({ children }: LayoutProps) {
           {/* Logo */}
           <div className="flex items-center justify-center h-16 border-b">
             <h1 className="text-xl font-bold text-gray-800">
-              Personal App
+              Vertex
             </h1>
           </div>
 

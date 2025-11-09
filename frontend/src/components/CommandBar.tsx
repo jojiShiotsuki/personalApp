@@ -67,7 +67,7 @@ export default function CommandBar() {
         <div className="flex items-center px-6 py-4 border-b">
           <div className="flex-1">
             <h2 className="text-lg font-bold text-gray-900">
-              Personal Assistant
+              Vertex Quick Add
             </h2>
             <p className="text-xs text-gray-500 mt-1">
               Type naturally: "meeting tomorrow at 3pm", "call John high priority"
