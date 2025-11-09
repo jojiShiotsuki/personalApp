@@ -87,7 +87,6 @@ export default function Goals() {
     mutationFn: goalApi.delete,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['goals'] });
-      setDeleteConfirmId(null);
     },
   });
 
