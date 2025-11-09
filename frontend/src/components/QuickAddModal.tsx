@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { X, Loader2, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -30,37 +30,15 @@ export default function QuickAddModal({
     }
   }, [isOpen]);
 
-  // Handle keyboard shortcuts
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Escape to close
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        handleClose();
-      }
-
-      // Cmd/Ctrl+Enter to submit
-      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-        e.preventDefault();
-        handleSubmit();
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, taskText, isSubmitting]);
-
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     if (!isSubmitting) {
       setTaskText('');
       setError(null);
       onClose();
     }
-  };
+  }, [isSubmitting, onClose]);
 
-  const handleSubmit = async () => {
+  const handleSubmit = useCallback(async () => {
     // Clear previous error
     setError(null);
 
@@ -102,7 +80,29 @@ export default function QuickAddModal({
     } finally {
       setIsSubmitting(false);
     }
-  };
+  }, [taskText, onSuccess, onClose]);
+
+  // Handle keyboard shortcuts
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Escape to close
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        handleClose();
+      }
+
+      // Cmd/Ctrl+Enter to submit
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        e.preventDefault();
+        handleSubmit();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, handleClose, handleSubmit]);
 
   if (!isOpen) return null;
 

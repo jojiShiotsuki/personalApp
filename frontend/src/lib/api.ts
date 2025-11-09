@@ -65,6 +65,11 @@ export const taskApi = {
     const response = await api.post('/api/tasks/parse', { text });
     return response.data;
   },
+
+  parseBulk: async (lines: string[]): Promise<Task[]> => {
+    const response = await api.post('/api/tasks/parse-bulk', { lines });
+    return response.data;
+  },
 };
 
 // Contact API
