@@ -276,22 +276,20 @@ export default function Tasks() {
 
       {/* Task List */}
       <div className="flex-1 overflow-auto px-8 py-6">
-        <div className="max-w-6xl mx-auto">
-          {isLoading ? (
-            <div className="flex justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-            </div>
-          ) : (
-            <TaskList
-              tasks={filteredAndSortedTasks}
-              onStatusChange={handleStatusChange}
-              onTaskClick={handleTaskClick}
-              onDelete={(id) => deleteMutation.mutate(id)}
-              isUpdating={updateStatusMutation.isPending}
-              searchQuery={searchQuery}
-            />
-          )}
-        </div>
+        {isLoading ? (
+          <div className="flex justify-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          </div>
+        ) : (
+          <TaskList
+            tasks={filteredAndSortedTasks}
+            onStatusChange={handleStatusChange}
+            onTaskClick={handleTaskClick}
+            onDelete={(id) => deleteMutation.mutate(id)}
+            isUpdating={updateStatusMutation.isPending}
+            searchQuery={searchQuery}
+          />
+        )}
       </div>
 
       {/* Modal */}
