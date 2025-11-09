@@ -8,12 +8,14 @@ import { Filter, Plus, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 type FilterValue = TaskStatus | 'all';
+type SortOption = 'dueDate' | 'priority' | 'createdDate' | 'title';
 
 export default function Tasks() {
   const [filter, setFilter] = useState<FilterValue>('all');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState<SortOption>('dueDate');
   const queryClient = useQueryClient();
 
   const { data: tasks = [], isLoading } = useQuery({
@@ -167,6 +169,19 @@ export default function Tasks() {
                 />
               </svg>
             </div>
+          </div>
+          {/* Sort Dropdown */}
+          <div className="sm:w-64">
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as SortOption)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="dueDate">Sort by: Due Date</option>
+              <option value="priority">Sort by: Priority</option>
+              <option value="createdDate">Sort by: Created Date</option>
+              <option value="title">Sort by: Title</option>
+            </select>
           </div>
         </div>
       </div>
