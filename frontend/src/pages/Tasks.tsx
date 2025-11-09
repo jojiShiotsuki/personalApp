@@ -168,7 +168,7 @@ export default function Tasks() {
   return (
     <div className="h-full flex flex-col">
       {/* Header */}
-      <div className="bg-white border-b px-8 py-6">
+      <div className="bg-white border-b px-8 py-6 shadow-sm">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Tasks</h1>
@@ -178,16 +178,24 @@ export default function Tasks() {
           </div>
           <button
             onClick={handleNewTask}
-            className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            className={cn(
+              'group flex items-center',
+              'px-4 py-2',
+              'bg-blue-600 text-white',
+              'rounded-lg',
+              'hover:bg-blue-700',
+              'transition-all duration-200',
+              'shadow-sm hover:shadow'
+            )}
           >
-            <Plus className="w-5 h-5 mr-2" />
+            <Plus className="w-5 h-5 mr-2 transition-transform duration-200 group-hover:rotate-90" />
             New Task
           </button>
         </div>
       </div>
 
       {/* Filters */}
-      <div className="bg-white border-b px-8 py-4">
+      <div className="bg-gradient-to-r from-gray-50 to-white border-b px-8 py-4">
         <div className="flex items-center space-x-2">
           <Filter className="w-4 h-4 text-gray-400" />
           {filters.map((f) => (
@@ -195,9 +203,11 @@ export default function Tasks() {
               key={f.value}
               onClick={() => setFilter(f.value)}
               className={cn(
-                'px-4 py-2 text-sm font-medium rounded-lg transition-colors',
+                'px-4 py-2 text-sm font-medium rounded-lg',
+                'transition-all duration-200',
+                'active:scale-95',
                 filter === f.value
-                  ? 'bg-blue-100 text-blue-700'
+                  ? 'bg-blue-100 text-blue-700 shadow-sm'
                   : 'text-gray-600 hover:bg-gray-100'
               )}
             >
@@ -218,7 +228,13 @@ export default function Tasks() {
                 placeholder="Search tasks by title or description..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full px-4 py-2 pl-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className={cn(
+                  'w-full px-4 py-2 pl-10',
+                  'border border-gray-300 rounded-lg',
+                  'shadow-sm',
+                  'focus:outline-none focus:ring-2 focus:ring-blue-500 focus:shadow-md',
+                  'transition-all duration-200'
+                )}
               />
               <svg
                 className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"
@@ -240,7 +256,14 @@ export default function Tasks() {
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as SortOption)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className={cn(
+                'w-full px-4 py-2',
+                'border border-gray-300 rounded-lg',
+                'shadow-sm',
+                'focus:outline-none focus:ring-2 focus:ring-blue-500',
+                'transition-all duration-200',
+                'cursor-pointer'
+              )}
             >
               <option value="dueDate">Sort by: Due Date</option>
               <option value="priority">Sort by: Priority</option>
@@ -253,20 +276,22 @@ export default function Tasks() {
 
       {/* Task List */}
       <div className="flex-1 overflow-auto px-8 py-6">
-        {isLoading ? (
-          <div className="flex justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-          </div>
-        ) : (
-          <TaskList
-            tasks={filteredAndSortedTasks}
-            onStatusChange={handleStatusChange}
-            onTaskClick={handleTaskClick}
-            onDelete={(id) => deleteMutation.mutate(id)}
-            isUpdating={updateStatusMutation.isPending}
-            searchQuery={searchQuery}
-          />
-        )}
+        <div className="max-w-6xl mx-auto">
+          {isLoading ? (
+            <div className="flex justify-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            </div>
+          ) : (
+            <TaskList
+              tasks={filteredAndSortedTasks}
+              onStatusChange={handleStatusChange}
+              onTaskClick={handleTaskClick}
+              onDelete={(id) => deleteMutation.mutate(id)}
+              isUpdating={updateStatusMutation.isPending}
+              searchQuery={searchQuery}
+            />
+          )}
+        </div>
       </div>
 
       {/* Modal */}
