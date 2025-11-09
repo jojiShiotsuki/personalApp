@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { taskApi } from '@/lib/api';
 import type { Task, TaskCreate, TaskUpdate } from '@/types';
@@ -42,8 +42,18 @@ export default function Tasks() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [sortBy, setSortBy] = useState<SortOption>('dueDate');
   const queryClient = useQueryClient();
+
+  // Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   const { data: tasks = [], isLoading } = useQuery({
     queryKey: ['tasks', filter],
@@ -141,8 +151,8 @@ export default function Tasks() {
         });
 
     // Apply search filter
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase().trim();
+    if (debouncedSearch.trim()) {
+      const query = debouncedSearch.toLowerCase().trim();
       result = result.filter(task =>
         task.title.toLowerCase().includes(query) ||
         (task.description && task.description.toLowerCase().includes(query))
@@ -153,7 +163,7 @@ export default function Tasks() {
     result = [...result].sort(sortFunctions[sortBy]);
 
     return result;
-  }, [tasks, filter, searchQuery, sortBy]);
+  }, [tasks, filter, debouncedSearch, sortBy]);
 
   return (
     <div className="h-full flex flex-col">
