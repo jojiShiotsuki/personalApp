@@ -16,9 +16,9 @@ import {
   DealStage,
 } from '../types/index';
 
-// In production, API is served from same domain. In dev, use localhost:8000
+// In production, API is served from same domain. In dev, use localhost:8001
 const API_URL = import.meta.env.VITE_API_URL ||
-  (import.meta.env.PROD ? '' : 'http://localhost:8000');
+  (import.meta.env.PROD ? '' : 'http://localhost:8001');
 
 const api = axios.create({
   baseURL: API_URL,
