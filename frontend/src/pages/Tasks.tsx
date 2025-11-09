@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { taskApi } from '@/lib/api';
 import type { Task, TaskCreate, TaskUpdate } from '@/types';
@@ -100,6 +100,31 @@ export default function Tasks() {
     { label: 'Completed', value: TaskStatus.COMPLETED },
   ];
 
+  // Filter and sort tasks
+  const filteredAndSortedTasks = useMemo(() => {
+    // Filter by status first
+    let result = filter === 'all'
+      ? tasks
+      : tasks.filter(task => {
+          if (filter === TaskStatus.PENDING) return task.status === TaskStatus.PENDING;
+          if (filter === TaskStatus.IN_PROGRESS) return task.status === TaskStatus.IN_PROGRESS;
+          if (filter === TaskStatus.COMPLETED) return task.status === TaskStatus.COMPLETED;
+          if (filter === TaskStatus.DELAYED) return task.status === TaskStatus.DELAYED;
+          return true;
+        });
+
+    // Apply search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim();
+      result = result.filter(task =>
+        task.title.toLowerCase().includes(query) ||
+        (task.description && task.description.toLowerCase().includes(query))
+      );
+    }
+
+    return result;
+  }, [tasks, filter, searchQuery]);
+
   return (
     <div className="h-full flex flex-col">
       {/* Header */}
@@ -194,7 +219,7 @@ export default function Tasks() {
           </div>
         ) : (
           <TaskList
-            tasks={tasks}
+            tasks={filteredAndSortedTasks}
             onStatusChange={handleStatusChange}
             onTaskClick={handleTaskClick}
             onDelete={(id) => deleteMutation.mutate(id)}
