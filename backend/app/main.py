@@ -30,9 +30,11 @@ app.add_middleware(
 )
 
 # Register API routers
+# IMPORTANT: task_parser must come BEFORE tasks to match /parse and /parse-bulk
+# before the generic /{task_id} route
+app.include_router(task_parser.router)
 app.include_router(tasks.router)
 app.include_router(crm.router)
-app.include_router(task_parser.router)
 app.include_router(export.router)
 
 @app.on_event("startup")
