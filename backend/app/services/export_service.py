@@ -340,3 +340,72 @@ class ExportService:
             'completion_rate': completion_rate,
             'avg_completion_time': avg_completion_time,
         }
+
+    @classmethod
+    def _generate_recommendations(cls, db: Session, start_date: date, end_date: date):
+        """Generate strategic recommendations based on detected patterns"""
+        recommendations = []
+
+        # Check for stalled deals
+        stalled_deals = cls._get_stalled_deals(db, days=14)
+        if len(stalled_deals) >= 3:
+            stages = list(set([deal.stage.value.replace('_', ' ').title() for deal in stalled_deals]))
+            recommendations.append(
+                f"Review and advance {len(stalled_deals)} stalled deals in {', '.join(stages)} stage(s)"
+            )
+
+        # Check win rate
+        won_deals = db.query(Deal).filter(Deal.stage == DealStage.CLOSED_WON).count()
+        lost_deals = db.query(Deal).filter(Deal.stage == DealStage.CLOSED_LOST).count()
+        total_closed = won_deals + lost_deals
+        win_rate = (won_deals / total_closed * 100) if total_closed > 0 else 0
+
+        if win_rate < 40 and total_closed >= 5:
+            recommendations.append(
+                "Analyze lost deal patterns to improve conversion strategy"
+            )
+
+        # Check for overdue urgent tasks
+        from datetime import date as dt_date
+        overdue_urgent = db.query(Task).filter(
+            Task.status.in_([TaskStatus.PENDING, TaskStatus.IN_PROGRESS]),
+            Task.due_date < dt_date.today(),
+            Task.priority == 'urgent'
+        ).all()
+
+        if len(overdue_urgent) >= 5:
+            recommendations.append(
+                f"Clear {len(overdue_urgent)} urgent overdue tasks before adding new commitments"
+            )
+
+        # Check for high-value inactive deals
+        from datetime import datetime, timedelta
+        inactive_threshold = datetime.now() - timedelta(days=14)
+
+        inactive_high_value = db.query(Deal).filter(
+            Deal.stage.in_([
+                DealStage.LEAD,
+                DealStage.PROSPECT,
+                DealStage.PROPOSAL,
+                DealStage.NEGOTIATION
+            ]),
+            Deal.value >= 10000,
+            Deal.updated_at < inactive_threshold
+        ).limit(2).all()
+
+        for deal in inactive_high_value:
+            contact = db.query(Contact).filter(Contact.id == deal.contact_id).first()
+            days_inactive = (datetime.now() - deal.updated_at).days
+            if contact:
+                recommendations.append(
+                    f"Schedule check-in with {contact.name} on '{deal.title}' (no activity in {days_inactive} days)"
+                )
+
+        # Check task completion rate
+        metrics = cls._calculate_performance_metrics(db, start_date, end_date)
+        if metrics['completion_rate'] < 50 and metrics['completion_rate'] > 0:
+            recommendations.append(
+                f"Review task load - only {metrics['completion_rate']:.0f}% completion rate suggests overcommitment"
+            )
+
+        return recommendations[:5]  # Max 5 recommendations
