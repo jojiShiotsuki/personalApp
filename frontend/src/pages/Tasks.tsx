@@ -11,7 +11,7 @@ type FilterValue = TaskStatus | 'all';
 type SortOption = 'dueDate' | 'priority' | 'createdDate' | 'title';
 
 // Sort comparison functions
-const sortFunctions: Record<SortOption, (a: any, b: any) => number> = {
+const sortFunctions: Record<SortOption, (a: Task, b: Task) => number> = {
   dueDate: (a, b) => {
     if (!a.due_date && !b.due_date) return 0;
     if (!a.due_date) return 1; // null dates last
@@ -25,7 +25,9 @@ const sortFunctions: Record<SortOption, (a: any, b: any) => number> = {
       medium: 2,
       low: 3
     };
-    return priorityOrder[a.priority] - priorityOrder[b.priority];
+    const aPriority = priorityOrder[a.priority] ?? 999;
+    const bPriority = priorityOrder[b.priority] ?? 999;
+    return aPriority - bPriority;
   },
   createdDate: (a, b) => {
     return new Date(b.created_at).getTime() - new Date(a.created_at).getTime(); // newest first
