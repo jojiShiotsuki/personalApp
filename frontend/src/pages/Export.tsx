@@ -44,9 +44,9 @@ export default function Export() {
       <div className="bg-white border-b px-8 py-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Context Export</h1>
+            <h1 className="text-3xl font-bold text-gray-900">CEO AI Briefing</h1>
             <p className="mt-1 text-sm text-gray-500">
-              Export your data as markdown for Claude CEO mentor
+              Strategic insights and data export optimized for Claude AI analysis
             </p>
           </div>
           <div className="flex space-x-3">
@@ -190,17 +190,25 @@ export default function Export() {
           </div>
           <div className="ml-3 flex-1">
             <h3 className="text-sm font-medium text-blue-900">
-              How to use this export
+              How to use your CEO AI Briefing
             </h3>
             <div className="mt-2 text-sm text-blue-700">
               <p>
-                1. Click "Copy to Clipboard" above
+                1. Review the Executive Summary and Recommendations above
                 <br />
-                2. Open Claude.ai or your Claude app
+                2. Click "Copy to Clipboard"
                 <br />
-                3. Paste the context into a new conversation
+                3. Open Claude.ai or your Claude app
                 <br />
-                4. Ask Claude for strategic advice, analysis, or recommendations
+                4. Paste the briefing into a new conversation
+                <br />
+                5. Ask Claude strategic questions like:
+                <br />
+                &nbsp;&nbsp;&nbsp;- "Based on these bottlenecks, what should I prioritize?"
+                <br />
+                &nbsp;&nbsp;&nbsp;- "How can I improve my win rate?"
+                <br />
+                &nbsp;&nbsp;&nbsp;- "What's the pattern in my stalled deals?"
               </p>
             </div>
           </div>
