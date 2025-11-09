@@ -99,6 +99,8 @@ export default function Tasks() {
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [sortBy, setSortBy] = useState<SortOption>('dueDate');
+  const [selectedTaskIds, setSelectedTaskIds] = useState<Set<number>>(new Set());
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const queryClient = useQueryClient();
 
   // Debounce search input
@@ -154,6 +156,15 @@ export default function Tasks() {
     },
   });
 
+  const bulkDeleteMutation = useMutation({
+    mutationFn: (ids: number[]) => taskApi.bulkDelete(ids),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      setSelectedTaskIds(new Set());
+      setShowDeleteConfirm(false);
+    },
+  });
+
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
@@ -185,6 +196,32 @@ export default function Tasks() {
   const handleNewTask = () => {
     setEditingTask(null);
     setIsModalOpen(true);
+  };
+
+  const handleToggleSelect = (taskId: number) => {
+    setSelectedTaskIds((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(taskId)) {
+        newSet.delete(taskId);
+      } else {
+        newSet.add(taskId);
+      }
+      return newSet;
+    });
+  };
+
+  const handleSelectAll = () => {
+    if (selectedTaskIds.size === filteredAndSortedTasks.length) {
+      setSelectedTaskIds(new Set());
+    } else {
+      setSelectedTaskIds(new Set(filteredAndSortedTasks.map(t => t.id)));
+    }
+  };
+
+  const handleBulkDelete = () => {
+    if (selectedTaskIds.size > 0) {
+      bulkDeleteMutation.mutate(Array.from(selectedTaskIds));
+    }
   };
 
 
@@ -268,24 +305,47 @@ export default function Tasks() {
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Tasks</h1>
             <p className="mt-1 text-sm text-gray-500">
-              Manage your tasks and stay organized
+              {selectedTaskIds.size > 0
+                ? `${selectedTaskIds.size} task(s) selected`
+                : 'Manage your tasks and stay organized'}
             </p>
           </div>
-          <button
-            onClick={handleNewTask}
-            className={cn(
-              'group flex items-center',
-              'px-4 py-2',
-              'bg-blue-600 text-white',
-              'rounded-lg',
-              'hover:bg-blue-700',
-              'transition-all duration-200',
-              'shadow-sm hover:shadow'
+          <div className="flex items-center gap-3">
+            {selectedTaskIds.size > 0 && (
+              <button
+                onClick={() => setShowDeleteConfirm(true)}
+                disabled={bulkDeleteMutation.isPending}
+                className={cn(
+                  'flex items-center',
+                  'px-4 py-2',
+                  'bg-red-600 text-white',
+                  'rounded-lg',
+                  'hover:bg-red-700',
+                  'transition-all duration-200',
+                  'shadow-sm hover:shadow',
+                  'disabled:opacity-50'
+                )}
+              >
+                <X className="w-5 h-5 mr-2" />
+                Delete {selectedTaskIds.size}
+              </button>
             )}
-          >
-            <Plus className="w-5 h-5 mr-2 transition-transform duration-200 group-hover:rotate-90" />
-            New Task
-          </button>
+            <button
+              onClick={handleNewTask}
+              className={cn(
+                'group flex items-center',
+                'px-4 py-2',
+                'bg-blue-600 text-white',
+                'rounded-lg',
+                'hover:bg-blue-700',
+                'transition-all duration-200',
+                'shadow-sm hover:shadow'
+              )}
+            >
+              <Plus className="w-5 h-5 mr-2 transition-transform duration-200 group-hover:rotate-90" />
+              New Task
+            </button>
+          </div>
         </div>
       </div>
 
@@ -318,6 +378,18 @@ export default function Tasks() {
       {/* Search and Sort Toolbar */}
       <div className="bg-white border-b px-8 py-4">
         <div className="flex flex-col sm:flex-row gap-4">
+          {/* Select All Checkbox */}
+          {filteredAndSortedTasks.length > 0 && (
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                checked={selectedTaskIds.size === filteredAndSortedTasks.length && filteredAndSortedTasks.length > 0}
+                onChange={handleSelectAll}
+                className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+              />
+              <label className="ml-2 text-sm text-gray-700">Select All</label>
+            </div>
+          )}
           {/* Search Input */}
           <div className="flex-1">
             <div className="relative">
@@ -386,6 +458,8 @@ export default function Tasks() {
             onDelete={(id) => deleteMutation.mutate(id)}
             isUpdating={updateStatusMutation.isPending}
             searchQuery={searchQuery}
+            selectedTaskIds={selectedTaskIds}
+            onToggleSelect={handleToggleSelect}
           />
         )}
       </div>
@@ -517,6 +591,36 @@ export default function Tasks() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Dialog */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-2xl w-full max-w-md mx-4 p-6">
+            <h3 className="text-lg font-bold text-gray-900 mb-2">
+              Delete {selectedTaskIds.size} Task{selectedTaskIds.size !== 1 ? 's' : ''}?
+            </h3>
+            <p className="text-sm text-gray-600 mb-6">
+              This action cannot be undone. Are you sure you want to delete {selectedTaskIds.size === 1 ? 'this task' : 'these tasks'}?
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                disabled={bulkDeleteMutation.isPending}
+                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleBulkDelete}
+                disabled={bulkDeleteMutation.isPending}
+                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
+              >
+                {bulkDeleteMutation.isPending ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
           </div>
         </div>
       )}

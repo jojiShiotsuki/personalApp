@@ -10,6 +10,8 @@ interface TaskItemProps {
   onClick: () => void;
   onDelete?: (id: number) => void;
   isUpdating?: boolean;
+  isSelected?: boolean;
+  onToggleSelect?: (id: number) => void;
 }
 
 // Priority configuration with thin border + badge
@@ -64,7 +66,7 @@ const statusConfig = {
   }
 };
 
-export default function TaskItem({ task, onStatusChange, onClick, onDelete, isUpdating }: TaskItemProps) {
+export default function TaskItem({ task, onStatusChange, onClick, onDelete, isUpdating, isSelected, onToggleSelect }: TaskItemProps) {
   const isCompleted = task.status === TaskStatus.COMPLETED;
   const priority = priorityConfig[task.priority];
   const status = statusConfig[task.status];
@@ -79,6 +81,13 @@ export default function TaskItem({ task, onStatusChange, onClick, onDelete, isUp
   const handleEdit = (e: React.MouseEvent) => {
     e.stopPropagation();
     onClick();
+  };
+
+  const handleCheckboxClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onToggleSelect) {
+      onToggleSelect(task.id);
+    }
   };
 
   const getDueDateBadge = () => {
@@ -175,9 +184,20 @@ export default function TaskItem({ task, onStatusChange, onClick, onDelete, isUp
       )}
       onClick={onClick}
     >
-      {/* Top row: Checkbox + Title + Priority Badge */}
+      {/* Top row: Selection Checkbox + Checkbox + Title + Priority Badge */}
       <div className="flex items-start gap-3">
-        {/* Checkbox */}
+        {/* Selection Checkbox */}
+        {onToggleSelect && (
+          <input
+            type="checkbox"
+            checked={isSelected}
+            onChange={handleCheckboxClick}
+            onClick={handleCheckboxClick}
+            className="flex-shrink-0 w-4 h-4 mt-1 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+          />
+        )}
+
+        {/* Completion Checkbox */}
         <button
           onClick={handleCheckbox}
           disabled={isUpdating}

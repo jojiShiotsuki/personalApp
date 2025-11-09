@@ -66,6 +66,28 @@ def update_task(task_id: int, task_update: TaskUpdate, db: Session = Depends(get
     db.refresh(db_task)
     return db_task
 
+@router.post("/bulk-delete", status_code=200)
+def bulk_delete_tasks(task_ids: List[int], db: Session = Depends(get_db)):
+    """Delete multiple tasks by their IDs"""
+    if not task_ids:
+        raise HTTPException(status_code=400, detail="No task IDs provided")
+
+    # Fetch all tasks with the given IDs
+    tasks = db.query(Task).filter(Task.id.in_(task_ids)).all()
+
+    if not tasks:
+        raise HTTPException(status_code=404, detail="No tasks found with the provided IDs")
+
+    deleted_count = len(tasks)
+
+    # Delete all tasks
+    for task in tasks:
+        db.delete(task)
+
+    db.commit()
+
+    return {"deleted_count": deleted_count, "message": f"Successfully deleted {deleted_count} task(s)"}
+
 @router.delete("/{task_id}", status_code=204)
 def delete_task(task_id: int, db: Session = Depends(get_db)):
     """Delete a task"""

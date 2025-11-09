@@ -54,6 +54,11 @@ export const taskApi = {
     await api.delete(`/api/tasks/${id}`);
   },
 
+  bulkDelete: async (ids: number[]): Promise<{ deleted_count: number; message: string }> => {
+    const response = await api.post('/api/tasks/bulk-delete', ids);
+    return response.data;
+  },
+
   updateStatus: async (id: number, status: TaskStatus): Promise<Task> => {
     const response = await api.patch(`/api/tasks/${id}/status`, null, {
       params: { status },
