@@ -52,25 +52,41 @@ def parse_and_create_bulk(
         return line.strip()
 
     tasks = []
-    for line in request.lines:
+    skipped_lines = []
+
+    for i, line in enumerate(request.lines, start=1):
         cleaned = clean_line(line)
         if cleaned:  # Skip empty lines
-            parsed = TaskParser.parse(cleaned)
-            db_task = Task(**parsed)
-            tasks.append(db_task)
+            try:
+                parsed = TaskParser.parse(cleaned)
+                db_task = Task(**parsed)
+                tasks.append(db_task)
+            except Exception as e:
+                skipped_lines.append(f"Line {i}: {line} - {str(e)}")
+                continue
 
     if not tasks:
+        error_details = "No valid tasks found."
+        if skipped_lines:
+            error_details += f" Errors: {'; '.join(skipped_lines)}"
         raise HTTPException(
             status_code=400,
-            detail="No valid tasks found in input"
+            detail=error_details
         )
 
     # Add all to session (atomic transaction)
-    db.add_all(tasks)
-    db.commit()
+    try:
+        db.add_all(tasks)
+        db.commit()
 
-    # Refresh all to get IDs and timestamps
-    for task in tasks:
-        db.refresh(task)
+        # Refresh all to get IDs and timestamps
+        for task in tasks:
+            db.refresh(task)
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to create tasks. Please try again."
+        )
 
     return tasks
