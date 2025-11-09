@@ -6,6 +6,8 @@ import type { Goal, GoalCreate, GoalUpdate, KeyResult } from '@/types';
 import { Quarter, Month, GoalPriority } from '@/types';
 import { ChevronDown, ChevronRight, Plus, Target, Trash2, Edit, Calendar } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import QuickAddGoalModal from '@/components/QuickAddGoalModal';
+import { toast } from 'sonner';
 
 // Quarter to months mapping
 const QUARTER_MONTHS: Record<Quarter, Month[]> = {
@@ -35,6 +37,7 @@ export default function Goals() {
   const [selectedYear, setSelectedYear] = useState(currentYear);
   const [expandedQuarters, setExpandedQuarters] = useState<Set<Quarter>>(new Set([Quarter.Q1]));
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
   const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
 
@@ -205,30 +208,14 @@ export default function Goals() {
     });
   };
 
-  // Quick add goal - defaults to current quarter/month
+  // Quick add goal - opens natural language modal
   const handleQuickAdd = () => {
-    const now = new Date();
-    const currentMonth = now.getMonth(); // 0-11
+    setIsQuickAddOpen(true);
+  };
 
-    // Determine quarter and month
-    let quarter: Quarter;
-    let month: Month;
-
-    if (currentMonth < 3) {
-      quarter = Quarter.Q1;
-      month = [Month.JANUARY, Month.FEBRUARY, Month.MARCH][currentMonth];
-    } else if (currentMonth < 6) {
-      quarter = Quarter.Q2;
-      month = [Month.APRIL, Month.MAY, Month.JUNE][currentMonth - 3];
-    } else if (currentMonth < 9) {
-      quarter = Quarter.Q3;
-      month = [Month.JULY, Month.AUGUST, Month.SEPTEMBER][currentMonth - 6];
-    } else {
-      quarter = Quarter.Q4;
-      month = [Month.OCTOBER, Month.NOVEMBER, Month.DECEMBER][currentMonth - 9];
-    }
-
-    handleNewGoal(quarter, month);
+  const handleQuickAddSuccess = (count: number) => {
+    queryClient.invalidateQueries({ queryKey: ['goals'] });
+    toast.success(`Created ${count} goal${count !== 1 ? 's' : ''} successfully!`);
   };
 
   // Keyboard shortcut: Ctrl+G or Cmd+G to quickly add goal
@@ -242,7 +229,7 @@ export default function Goals() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedYear]);
+  }, []);
 
   return (
     <div className="p-8">
@@ -669,6 +656,13 @@ export default function Goals() {
           Quick Add Goal (Ctrl+G)
         </span>
       </button>
+
+      {/* Quick Add Modal */}
+      <QuickAddGoalModal
+        isOpen={isQuickAddOpen}
+        onClose={() => setIsQuickAddOpen(false)}
+        onSuccess={handleQuickAddSuccess}
+      />
     </div>
   );
 }

@@ -218,4 +218,14 @@ export const goalApi = {
     });
     return response.data;
   },
+
+  parse: async (text: string): Promise<Goal> => {
+    const response = await api.post('/api/goal-parser/parse', { text });
+    return response.data;
+  },
+
+  parseBulk: async (text: string): Promise<Goal[]> => {
+    const response = await api.post('/api/goal-parser/parse-bulk', { text });
+    return response.data;
+  },
 };

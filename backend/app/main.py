@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from app.database import init_db
-from app.routes import tasks, crm, task_parser, export, goals
+from app.routes import tasks, crm, task_parser, export, goals, goal_parser
 
 app = FastAPI(
     title="Personal Productivity App",
@@ -30,9 +30,10 @@ app.add_middleware(
 )
 
 # Register API routers
-# IMPORTANT: task_parser must come BEFORE tasks to match /parse and /parse-bulk
-# before the generic /{task_id} route
+# IMPORTANT: task_parser and goal_parser must come BEFORE tasks/goals to match
+# /parse and /parse-bulk before the generic /{id} route
 app.include_router(task_parser.router)
+app.include_router(goal_parser.router)
 app.include_router(tasks.router)
 app.include_router(crm.router)
 app.include_router(export.router)
