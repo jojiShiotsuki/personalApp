@@ -34,9 +34,128 @@ class ExportService:
             start_date = end_date - timedelta(days=30)
 
         report = []
-        report.append(f"# Business Context Report - {start_date} to {end_date}")
+        report.append(f"# CEO AI Briefing - {start_date} to {end_date}")
         report.append("")
         report.append(f"*Generated on {datetime.now().strftime('%Y-%m-%d %H:%M')}*")
+        report.append("")
+
+        # Executive Summary
+        report.append("## Executive Summary")
+        report.append("")
+        report.append("**Key Findings:**")
+
+        # Calculate key findings
+        trends = cls._calculate_activity_trends(db, start_date, end_date)
+        stalled_deals = cls._get_stalled_deals(db, days=14)
+        stuck_tasks = cls._get_stuck_tasks(db, days=7)
+        metrics = cls._calculate_performance_metrics(db, start_date, end_date)
+
+        # Task velocity
+        if trends['tasks_previous'] > 0:
+            direction = "up" if trends['tasks_change_pct'] > 0 else "down"
+            report.append(f"- Task creation {direction} {abs(trends['tasks_change_pct']):.0f}% this period")
+
+        # Stalled deals
+        high_value_stalled = [d for d in stalled_deals if (d.value or 0) >= 10000]
+        if high_value_stalled:
+            report.append(f"- {len(high_value_stalled)} high-value deals stalled in pipeline (>14 days without update)")
+
+        # Win rate
+        won_deals_count = db.query(Deal).filter(Deal.stage == DealStage.CLOSED_WON).count()
+        lost_deals_count = db.query(Deal).filter(Deal.stage == DealStage.CLOSED_LOST).count()
+        total_closed = won_deals_count + lost_deals_count
+        if total_closed > 0:
+            win_rate = (won_deals_count / total_closed) * 100
+            if win_rate < 40:
+                report.append(f"- Win rate trending down ({win_rate:.0f}% vs 50% baseline)")
+
+        # Completion rate
+        if metrics['completion_rate'] > 0:
+            report.append(f"- Task completion rate at {metrics['completion_rate']:.0f}% this period")
+
+        # If no findings, add default message
+        if len([line for line in report if line.startswith("- ")]) == 0:
+            report.append("- No significant patterns detected in this period")
+
+        report.append("")
+
+        # Strategic Recommendations
+        recommendations = cls._generate_recommendations(db, start_date, end_date)
+        report.append("## Strategic Recommendations")
+        report.append("")
+
+        if recommendations:
+            report.append("**Immediate Actions:**")
+            for i, rec in enumerate(recommendations, 1):
+                report.append(f"{i}. {rec}")
+        else:
+            report.append("No critical actions identified - continue current momentum")
+
+        report.append("")
+
+        # Bottleneck Analysis
+        report.append("## Bottleneck Analysis")
+        report.append("")
+
+        # Stalled Deals
+        report.append(f"### Stalled Deals (No updates >14 days)")
+        if stalled_deals:
+            for deal in stalled_deals:
+                contact = db.query(Contact).filter(Contact.id == deal.contact_id).first()
+                contact_name = contact.name if contact else "Unknown"
+                stage_name = deal.stage.value.replace('_', ' ').title()
+                value_str = f"${deal.value:,.0f}" if deal.value else "N/A"
+                days_stalled = (datetime.now() - deal.updated_at).days
+                report.append(f"- {deal.title} - {stage_name} - {value_str} - {contact_name} - Stalled {days_stalled} days")
+        else:
+            report.append("- No stalled deals")
+        report.append("")
+
+        # Stuck Tasks
+        report.append(f"### Stuck Tasks (Created >7 days ago, not completed)")
+        if stuck_tasks:
+            for task in stuck_tasks:
+                priority_str = f"[{task.priority.value.upper()}]" if task.priority else ""
+                days_stuck = (datetime.now() - task.created_at).days
+                report.append(f"- {priority_str} {task.title} - Stuck {days_stuck} days")
+        else:
+            report.append("- No stuck tasks")
+        report.append("")
+
+        # Cold Contacts
+        cold_contacts = cls._get_cold_contacts(db, days=30)
+        report.append(f"### Cold Contacts (No interactions >30 days)")
+        if cold_contacts:
+            for item in cold_contacts:
+                contact = item['contact']
+                last_date = item['last_interaction_date']
+                if last_date:
+                    days_ago = (date.today() - last_date).days
+                    last_str = f"{days_ago} days ago"
+                else:
+                    last_str = "Never"
+                company_str = f" - {contact.company}" if contact.company else ""
+                report.append(f"- {contact.name} - Last interaction {last_str}{company_str}")
+        else:
+            report.append("- No cold contacts")
+        report.append("")
+
+        # Momentum Indicators
+        report.append("## Momentum Indicators")
+        report.append("")
+        report.append("**Activity Trends:**")
+        report.append(f"- Tasks created this period: {trends['tasks_current']} (vs {trends['tasks_previous']} last period) - {trends['tasks_change_pct']:+.0f}%")
+        report.append(f"- Deals created this period: {trends['deals_current']} (vs {trends['deals_previous']} last period) - {trends['deals_change_pct']:+.0f}%")
+        report.append("")
+        report.append("**Performance Metrics:**")
+        report.append(f"- Task completion rate: {metrics['completion_rate']:.0f}%")
+        report.append(f"- Average task completion time: {metrics['avg_completion_time']:.1f} days")
+        if total_closed > 0:
+            report.append(f"- Win rate: {win_rate:.0f}% ({won_deals_count} won / {total_closed} total closed)")
+        else:
+            report.append(f"- Win rate: N/A (no closed deals yet)")
+        report.append("")
+        report.append("---")
         report.append("")
 
         # Task Summary
