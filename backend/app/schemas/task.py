@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
 from datetime import datetime, date, time
-from typing import Optional
+from typing import Optional, List
 from app.models.task import TaskPriority, TaskStatus
 
 class TaskBase(BaseModel):
@@ -33,3 +33,17 @@ class TaskResponse(TaskBase):
 
 class TaskParseRequest(BaseModel):
     text: str = Field(..., min_length=1, max_length=500)
+
+class TaskBulkParseRequest(BaseModel):
+    lines: List[str]
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "lines": [
+                    "- Meeting tomorrow at 3pm",
+                    "Call John high priority",
+                    "Review proposal Friday"
+                ]
+            }
+        }
