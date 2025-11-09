@@ -6,8 +6,11 @@ import { Deal, DealStage } from '@/types';
 import KanbanColumn from './KanbanColumn';
 import { toast } from 'sonner';
 
+import { Contact } from '@/types';
+
 interface KanbanBoardProps {
   deals: Deal[];
+  contacts: Contact[];
   onEditDeal: (deal: Deal) => void;
   onDeleteDeal: (id: number) => void;
 }
@@ -23,6 +26,7 @@ const STAGE_ORDER = [
 
 export default function KanbanBoard({
   deals,
+  contacts,
   onEditDeal,
   onDeleteDeal,
 }: KanbanBoardProps) {
@@ -119,6 +123,7 @@ export default function KanbanBoard({
             key={stage}
             stage={stage}
             deals={dealsByStage[stage] || []}
+            contacts={contacts}
             isCollapsed={collapsedColumns.has(stage)}
             onToggleCollapse={() => toggleCollapse(stage)}
             onEditDeal={onEditDeal}

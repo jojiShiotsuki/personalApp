@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
 from datetime import datetime
 
@@ -97,7 +97,7 @@ def get_deals(
     db: Session = Depends(get_db)
 ):
     """Get all deals with optional filtering"""
-    query = db.query(Deal)
+    query = db.query(Deal).options(joinedload(Deal.contact))
 
     if stage:
         query = query.filter(Deal.stage == stage)
@@ -110,7 +110,7 @@ def get_deals(
 @router.get("/deals/{deal_id}", response_model=DealResponse)
 def get_deal(deal_id: int, db: Session = Depends(get_db)):
     """Get a single deal by ID"""
-    deal = db.query(Deal).filter(Deal.id == deal_id).first()
+    deal = db.query(Deal).options(joinedload(Deal.contact)).filter(Deal.id == deal_id).first()
     if not deal:
         raise HTTPException(status_code=404, detail="Deal not found")
     return deal
@@ -127,12 +127,14 @@ def create_deal(deal: DealCreate, db: Session = Depends(get_db)):
     db.add(db_deal)
     db.commit()
     db.refresh(db_deal)
+    # Load the contact relationship
+    db.refresh(db_deal, attribute_names=['contact'])
     return db_deal
 
 @router.put("/deals/{deal_id}", response_model=DealResponse)
 def update_deal(deal_id: int, deal_update: DealUpdate, db: Session = Depends(get_db)):
     """Update an existing deal"""
-    db_deal = db.query(Deal).filter(Deal.id == deal_id).first()
+    db_deal = db.query(Deal).options(joinedload(Deal.contact)).filter(Deal.id == deal_id).first()
     if not db_deal:
         raise HTTPException(status_code=404, detail="Deal not found")
 
@@ -159,7 +161,7 @@ def update_deal_stage(
     db: Session = Depends(get_db)
 ):
     """Update only the stage of a deal (for drag-drop)"""
-    db_deal = db.query(Deal).filter(Deal.id == deal_id).first()
+    db_deal = db.query(Deal).options(joinedload(Deal.contact)).filter(Deal.id == deal_id).first()
     if not db_deal:
         raise HTTPException(status_code=404, detail="Deal not found")
 

@@ -106,6 +106,7 @@ export default function Deals() {
       <div className="flex-1 overflow-hidden">
         <KanbanBoard
           deals={deals}
+          contacts={contacts}
           onEditDeal={(deal) => {
             setEditingDeal(deal);
             setSelectedStage(deal.stage);

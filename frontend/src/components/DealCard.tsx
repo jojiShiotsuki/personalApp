@@ -5,8 +5,9 @@ import { formatCurrency } from '@/lib/currency';
 import { cn } from '@/lib/utils';
 
 interface DealCardProps {
-  deal: Deal & { contact?: Contact };
+  deal: Deal;
   index: number;
+  contacts: Contact[];
   onEdit: (deal: Deal) => void;
   onDelete: (id: number) => void;
 }
@@ -19,7 +20,7 @@ function getDaysInStage(updatedAt: string): number {
   return diffDays;
 }
 
-export default function DealCard({ deal, index, onEdit, onDelete }: DealCardProps) {
+export default function DealCard({ deal, index, contacts, onEdit, onDelete }: DealCardProps) {
   const daysInStage = getDaysInStage(deal.updated_at);
 
   return (
@@ -66,12 +67,15 @@ export default function DealCard({ deal, index, onEdit, onDelete }: DealCardProp
             </div>
           </div>
 
-          {deal.contact && (
-            <p className="text-xs text-gray-500 mb-2">
-              {deal.contact.name}
-              {deal.contact.company && ` · ${deal.contact.company}`}
-            </p>
-          )}
+          {(() => {
+            const contact = contacts.find(c => c.id === deal.contact_id);
+            return contact && (
+              <p className="text-xs text-gray-500 mb-2">
+                {contact.name}
+                {contact.company && ` · ${contact.company}`}
+              </p>
+            );
+          })()}
 
           <div className="flex items-end justify-between">
             <span className="text-lg font-bold text-gray-900">

@@ -1,6 +1,6 @@
-from pydantic import BaseModel, Field, EmailStr
+from pydantic import BaseModel, Field, EmailStr, model_validator
 from datetime import datetime, date
-from typing import Optional, List
+from typing import Optional, List, Any
 from decimal import Decimal
 from app.models.crm import ContactStatus, DealStage, InteractionType
 
@@ -60,9 +60,35 @@ class DealResponse(DealBase):
     id: int
     created_at: datetime
     updated_at: datetime
+    contact: Optional[ContactResponse] = None
 
     class Config:
         from_attributes = True
+
+    @model_validator(mode='before')
+    @classmethod
+    def populate_contact(cls, data: Any) -> Any:
+        # If data is a SQLAlchemy model instance
+        if hasattr(data, '__dict__'):
+            # Check if it has a contact relationship loaded
+            if hasattr(data, 'contact') and data.contact is not None:
+                # Convert to dict and add contact
+                result = {
+                    'id': data.id,
+                    'contact_id': data.contact_id,
+                    'title': data.title,
+                    'description': data.description,
+                    'value': data.value,
+                    'stage': data.stage,
+                    'probability': data.probability,
+                    'expected_close_date': data.expected_close_date,
+                    'actual_close_date': data.actual_close_date,
+                    'created_at': data.created_at,
+                    'updated_at': data.updated_at,
+                    'contact': ContactResponse.model_validate(data.contact)
+                }
+                return result
+        return data
 
 # Interaction Schemas
 class InteractionBase(BaseModel):

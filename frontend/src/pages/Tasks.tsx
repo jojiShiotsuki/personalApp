@@ -4,10 +4,8 @@ import { taskApi } from '@/lib/api';
 import type { Task, TaskCreate, TaskUpdate } from '@/types';
 import { TaskStatus, TaskPriority } from '@/types';
 import TaskList from '@/components/TaskList';
-import QuickAddModal from '@/components/QuickAddModal';
 import { Filter, Plus, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { toast } from 'sonner';
 
 type FilterValue = TaskStatus | 'all';
 type SortOption = 'dueDate' | 'priority' | 'createdDate' | 'title';
@@ -46,7 +44,6 @@ export default function Tasks() {
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [sortBy, setSortBy] = useState<SortOption>('dueDate');
-  const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
   const queryClient = useQueryClient();
 
   // Debounce search input
@@ -58,22 +55,7 @@ export default function Tasks() {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  // Keyboard listener for Ctrl+K / Cmd+K
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
-        e.preventDefault();
-        e.stopPropagation();
-        // Close any other modals and only open QuickAddModal
-        setIsModalOpen(false);
-        setEditingTask(null);
-        setIsQuickAddOpen(true);
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  // Note: Global Ctrl+K listener moved to App.tsx to avoid duplicate modals
 
   const { data: tasks = [], isLoading } = useQuery({
     queryKey: ['tasks', filter],
@@ -150,10 +132,6 @@ export default function Tasks() {
     setIsModalOpen(true);
   };
 
-  const handleQuickAddSuccess = (count: number) => {
-    queryClient.invalidateQueries({ queryKey: ['tasks'] });
-    toast.success(`Created ${count} task${count !== 1 ? 's' : ''} successfully!`);
-  };
 
   const filters: Array<{ label: string; value: FilterValue }> = [
     { label: 'All', value: 'all' },
@@ -448,12 +426,6 @@ export default function Tasks() {
         </div>
       )}
 
-      {/* Quick Add Modal */}
-      <QuickAddModal
-        isOpen={isQuickAddOpen}
-        onClose={() => setIsQuickAddOpen(false)}
-        onSuccess={handleQuickAddSuccess}
-      />
     </div>
   );
 }

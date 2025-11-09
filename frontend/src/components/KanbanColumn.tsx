@@ -1,12 +1,13 @@
 import { Droppable } from '@hello-pangea/dnd';
 import { ChevronDown, ChevronRight } from 'lucide-react';
-import { Deal, DealStage } from '@/types';
+import { Deal, DealStage, Contact } from '@/types';
 import DealCard from './DealCard';
 import { cn } from '@/lib/utils';
 
 interface KanbanColumnProps {
   stage: DealStage;
   deals: Deal[];
+  contacts: Contact[];
   isCollapsed: boolean;
   onToggleCollapse: () => void;
   onEditDeal: (deal: Deal) => void;
@@ -34,6 +35,7 @@ const COLOR_CLASSES = {
 export default function KanbanColumn({
   stage,
   deals,
+  contacts,
   isCollapsed,
   onToggleCollapse,
   onEditDeal,
@@ -91,6 +93,7 @@ export default function KanbanColumn({
                   key={deal.id}
                   deal={deal}
                   index={index}
+                  contacts={contacts}
                   onEdit={onEditDeal}
                   onDelete={onDeleteDeal}
                 />
