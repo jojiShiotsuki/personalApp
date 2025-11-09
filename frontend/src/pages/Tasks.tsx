@@ -10,6 +10,31 @@ import { cn } from '@/lib/utils';
 type FilterValue = TaskStatus | 'all';
 type SortOption = 'dueDate' | 'priority' | 'createdDate' | 'title';
 
+// Sort comparison functions
+const sortFunctions: Record<SortOption, (a: any, b: any) => number> = {
+  dueDate: (a, b) => {
+    if (!a.due_date && !b.due_date) return 0;
+    if (!a.due_date) return 1; // null dates last
+    if (!b.due_date) return -1;
+    return new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
+  },
+  priority: (a, b) => {
+    const priorityOrder: Record<string, number> = {
+      urgent: 0,
+      high: 1,
+      medium: 2,
+      low: 3
+    };
+    return priorityOrder[a.priority] - priorityOrder[b.priority];
+  },
+  createdDate: (a, b) => {
+    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime(); // newest first
+  },
+  title: (a, b) => {
+    return a.title.localeCompare(b.title);
+  }
+};
+
 export default function Tasks() {
   const [filter, setFilter] = useState<FilterValue>('all');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -122,8 +147,11 @@ export default function Tasks() {
       );
     }
 
+    // Apply sorting
+    result = [...result].sort(sortFunctions[sortBy]);
+
     return result;
-  }, [tasks, filter, searchQuery]);
+  }, [tasks, filter, searchQuery, sortBy]);
 
   return (
     <div className="h-full flex flex-col">
