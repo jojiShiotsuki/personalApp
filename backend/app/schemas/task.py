@@ -45,7 +45,7 @@ class TaskBulkParseRequest(BaseModel):
     lines: List[str] = Field(
         ...,
         min_length=1,  # Require at least one line
-        max_length=100,  # Reasonable upper limit
+        max_length=500,  # Support large 90-day plans
         description="List of task descriptions to parse (one per line)"
     )
 
