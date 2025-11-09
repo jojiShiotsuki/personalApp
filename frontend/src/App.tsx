@@ -7,6 +7,7 @@ import Dashboard from './pages/Dashboard';
 import Tasks from './pages/Tasks';
 import Contacts from './pages/Contacts';
 import Deals from './pages/Deals';
+import Goals from './pages/Goals';
 import Export from './pages/Export';
 import QuickAddModal from './components/QuickAddModal';
 
@@ -40,6 +41,7 @@ function App() {
           <Route path="/tasks" element={<Tasks />} />
           <Route path="/contacts" element={<Contacts />} />
           <Route path="/deals" element={<Deals />} />
+          <Route path="/goals" element={<Goals />} />
           <Route path="/export" element={<Export />} />
         </Routes>
       </Layout>

@@ -131,6 +131,80 @@ export type InteractionCreate = {
   interaction_date: string;
 }
 
+// Goal types
+export enum Quarter {
+  Q1 = "Q1",
+  Q2 = "Q2",
+  Q3 = "Q3",
+  Q4 = "Q4",
+}
+
+export enum Month {
+  JANUARY = "January",
+  FEBRUARY = "February",
+  MARCH = "March",
+  APRIL = "April",
+  MAY = "May",
+  JUNE = "June",
+  JULY = "July",
+  AUGUST = "August",
+  SEPTEMBER = "September",
+  OCTOBER = "October",
+  NOVEMBER = "November",
+  DECEMBER = "December",
+}
+
+export enum GoalPriority {
+  LOW = "low",
+  MEDIUM = "medium",
+  HIGH = "high",
+}
+
+export type KeyResult = {
+  id: string;
+  title: string;
+  completed: boolean;
+}
+
+export type Goal = {
+  id: number;
+  title: string;
+  description?: string;
+  quarter: Quarter;
+  month: Month;
+  year: number;
+  target_date?: string;
+  progress: number;
+  priority: GoalPriority;
+  key_results?: KeyResult[];
+  created_at: string;
+  updated_at?: string;
+}
+
+export type GoalCreate = {
+  title: string;
+  description?: string;
+  quarter: Quarter;
+  month: Month;
+  year: number;
+  target_date?: string;
+  progress?: number;
+  priority?: GoalPriority;
+  key_results?: KeyResult[];
+}
+
+export type GoalUpdate = {
+  title?: string;
+  description?: string;
+  quarter?: Quarter;
+  month?: Month;
+  year?: number;
+  target_date?: string;
+  progress?: number;
+  priority?: GoalPriority;
+  key_results?: KeyResult[];
+}
+
 // Export types
 export type ContextExport = {
   markdown: string;

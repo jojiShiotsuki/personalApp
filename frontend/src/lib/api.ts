@@ -10,10 +10,14 @@ import type {
   Interaction,
   InteractionCreate,
   ContextExport,
+  Goal,
+  GoalCreate,
+  GoalUpdate,
 } from '../types/index';
 import {
   TaskStatus,
   DealStage,
+  Quarter,
 } from '../types/index';
 
 // In production, API is served from same domain. In dev, use localhost:8001
@@ -175,6 +179,43 @@ export const exportApi = {
     if (startDate) params.start_date = startDate;
     if (endDate) params.end_date = endDate;
     const response = await api.get('/api/export/context', { params });
+    return response.data;
+  },
+};
+
+// Goal API
+export const goalApi = {
+  getAll: async (quarter?: Quarter, year?: number): Promise<Goal[]> => {
+    const params: any = {};
+    if (quarter) params.quarter = quarter;
+    if (year) params.year = year;
+    const response = await api.get('/api/goals', { params });
+    return response.data;
+  },
+
+  getById: async (id: number): Promise<Goal> => {
+    const response = await api.get(`/api/goals/${id}`);
+    return response.data;
+  },
+
+  create: async (goal: GoalCreate): Promise<Goal> => {
+    const response = await api.post('/api/goals', goal);
+    return response.data;
+  },
+
+  update: async (id: number, goal: GoalUpdate): Promise<Goal> => {
+    const response = await api.put(`/api/goals/${id}`, goal);
+    return response.data;
+  },
+
+  delete: async (id: number): Promise<void> => {
+    await api.delete(`/api/goals/${id}`);
+  },
+
+  updateProgress: async (id: number, progress: number): Promise<Goal> => {
+    const response = await api.patch(`/api/goals/${id}/progress`, null, {
+      params: { progress }
+    });
     return response.data;
   },
 };

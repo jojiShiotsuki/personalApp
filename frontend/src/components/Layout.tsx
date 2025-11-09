@@ -5,6 +5,7 @@ import {
   CheckSquare,
   Users,
   Briefcase,
+  Target,
   Download,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -18,6 +19,7 @@ const navigation = [
   { name: 'Tasks', href: '/tasks', icon: CheckSquare },
   { name: 'Contacts', href: '/contacts', icon: Users },
   { name: 'Deals', href: '/deals', icon: Briefcase },
+  { name: 'Goals', href: '/goals', icon: Target },
   { name: 'Export', href: '/export', icon: Download },
 ];
 

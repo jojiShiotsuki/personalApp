@@ -27,6 +27,7 @@ def init_db():
     try:
         from app.models.task import Task
         from app.models.crm import Contact, Deal, Interaction
+        from app.models.goal import Goal
     except ImportError:
         # Models not yet created - that's ok for initial setup
         pass
