@@ -1,6 +1,8 @@
 import type { Task } from '@/types';
 import { TaskStatus } from '@/types';
 import TaskItem from './TaskItem';
+import { CheckSquare } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface TaskListProps {
   tasks: Task[];
@@ -14,36 +16,35 @@ interface TaskListProps {
 export default function TaskList({ tasks, onStatusChange, onTaskClick, onDelete, isUpdating, searchQuery }: TaskListProps) {
   if (tasks.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-12">
-        <svg
-          className="w-16 h-16 text-gray-300 mb-4"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-          />
-        </svg>
-        <p className="text-gray-500 text-lg mb-2">
+      <div className="flex flex-col items-center justify-center py-16">
+        {/* Icon with gradient background */}
+        <div className={cn(
+          'w-24 h-24 mb-6',
+          'rounded-full',
+          'bg-gradient-to-br from-blue-50 to-blue-100',
+          'flex items-center justify-center',
+          'shadow-inner'
+        )}>
+          <CheckSquare className="w-12 h-12 text-blue-400" />
+        </div>
+
+        {/* Heading */}
+        <h3 className="text-xl font-semibold text-gray-900 mb-2">
+          {searchQuery ? 'No matching tasks' : 'No tasks yet'}
+        </h3>
+
+        {/* Description */}
+        <p className="text-gray-500 text-center max-w-md mb-6 leading-relaxed">
           {searchQuery
-            ? `No tasks match "${searchQuery}"`
-            : 'No tasks yet'}
-        </p>
-        <p className="text-gray-400 text-sm">
-          {searchQuery
-            ? 'Try a different search term'
-            : 'Use Cmd+K to create your first task'}
+            ? `No tasks match "${searchQuery}". Try a different search term.`
+            : 'Create your first task to get started on your productivity journey.'}
         </p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       {tasks.map((task) => (
         <TaskItem
           key={task.id}
