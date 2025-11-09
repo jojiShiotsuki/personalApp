@@ -7,8 +7,45 @@ import TaskList from '@/components/TaskList';
 import { Filter, Plus, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-type FilterValue = TaskStatus | 'all';
+type FilterValue = TaskStatus | 'all' | 'today' | 'this_week' | 'this_month' | 'overdue';
 type SortOption = 'dueDate' | 'priority' | 'createdDate' | 'title';
+
+// Date helper functions
+const isToday = (dateString: string | null): boolean => {
+  if (!dateString) return false;
+  const today = new Date();
+  const taskDate = new Date(dateString);
+  return taskDate.toDateString() === today.toDateString();
+};
+
+const isThisWeek = (dateString: string | null): boolean => {
+  if (!dateString) return false;
+  const today = new Date();
+  const taskDate = new Date(dateString);
+  const weekStart = new Date(today);
+  weekStart.setDate(today.getDate() - today.getDay()); // Start of week (Sunday)
+  weekStart.setHours(0, 0, 0, 0);
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekStart.getDate() + 7);
+  return taskDate >= weekStart && taskDate < weekEnd;
+};
+
+const isThisMonth = (dateString: string | null): boolean => {
+  if (!dateString) return false;
+  const today = new Date();
+  const taskDate = new Date(dateString);
+  return taskDate.getMonth() === today.getMonth() &&
+         taskDate.getFullYear() === today.getFullYear();
+};
+
+const isOverdue = (dateString: string | null): boolean => {
+  if (!dateString) return false;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const taskDate = new Date(dateString);
+  taskDate.setHours(0, 0, 0, 0);
+  return taskDate < today;
+};
 
 // Sort comparison functions
 const sortFunctions: Record<SortOption, (a: Task, b: Task) => number> = {
@@ -135,6 +172,10 @@ export default function Tasks() {
 
   const filters: Array<{ label: string; value: FilterValue }> = [
     { label: 'All', value: 'all' },
+    { label: 'Today', value: 'today' },
+    { label: 'This Week', value: 'this_week' },
+    { label: 'This Month', value: 'this_month' },
+    { label: 'Overdue', value: 'overdue' },
     { label: 'Pending', value: TaskStatus.PENDING },
     { label: 'In Progress', value: TaskStatus.IN_PROGRESS },
     { label: 'Completed', value: TaskStatus.COMPLETED },
@@ -142,10 +183,17 @@ export default function Tasks() {
 
   // Filter and sort tasks
   const filteredAndSortedTasks = useMemo(() => {
-    // Filter by status first
+    // Filter by status or time period
     let result = filter === 'all'
       ? tasks
       : tasks.filter(task => {
+          // Time-based filters
+          if (filter === 'today') return isToday(task.due_date);
+          if (filter === 'this_week') return isThisWeek(task.due_date);
+          if (filter === 'this_month') return isThisMonth(task.due_date);
+          if (filter === 'overdue') return isOverdue(task.due_date) && task.status !== TaskStatus.COMPLETED;
+
+          // Status-based filters
           if (filter === TaskStatus.PENDING) return task.status === TaskStatus.PENDING;
           if (filter === TaskStatus.IN_PROGRESS) return task.status === TaskStatus.IN_PROGRESS;
           if (filter === TaskStatus.COMPLETED) return task.status === TaskStatus.COMPLETED;
