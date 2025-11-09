@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { goalApi } from '@/lib/api';
@@ -205,6 +205,45 @@ export default function Goals() {
     });
   };
 
+  // Quick add goal - defaults to current quarter/month
+  const handleQuickAdd = () => {
+    const now = new Date();
+    const currentMonth = now.getMonth(); // 0-11
+
+    // Determine quarter and month
+    let quarter: Quarter;
+    let month: Month;
+
+    if (currentMonth < 3) {
+      quarter = Quarter.Q1;
+      month = [Month.JANUARY, Month.FEBRUARY, Month.MARCH][currentMonth];
+    } else if (currentMonth < 6) {
+      quarter = Quarter.Q2;
+      month = [Month.APRIL, Month.MAY, Month.JUNE][currentMonth - 3];
+    } else if (currentMonth < 9) {
+      quarter = Quarter.Q3;
+      month = [Month.JULY, Month.AUGUST, Month.SEPTEMBER][currentMonth - 6];
+    } else {
+      quarter = Quarter.Q4;
+      month = [Month.OCTOBER, Month.NOVEMBER, Month.DECEMBER][currentMonth - 9];
+    }
+
+    handleNewGoal(quarter, month);
+  };
+
+  // Keyboard shortcut: Ctrl+G or Cmd+G to quickly add goal
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'g') {
+        e.preventDefault();
+        handleQuickAdd();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedYear]);
+
   return (
     <div className="p-8">
       {/* Header */}
@@ -214,7 +253,7 @@ export default function Goals() {
           <p className="text-gray-500 mt-1">Track quarterly and monthly objectives</p>
         </div>
 
-        {/* Year selector */}
+        {/* Year selector and Quick Add */}
         <div className="flex items-center gap-4">
           <select
             value={selectedYear}
@@ -225,6 +264,15 @@ export default function Goals() {
               <option key={year} value={year}>{year}</option>
             ))}
           </select>
+
+          <button
+            onClick={handleQuickAdd}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-md"
+          >
+            <Plus className="w-5 h-5" />
+            New Goal
+            <span className="text-xs opacity-75 ml-1">(Ctrl+G)</span>
+          </button>
         </div>
       </div>
 
@@ -609,6 +657,18 @@ export default function Goals() {
           </div>
         </div>
       )}
+
+      {/* Floating Action Button */}
+      <button
+        onClick={handleQuickAdd}
+        className="fixed bottom-8 right-8 w-16 h-16 bg-blue-600 text-white rounded-full shadow-2xl hover:bg-blue-700 hover:scale-110 transition-all duration-200 flex items-center justify-center z-40 group"
+        title="Quick Add Goal (Ctrl+G)"
+      >
+        <Plus className="w-8 h-8" />
+        <span className="absolute -top-12 right-0 bg-gray-900 text-white text-xs px-3 py-2 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+          Quick Add Goal (Ctrl+G)
+        </span>
+      </button>
     </div>
   );
 }
