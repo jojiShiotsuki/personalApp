@@ -40,6 +40,7 @@ class TaskParser:
         - "Call John high priority"
         - "Proposal due Friday"
         - "Review contract next Monday 2pm urgent"
+        - "2025-11-11 09:00: Task title - description"
 
         Returns dict with: title, due_date, due_time, priority, status
         """
@@ -51,6 +52,22 @@ class TaskParser:
             "priority": TaskPriority.MEDIUM,
             "status": TaskStatus.PENDING,
         }
+
+        # Handle datetime prefix format: "YYYY-MM-DD HH:MM: " at start
+        datetime_prefix = re.match(r'^(\d{4}-\d{2}-\d{2})\s+(\d{1,2}):(\d{2}):\s*', text)
+        if datetime_prefix:
+            try:
+                # Extract date
+                result["due_date"] = date_parser.parse(datetime_prefix.group(1)).date()
+                # Extract time
+                hour = int(datetime_prefix.group(2))
+                minute = int(datetime_prefix.group(3))
+                result["due_time"] = time(hour=hour, minute=minute)
+                # Remove datetime prefix from text
+                text = text[datetime_prefix.end():].strip()
+                text_lower = text.lower()
+            except:
+                pass
 
         # Extract priority
         for keyword, priority in cls.PRIORITY_KEYWORDS.items():
@@ -123,6 +140,12 @@ class TaskParser:
         text = re.sub(r'\b(at|due|on|by)\b', "", text, flags=re.IGNORECASE)
         text = re.sub(r'\s+', ' ', text).strip()  # Collapse multiple spaces
 
-        result["title"] = text if text else "New Task"
+        # Split on " - " to separate title and description
+        if " - " in text:
+            parts = text.split(" - ", 1)  # Split only on first occurrence
+            result["title"] = parts[0].strip()
+            result["description"] = parts[1].strip()
+        else:
+            result["title"] = text if text else "New Task"
 
         return result

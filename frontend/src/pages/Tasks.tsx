@@ -8,8 +8,7 @@ import { Filter, Plus, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 type FilterValue = TaskStatus | 'all' | 'today' | 'this_week' | 'this_month' | 'overdue'
-  | 'week1' | 'week2' | 'week3' | 'week4' | 'week5' | 'week6' | 'week7' | 'week8'
-  | 'week9' | 'week10' | 'week11' | 'week12';
+  | 'week1' | 'week2' | 'week3' | 'week4';
 type SortOption = 'dueDate' | 'priority' | 'createdDate' | 'title';
 
 // Date helper functions
@@ -49,7 +48,7 @@ const isOverdue = (dateString: string | null): boolean => {
   return taskDate < today;
 };
 
-// Check if task falls within a specific week number (1-12)
+// Check if task falls within a specific week number (1-4)
 // Week 1 = 0-6 days from today, Week 2 = 7-13 days, etc.
 const isInWeek = (dateString: string | null, weekNumber: number): boolean => {
   if (!dateString) return false;
@@ -101,6 +100,8 @@ export default function Tasks() {
   const [sortBy, setSortBy] = useState<SortOption>('dueDate');
   const [selectedTaskIds, setSelectedTaskIds] = useState<Set<number>>(new Set());
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [showBulkStatusChange, setShowBulkStatusChange] = useState(false);
   const queryClient = useQueryClient();
 
   // Debounce search input
@@ -114,9 +115,15 @@ export default function Tasks() {
 
   // Note: Global Ctrl+K listener moved to App.tsx to avoid duplicate modals
 
+  // Only pass status filters to API, handle time filters on frontend
+  const getApiFilter = (filter: FilterValue): TaskStatus | undefined => {
+    const statusFilters = [TaskStatus.PENDING, TaskStatus.IN_PROGRESS, TaskStatus.COMPLETED, TaskStatus.DELAYED];
+    return statusFilters.includes(filter as TaskStatus) ? (filter as TaskStatus) : undefined;
+  };
+
   const { data: tasks = [], isLoading } = useQuery({
-    queryKey: ['tasks', filter],
-    queryFn: () => taskApi.getAll(filter === 'all' ? undefined : filter),
+    queryKey: ['tasks'],
+    queryFn: () => taskApi.getAll(getApiFilter(filter)),
   });
 
   const createMutation = useMutation({
@@ -162,6 +169,18 @@ export default function Tasks() {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
       setSelectedTaskIds(new Set());
       setShowDeleteConfirm(false);
+      setIsEditMode(false);
+    },
+  });
+
+  const bulkStatusUpdateMutation = useMutation({
+    mutationFn: async ({ ids, status }: { ids: number[]; status: TaskStatus }) => {
+      await Promise.all(ids.map(id => taskApi.updateStatus(id, status)));
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      setSelectedTaskIds(new Set());
+      setShowBulkStatusChange(false);
     },
   });
 
@@ -224,6 +243,43 @@ export default function Tasks() {
     }
   };
 
+  const handleBulkStatusChange = (status: TaskStatus) => {
+    if (selectedTaskIds.size > 0) {
+      bulkStatusUpdateMutation.mutate({ ids: Array.from(selectedTaskIds), status });
+    }
+  };
+
+  const handleToggleEditMode = () => {
+    setIsEditMode(!isEditMode);
+    setSelectedTaskIds(new Set()); // Clear selections when toggling
+  };
+
+  // Get count for a specific filter
+  const getFilterCount = (filterValue: FilterValue): number => {
+    if (filterValue === 'all') return tasks.length;
+
+    return tasks.filter(task => {
+      // Time-based filters
+      if (filterValue === 'today') return isToday(task.due_date);
+      if (filterValue === 'this_week') return isThisWeek(task.due_date);
+      if (filterValue === 'this_month') return isThisMonth(task.due_date);
+      if (filterValue === 'overdue') return isOverdue(task.due_date) && task.status !== TaskStatus.COMPLETED;
+
+      // Week-based filters (1-4 weeks)
+      if (filterValue === 'week1') return isInWeek(task.due_date, 1);
+      if (filterValue === 'week2') return isInWeek(task.due_date, 2);
+      if (filterValue === 'week3') return isInWeek(task.due_date, 3);
+      if (filterValue === 'week4') return isInWeek(task.due_date, 4);
+
+      // Status-based filters
+      if (filterValue === TaskStatus.PENDING) return task.status === TaskStatus.PENDING;
+      if (filterValue === TaskStatus.IN_PROGRESS) return task.status === TaskStatus.IN_PROGRESS;
+      if (filterValue === TaskStatus.COMPLETED) return task.status === TaskStatus.COMPLETED;
+      if (filterValue === TaskStatus.DELAYED) return task.status === TaskStatus.DELAYED;
+
+      return false;
+    }).length;
+  };
 
   const filters: Array<{ label: string; value: FilterValue }> = [
     { label: 'All', value: 'all' },
@@ -235,14 +291,6 @@ export default function Tasks() {
     { label: 'Week 2', value: 'week2' },
     { label: 'Week 3', value: 'week3' },
     { label: 'Week 4', value: 'week4' },
-    { label: 'Week 5', value: 'week5' },
-    { label: 'Week 6', value: 'week6' },
-    { label: 'Week 7', value: 'week7' },
-    { label: 'Week 8', value: 'week8' },
-    { label: 'Week 9', value: 'week9' },
-    { label: 'Week 10', value: 'week10' },
-    { label: 'Week 11', value: 'week11' },
-    { label: 'Week 12', value: 'week12' },
     { label: 'Pending', value: TaskStatus.PENDING },
     { label: 'In Progress', value: TaskStatus.IN_PROGRESS },
     { label: 'Completed', value: TaskStatus.COMPLETED },
@@ -260,19 +308,11 @@ export default function Tasks() {
           if (filter === 'this_month') return isThisMonth(task.due_date);
           if (filter === 'overdue') return isOverdue(task.due_date) && task.status !== TaskStatus.COMPLETED;
 
-          // Week-based filters (Week 1-12)
+          // Week-based filters (Week 1-4)
           if (filter === 'week1') return isInWeek(task.due_date, 1);
           if (filter === 'week2') return isInWeek(task.due_date, 2);
           if (filter === 'week3') return isInWeek(task.due_date, 3);
           if (filter === 'week4') return isInWeek(task.due_date, 4);
-          if (filter === 'week5') return isInWeek(task.due_date, 5);
-          if (filter === 'week6') return isInWeek(task.due_date, 6);
-          if (filter === 'week7') return isInWeek(task.due_date, 7);
-          if (filter === 'week8') return isInWeek(task.due_date, 8);
-          if (filter === 'week9') return isInWeek(task.due_date, 9);
-          if (filter === 'week10') return isInWeek(task.due_date, 10);
-          if (filter === 'week11') return isInWeek(task.due_date, 11);
-          if (filter === 'week12') return isInWeek(task.due_date, 12);
 
           // Status-based filters
           if (filter === TaskStatus.PENDING) return task.status === TaskStatus.PENDING;
@@ -311,40 +351,81 @@ export default function Tasks() {
             </p>
           </div>
           <div className="flex items-center gap-3">
-            {selectedTaskIds.size > 0 && (
-              <button
-                onClick={() => setShowDeleteConfirm(true)}
-                disabled={bulkDeleteMutation.isPending}
-                className={cn(
-                  'flex items-center',
-                  'px-4 py-2',
-                  'bg-red-600 text-white',
-                  'rounded-lg',
-                  'hover:bg-red-700',
-                  'transition-all duration-200',
-                  'shadow-sm hover:shadow',
-                  'disabled:opacity-50'
-                )}
-              >
-                <X className="w-5 h-5 mr-2" />
-                Delete {selectedTaskIds.size}
-              </button>
+            {/* Bulk action buttons (show when tasks are selected in edit mode) */}
+            {isEditMode && selectedTaskIds.size > 0 && (
+              <>
+                <button
+                  onClick={() => setShowDeleteConfirm(true)}
+                  disabled={bulkDeleteMutation.isPending}
+                  className={cn(
+                    'flex items-center',
+                    'px-4 py-2',
+                    'bg-red-600 text-white',
+                    'rounded-lg',
+                    'hover:bg-red-700',
+                    'transition-all duration-200',
+                    'shadow-sm hover:shadow',
+                    'disabled:opacity-50'
+                  )}
+                >
+                  <X className="w-5 h-5 mr-2" />
+                  Delete {selectedTaskIds.size}
+                </button>
+
+                <button
+                  onClick={() => setShowBulkStatusChange(true)}
+                  disabled={bulkStatusUpdateMutation.isPending}
+                  className={cn(
+                    'flex items-center',
+                    'px-4 py-2',
+                    'bg-green-600 text-white',
+                    'rounded-lg',
+                    'hover:bg-green-700',
+                    'transition-all duration-200',
+                    'shadow-sm hover:shadow',
+                    'disabled:opacity-50'
+                  )}
+                >
+                  Change Status
+                </button>
+              </>
             )}
+
+            {/* Edit/Done toggle button */}
             <button
-              onClick={handleNewTask}
+              onClick={handleToggleEditMode}
               className={cn(
-                'group flex items-center',
+                'flex items-center',
                 'px-4 py-2',
-                'bg-blue-600 text-white',
                 'rounded-lg',
-                'hover:bg-blue-700',
                 'transition-all duration-200',
-                'shadow-sm hover:shadow'
+                'shadow-sm hover:shadow',
+                isEditMode
+                  ? 'bg-gray-600 text-white hover:bg-gray-700'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               )}
             >
-              <Plus className="w-5 h-5 mr-2 transition-transform duration-200 group-hover:rotate-90" />
-              New Task
+              {isEditMode ? 'Done' : 'Edit'}
             </button>
+
+            {/* New Task button (hide in edit mode) */}
+            {!isEditMode && (
+              <button
+                onClick={handleNewTask}
+                className={cn(
+                  'group flex items-center',
+                  'px-4 py-2',
+                  'bg-blue-600 text-white',
+                  'rounded-lg',
+                  'hover:bg-blue-700',
+                  'transition-all duration-200',
+                  'shadow-sm hover:shadow'
+                )}
+              >
+                <Plus className="w-5 h-5 mr-2 transition-transform duration-200 group-hover:rotate-90" />
+                New Task
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -354,23 +435,26 @@ export default function Tasks() {
         <div className="flex items-start gap-2">
           <Filter className="w-4 h-4 text-gray-400 mt-2 flex-shrink-0" />
           <div className="flex flex-wrap gap-2">
-            {filters.map((f) => (
-              <button
-                key={f.value}
-                onClick={() => setFilter(f.value)}
-                className={cn(
-                  'px-4 py-2 text-sm font-medium rounded-lg',
-                  'transition-all duration-200',
-                  'active:scale-95',
-                  'whitespace-nowrap',
-                  filter === f.value
-                    ? 'bg-blue-100 text-blue-700 shadow-sm'
-                    : 'text-gray-600 hover:bg-gray-100'
-                )}
-              >
-                {f.label}
-              </button>
-            ))}
+            {filters.map((f) => {
+              const count = getFilterCount(f.value);
+              return (
+                <button
+                  key={f.value}
+                  onClick={() => setFilter(f.value)}
+                  className={cn(
+                    'px-4 py-2 text-sm font-medium rounded-lg',
+                    'transition-all duration-200',
+                    'active:scale-95',
+                    'whitespace-nowrap',
+                    filter === f.value
+                      ? 'bg-blue-100 text-blue-700 shadow-sm'
+                      : 'text-gray-600 hover:bg-gray-100'
+                  )}
+                >
+                  {f.label} <span className="text-xs opacity-70">({count})</span>
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>
@@ -378,8 +462,8 @@ export default function Tasks() {
       {/* Search and Sort Toolbar */}
       <div className="bg-white border-b px-8 py-4">
         <div className="flex flex-col sm:flex-row gap-4">
-          {/* Select All Checkbox */}
-          {filteredAndSortedTasks.length > 0 && (
+          {/* Select All Checkbox (only in edit mode) */}
+          {isEditMode && filteredAndSortedTasks.length > 0 && (
             <div className="flex items-center">
               <input
                 type="checkbox"
@@ -458,8 +542,8 @@ export default function Tasks() {
             onDelete={(id) => deleteMutation.mutate(id)}
             isUpdating={updateStatusMutation.isPending}
             searchQuery={searchQuery}
-            selectedTaskIds={selectedTaskIds}
-            onToggleSelect={handleToggleSelect}
+            selectedTaskIds={isEditMode ? selectedTaskIds : undefined}
+            onToggleSelect={isEditMode ? handleToggleSelect : undefined}
           />
         )}
       </div>
@@ -621,6 +705,47 @@ export default function Tasks() {
                 {bulkDeleteMutation.isPending ? 'Deleting...' : 'Delete'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Status Change Dialog */}
+      {showBulkStatusChange && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-2xl w-full max-w-md mx-4 p-6">
+            <h3 className="text-lg font-bold text-gray-900 mb-4">
+              Change Status for {selectedTaskIds.size} Task{selectedTaskIds.size !== 1 ? 's' : ''}
+            </h3>
+            <div className="space-y-2 mb-6">
+              <button
+                onClick={() => handleBulkStatusChange(TaskStatus.PENDING)}
+                disabled={bulkStatusUpdateMutation.isPending}
+                className="w-full px-4 py-3 text-left border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+              >
+                <span className="font-medium">Pending</span>
+              </button>
+              <button
+                onClick={() => handleBulkStatusChange(TaskStatus.IN_PROGRESS)}
+                disabled={bulkStatusUpdateMutation.isPending}
+                className="w-full px-4 py-3 text-left border border-gray-300 rounded-lg hover:bg-blue-50 transition-colors disabled:opacity-50"
+              >
+                <span className="font-medium text-blue-600">In Progress</span>
+              </button>
+              <button
+                onClick={() => handleBulkStatusChange(TaskStatus.COMPLETED)}
+                disabled={bulkStatusUpdateMutation.isPending}
+                className="w-full px-4 py-3 text-left border border-gray-300 rounded-lg hover:bg-green-50 transition-colors disabled:opacity-50"
+              >
+                <span className="font-medium text-green-600">Completed</span>
+              </button>
+            </div>
+            <button
+              onClick={() => setShowBulkStatusChange(false)}
+              disabled={bulkStatusUpdateMutation.isPending}
+              className="w-full px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+            >
+              Cancel
+            </button>
           </div>
         </div>
       )}
