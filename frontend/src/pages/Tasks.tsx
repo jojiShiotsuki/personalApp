@@ -254,6 +254,7 @@ export default function Tasks() {
             onTaskClick={handleTaskClick}
             onDelete={(id) => deleteMutation.mutate(id)}
             isUpdating={updateStatusMutation.isPending}
+            searchQuery={searchQuery}
           />
         )}
       </div>
