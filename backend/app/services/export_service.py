@@ -130,7 +130,7 @@ class ExportService:
                 contact = item['contact']
                 last_date = item['last_interaction_date']
                 if last_date:
-                    days_ago = (date.today() - last_date).days
+                    days_ago = (datetime.now() - last_date).days
                     last_str = f"{days_ago} days ago"
                 else:
                     last_str = "Never"
@@ -347,8 +347,8 @@ class ExportService:
     @classmethod
     def _get_cold_contacts(cls, db: Session, days: int = 30):
         """Get contacts with active deals but no recent interactions"""
-        from datetime import date, timedelta
-        threshold = date.today() - timedelta(days=days)
+        from datetime import datetime, timedelta
+        threshold = datetime.now() - timedelta(days=days)
 
         # Get contacts with active deals
         contacts_with_deals = db.query(Contact).join(Deal).filter(
