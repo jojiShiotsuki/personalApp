@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { contactApi } from '@/lib/api';
 import type { Contact, ContactCreate } from '@/types';
@@ -8,6 +9,7 @@ import ContactDetailModal from '@/components/ContactDetailModal';
 import AddInteractionModal from '@/components/AddInteractionModal';
 
 export default function Contacts() {
+  const location = useLocation();
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
@@ -19,6 +21,20 @@ export default function Contacts() {
     queryKey: ['contacts', searchTerm],
     queryFn: () => contactApi.getAll(searchTerm || undefined),
   });
+
+  // Handle navigation from deal follow-up warning modal
+  useEffect(() => {
+    const state = location.state as { contactId?: number; openInteraction?: boolean } | null;
+    if (state?.contactId && state?.openInteraction && contacts.length > 0) {
+      const contact = contacts.find(c => c.id === state.contactId);
+      if (contact) {
+        setSelectedContact(contact);
+        setIsAddInteractionOpen(true);
+        // Clear the state to prevent re-triggering on subsequent renders
+        window.history.replaceState({}, document.title);
+      }
+    }
+  }, [location.state, contacts]);
 
   const createMutation = useMutation({
     mutationFn: (contact: ContactCreate) => contactApi.create(contact),

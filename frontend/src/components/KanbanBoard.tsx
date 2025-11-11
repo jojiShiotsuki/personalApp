@@ -112,9 +112,13 @@ export default function KanbanBoard({
 
   const handleAddFollowUp = () => {
     if (warningDeal) {
-      // Navigate to contacts page with the contact selected
-      // For now, just navigate to deals page - you can enhance this later
-      navigate(`/contacts`);
+      // Navigate to contacts page with state to auto-open interaction modal
+      navigate('/contacts', {
+        state: {
+          contactId: warningDeal.contact_id,
+          openInteraction: true,
+        },
+      });
     }
     setWarningDeal(null);
     setPendingStageUpdate(null);
