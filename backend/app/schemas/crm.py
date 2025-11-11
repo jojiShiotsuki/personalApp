@@ -61,6 +61,7 @@ class DealResponse(DealBase):
     created_at: datetime
     updated_at: datetime
     contact: Optional[ContactResponse] = None
+    followup_count: int = 0
 
     class Config:
         from_attributes = True
@@ -85,7 +86,8 @@ class DealResponse(DealBase):
                     'actual_close_date': data.actual_close_date,
                     'created_at': data.created_at,
                     'updated_at': data.updated_at,
-                    'contact': ContactResponse.model_validate(data.contact)
+                    'contact': ContactResponse.model_validate(data.contact),
+                    'followup_count': getattr(data, 'followup_count', 0)
                 }
                 return result
         return data

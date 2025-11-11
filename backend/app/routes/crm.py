@@ -97,22 +97,68 @@ def get_deals(
     db: Session = Depends(get_db)
 ):
     """Get all deals with optional filtering"""
-    query = db.query(Deal).options(joinedload(Deal.contact))
+    from sqlalchemy import func
+
+    # Subquery to count interactions per contact after deal creation
+    interaction_count_subquery = (
+        db.query(
+            Deal.id.label('deal_id'),
+            func.count(Interaction.id).label('followup_count')
+        )
+        .outerjoin(
+            Interaction,
+            (Interaction.contact_id == Deal.contact_id) &
+            (Interaction.interaction_date >= Deal.created_at)
+        )
+        .group_by(Deal.id)
+        .subquery()
+    )
+
+    # Main query with followup count
+    query = (
+        db.query(
+            Deal,
+            func.coalesce(interaction_count_subquery.c.followup_count, 0).label('followup_count')
+        )
+        .outerjoin(interaction_count_subquery, Deal.id == interaction_count_subquery.c.deal_id)
+        .options(joinedload(Deal.contact))
+    )
 
     if stage:
         query = query.filter(Deal.stage == stage)
     if contact_id:
         query = query.filter(Deal.contact_id == contact_id)
 
-    deals = query.offset(skip).limit(limit).all()
-    return deals
+    results = query.offset(skip).limit(limit).all()
+
+    # Attach followup_count to each deal object
+    deals_with_count = []
+    for deal, followup_count in results:
+        deal.followup_count = followup_count
+        deals_with_count.append(deal)
+
+    return deals_with_count
 
 @router.get("/deals/{deal_id}", response_model=DealResponse)
 def get_deal(deal_id: int, db: Session = Depends(get_db)):
     """Get a single deal by ID"""
+    from sqlalchemy import func
+
+    # Count interactions for this deal
+    followup_count = (
+        db.query(func.count(Interaction.id))
+        .join(Deal, Deal.contact_id == Interaction.contact_id)
+        .filter(Deal.id == deal_id)
+        .filter(Interaction.interaction_date >= Deal.created_at)
+        .scalar() or 0
+    )
+
     deal = db.query(Deal).options(joinedload(Deal.contact)).filter(Deal.id == deal_id).first()
     if not deal:
         raise HTTPException(status_code=404, detail="Deal not found")
+
+    # Attach followup_count to deal object
+    deal.followup_count = followup_count
     return deal
 
 @router.post("/deals", response_model=DealResponse, status_code=201)
