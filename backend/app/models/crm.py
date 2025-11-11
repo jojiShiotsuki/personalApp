@@ -23,6 +23,7 @@ class InteractionType(str, enum.Enum):
     EMAIL = "email"
     CALL = "call"
     NOTE = "note"
+    SOCIAL_MEDIA = "social_media"
 
 class Contact(Base):
     __tablename__ = "crm_contacts"
