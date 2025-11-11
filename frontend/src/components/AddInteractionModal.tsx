@@ -90,6 +90,7 @@ export default function AddInteractionModal({
               <option value={InteractionType.EMAIL}>Email</option>
               <option value={InteractionType.CALL}>Call</option>
               <option value={InteractionType.NOTE}>Note</option>
+              <option value={InteractionType.SOCIAL_MEDIA}>Social Media</option>
             </select>
           </div>
 
