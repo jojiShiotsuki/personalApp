@@ -1,9 +1,11 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { DragDropContext, DropResult } from '@hello-pangea/dnd';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { dealApi } from '@/lib/api';
 import { Deal, DealStage } from '@/types';
 import KanbanColumn from './KanbanColumn';
+import FollowUpWarningModal from './FollowUpWarningModal';
 import { toast } from 'sonner';
 
 import { Contact } from '@/types';
@@ -31,9 +33,15 @@ export default function KanbanBoard({
   onDeleteDeal,
 }: KanbanBoardProps) {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [collapsedColumns, setCollapsedColumns] = useState<Set<DealStage>>(
     new Set([DealStage.CLOSED_WON, DealStage.CLOSED_LOST])
   );
+  const [warningDeal, setWarningDeal] = useState<Deal | null>(null);
+  const [pendingStageUpdate, setPendingStageUpdate] = useState<{
+    dealId: number;
+    newStage: DealStage;
+  } | null>(null);
 
   const updateStageMutation = useMutation({
     mutationFn: ({ id, stage }: { id: number; stage: DealStage }) =>
@@ -87,7 +95,45 @@ export default function KanbanBoard({
     const dealId = parseInt(draggableId.replace('deal-', ''));
     const newStage = destination.droppableId as DealStage;
 
+    // Find the deal being moved
+    const deal = deals.find(d => d.id === dealId);
+    if (!deal) return;
+
+    // Intercept if moving to CLOSED_LOST with insufficient follow-ups
+    if (newStage === DealStage.CLOSED_LOST && deal.followup_count < 5) {
+      setWarningDeal(deal);
+      setPendingStageUpdate({ dealId, newStage });
+      return; // Don't proceed with update yet
+    }
+
+    // Otherwise proceed with stage update
     updateStageMutation.mutate({ id: dealId, stage: newStage });
+  };
+
+  const handleAddFollowUp = () => {
+    if (warningDeal) {
+      // Navigate to contacts page with the contact selected
+      // For now, just navigate to deals page - you can enhance this later
+      navigate(`/contacts`);
+    }
+    setWarningDeal(null);
+    setPendingStageUpdate(null);
+  };
+
+  const handleCloseDealAnyway = () => {
+    if (pendingStageUpdate) {
+      updateStageMutation.mutate({
+        id: pendingStageUpdate.dealId,
+        stage: pendingStageUpdate.newStage,
+      });
+    }
+    setWarningDeal(null);
+    setPendingStageUpdate(null);
+  };
+
+  const handleCloseWarningModal = () => {
+    setWarningDeal(null);
+    setPendingStageUpdate(null);
   };
 
   const toggleCollapse = (stage: DealStage) => {
@@ -132,6 +178,16 @@ export default function KanbanBoard({
         ))}
         </div>
       </div>
+
+      {/* Warning Modal */}
+      {warningDeal && (
+        <FollowUpWarningModal
+          deal={warningDeal}
+          onClose={handleCloseWarningModal}
+          onAddFollowUp={handleAddFollowUp}
+          onCloseDealAnyway={handleCloseDealAnyway}
+        />
+      )}
     </DragDropContext>
   );
 }
