@@ -3,6 +3,7 @@ import { Edit, Trash2 } from 'lucide-react';
 import { Deal, Contact } from '@/types';
 import { formatCurrency } from '@/lib/currency';
 import { cn } from '@/lib/utils';
+import FollowUpBadge from './FollowUpBadge';
 
 interface DealCardProps {
   deal: Deal;
@@ -84,6 +85,11 @@ export default function DealCard({ deal, index, contacts, onEdit, onDelete }: De
             <span className="text-xs text-gray-500">
               {daysInStage} day{daysInStage !== 1 ? 's' : ''}
             </span>
+          </div>
+
+          {/* Follow-up badge */}
+          <div className="mt-3 pt-3 border-t border-gray-200">
+            <FollowUpBadge count={deal.followup_count} />
           </div>
         </div>
       )}
