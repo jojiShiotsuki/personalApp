@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import type { Contact } from '@/types';
 import { InteractionType } from '@/types';
 import { interactionApi } from '@/lib/api';
-import { X, Mail, Phone, Building2, User, Calendar, Phone as PhoneIcon, FileText, Edit } from 'lucide-react';
+import { X, Mail, Phone, Building2, User, Calendar, Phone as PhoneIcon, FileText, Edit, Share2 } from 'lucide-react';
 import { formatDistanceToNow, format, isToday, isYesterday, parseISO } from 'date-fns';
 
 interface ContactDetailModalProps {
@@ -33,6 +33,11 @@ const interactionIcons = {
     icon: FileText,
     color: 'text-gray-600',
     bg: 'bg-gray-100'
+  },
+  [InteractionType.SOCIAL_MEDIA]: {
+    icon: Share2,
+    color: 'text-purple-600',
+    bg: 'bg-purple-100'
   },
 };
 

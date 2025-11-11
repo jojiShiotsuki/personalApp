@@ -66,6 +66,7 @@ export enum InteractionType {
   EMAIL = "email",
   CALL = "call",
   NOTE = "note",
+  SOCIAL_MEDIA = "social_media",
 }
 
 export type Contact = {
@@ -101,6 +102,7 @@ export type Deal = {
   actual_close_date?: string;
   created_at: string;
   updated_at: string;
+  followup_count: number;
 }
 
 export type DealCreate = {
