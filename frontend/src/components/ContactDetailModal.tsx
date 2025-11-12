@@ -1,8 +1,8 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { Contact } from '@/types';
 import { InteractionType } from '@/types';
 import { interactionApi } from '@/lib/api';
-import { X, Mail, Phone, Building2, User, Calendar, Phone as PhoneIcon, FileText, Edit, Share2 } from 'lucide-react';
+import { X, Mail, Phone, Building2, User, Calendar, Phone as PhoneIcon, FileText, Edit, Share2, Trash2 } from 'lucide-react';
 import { formatDistanceToNow, format, isToday, isYesterday, parseISO } from 'date-fns';
 
 interface ContactDetailModalProps {
@@ -55,10 +55,26 @@ export default function ContactDetailModal({
   onAddInteraction,
   onEditContact,
 }: ContactDetailModalProps) {
+  const queryClient = useQueryClient();
+  
   const { data: interactions = [], isLoading } = useQuery({
     queryKey: ['interactions', contact.id],
     queryFn: () => interactionApi.getAll(contact.id),
   });
+
+  const deleteMutation = useMutation({
+    mutationFn: (interactionId: number) => interactionApi.delete(interactionId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['interactions', contact.id] });
+      queryClient.invalidateQueries({ queryKey: ['deals'] });
+    },
+  });
+
+  const handleDelete = (interactionId: number, subject: string) => {
+    if (confirm(`Delete interaction "${subject || 'this interaction'}"?`)) {
+      deleteMutation.mutate(interactionId);
+    }
+  };
 
   // Sort interactions by date (newest first)
   const sortedInteractions = [...interactions].sort((a, b) =>
@@ -216,7 +232,7 @@ export default function ContactDetailModal({
                         <div className="flex-1 pb-6">
                           <div className="bg-gray-50 rounded-lg p-4">
                             <div className="flex items-start justify-between mb-2">
-                              <div>
+                              <div className="flex-1">
                                 <h4 className="font-semibold text-gray-900">
                                   {interaction.subject || `${interaction.type.charAt(0).toUpperCase() + interaction.type.slice(1)}`}
                                 </h4>
@@ -224,11 +240,20 @@ export default function ContactDetailModal({
                                   {formatInteractionDate(interaction.interaction_date)}
                                 </p>
                               </div>
-                              <span
-                                className={`px-2 py-1 text-xs rounded ${iconConfig.bg} ${iconConfig.color}`}
-                              >
-                                {interaction.type}
-                              </span>
+                              <div className="flex items-center gap-2">
+                                <span
+                                  className={`px-2 py-1 text-xs rounded ${iconConfig.bg} ${iconConfig.color}`}
+                                >
+                                  {interaction.type}
+                                </span>
+                                <button
+                                  onClick={() => handleDelete(interaction.id, interaction.subject || "Interaction")}
+                                  className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                                  title="Delete interaction"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
                             </div>
                             {interaction.notes && (
                               <p className="text-sm text-gray-600 mt-2 whitespace-pre-wrap">
