@@ -165,6 +165,16 @@ export default function ContactDetailModal({
                   </div>
                 </div>
               )}
+
+              {contact.source && (
+                <div className="flex items-start">
+                  <FileText className="w-5 h-5 text-gray-400 mr-3 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="text-xs text-gray-500 mb-1">Source</p>
+                    <p className="text-sm text-gray-900">{contact.source}</p>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Notes Section */}

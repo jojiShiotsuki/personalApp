@@ -76,6 +76,7 @@ export type Contact = {
   phone?: string;
   company?: string;
   status: ContactStatus;
+  source?: string;
   notes?: string;
   created_at: string;
   updated_at: string;
@@ -87,6 +88,7 @@ export type ContactCreate = {
   phone?: string;
   company?: string;
   status?: ContactStatus;
+  source?: string;
   notes?: string;
 }
 

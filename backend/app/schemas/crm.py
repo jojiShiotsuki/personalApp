@@ -11,6 +11,7 @@ class ContactBase(BaseModel):
     phone: Optional[str] = Field(None, max_length=50)
     company: Optional[str] = Field(None, max_length=255)
     status: ContactStatus = ContactStatus.LEAD
+    source: Optional[str] = Field(None, max_length=100)
     notes: Optional[str] = None
 
 class ContactCreate(ContactBase):
@@ -22,6 +23,7 @@ class ContactUpdate(BaseModel):
     phone: Optional[str] = Field(None, max_length=50)
     company: Optional[str] = Field(None, max_length=255)
     status: Optional[ContactStatus] = None
+    source: Optional[str] = Field(None, max_length=100)
     notes: Optional[str] = None
 
 class ContactResponse(ContactBase):

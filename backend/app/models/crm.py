@@ -34,6 +34,7 @@ class Contact(Base):
     phone = Column(String(50), nullable=True)
     company = Column(String(255), nullable=True)
     status = Column(Enum(ContactStatus), default=ContactStatus.LEAD)
+    source = Column(String(100), nullable=True)  # Where contact came from (TikTok, website, referral, etc.)
     notes = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

@@ -71,6 +71,7 @@ export default function Contacts() {
       phone: formData.get('phone') as string || undefined,
       company: formData.get('company') as string || undefined,
       status: (formData.get('status') as ContactStatus) || ContactStatus.LEAD,
+      source: formData.get('source') as string || undefined,
       notes: formData.get('notes') as string || undefined,
     };
 
@@ -182,6 +183,11 @@ export default function Contacts() {
                       {contact.company}
                     </div>
                   )}
+                  {contact.source && (
+                    <div className="flex items-center text-sm text-gray-600">
+                      Source: {contact.source}
+                    </div>
+                  )}
                 </div>
 
                 <div className="mt-4 flex space-x-2">
@@ -287,6 +293,19 @@ export default function Contacts() {
                   type="text"
                   name="company"
                   defaultValue={editingContact?.company}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Source
+                </label>
+                <input
+                  type="text"
+                  name="source"
+                  defaultValue={editingContact?.source}
+                  placeholder="TikTok, Website, Referral, etc."
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
