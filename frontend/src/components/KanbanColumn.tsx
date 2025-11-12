@@ -12,6 +12,7 @@ interface KanbanColumnProps {
   onToggleCollapse: () => void;
   onEditDeal: (deal: Deal) => void;
   onDeleteDeal: (id: number) => void;
+  onAddInteraction?: (contactId: number) => void;
 }
 
 const STAGE_CONFIG = {
@@ -40,6 +41,7 @@ export default function KanbanColumn({
   onToggleCollapse,
   onEditDeal,
   onDeleteDeal,
+  onAddInteraction,
 }: KanbanColumnProps) {
   const config = STAGE_CONFIG[stage];
   const isClosedStage =
@@ -96,6 +98,7 @@ export default function KanbanColumn({
                   contacts={contacts}
                   onEdit={onEditDeal}
                   onDelete={onDeleteDeal}
+                  onAddInteraction={onAddInteraction}
                 />
               ))}
               {provided.placeholder}

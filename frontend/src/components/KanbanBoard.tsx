@@ -15,6 +15,7 @@ interface KanbanBoardProps {
   contacts: Contact[];
   onEditDeal: (deal: Deal) => void;
   onDeleteDeal: (id: number) => void;
+  onAddInteraction?: (contactId: number) => void;
 }
 
 const STAGE_ORDER = [
@@ -31,6 +32,7 @@ export default function KanbanBoard({
   contacts,
   onEditDeal,
   onDeleteDeal,
+  onAddInteraction,
 }: KanbanBoardProps) {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -178,6 +180,7 @@ export default function KanbanBoard({
             onToggleCollapse={() => toggleCollapse(stage)}
             onEditDeal={onEditDeal}
             onDeleteDeal={onDeleteDeal}
+            onAddInteraction={onAddInteraction}
           />
         ))}
         </div>

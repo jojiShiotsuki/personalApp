@@ -1,5 +1,5 @@
 import { Draggable } from '@hello-pangea/dnd';
-import { Edit, Trash2 } from 'lucide-react';
+import { Edit, Trash2, Plus } from 'lucide-react';
 import { Deal, Contact } from '@/types';
 import { formatCurrency } from '@/lib/currency';
 import { cn } from '@/lib/utils';
@@ -11,6 +11,7 @@ interface DealCardProps {
   contacts: Contact[];
   onEdit: (deal: Deal) => void;
   onDelete: (id: number) => void;
+  onAddInteraction?: (contactId: number) => void;
 }
 
 function getDaysInStage(updatedAt: string): number {
@@ -21,7 +22,7 @@ function getDaysInStage(updatedAt: string): number {
   return diffDays;
 }
 
-export default function DealCard({ deal, index, contacts, onEdit, onDelete }: DealCardProps) {
+export default function DealCard({ deal, index, contacts, onEdit, onDelete, onAddInteraction }: DealCardProps) {
   const daysInStage = getDaysInStage(deal.updated_at);
 
   return (
@@ -87,9 +88,22 @@ export default function DealCard({ deal, index, contacts, onEdit, onDelete }: De
             </span>
           </div>
 
-          {/* Follow-up badge */}
-          <div className="mt-3 pt-3 border-t border-gray-200">
+          {/* Follow-up badge with add button */}
+          <div className="mt-3 pt-3 border-t border-gray-200 flex items-center justify-between">
             <FollowUpBadge count={deal.followup_count} />
+            {onAddInteraction && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onAddInteraction(deal.contact_id);
+                }}
+                className="px-2 py-1 text-xs bg-blue-50 text-blue-600 hover:bg-blue-100 rounded flex items-center gap-1 transition-colors"
+                title="Add follow-up"
+              >
+                <Plus className="w-3 h-3" />
+                Add
+              </button>
+            )}
           </div>
         </div>
       )}

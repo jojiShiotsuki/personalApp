@@ -5,6 +5,7 @@ import type { DealCreate } from '@/types';
 import { DealStage } from '@/types';
 import { Plus, X } from 'lucide-react';
 import KanbanBoard from '@/components/KanbanBoard';
+import AddInteractionModal from '@/components/AddInteractionModal';
 
 const stages = [
   { id: DealStage.LEAD, title: 'Lead' },
@@ -19,6 +20,8 @@ export default function Deals() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingDeal, setEditingDeal] = useState<any>(null);
   const [selectedStage, setSelectedStage] = useState<DealStage>(DealStage.LEAD);
+  const [isAddInteractionOpen, setIsAddInteractionOpen] = useState(false);
+  const [selectedContactId, setSelectedContactId] = useState<number | null>(null);
   const queryClient = useQueryClient();
 
   const { data: deals = [] } = useQuery({
@@ -56,6 +59,11 @@ export default function Deals() {
       queryClient.invalidateQueries({ queryKey: ['deals'] });
     },
   });
+
+  const handleAddInteraction = (contactId: number) => {
+    setSelectedContactId(contactId);
+    setIsAddInteractionOpen(true);
+  };
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -113,6 +121,7 @@ export default function Deals() {
             setIsModalOpen(true);
           }}
           onDeleteDeal={(id) => deleteMutation.mutate(id)}
+          onAddInteraction={handleAddInteraction}
         />
       </div>
 
@@ -262,6 +271,17 @@ export default function Deals() {
             </form>
           </div>
         </div>
+      )}
+
+      {/* Add Interaction Modal */}
+      {isAddInteractionOpen && selectedContactId && (
+        <AddInteractionModal
+          contactId={selectedContactId}
+          onClose={() => {
+            setIsAddInteractionOpen(false);
+            setSelectedContactId(null);
+          }}
+        />
       )}
     </div>
   );
