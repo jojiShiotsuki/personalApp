@@ -13,6 +13,35 @@ export enum TaskStatus {
   DELAYED = "delayed",
 }
 
+export enum ProjectStatus {
+  TODO = "todo",
+  IN_PROGRESS = "in_progress",
+  COMPLETED = "completed",
+}
+
+export type Project = {
+  id: number;
+  name: string;
+  description?: string;
+  status: ProjectStatus;
+  progress: number;
+  created_at: string;
+  updated_at: string;
+  task_count?: number;
+  completed_task_count?: number;
+}
+
+export type ProjectCreate = {
+  name: string;
+  description?: string;
+}
+
+export type ProjectUpdate = {
+  name?: string;
+  description?: string;
+  status?: ProjectStatus;
+}
+
 export type Task = {
   id: number;
   title: string;
@@ -24,6 +53,7 @@ export type Task = {
   created_at: string;
   updated_at: string;
   completed_at?: string;
+  project_id?: number;
 }
 
 export type TaskCreate = {
@@ -33,6 +63,7 @@ export type TaskCreate = {
   due_time?: string;
   priority?: TaskPriority;
   status?: TaskStatus;
+  project_id?: number;
 }
 
 export type TaskUpdate = {
