@@ -8,6 +8,8 @@ from app.database import get_db
 from app.models.project import Project
 from app.models.task import Task, TaskStatus
 from app.schemas.project import ProjectCreate, ProjectUpdate, ProjectResponse
+from app.schemas.task import TaskCreate, TaskResponse
+from app.services.project_service import recalculate_project_progress
 
 router = APIRouter(prefix="/api/projects", tags=["projects"])
 
@@ -108,3 +110,43 @@ def delete_project(project_id: int, db: Session = Depends(get_db)):
     db.delete(db_project)
     db.commit()
     return None
+
+
+@router.get("/{project_id}/tasks", response_model=List[TaskResponse])
+def get_project_tasks(project_id: int, db: Session = Depends(get_db)):
+    """Get all tasks for a project"""
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    tasks = db.query(Task).filter(Task.project_id == project_id).order_by(
+        Task.created_at.desc()
+    ).all()
+
+    return tasks
+
+
+@router.post("/{project_id}/tasks", response_model=TaskResponse, status_code=201)
+def create_project_task(
+    project_id: int,
+    task: TaskCreate,
+    db: Session = Depends(get_db)
+):
+    """Create a task in a project"""
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    # Create task with project_id
+    task_data = task.model_dump()
+    task_data["project_id"] = project_id
+
+    db_task = Task(**task_data)
+    db.add(db_task)
+    db.commit()
+    db.refresh(db_task)
+
+    # Recalculate progress
+    recalculate_project_progress(project_id, db)
+
+    return db_task
