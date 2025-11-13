@@ -135,7 +135,9 @@ export default function Contacts() {
           </div>
         ) : contacts.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {contacts.map((contact) => (
+            {contacts.map((contact) => {
+              console.log('🔍 [Render] Contact:', contact.name, 'Source:', contact.source, 'Full object:', contact);
+              return (
               <div
                 key={contact.id}
                 className="bg-white rounded-lg shadow p-6 hover:shadow-md transition-shadow"
@@ -215,7 +217,8 @@ export default function Contacts() {
                   </button>
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center py-12 text-center">
@@ -389,3 +392,4 @@ export default function Contacts() {
     </div>
   );
 }
+

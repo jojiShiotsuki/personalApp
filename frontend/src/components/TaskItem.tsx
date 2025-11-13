@@ -84,14 +84,10 @@ export default function TaskItem({ task, onStatusChange, onClick, onDelete, isUp
   };
 
   const handleCheckboxClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (onToggleSelect) {
-      onToggleSelect(task.id);
-    }
+    e.stopPropagation(); // Prevent opening the edit modal
   };
 
   const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    e.stopPropagation();
     if (onToggleSelect) {
       onToggleSelect(task.id);
     }
@@ -198,8 +194,8 @@ export default function TaskItem({ task, onStatusChange, onClick, onDelete, isUp
           <input
             type="checkbox"
             checked={isSelected}
-            onChange={handleCheckboxChange}
             onClick={handleCheckboxClick}
+            onChange={handleCheckboxChange}
             className="flex-shrink-0 w-4 h-4 mt-1 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
           />
         )}

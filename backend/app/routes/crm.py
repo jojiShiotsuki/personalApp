@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from app.database import get_db
 from app.models.crm import Contact, Deal, Interaction, ContactStatus, DealStage, InteractionType
@@ -170,6 +170,10 @@ def create_deal(deal: DealCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Contact not found")
 
     db_deal = Deal(**deal.model_dump())
+    
+    # Auto-set next follow-up date to 3 days from now if not provided
+    if db_deal.next_followup_date is None:
+        db_deal.next_followup_date = (datetime.utcnow() + timedelta(days=3)).date()
     db.add(db_deal)
     db.commit()
     db.refresh(db_deal)
@@ -306,3 +310,75 @@ def delete_interaction(interaction_id: int, db: Session = Depends(get_db)):
     db.delete(db_interaction)
     db.commit()
     return None
+
+@router.patch("/deals/{deal_id}/snooze", response_model=DealResponse)
+def snooze_deal(
+    deal_id: int,
+    db: Session = Depends(get_db)
+):
+    """Snooze deal follow-up by 3 days (set next_followup_date to today + 3)"""
+    from sqlalchemy import func
+    
+    # Get deal with followup count
+    followup_count = (
+        db.query(func.count(Interaction.id))
+        .join(Deal, Deal.contact_id == Interaction.contact_id)
+        .filter(Deal.id == deal_id)
+        .filter(Interaction.interaction_date >= Deal.created_at)
+        .scalar() or 0
+    )
+    
+    db_deal = db.query(Deal).options(joinedload(Deal.contact)).filter(Deal.id == deal_id).first()
+    if not db_deal:
+        raise HTTPException(status_code=404, detail="Deal not found")
+    
+    # Set next follow-up to 3 days from now
+    # Add 3 days to existing next_followup_date, or set to today + 3 if not set
+    if db_deal.next_followup_date:
+        db_deal.next_followup_date = db_deal.next_followup_date + timedelta(days=3)
+    else:
+        db_deal.next_followup_date = (datetime.utcnow() + timedelta(days=3)).date()
+    db_deal.updated_at = datetime.utcnow()
+    
+    db.commit()
+    db.refresh(db_deal)
+    
+    # Attach followup_count
+    db_deal.followup_count = followup_count
+    return db_deal
+
+@router.patch("/deals/{deal_id}/unsnooze", response_model=DealResponse)
+def unsnooze_deal(
+    deal_id: int,
+    db: Session = Depends(get_db)
+):
+    """Un-snooze deal follow-up by 3 days (subtract 3 days from next_followup_date)"""
+    from sqlalchemy import func
+    
+    # Get deal with followup count
+    followup_count = (
+        db.query(func.count(Interaction.id))
+        .join(Deal, Deal.contact_id == Interaction.contact_id)
+        .filter(Deal.id == deal_id)
+        .filter(Interaction.interaction_date >= Deal.created_at)
+        .scalar() or 0
+    )
+    
+    db_deal = db.query(Deal).options(joinedload(Deal.contact)).filter(Deal.id == deal_id).first()
+    if not db_deal:
+        raise HTTPException(status_code=404, detail="Deal not found")
+    
+    # Subtract 3 days from existing next_followup_date, or set to today if not set
+    if db_deal.next_followup_date:
+        db_deal.next_followup_date = db_deal.next_followup_date - timedelta(days=3)
+    else:
+        db_deal.next_followup_date = datetime.utcnow().date()
+    db_deal.updated_at = datetime.utcnow()
+    
+    db.commit()
+    db.refresh(db_deal)
+    
+    # Attach followup_count
+    db_deal.followup_count = followup_count
+    return db_deal
+

@@ -102,6 +102,7 @@ export type Deal = {
   probability: number;
   expected_close_date?: string;
   actual_close_date?: string;
+  next_followup_date?: string;
   created_at: string;
   updated_at: string;
   followup_count: number;

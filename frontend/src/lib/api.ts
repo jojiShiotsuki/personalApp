@@ -20,9 +20,9 @@ import {
   Quarter,
 } from '../types/index';
 
-// In production, API is served from same domain. In dev, use localhost:8001
+// In production, API is served from same domain. In dev, use localhost:8000
 const API_URL = import.meta.env.VITE_API_URL ||
-  (import.meta.env.PROD ? '' : 'http://localhost:8001');
+  (import.meta.env.PROD ? '' : 'http://localhost:8000');
 
 const api = axios.create({
   baseURL: API_URL,
@@ -141,6 +141,14 @@ export const dealApi = {
 
   delete: async (id: number): Promise<void> => {
     await api.delete(`/api/crm/deals/${id}`);
+  },
+  snooze: async (id: number): Promise<Deal> => {
+    const response = await api.patch(`/api/crm/deals/${id}/snooze`);
+    return response.data;
+  },
+  unsnooze: async (id: number): Promise<Deal> => {
+    const response = await api.patch(`/api/crm/deals/${id}/unsnooze`);
+    return response.data;
   },
 };
 
