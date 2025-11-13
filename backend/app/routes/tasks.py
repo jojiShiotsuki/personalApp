@@ -6,6 +6,7 @@ from datetime import datetime
 from app.database import get_db
 from app.models.task import Task, TaskStatus, TaskPriority
 from app.schemas.task import TaskCreate, TaskUpdate, TaskResponse
+from app.services.project_service import recalculate_project_progress
 
 router = APIRouter(prefix="/api/tasks", tags=["tasks"])
 
@@ -64,6 +65,11 @@ def update_task(task_id: int, task_update: TaskUpdate, db: Session = Depends(get
     db_task.updated_at = datetime.utcnow()
     db.commit()
     db.refresh(db_task)
+    
+    # Recalculate project progress if task belongs to project
+    if db_task.project_id:
+        recalculate_project_progress(db_task.project_id, db)
+    
     return db_task
 
 @router.post("/bulk-delete", status_code=200)
