@@ -1,4 +1,5 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, Date, Time, Enum
+from sqlalchemy import Column, Integer, String, Text, DateTime, Date, Time, Enum, ForeignKey
+from sqlalchemy.orm import relationship
 from datetime import datetime
 from app.database import Base
 import enum
@@ -28,6 +29,12 @@ class Task(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     completed_at = Column(DateTime, nullable=True)
+    
+    # Project relationship
+    project_id = Column(Integer, ForeignKey("projects.id"), nullable=True)
+    
+    # Relationships
+    project = relationship("Project", back_populates="tasks")
 
     def __repr__(self):
         return f"<Task(id={self.id}, title='{self.title}', status={self.status})>"
