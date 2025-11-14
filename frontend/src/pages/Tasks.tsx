@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { taskApi, goalApi } from '@/lib/api';
-import type { Task, TaskCreate, TaskUpdate, Goal } from '@/types';
+import type { Task, TaskCreate, TaskUpdate } from '@/types';
 import { TaskStatus, TaskPriority } from '@/types';
 import TaskList from '@/components/TaskList';
 import { Filter, Plus, X } from 'lucide-react';

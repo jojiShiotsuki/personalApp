@@ -9,6 +9,9 @@ import {
   Briefcase,
   DollarSign,
   Folder,
+  Sparkles,
+  ListTodo,
+  Target,
 } from 'lucide-react';
 import { isPast, isToday, parseISO, format } from 'date-fns';
 import { formatCurrency } from '@/lib/currency';
@@ -17,18 +20,18 @@ import { useNavigate } from 'react-router-dom';
 export default function Dashboard() {
   const navigate = useNavigate();
 
-  const { data: allTasks = [] } = useQuery({
+  const { data: allTasks = [], isLoading: tasksLoading } = useQuery({
     queryKey: ['tasks', 'all'],
     queryFn: () => taskApi.getAll(),
   });
 
-  const { data: allDeals = [] } = useQuery({
+  const { data: allDeals = [], isLoading: dealsLoading } = useQuery({
     queryKey: ['deals', 'all'],
     queryFn: () => dealApi.getAll(),
   });
 
   // Fetch active projects
-  const { data: projects = [] } = useQuery({
+  const { data: projects = [], isLoading: projectsLoading } = useQuery({
     queryKey: ['projects'],
     queryFn: projectApi.getAll,
   });
@@ -77,29 +80,35 @@ export default function Dashboard() {
       : 0;
 
   return (
-    <div className="h-full bg-gray-100">
-      {/* Header */}
-      <div className="bg-white border-b px-8 py-6">
-        <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-        <p className="mt-1 text-sm text-gray-500">
-          Welcome back! Here's your overview
-        </p>
+    <div className="h-full bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/30 overflow-auto">
+      {/* Header with gradient */}
+      <div className="relative bg-gradient-to-r from-blue-600 to-purple-600 px-8 py-8 shadow-lg">
+        <div className="absolute inset-0 bg-black/5"></div>
+        <div className="relative">
+          <div className="flex items-center gap-3">
+            <Sparkles className="w-8 h-8 text-white/90" />
+            <h1 className="text-4xl font-bold text-white drop-shadow-md">Dashboard</h1>
+          </div>
+          <p className="mt-2 text-blue-100 text-base">
+            Welcome back! Here's your overview for today
+          </p>
+        </div>
       </div>
 
       {/* Content */}
       <div className="p-8">
-        {/* Command Bar Hint */}
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+        {/* Command Bar Hint - Enhanced */}
+        <div className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 backdrop-blur-sm border border-blue-200/50 rounded-xl p-4 mb-8 shadow-sm hover:shadow-md transition-all duration-300 animate-in fade-in slide-in-from-top-4">
           <div className="flex items-center">
             <div className="flex-shrink-0">
-              <svg className="h-5 w-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-              </svg>
+              <div className="p-2 bg-blue-500/10 rounded-lg">
+                <Sparkles className="h-5 w-5 text-blue-600" />
+              </div>
             </div>
-            <div className="ml-3">
-              <p className="text-sm text-blue-700">
-                <strong>Pro tip:</strong> Press{' '}
-                <kbd className="px-2 py-0.5 bg-white rounded border border-blue-300 text-xs font-mono">
+            <div className="ml-3 flex-1">
+              <p className="text-sm text-gray-700">
+                <strong className="text-blue-700">Pro tip:</strong> Press{' '}
+                <kbd className="px-2.5 py-1 bg-white/80 backdrop-blur-sm rounded-lg border border-blue-300/50 text-xs font-mono shadow-sm">
                   Ctrl+K
                 </kbd>{' '}
                 to quickly add tasks using natural language like "meeting tomorrow at 3pm"
@@ -107,109 +116,163 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
+        {/* Metric Cards with Loading States */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {/* Today's Tasks */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Today</p>
-                <p className="text-3xl font-bold text-gray-900 mt-2">
-                  {todayTasks.length}
-                </p>
+          {tasksLoading ? (
+            // Loading Skeletons
+            <>
+              {[...Array(4)].map((_, i) => (
+                <div
+                  key={i}
+                  className="bg-white/60 backdrop-blur-sm rounded-2xl shadow-lg p-6 animate-pulse"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <div className="h-4 bg-gray-200 rounded w-20 mb-3"></div>
+                      <div className="h-8 bg-gray-300 rounded w-16"></div>
+                    </div>
+                    <div className="w-14 h-14 bg-gray-200 rounded-full"></div>
+                  </div>
+                  <div className="h-3 bg-gray-200 rounded w-24 mt-4"></div>
+                </div>
+              ))}
+            </>
+          ) : (
+            <>
+              {/* Today's Tasks - Enhanced */}
+              <div className="group bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg hover:shadow-xl p-6 transition-all duration-300 hover:scale-105 border border-blue-100/50 hover:border-blue-200">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-gray-600 uppercase tracking-wide">
+                      Today
+                    </p>
+                    <p className="text-4xl font-bold text-gray-900 mt-2 transition-all duration-300 group-hover:scale-110">
+                      {todayTasks.length}
+                    </p>
+                  </div>
+                  <div className="p-4 bg-gradient-to-br from-blue-100 to-blue-200 rounded-2xl group-hover:from-blue-200 group-hover:to-blue-300 transition-all duration-300 shadow-md">
+                    <Clock className="w-7 h-7 text-blue-600" />
+                  </div>
+                </div>
+                <p className="text-sm text-gray-500 mt-4 font-medium">Tasks due today</p>
               </div>
-              <div className="p-3 bg-blue-100 rounded-full">
-                <Clock className="w-6 h-6 text-blue-600" />
-              </div>
-            </div>
-            <p className="text-sm text-gray-500 mt-4">Tasks due today</p>
-          </div>
 
-          {/* Overdue Tasks */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Overdue</p>
-                <p className="text-3xl font-bold text-red-600 mt-2">
-                  {overdueTasks.length}
-                </p>
+              {/* Overdue Tasks - Enhanced */}
+              <div className="group bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg hover:shadow-xl p-6 transition-all duration-300 hover:scale-105 border border-red-100/50 hover:border-red-200">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-gray-600 uppercase tracking-wide">
+                      Overdue
+                    </p>
+                    <p className="text-4xl font-bold text-red-600 mt-2 transition-all duration-300 group-hover:scale-110">
+                      {overdueTasks.length}
+                    </p>
+                  </div>
+                  <div className="p-4 bg-gradient-to-br from-red-100 to-red-200 rounded-2xl group-hover:from-red-200 group-hover:to-red-300 transition-all duration-300 shadow-md">
+                    <AlertCircle className="w-7 h-7 text-red-600" />
+                  </div>
+                </div>
+                <p className="text-sm text-gray-500 mt-4 font-medium">Need attention</p>
               </div>
-              <div className="p-3 bg-red-100 rounded-full">
-                <AlertCircle className="w-6 h-6 text-red-600" />
-              </div>
-            </div>
-            <p className="text-sm text-gray-500 mt-4">Need attention</p>
-          </div>
 
-          {/* Completed Tasks */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Completed</p>
-                <p className="text-3xl font-bold text-green-600 mt-2">
-                  {completedTasks.length}
-                </p>
+              {/* Completed Tasks - Enhanced */}
+              <div className="group bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg hover:shadow-xl p-6 transition-all duration-300 hover:scale-105 border border-green-100/50 hover:border-green-200">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-gray-600 uppercase tracking-wide">
+                      Completed
+                    </p>
+                    <p className="text-4xl font-bold text-green-600 mt-2 transition-all duration-300 group-hover:scale-110">
+                      {completedTasks.length}
+                    </p>
+                  </div>
+                  <div className="p-4 bg-gradient-to-br from-green-100 to-green-200 rounded-2xl group-hover:from-green-200 group-hover:to-green-300 transition-all duration-300 shadow-md">
+                    <CheckCircle2 className="w-7 h-7 text-green-600" />
+                  </div>
+                </div>
+                <p className="text-sm text-gray-500 mt-4 font-medium">Tasks done</p>
               </div>
-              <div className="p-3 bg-green-100 rounded-full">
-                <CheckCircle2 className="w-6 h-6 text-green-600" />
-              </div>
-            </div>
-            <p className="text-sm text-gray-500 mt-4">Tasks done</p>
-          </div>
 
-          {/* Pipeline Value */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Pipeline</p>
-                <p className="text-3xl font-bold text-gray-900 mt-2">
-                  {formatCurrency(pipelineValue)}
+              {/* Pipeline Value - Enhanced */}
+              <div className="group bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg hover:shadow-xl p-6 transition-all duration-300 hover:scale-105 border border-purple-100/50 hover:border-purple-200">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-gray-600 uppercase tracking-wide">
+                      Pipeline
+                    </p>
+                    <p className="text-4xl font-bold text-gray-900 mt-2 transition-all duration-300 group-hover:scale-110">
+                      {formatCurrency(pipelineValue)}
+                    </p>
+                  </div>
+                  <div className="p-4 bg-gradient-to-br from-purple-100 to-purple-200 rounded-2xl group-hover:from-purple-200 group-hover:to-purple-300 transition-all duration-300 shadow-md">
+                    <DollarSign className="w-7 h-7 text-purple-600" />
+                  </div>
+                </div>
+                <p className="text-sm text-gray-500 mt-4 font-medium">
+                  {activeDeals.length} active deals
                 </p>
               </div>
-              <div className="p-3 bg-purple-100 rounded-full">
-                <DollarSign className="w-6 h-6 text-purple-600" />
-              </div>
-            </div>
-            <p className="text-sm text-gray-500 mt-4">{activeDeals.length} active deals</p>
-          </div>
+            </>
+          )}
         </div>
 
         {/* Three Column Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Task List Widget */}
-          <div className="bg-white rounded-lg shadow">
-            <div className="px-6 py-4 border-b">
-              <h2 className="text-lg font-semibold text-gray-900">
-                Upcoming Tasks
-              </h2>
+          {/* Task List Widget - Enhanced */}
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-100 overflow-hidden hover:shadow-xl transition-all duration-300">
+            <div className="px-6 py-5 bg-gradient-to-r from-blue-500/5 to-purple-500/5 border-b border-gray-100">
+              <div className="flex items-center gap-2">
+                <ListTodo className="w-5 h-5 text-blue-600" />
+                <h2 className="text-lg font-bold text-gray-900">
+                  Upcoming Tasks
+                </h2>
+              </div>
             </div>
             <div className="p-6">
-              {allTasks.slice(0, 5).length > 0 ? (
+              {tasksLoading ? (
+                // Loading skeleton
+                <div className="space-y-3">
+                  {[...Array(3)].map((_, i) => (
+                    <div
+                      key={i}
+                      className="p-4 bg-gray-50 rounded-xl animate-pulse"
+                    >
+                      <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                      <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                    </div>
+                  ))}
+                </div>
+              ) : allTasks.filter((task) => task.status !== TaskStatus.COMPLETED).length > 0 ? (
                 <div className="space-y-3">
                   {allTasks
                     .filter((task) => task.status !== TaskStatus.COMPLETED)
                     .slice(0, 5)
-                    .map((task) => (
+                    .map((task, index) => (
                       <div
                         key={task.id}
-                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                        className="group flex items-center justify-between p-4 bg-gradient-to-r from-gray-50 to-blue-50/30 rounded-xl hover:shadow-md transition-all duration-300 hover:scale-102 cursor-pointer border border-transparent hover:border-blue-200"
+                        style={{
+                          animationDelay: `${index * 50}ms`,
+                          animation: 'fadeInUp 0.5s ease-out forwards',
+                        }}
                       >
                         <div className="flex-1">
-                          <p className="text-sm font-medium text-gray-900">
+                          <p className="text-sm font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
                             {task.title}
                           </p>
-                          <p className="text-xs text-gray-500 mt-1">
+                          <p className="text-xs text-gray-500 mt-1 font-medium">
                             {task.due_date
                               ? format(parseISO(task.due_date), 'MMM d')
                               : 'No due date'}
                           </p>
                         </div>
                         <span
-                          className={`px-2 py-1 text-xs rounded ${
+                          className={`px-3 py-1.5 text-xs font-semibold rounded-lg shadow-sm ${
                             task.priority === 'urgent'
-                              ? 'bg-red-100 text-red-700'
+                              ? 'bg-gradient-to-r from-red-100 to-red-200 text-red-700'
                               : task.priority === 'high'
-                              ? 'bg-orange-100 text-orange-700'
-                              : 'bg-gray-100 text-gray-700'
+                              ? 'bg-gradient-to-r from-orange-100 to-orange-200 text-orange-700'
+                              : 'bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700'
                           }`}
                         >
                           {task.priority}
@@ -218,115 +281,177 @@ export default function Dashboard() {
                     ))}
                 </div>
               ) : (
-                <p className="text-center text-gray-500 py-8">
-                  No pending tasks
-                </p>
+                // Enhanced empty state
+                <div className="text-center py-12">
+                  <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-100 mb-4">
+                    <CheckCircle2 className="w-8 h-8 text-blue-600" />
+                  </div>
+                  <p className="text-gray-600 font-medium mb-1">All caught up!</p>
+                  <p className="text-sm text-gray-500">No pending tasks at the moment</p>
+                </div>
               )}
             </div>
           </div>
 
-          {/* Active Projects Widget */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold flex items-center gap-2">
-                <Folder className="w-5 h-5" />
-                Active Projects
-              </h2>
-              <button
-                onClick={() => navigate('/projects')}
-                className="text-sm text-blue-600 hover:text-blue-700"
-              >
-                View All
-              </button>
+          {/* Active Projects Widget - Enhanced */}
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-100 overflow-hidden hover:shadow-xl transition-all duration-300">
+            <div className="px-6 py-5 bg-gradient-to-r from-purple-500/5 to-pink-500/5 border-b border-gray-100">
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-2">
+                  <Folder className="w-5 h-5 text-purple-600" />
+                  <h2 className="text-lg font-bold text-gray-900">
+                    Active Projects
+                  </h2>
+                </div>
+                <button
+                  onClick={() => navigate('/projects')}
+                  className="text-sm text-purple-600 hover:text-purple-700 font-semibold hover:underline transition-all"
+                >
+                  View All →
+                </button>
+              </div>
             </div>
 
-            {activeProjects.length === 0 ? (
-              <p className="text-gray-500 text-sm">No active projects</p>
-            ) : (
-              <div className="space-y-3">
-                {activeProjects.map((project) => (
-                  <div
-                    key={project.id}
-                    onClick={() => navigate(`/projects/${project.id}`)}
-                    className="p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer"
-                  >
-                    <div className="font-medium mb-2">{project.name}</div>
-                    <div className="flex items-center gap-2">
-                      <div className="flex-1 bg-gray-200 rounded-full h-2">
-                        <div
-                          className="bg-blue-500 h-2 rounded-full"
-                          style={{ width: `${project.progress}%` }}
-                        />
-                      </div>
-                      <span className="text-xs text-gray-600">{project.progress}%</span>
+            <div className="p-6">
+              {projectsLoading ? (
+                // Loading skeleton
+                <div className="space-y-3">
+                  {[...Array(3)].map((_, i) => (
+                    <div
+                      key={i}
+                      className="p-4 border border-gray-200 rounded-xl animate-pulse"
+                    >
+                      <div className="h-4 bg-gray-200 rounded w-2/3 mb-3"></div>
+                      <div className="h-2 bg-gray-200 rounded w-full"></div>
                     </div>
+                  ))}
+                </div>
+              ) : activeProjects.length === 0 ? (
+                // Enhanced empty state
+                <div className="text-center py-12">
+                  <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-purple-100 mb-4">
+                    <Target className="w-8 h-8 text-purple-600" />
                   </div>
-                ))}
-              </div>
-            )}
+                  <p className="text-gray-600 font-medium mb-1">No active projects</p>
+                  <p className="text-sm text-gray-500">Start a new project to see it here</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {activeProjects.map((project, index) => (
+                    <div
+                      key={project.id}
+                      onClick={() => navigate(`/projects/${project.id}`)}
+                      className="group p-4 border-2 border-gray-200 rounded-xl hover:border-purple-300 hover:bg-gradient-to-r hover:from-purple-50/50 hover:to-pink-50/50 cursor-pointer transition-all duration-300 hover:shadow-md hover:scale-102"
+                      style={{
+                        animationDelay: `${index * 50}ms`,
+                        animation: 'fadeInUp 0.5s ease-out forwards',
+                      }}
+                    >
+                      <div className="font-semibold text-gray-900 mb-3 group-hover:text-purple-600 transition-colors">
+                        {project.name}
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="flex-1 bg-gray-200 rounded-full h-2.5 overflow-hidden">
+                          <div
+                            className="bg-gradient-to-r from-purple-500 to-pink-500 h-2.5 rounded-full transition-all duration-500 shadow-sm"
+                            style={{ width: `${project.progress}%` }}
+                          />
+                        </div>
+                        <span className="text-xs font-bold text-gray-700 min-w-[3rem] text-right">
+                          {project.progress}%
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
 
-          {/* CRM Stats Widget */}
-          <div className="bg-white rounded-lg shadow">
-            <div className="px-6 py-4 border-b">
-              <h2 className="text-lg font-semibold text-gray-900">
-                CRM Overview
-              </h2>
+          {/* CRM Stats Widget - Enhanced */}
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-100 overflow-hidden hover:shadow-xl transition-all duration-300">
+            <div className="px-6 py-5 bg-gradient-to-r from-green-500/5 to-emerald-500/5 border-b border-gray-100">
+              <div className="flex items-center gap-2">
+                <Briefcase className="w-5 h-5 text-green-600" />
+                <h2 className="text-lg font-bold text-gray-900">
+                  CRM Overview
+                </h2>
+              </div>
             </div>
             <div className="p-6">
-              <div className="space-y-4">
-                {/* Win Rate */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <TrendingUp className="w-5 h-5 text-green-600 mr-3" />
-                    <span className="text-sm font-medium text-gray-700">
-                      Win Rate
+              {dealsLoading ? (
+                // Loading skeleton
+                <div className="space-y-4">
+                  {[...Array(4)].map((_, i) => (
+                    <div key={i} className="flex items-center justify-between p-3 animate-pulse">
+                      <div className="h-4 bg-gray-200 rounded w-24"></div>
+                      <div className="h-6 bg-gray-300 rounded w-16"></div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="space-y-5">
+                  {/* Win Rate */}
+                  <div className="group flex items-center justify-between p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl hover:shadow-md transition-all duration-300 border border-green-100">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2.5 bg-green-100 rounded-lg group-hover:scale-110 transition-transform">
+                        <TrendingUp className="w-5 h-5 text-green-600" />
+                      </div>
+                      <span className="text-sm font-semibold text-gray-700">
+                        Win Rate
+                      </span>
+                    </div>
+                    <span className="text-2xl font-bold text-green-600">
+                      {winRate.toFixed(0)}%
                     </span>
                   </div>
-                  <span className="text-lg font-bold text-green-600">
-                    {winRate.toFixed(0)}%
-                  </span>
-                </div>
 
-                {/* Active Deals */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <Briefcase className="w-5 h-5 text-blue-600 mr-3" />
-                    <span className="text-sm font-medium text-gray-700">
-                      Active Deals
+                  {/* Active Deals */}
+                  <div className="group flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-xl hover:shadow-md transition-all duration-300 border border-blue-100">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2.5 bg-blue-100 rounded-lg group-hover:scale-110 transition-transform">
+                        <Briefcase className="w-5 h-5 text-blue-600" />
+                      </div>
+                      <span className="text-sm font-semibold text-gray-700">
+                        Active Deals
+                      </span>
+                    </div>
+                    <span className="text-2xl font-bold text-gray-900">
+                      {activeDeals.length}
                     </span>
                   </div>
-                  <span className="text-lg font-bold text-gray-900">
-                    {activeDeals.length}
-                  </span>
-                </div>
 
-                {/* Won Deals */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <CheckCircle2 className="w-5 h-5 text-green-600 mr-3" />
-                    <span className="text-sm font-medium text-gray-700">
-                      Closed Won
+                  {/* Won Deals */}
+                  <div className="group flex items-center justify-between p-4 bg-gradient-to-r from-emerald-50 to-teal-50 rounded-xl hover:shadow-md transition-all duration-300 border border-emerald-100">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2.5 bg-emerald-100 rounded-lg group-hover:scale-110 transition-transform">
+                        <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                      </div>
+                      <span className="text-sm font-semibold text-gray-700">
+                        Closed Won
+                      </span>
+                    </div>
+                    <span className="text-2xl font-bold text-gray-900">
+                      {wonDeals.length}
                     </span>
                   </div>
-                  <span className="text-lg font-bold text-gray-900">
-                    {wonDeals.length}
-                  </span>
-                </div>
 
-                {/* Total Pipeline */}
-                <div className="mt-6 pt-6 border-t">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-gray-700">
-                      Total Pipeline Value
-                    </span>
-                    <span className="text-2xl font-bold text-purple-600">
-                      {formatCurrency(pipelineValue)}
-                    </span>
+                  {/* Total Pipeline - Highlighted */}
+                  <div className="mt-6 pt-6 border-t-2 border-gray-200">
+                    <div className="p-5 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl shadow-lg">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-bold text-white/90 uppercase tracking-wide">
+                          Total Pipeline Value
+                        </span>
+                        <span className="text-3xl font-bold text-white drop-shadow-md">
+                          {formatCurrency(pipelineValue)}
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
           </div>
         </div>

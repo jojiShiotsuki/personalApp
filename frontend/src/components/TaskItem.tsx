@@ -91,7 +91,7 @@ export default function TaskItem({ task, onStatusChange, onClick, onDelete, isUp
     e.stopPropagation(); // Prevent opening the edit modal
   };
 
-  const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleCheckboxChange = (_e: React.ChangeEvent<HTMLInputElement>) => {
     if (onToggleSelect) {
       onToggleSelect(task.id);
     }
