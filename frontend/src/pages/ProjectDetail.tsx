@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Trash2, Plus } from 'lucide-react';
 import { projectApi, taskApi } from '@/lib/api';
-import { ProjectStatus, TaskStatus } from '@/types';
+import { ProjectStatus, TaskStatus, TaskCreate, TaskPriority } from '@/types';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import TaskItem from '@/components/TaskItem';
@@ -270,6 +270,7 @@ function OverviewTab({ project }: { project: any }) {
 }
 
 function ListTab({ projectId }: { projectId: number }) {
+  const queryClient = useQueryClient();
   const [showAddTask, setShowAddTask] = useState(false);
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [filterPriority, setFilterPriority] = useState<string>('all');
@@ -278,6 +279,20 @@ function ListTab({ projectId }: { projectId: number }) {
   const { data: tasks = [], isLoading, isError } = useQuery({
     queryKey: ['projects', projectId, 'tasks'],
     queryFn: () => projectApi.getTasks(projectId),
+  });
+
+  // Create task mutation
+  const createTaskMutation = useMutation({
+    mutationFn: (data: TaskCreate) => projectApi.createTask(projectId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['projects', projectId, 'tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['projects', projectId] });
+      setShowAddTask(false);
+      toast.success('Task created successfully');
+    },
+    onError: () => {
+      toast.error('Failed to create task');
+    },
   });
 
   // Handle task status change - placeholder for now
@@ -403,17 +418,85 @@ function ListTab({ projectId }: { projectId: number }) {
         </div>
       )}
 
-      {/* Add Task Modal - placeholder for now */}
+      {/* Add Task Modal */}
       {showAddTask && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg">
-            <p>Add Task Modal - to be implemented</p>
-            <button
-              onClick={() => setShowAddTask(false)}
-              className="mt-4 px-4 py-2 bg-gray-200 rounded"
+          <div className="bg-white p-6 rounded-lg w-full max-w-md">
+            <h3 className="text-lg font-semibold mb-4">Add New Task</h3>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                const formData = new FormData(e.currentTarget);
+                createTaskMutation.mutate({
+                  title: formData.get('title') as string,
+                  description: formData.get('description') as string || undefined,
+                  priority: formData.get('priority') as TaskPriority,
+                  status: 'pending' as TaskStatus,
+                });
+              }}
             >
-              Close
-            </button>
+              <div className="space-y-4">
+                <div>
+                  <label htmlFor="title" className="block text-sm font-medium mb-1">
+                    Title *
+                  </label>
+                  <input
+                    type="text"
+                    id="title"
+                    name="title"
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    placeholder="Enter task title"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="description" className="block text-sm font-medium mb-1">
+                    Description
+                  </label>
+                  <textarea
+                    id="description"
+                    name="description"
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    placeholder="Enter task description"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="priority" className="block text-sm font-medium mb-1">
+                    Priority
+                  </label>
+                  <select
+                    id="priority"
+                    name="priority"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  >
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                    <option value="urgent">Urgent</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex gap-3 mt-6">
+                <button
+                  type="button"
+                  onClick={() => setShowAddTask(false)}
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={createTaskMutation.isPending}
+                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {createTaskMutation.isPending ? 'Creating...' : 'Create Task'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
