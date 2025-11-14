@@ -2,11 +2,12 @@ import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Trash2, Plus } from 'lucide-react';
-import { projectApi } from '@/lib/api';
+import { projectApi, taskApi } from '@/lib/api';
 import { ProjectStatus, TaskStatus } from '@/types';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import TaskItem from '@/components/TaskItem';
+import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 
 type Tab = 'overview' | 'list' | 'board';
 
@@ -375,5 +376,152 @@ function ListTab({ projectId }: { projectId: number }) {
 }
 
 function BoardTab({ projectId }: { projectId: number }) {
-  return <div>Board content coming soon for project {projectId}</div>;
+  const queryClient = useQueryClient();
+
+  // Fetch project tasks
+  const { data: tasks = [], isLoading } = useQuery({
+    queryKey: ['projects', projectId, 'tasks'],
+    queryFn: () => projectApi.getTasks(projectId),
+  });
+
+  // Update task status mutation
+  const updateStatusMutation = useMutation({
+    mutationFn: ({ id, status }: { id: number; status: TaskStatus }) =>
+      taskApi.updateStatus(id, status),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['projects', projectId, 'tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['projects', projectId] });
+      toast.success('Task status updated');
+    },
+    onError: () => {
+      toast.error('Failed to update task status');
+    },
+  });
+
+  const handleDragEnd = (result: any) => {
+    const { destination, source, draggableId } = result;
+
+    if (!destination) return;
+    if (destination.droppableId === source.droppableId && destination.index === source.index) {
+      return;
+    }
+
+    const taskId = parseInt(draggableId.replace('task-', ''));
+    const newStatus = destination.droppableId as TaskStatus;
+
+    updateStatusMutation.mutate({ id: taskId, status: newStatus });
+  };
+
+  if (isLoading) {
+    return <div>Loading tasks...</div>;
+  }
+
+  if (tasks.length === 0) {
+    return (
+      <div className="text-center py-12 bg-gray-50 rounded-lg">
+        <p className="text-gray-500 mb-4">No tasks yet</p>
+        <p className="text-sm text-gray-400">
+          Add tasks from the List tab to see them on the board
+        </p>
+      </div>
+    );
+  }
+
+  // Group tasks by status
+  const tasksByStatus = {
+    [TaskStatus.PENDING]: tasks.filter(t => t.status === TaskStatus.PENDING),
+    [TaskStatus.IN_PROGRESS]: tasks.filter(t => t.status === TaskStatus.IN_PROGRESS),
+    [TaskStatus.COMPLETED]: tasks.filter(t => t.status === TaskStatus.COMPLETED),
+    [TaskStatus.DELAYED]: tasks.filter(t => t.status === TaskStatus.DELAYED),
+  };
+
+  const statusConfig = {
+    [TaskStatus.PENDING]: { label: 'Pending', color: 'bg-gray-100' },
+    [TaskStatus.IN_PROGRESS]: { label: 'In Progress', color: 'bg-blue-100' },
+    [TaskStatus.COMPLETED]: { label: 'Completed', color: 'bg-green-100' },
+    [TaskStatus.DELAYED]: { label: 'Delayed', color: 'bg-red-100' },
+  };
+
+  return (
+    <DragDropContext onDragEnd={handleDragEnd}>
+      <div className="flex gap-4 overflow-x-auto pb-4">
+        {Object.entries(tasksByStatus).map(([status, statusTasks]) => (
+          <Droppable key={status} droppableId={status}>
+            {(provided, snapshot) => (
+              <div
+                ref={provided.innerRef}
+                {...provided.droppableProps}
+                className={cn(
+                  'flex-shrink-0 w-80 bg-gray-50 rounded-lg p-4',
+                  snapshot.isDraggingOver && 'bg-blue-50'
+                )}
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-semibold text-gray-700">
+                    {statusConfig[status as TaskStatus].label}
+                  </h3>
+                  <span className="text-sm text-gray-500">
+                    {statusTasks.length}
+                  </span>
+                </div>
+
+                <div className="space-y-2">
+                  {statusTasks.map((task, index) => (
+                    <Draggable
+                      key={task.id}
+                      draggableId={`task-${task.id}`}
+                      index={index}
+                    >
+                      {(provided, snapshot) => (
+                        <div
+                          ref={provided.innerRef}
+                          {...provided.draggableProps}
+                          {...provided.dragHandleProps}
+                          className={cn(
+                            'bg-white p-3 rounded border border-gray-200',
+                            'hover:shadow-md transition-shadow cursor-move',
+                            snapshot.isDragging && 'shadow-lg opacity-90'
+                          )}
+                        >
+                          <div className="font-medium text-sm mb-1">
+                            {task.title}
+                          </div>
+                          {task.description && (
+                            <div className="text-xs text-gray-500 line-clamp-2 mb-2">
+                              {task.description}
+                            </div>
+                          )}
+                          <div className="flex items-center gap-2 text-xs">
+                            {task.priority && (
+                              <span
+                                className={cn(
+                                  'px-2 py-0.5 rounded',
+                                  task.priority === 'urgent' && 'bg-red-100 text-red-700',
+                                  task.priority === 'high' && 'bg-orange-100 text-orange-700',
+                                  task.priority === 'medium' && 'bg-yellow-100 text-yellow-700',
+                                  task.priority === 'low' && 'bg-gray-100 text-gray-700'
+                                )}
+                              >
+                                {task.priority}
+                              </span>
+                            )}
+                            {task.due_date && (
+                              <span className="text-gray-500">
+                                {new Date(task.due_date).toLocaleDateString()}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </Draggable>
+                  ))}
+                  {provided.placeholder}
+                </div>
+              </div>
+            )}
+          </Droppable>
+        ))}
+      </div>
+    </DragDropContext>
+  );
 }
