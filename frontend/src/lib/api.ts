@@ -13,6 +13,9 @@ import type {
   Goal,
   GoalCreate,
   GoalUpdate,
+  Project,
+  ProjectCreate,
+  ProjectUpdate,
 } from '../types/index';
 import {
   TaskStatus,
@@ -226,6 +229,43 @@ export const goalApi = {
 
   parseBulk: async (text: string): Promise<Goal[]> => {
     const response = await api.post('/api/goal-parser/parse-bulk', { text });
+    return response.data;
+  },
+};
+
+// Project API
+export const projectApi = {
+  getAll: async (): Promise<Project[]> => {
+    const response = await api.get('/api/projects');
+    return response.data;
+  },
+
+  getById: async (id: number): Promise<Project> => {
+    const response = await api.get(`/api/projects/${id}`);
+    return response.data;
+  },
+
+  create: async (data: ProjectCreate): Promise<Project> => {
+    const response = await api.post('/api/projects', data);
+    return response.data;
+  },
+
+  update: async (id: number, data: ProjectUpdate): Promise<Project> => {
+    const response = await api.put(`/api/projects/${id}`, data);
+    return response.data;
+  },
+
+  delete: async (id: number): Promise<void> => {
+    await api.delete(`/api/projects/${id}`);
+  },
+
+  getTasks: async (projectId: number): Promise<Task[]> => {
+    const response = await api.get(`/api/projects/${projectId}/tasks`);
+    return response.data;
+  },
+
+  createTask: async (projectId: number, data: TaskCreate): Promise<Task> => {
+    const response = await api.post(`/api/projects/${projectId}/tasks`, data);
     return response.data;
   },
 };
