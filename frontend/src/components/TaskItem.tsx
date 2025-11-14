@@ -1,7 +1,7 @@
-import type { Task } from '@/types';
+import type { Task, Goal } from '@/types';
 import { TaskStatus, TaskPriority } from '@/types';
 import { format, isPast, isToday, isTomorrow, parseISO } from 'date-fns';
-import { Check, Clock, AlertCircle, Trash2, Edit, Calendar } from 'lucide-react';
+import { Check, Clock, AlertCircle, Trash2, Edit, Calendar, Target } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface TaskItemProps {
@@ -12,6 +12,7 @@ interface TaskItemProps {
   isUpdating?: boolean;
   isSelected?: boolean;
   onToggleSelect?: (id: number) => void;
+  goals?: Goal[];
 }
 
 // Priority configuration with thin border + badge
@@ -66,10 +67,13 @@ const statusConfig = {
   }
 };
 
-export default function TaskItem({ task, onStatusChange, onClick, onDelete, isUpdating, isSelected, onToggleSelect }: TaskItemProps) {
+export default function TaskItem({ task, onStatusChange, onClick, onDelete, isUpdating, isSelected, onToggleSelect, goals }: TaskItemProps) {
   const isCompleted = task.status === TaskStatus.COMPLETED;
   const priority = priorityConfig[task.priority];
   const status = statusConfig[task.status];
+
+  // Find linked goal
+  const linkedGoal = goals?.find(g => g.id === task.goal_id);
 
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -84,14 +88,10 @@ export default function TaskItem({ task, onStatusChange, onClick, onDelete, isUp
   };
 
   const handleCheckboxClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (onToggleSelect) {
-      onToggleSelect(task.id);
-    }
+    e.stopPropagation(); // Prevent opening the edit modal
   };
 
   const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    e.stopPropagation();
     if (onToggleSelect) {
       onToggleSelect(task.id);
     }
@@ -198,8 +198,8 @@ export default function TaskItem({ task, onStatusChange, onClick, onDelete, isUp
           <input
             type="checkbox"
             checked={isSelected}
-            onChange={handleCheckboxChange}
             onClick={handleCheckboxClick}
+            onChange={handleCheckboxChange}
             className="flex-shrink-0 w-4 h-4 mt-1 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
           />
         )}
@@ -276,6 +276,22 @@ export default function TaskItem({ task, onStatusChange, onClick, onDelete, isUp
             <span className="text-xs text-gray-500 flex items-center gap-1">
               <Clock className="w-3 h-3" />
               {task.due_time}
+            </span>
+          )}
+
+          {/* Goal Badge */}
+          {linkedGoal && (
+            <span className={cn(
+              'inline-flex items-center gap-1.5',
+              'px-2.5 py-1',
+              'text-xs font-medium',
+              'text-purple-700 bg-purple-50',
+              'border border-purple-200',
+              'rounded-full',
+              'transition-all duration-200'
+            )}>
+              <Target className="w-3 h-3" />
+              {linkedGoal.title}
             </span>
           )}
         </div>

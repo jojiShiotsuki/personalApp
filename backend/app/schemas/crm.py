@@ -44,6 +44,7 @@ class DealBase(BaseModel):
     probability: int = Field(50, ge=0, le=100)
     expected_close_date: Optional[date] = None
     actual_close_date: Optional[date] = None
+    next_followup_date: Optional[date] = None
 
 class DealCreate(DealBase):
     pass
@@ -57,6 +58,7 @@ class DealUpdate(BaseModel):
     probability: Optional[int] = Field(None, ge=0, le=100)
     expected_close_date: Optional[date] = None
     actual_close_date: Optional[date] = None
+    next_followup_date: Optional[date] = None
 
 class DealResponse(DealBase):
     id: int
@@ -86,6 +88,7 @@ class DealResponse(DealBase):
                     'probability': data.probability,
                     'expected_close_date': data.expected_close_date,
                     'actual_close_date': data.actual_close_date,
+                    'next_followup_date': data.next_followup_date,
                     'created_at': data.created_at,
                     'updated_at': data.updated_at,
                     'contact': ContactResponse.model_validate(data.contact),

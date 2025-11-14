@@ -26,6 +26,7 @@ class Task(Base):
     due_time = Column(Time, nullable=True)
     priority = Column(Enum(TaskPriority), default=TaskPriority.MEDIUM)
     status = Column(Enum(TaskStatus), default=TaskStatus.PENDING)
+    goal_id = Column(Integer, ForeignKey('goals.id', ondelete='SET NULL'), nullable=True, index=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     completed_at = Column(DateTime, nullable=True)
@@ -35,6 +36,9 @@ class Task(Base):
     
     # Relationships
     project = relationship("Project", back_populates="tasks")
+
+    # Relationship to Goal
+    goal = relationship("Goal", back_populates="tasks")
 
     def __repr__(self):
         return f"<Task(id={self.id}, title='{self.title}', status={self.status})>"

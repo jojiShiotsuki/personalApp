@@ -50,6 +50,7 @@ export type Task = {
   due_time?: string;
   priority: TaskPriority;
   status: TaskStatus;
+  goal_id?: number;
   created_at: string;
   updated_at: string;
   completed_at?: string;
@@ -64,6 +65,7 @@ export type TaskCreate = {
   priority?: TaskPriority;
   status?: TaskStatus;
   project_id?: number;
+  goal_id?: number;
 }
 
 export type TaskUpdate = {
@@ -73,6 +75,7 @@ export type TaskUpdate = {
   due_time?: string;
   priority?: TaskPriority;
   status?: TaskStatus;
+  goal_id?: number;
 }
 
 // CRM types
@@ -133,6 +136,7 @@ export type Deal = {
   probability: number;
   expected_close_date?: string;
   actual_close_date?: string;
+  next_followup_date?: string;
   created_at: string;
   updated_at: string;
   followup_count: number;
