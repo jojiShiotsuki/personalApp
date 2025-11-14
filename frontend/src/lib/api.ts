@@ -33,8 +33,10 @@ const api = axios.create({
 
 // Task API
 export const taskApi = {
-  getAll: async (status?: TaskStatus): Promise<Task[]> => {
-    const params = status ? { status } : {};
+  getAll: async (status?: TaskStatus, goalId?: number): Promise<Task[]> => {
+    const params: Record<string, any> = {};
+    if (status) params.status = status;
+    if (goalId !== undefined) params.goal_id = goalId;
     const response = await api.get('/api/tasks', { params });
     return response.data;
   },

@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { taskApi } from '@/lib/api';
-import type { Task, TaskCreate, TaskUpdate } from '@/types';
+import { taskApi, goalApi } from '@/lib/api';
+import type { Task, TaskCreate, TaskUpdate, Goal } from '@/types';
 import { TaskStatus, TaskPriority } from '@/types';
 import TaskList from '@/components/TaskList';
 import { Filter, Plus, X } from 'lucide-react';
@@ -126,6 +126,11 @@ export default function Tasks() {
     queryFn: () => taskApi.getAll(getApiFilter(filter)),
   });
 
+  const { data: goals = [] } = useQuery({
+    queryKey: ['goals'],
+    queryFn: () => goalApi.getAll(),
+  });
+
   const createMutation = useMutation({
     mutationFn: (task: TaskCreate) => taskApi.create(task),
     onSuccess: () => {
@@ -187,6 +192,7 @@ export default function Tasks() {
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
+    const goalIdValue = formData.get('goal_id') as string;
     const data: TaskCreate = {
       title: formData.get('title') as string,
       description: formData.get('description') as string || undefined,
@@ -194,6 +200,7 @@ export default function Tasks() {
       due_time: formData.get('due_time') as string || undefined,
       priority: (formData.get('priority') as TaskPriority) || TaskPriority.MEDIUM,
       status: (formData.get('status') as TaskStatus) || TaskStatus.PENDING,
+      goal_id: goalIdValue ? parseInt(goalIdValue, 10) : undefined,
     };
 
     if (editingTask) {
@@ -544,6 +551,7 @@ export default function Tasks() {
             searchQuery={searchQuery}
             selectedTaskIds={isEditMode ? selectedTaskIds : undefined}
             onToggleSelect={isEditMode ? handleToggleSelect : undefined}
+            goals={goals}
           />
         )}
       </div>
@@ -648,6 +656,24 @@ export default function Tasks() {
                   <option value={TaskStatus.IN_PROGRESS}>In Progress</option>
                   <option value={TaskStatus.COMPLETED}>Completed</option>
                   <option value={TaskStatus.DELAYED}>Delayed</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Link to Goal (Optional)
+                </label>
+                <select
+                  name="goal_id"
+                  defaultValue={editingTask?.goal_id || ''}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">No Goal</option>
+                  {goals.map((goal) => (
+                    <option key={goal.id} value={goal.id}>
+                      {goal.title} ({goal.quarter} {goal.year})
+                    </option>
+                  ))}
                 </select>
               </div>
 

@@ -1,4 +1,5 @@
 from sqlalchemy import Column, Integer, String, Text, DateTime, Enum, Float
+from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.database import Base
 import enum
@@ -43,3 +44,6 @@ class Goal(Base):
     key_results = Column(Text, nullable=True)  # JSON string of key results
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    # Relationship to Tasks
+    tasks = relationship("Task", back_populates="goal")

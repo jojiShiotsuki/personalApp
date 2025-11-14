@@ -13,6 +13,7 @@ router = APIRouter(prefix="/api/tasks", tags=["tasks"])
 def get_tasks(
     status: Optional[TaskStatus] = None,
     priority: Optional[TaskPriority] = None,
+    goal_id: Optional[int] = Query(None, description="Filter tasks by goal ID"),
     skip: int = 0,
     limit: int = 1000,
     db: Session = Depends(get_db)
@@ -24,6 +25,8 @@ def get_tasks(
         query = query.filter(Task.status == status)
     if priority:
         query = query.filter(Task.priority == priority)
+    if goal_id is not None:
+        query = query.filter(Task.goal_id == goal_id)
 
     tasks = query.offset(skip).limit(limit).all()
     return tasks

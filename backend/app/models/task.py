@@ -1,4 +1,5 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, Date, Time, Enum
+from sqlalchemy import Column, Integer, String, Text, DateTime, Date, Time, Enum, ForeignKey
+from sqlalchemy.orm import relationship
 from datetime import datetime
 from app.database import Base
 import enum
@@ -25,9 +26,13 @@ class Task(Base):
     due_time = Column(Time, nullable=True)
     priority = Column(Enum(TaskPriority), default=TaskPriority.MEDIUM)
     status = Column(Enum(TaskStatus), default=TaskStatus.PENDING)
+    goal_id = Column(Integer, ForeignKey('goals.id', ondelete='SET NULL'), nullable=True, index=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     completed_at = Column(DateTime, nullable=True)
+
+    # Relationship to Goal
+    goal = relationship("Goal", back_populates="tasks")
 
     def __repr__(self):
         return f"<Task(id={self.id}, title='{self.title}', status={self.status})>"

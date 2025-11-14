@@ -21,6 +21,7 @@ export type Task = {
   due_time?: string;
   priority: TaskPriority;
   status: TaskStatus;
+  goal_id?: number;
   created_at: string;
   updated_at: string;
   completed_at?: string;
@@ -33,6 +34,7 @@ export type TaskCreate = {
   due_time?: string;
   priority?: TaskPriority;
   status?: TaskStatus;
+  goal_id?: number;
 }
 
 export type TaskUpdate = {
@@ -42,6 +44,7 @@ export type TaskUpdate = {
   due_time?: string;
   priority?: TaskPriority;
   status?: TaskStatus;
+  goal_id?: number;
 }
 
 // CRM types

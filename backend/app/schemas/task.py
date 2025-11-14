@@ -10,6 +10,7 @@ class TaskBase(BaseModel):
     due_time: Optional[time] = None
     priority: TaskPriority = TaskPriority.MEDIUM
     status: TaskStatus = TaskStatus.PENDING
+    goal_id: Optional[int] = None
 
 class TaskCreate(TaskBase):
     pass
@@ -21,6 +22,7 @@ class TaskUpdate(BaseModel):
     due_time: Optional[time] = None
     priority: Optional[TaskPriority] = None
     status: Optional[TaskStatus] = None
+    goal_id: Optional[int] = None
 
 class TaskResponse(TaskBase):
     id: int
