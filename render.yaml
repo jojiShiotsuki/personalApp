@@ -1,0 +1,13 @@
+services:
+  # Backend API
+  - type: web
+    name: personalapp-backend
+    runtime: python
+    buildCommand: "pip install -r backend/requirements.txt"
+    startCommand: "cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+    envVars:
+      - key: CORS_ORIGINS
+        value: https://personalapp.onrender.com
+      - key: PYTHON_VERSION
+        value: 3.11.0
+    healthCheckPath: /health
