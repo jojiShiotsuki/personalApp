@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Trash2 } from 'lucide-react';
+import { ArrowLeft, Trash2, Plus } from 'lucide-react';
 import { projectApi } from '@/lib/api';
-import { ProjectStatus } from '@/types';
+import { ProjectStatus, TaskStatus } from '@/types';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import TaskItem from '@/components/TaskItem';
 
 type Tab = 'overview' | 'list' | 'board';
 
@@ -241,7 +242,136 @@ function OverviewTab({ project }: { project: any }) {
 }
 
 function ListTab({ projectId }: { projectId: number }) {
-  return <div>List content coming soon for project {projectId}</div>;
+  const [showAddTask, setShowAddTask] = useState(false);
+  const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [filterPriority, setFilterPriority] = useState<string>('all');
+
+  // Fetch project tasks
+  const { data: tasks = [], isLoading } = useQuery({
+    queryKey: ['projects', projectId, 'tasks'],
+    queryFn: () => projectApi.getTasks(projectId),
+  });
+
+  // Handle task status change - placeholder for now
+  const handleStatusChange = (taskId: number, status: TaskStatus) => {
+    // TODO: Implement with taskApi.update when available
+    console.log('Status change:', taskId, status);
+  };
+
+  // Handle task click - open in edit mode
+  const handleTaskClick = (taskId: number) => {
+    // TODO: Open task edit modal
+    console.log('Task clicked:', taskId);
+  };
+
+  // Filter tasks
+  const filteredTasks = tasks.filter((task) => {
+    if (filterStatus !== 'all' && task.status !== filterStatus) return false;
+    if (filterPriority !== 'all' && task.priority !== filterPriority) return false;
+    return true;
+  });
+
+  // Group by status
+  const groupedTasks = {
+    pending: filteredTasks.filter((t) => t.status === TaskStatus.PENDING),
+    in_progress: filteredTasks.filter((t) => t.status === TaskStatus.IN_PROGRESS),
+    completed: filteredTasks.filter((t) => t.status === TaskStatus.COMPLETED),
+    delayed: filteredTasks.filter((t) => t.status === TaskStatus.DELAYED),
+  };
+
+  if (isLoading) {
+    return <div>Loading tasks...</div>;
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Filters */}
+      <div className="flex gap-4 items-center">
+        <select
+          value={filterStatus}
+          onChange={(e) => setFilterStatus(e.target.value)}
+          className="px-3 py-2 border border-gray-300 rounded-lg"
+        >
+          <option value="all">All Status</option>
+          <option value="pending">Pending</option>
+          <option value="in_progress">In Progress</option>
+          <option value="completed">Completed</option>
+          <option value="delayed">Delayed</option>
+        </select>
+
+        <select
+          value={filterPriority}
+          onChange={(e) => setFilterPriority(e.target.value)}
+          className="px-3 py-2 border border-gray-300 rounded-lg"
+        >
+          <option value="all">All Priority</option>
+          <option value="low">Low</option>
+          <option value="medium">Medium</option>
+          <option value="high">High</option>
+          <option value="urgent">Urgent</option>
+        </select>
+
+        <button
+          onClick={() => setShowAddTask(true)}
+          className="ml-auto flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+        >
+          <Plus className="w-4 h-4" />
+          Add Task
+        </button>
+      </div>
+
+      {/* Task Groups */}
+      {tasks.length === 0 ? (
+        <div className="text-center py-12 bg-gray-50 rounded-lg">
+          <p className="text-gray-500 mb-4">No tasks yet</p>
+          <button
+            onClick={() => setShowAddTask(true)}
+            className="text-blue-600 hover:text-blue-700"
+          >
+            Add your first task
+          </button>
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {Object.entries(groupedTasks).map(([status, statusTasks]) => {
+            if (statusTasks.length === 0) return null;
+            return (
+              <div key={status}>
+                <h3 className="font-semibold text-lg mb-3 capitalize">
+                  {status.replace('_', ' ')} ({statusTasks.length})
+                </h3>
+                <div className="space-y-2">
+                  {statusTasks.map((task) => (
+                    <TaskItem
+                      key={task.id}
+                      task={task}
+                      onStatusChange={handleStatusChange}
+                      onClick={() => handleTaskClick(task.id)}
+                    />
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Add Task Modal - placeholder for now */}
+      {showAddTask && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg">
+            <p>Add Task Modal - to be implemented</p>
+            <button
+              onClick={() => setShowAddTask(false)}
+              className="mt-4 px-4 py-2 bg-gray-200 rounded"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
 function BoardTab({ projectId }: { projectId: number }) {
