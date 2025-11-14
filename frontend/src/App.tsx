@@ -9,6 +9,7 @@ import Contacts from './pages/Contacts';
 import Deals from './pages/Deals';
 import Goals from './pages/Goals';
 import Projects from './pages/Projects';
+import ProjectDetail from './pages/ProjectDetail';
 import Export from './pages/Export';
 import QuickAddModal from './components/QuickAddModal';
 
@@ -44,6 +45,7 @@ function App() {
           <Route path="/deals" element={<Deals />} />
           <Route path="/goals" element={<Goals />} />
           <Route path="/projects" element={<Projects />} />
+          <Route path="/projects/:id" element={<ProjectDetail />} />
           <Route path="/export" element={<Export />} />
         </Routes>
       </Layout>
