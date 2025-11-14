@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
-import { taskApi, dealApi } from '@/lib/api';
-import { TaskStatus, DealStage } from '@/types';
+import { taskApi, dealApi, projectApi } from '@/lib/api';
+import { TaskStatus, DealStage, ProjectStatus } from '@/types';
 import {
   CheckCircle2,
   Clock,
@@ -8,11 +8,15 @@ import {
   TrendingUp,
   Briefcase,
   DollarSign,
+  Folder,
 } from 'lucide-react';
 import { isPast, isToday, parseISO, format } from 'date-fns';
 import { formatCurrency } from '@/lib/currency';
+import { useNavigate } from 'react-router-dom';
 
 export default function Dashboard() {
+  const navigate = useNavigate();
+
   const { data: allTasks = [] } = useQuery({
     queryKey: ['tasks', 'all'],
     queryFn: () => taskApi.getAll(),
@@ -22,6 +26,16 @@ export default function Dashboard() {
     queryKey: ['deals', 'all'],
     queryFn: () => dealApi.getAll(),
   });
+
+  // Fetch active projects
+  const { data: projects = [] } = useQuery({
+    queryKey: ['projects'],
+    queryFn: projectApi.getAll,
+  });
+
+  const activeProjects = projects.filter(
+    (p) => p.status === ProjectStatus.IN_PROGRESS
+  ).slice(0, 5);
 
   // Calculate task metrics
   const todayTasks = allTasks.filter((task) =>
@@ -159,8 +173,8 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Two Column Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Three Column Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Task List Widget */}
           <div className="bg-white rounded-lg shadow">
             <div className="px-6 py-4 border-b">
@@ -210,6 +224,48 @@ export default function Dashboard() {
               )}
             </div>
           </div>
+
+          {/* Active Projects Widget */}
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold flex items-center gap-2">
+                <Folder className="w-5 h-5" />
+                Active Projects
+              </h2>
+              <button
+                onClick={() => navigate('/projects')}
+                className="text-sm text-blue-600 hover:text-blue-700"
+              >
+                View All
+              </button>
+            </div>
+
+            {activeProjects.length === 0 ? (
+              <p className="text-gray-500 text-sm">No active projects</p>
+            ) : (
+              <div className="space-y-3">
+                {activeProjects.map((project) => (
+                  <div
+                    key={project.id}
+                    onClick={() => navigate(`/projects/${project.id}`)}
+                    className="p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer"
+                  >
+                    <div className="font-medium mb-2">{project.name}</div>
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 bg-gray-200 rounded-full h-2">
+                        <div
+                          className="bg-blue-500 h-2 rounded-full"
+                          style={{ width: `${project.progress}%` }}
+                        />
+                      </div>
+                      <span className="text-xs text-gray-600">{project.progress}%</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
 
           {/* CRM Stats Widget */}
           <div className="bg-white rounded-lg shadow">
