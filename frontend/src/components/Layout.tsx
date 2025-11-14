@@ -7,6 +7,7 @@ import {
   Briefcase,
   Target,
   Download,
+  Folder,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -20,6 +21,7 @@ const navigation = [
   { name: 'Contacts', href: '/contacts', icon: Users },
   { name: 'Deals', href: '/deals', icon: Briefcase },
   { name: 'Goals', href: '/goals', icon: Target },
+  { name: 'Projects', href: '/projects', icon: Folder },
   { name: 'Export', href: '/export', icon: Download },
 ];
 
