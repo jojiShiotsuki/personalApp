@@ -19,7 +19,7 @@ export default function ProjectDetail() {
   const [activeTab, setActiveTab] = useState<Tab>('overview');
 
   // Fetch project
-  const { data: project, isLoading } = useQuery({
+  const { data: project, isLoading, isError } = useQuery({
     queryKey: ['projects', projectId],
     queryFn: () => projectApi.getById(projectId),
     enabled: projectId > 0,
@@ -33,6 +33,9 @@ export default function ProjectDetail() {
       queryClient.invalidateQueries({ queryKey: ['projects', projectId] });
       toast.success('Project updated');
     },
+    onError: () => {
+      toast.error('Failed to update project');
+    },
   });
 
   // Delete mutation
@@ -41,6 +44,9 @@ export default function ProjectDetail() {
     onSuccess: () => {
       toast.success('Project deleted');
       navigate('/projects');
+    },
+    onError: () => {
+      toast.error('Failed to delete project');
     },
   });
 
@@ -55,11 +61,32 @@ export default function ProjectDetail() {
   };
 
   if (isLoading) {
-    return <div className="p-6">Loading...</div>;
+    return (
+      <div className="max-w-7xl mx-auto p-6">
+        <div className="text-center py-12">
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-4"></div>
+          <p className="text-gray-500">Loading project...</p>
+        </div>
+      </div>
+    );
   }
 
-  if (!project) {
-    return <div className="p-6">Project not found</div>;
+  if (isError || !project) {
+    return (
+      <div className="max-w-7xl mx-auto p-6">
+        <div className="text-center py-12">
+          <p className="text-red-500 mb-4">
+            {isError ? 'Failed to load project' : 'Project not found'}
+          </p>
+          <button
+            onClick={() => navigate('/projects')}
+            className="text-blue-600 hover:text-blue-700"
+          >
+            Back to Projects
+          </button>
+        </div>
+      </div>
+    );
   }
 
   const statusConfig = {
@@ -248,7 +275,7 @@ function ListTab({ projectId }: { projectId: number }) {
   const [filterPriority, setFilterPriority] = useState<string>('all');
 
   // Fetch project tasks
-  const { data: tasks = [], isLoading } = useQuery({
+  const { data: tasks = [], isLoading, isError } = useQuery({
     queryKey: ['projects', projectId, 'tasks'],
     queryFn: () => projectApi.getTasks(projectId),
   });
@@ -281,7 +308,26 @@ function ListTab({ projectId }: { projectId: number }) {
   };
 
   if (isLoading) {
-    return <div>Loading tasks...</div>;
+    return (
+      <div className="text-center py-12">
+        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-4"></div>
+        <p className="text-gray-500">Loading tasks...</p>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-red-500 mb-4">Failed to load tasks</p>
+        <button
+          onClick={() => window.location.reload()}
+          className="text-blue-600 hover:text-blue-700"
+        >
+          Try again
+        </button>
+      </div>
+    );
   }
 
   return (
@@ -379,7 +425,7 @@ function BoardTab({ projectId }: { projectId: number }) {
   const queryClient = useQueryClient();
 
   // Fetch project tasks
-  const { data: tasks = [], isLoading } = useQuery({
+  const { data: tasks = [], isLoading, isError } = useQuery({
     queryKey: ['projects', projectId, 'tasks'],
     queryFn: () => projectApi.getTasks(projectId),
   });
@@ -413,7 +459,26 @@ function BoardTab({ projectId }: { projectId: number }) {
   };
 
   if (isLoading) {
-    return <div>Loading tasks...</div>;
+    return (
+      <div className="text-center py-12">
+        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-4"></div>
+        <p className="text-gray-500">Loading tasks...</p>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-red-500 mb-4">Failed to load tasks</p>
+        <button
+          onClick={() => window.location.reload()}
+          className="text-blue-600 hover:text-blue-700"
+        >
+          Try again
+        </button>
+      </div>
+    );
   }
 
   if (tasks.length === 0) {

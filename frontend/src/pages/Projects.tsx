@@ -13,7 +13,7 @@ export default function Projects() {
   const queryClient = useQueryClient();
 
   // Fetch projects
-  const { data: projects = [], isLoading } = useQuery({
+  const { data: projects = [], isLoading, isError } = useQuery({
     queryKey: ['projects'],
     queryFn: projectApi.getAll,
   });
@@ -72,7 +72,20 @@ export default function Projects() {
 
       {/* Projects Grid */}
       {isLoading ? (
-        <div className="text-center py-12">Loading projects...</div>
+        <div className="text-center py-12">
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-4"></div>
+          <p className="text-gray-500">Loading projects...</p>
+        </div>
+      ) : isError ? (
+        <div className="text-center py-12">
+          <p className="text-red-500 mb-4">Failed to load projects</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="text-blue-600 hover:text-blue-700"
+          >
+            Try again
+          </button>
+        </div>
       ) : filteredProjects.length === 0 ? (
         <div className="text-center py-12">
           <p className="text-gray-500 mb-4">
