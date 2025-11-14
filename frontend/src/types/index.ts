@@ -13,6 +13,13 @@ export enum TaskStatus {
   DELAYED = "delayed",
 }
 
+export enum RecurrenceType {
+  DAILY = "daily",
+  WEEKLY = "weekly",
+  MONTHLY = "monthly",
+  YEARLY = "yearly",
+}
+
 export enum ProjectStatus {
   TODO = "todo",
   IN_PROGRESS = "in_progress",
@@ -55,6 +62,15 @@ export type Task = {
   updated_at: string;
   completed_at?: string;
   project_id?: number;
+
+  // Recurrence fields
+  is_recurring: boolean;
+  recurrence_type?: RecurrenceType;
+  recurrence_interval?: number;
+  recurrence_end_date?: string;
+  recurrence_count?: number;
+  occurrences_created: number;
+  parent_task_id?: number;
 }
 
 export type TaskCreate = {
@@ -66,6 +82,13 @@ export type TaskCreate = {
   status?: TaskStatus;
   project_id?: number;
   goal_id?: number;
+
+  // Recurrence fields
+  is_recurring?: boolean;
+  recurrence_type?: RecurrenceType;
+  recurrence_interval?: number;
+  recurrence_end_date?: string;
+  recurrence_count?: number;
 }
 
 export type TaskUpdate = {
@@ -76,6 +99,14 @@ export type TaskUpdate = {
   priority?: TaskPriority;
   status?: TaskStatus;
   goal_id?: number;
+  project_id?: number;
+
+  // Recurrence fields
+  is_recurring?: boolean;
+  recurrence_type?: RecurrenceType;
+  recurrence_interval?: number;
+  recurrence_end_date?: string;
+  recurrence_count?: number;
 }
 
 // CRM types

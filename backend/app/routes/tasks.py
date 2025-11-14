@@ -7,6 +7,7 @@ from app.database import get_db
 from app.models.task import Task, TaskStatus, TaskPriority
 from app.schemas.task import TaskCreate, TaskUpdate, TaskResponse
 from app.services.project_service import recalculate_project_progress
+from app.services.recurrence_service import create_all_future_occurrences
 
 router = APIRouter(prefix="/api/tasks", tags=["tasks"])
 
@@ -42,11 +43,17 @@ def get_task(task_id: int, db: Session = Depends(get_db)):
 
 @router.post("/", response_model=TaskResponse, status_code=201)
 def create_task(task: TaskCreate, db: Session = Depends(get_db)):
-    """Create a new task"""
+    """Create a new task, and if it's recurring, create future occurrences"""
     db_task = Task(**task.model_dump())
     db.add(db_task)
     db.commit()
     db.refresh(db_task)
+
+    # If this is a recurring task, create future occurrences
+    if db_task.is_recurring:
+        count = create_all_future_occurrences(db_task, db)
+        db.refresh(db_task)  # Refresh to get updated occurrences_created count
+
     return db_task
 
 @router.put("/{task_id}", response_model=TaskResponse)

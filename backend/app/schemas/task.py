@@ -1,7 +1,7 @@
 from pydantic import BaseModel, Field, model_validator
 from datetime import datetime, date, time
 from typing import Optional, List
-from app.models.task import TaskPriority, TaskStatus
+from app.models.task import TaskPriority, TaskStatus, RecurrenceType
 
 class TaskBase(BaseModel):
     title: str = Field(..., min_length=1, max_length=255)
@@ -11,6 +11,14 @@ class TaskBase(BaseModel):
     priority: TaskPriority = TaskPriority.MEDIUM
     status: TaskStatus = TaskStatus.PENDING
     goal_id: Optional[int] = None
+    project_id: Optional[int] = None
+
+    # Recurrence fields
+    is_recurring: bool = False
+    recurrence_type: Optional[RecurrenceType] = None
+    recurrence_interval: Optional[int] = Field(None, ge=1, description="Repeat every N days/weeks/months/years")
+    recurrence_end_date: Optional[date] = None
+    recurrence_count: Optional[int] = Field(None, ge=1, description="Number of occurrences to create")
 
 class TaskCreate(TaskBase):
     pass
@@ -23,12 +31,24 @@ class TaskUpdate(BaseModel):
     priority: Optional[TaskPriority] = None
     status: Optional[TaskStatus] = None
     goal_id: Optional[int] = None
+    project_id: Optional[int] = None
+
+    # Recurrence fields
+    is_recurring: Optional[bool] = None
+    recurrence_type: Optional[RecurrenceType] = None
+    recurrence_interval: Optional[int] = Field(None, ge=1)
+    recurrence_end_date: Optional[date] = None
+    recurrence_count: Optional[int] = Field(None, ge=1)
 
 class TaskResponse(TaskBase):
     id: int
     created_at: datetime
     updated_at: datetime
     completed_at: Optional[datetime] = None
+
+    # Additional recurrence tracking fields
+    occurrences_created: int = 0
+    parent_task_id: Optional[int] = None
 
     class Config:
         from_attributes = True

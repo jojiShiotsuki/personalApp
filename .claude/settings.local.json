@@ -83,7 +83,15 @@
       "Bash(npm run:*)",
       "Bash(npx eslint:*)",
       "Bash(powershell:*)",
-      "Bash(del nul)"
+      "Bash(del nul)",
+      "Bash(venv/Scripts/alembic upgrade:*)",
+      "Bash(venv/Scripts/alembic stamp:*)",
+      "Bash(wmic process:*)",
+      "Bash(xargs -I {} taskkill //F //PID {})",
+      "Bash(venv/Scripts/alembic current)",
+      "Bash(venv/Scripts/alembic revision:*)",
+      "Bash(venv/Scripts/pip list:*)",
+      "Bash(tee:*)"
     ],
     "deny": [],
     "ask": []

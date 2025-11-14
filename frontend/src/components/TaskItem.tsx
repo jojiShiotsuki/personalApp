@@ -1,7 +1,7 @@
 import type { Task, Goal } from '@/types';
 import { TaskStatus, TaskPriority } from '@/types';
 import { format, isPast, isToday, isTomorrow, parseISO } from 'date-fns';
-import { Check, Clock, AlertCircle, Trash2, Edit, Calendar, Target } from 'lucide-react';
+import { Check, Clock, AlertCircle, Trash2, Edit, Calendar, Target, Repeat } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface TaskItemProps {
@@ -292,6 +292,24 @@ export default function TaskItem({ task, onStatusChange, onClick, onDelete, isUp
             )}>
               <Target className="w-3 h-3" />
               {linkedGoal.title}
+            </span>
+          )}
+
+          {/* Recurring Task Badge */}
+          {task.is_recurring && (
+            <span className={cn(
+              'inline-flex items-center gap-1.5',
+              'px-2.5 py-1',
+              'text-xs font-medium',
+              'text-green-700 bg-green-50',
+              'border border-green-200',
+              'rounded-full',
+              'transition-all duration-200'
+            )}
+            title={`Repeats ${task.recurrence_type}${task.occurrences_created > 0 ? ` (${task.occurrences_created} created)` : ''}`}
+            >
+              <Repeat className="w-3 h-3" />
+              Recurring
             </span>
           )}
         </div>

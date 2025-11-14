@@ -1,14 +1,13 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { taskApi, goalApi } from '@/lib/api';
-import type { Task, TaskCreate, TaskUpdate } from '@/types';
-import { TaskStatus, TaskPriority } from '@/types';
+import type { Task, TaskCreate, TaskUpdate, Goal } from '@/types';
+import { TaskStatus, TaskPriority, RecurrenceType } from '@/types';
 import TaskList from '@/components/TaskList';
-import { Filter, Plus, X } from 'lucide-react';
+import { Filter, Plus, X, Repeat } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-type FilterValue = TaskStatus | 'all' | 'today' | 'this_week' | 'this_month' | 'overdue'
-  | 'week1' | 'week2' | 'week3' | 'week4';
+type FilterValue = TaskStatus | 'all' | 'today' | 'this_week' | 'this_month' | 'overdue';
 type SortOption = 'dueDate' | 'priority' | 'createdDate' | 'title';
 
 // Date helper functions
@@ -46,22 +45,6 @@ const isOverdue = (dateString?: string | null): boolean => {
   const taskDate = new Date(dateString);
   taskDate.setHours(0, 0, 0, 0);
   return taskDate < today;
-};
-
-// Check if task falls within a specific week number (1-4)
-// Week 1 = 0-6 days from today, Week 2 = 7-13 days, etc.
-const isInWeek = (dateString?: string | null, weekNumber?: number): boolean => {
-  if (!dateString || !weekNumber) return false;
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const taskDate = new Date(dateString);
-  taskDate.setHours(0, 0, 0, 0);
-
-  const daysDiff = Math.floor((taskDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-  const weekStart = (weekNumber - 1) * 7;
-  const weekEnd = weekNumber * 7;
-
-  return daysDiff >= weekStart && daysDiff < weekEnd;
 };
 
 // Sort comparison functions
@@ -102,6 +85,8 @@ export default function Tasks() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [showBulkStatusChange, setShowBulkStatusChange] = useState(false);
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [recurrenceEndType, setRecurrenceEndType] = useState<'never' | 'date' | 'count'>('never');
   const queryClient = useQueryClient();
 
   // Debounce search input
@@ -193,6 +178,16 @@ export default function Tasks() {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     const goalIdValue = formData.get('goal_id') as string;
+
+    // DIAGNOSTIC: Log state variables
+    console.log("=== FRONTEND SUBMIT DIAGNOSTIC ===");
+    console.log("isRecurring state:", isRecurring);
+    console.log("recurrenceEndType state:", recurrenceEndType);
+    console.log("FormData recurrence_type:", formData.get('recurrence_type'));
+    console.log("FormData recurrence_interval:", formData.get('recurrence_interval'));
+    console.log("FormData recurrence_end_date:", formData.get('recurrence_end_date'));
+    console.log("FormData recurrence_count:", formData.get('recurrence_count'));
+
     const data: TaskCreate = {
       title: formData.get('title') as string,
       description: formData.get('description') as string || undefined,
@@ -201,6 +196,12 @@ export default function Tasks() {
       priority: (formData.get('priority') as TaskPriority) || TaskPriority.MEDIUM,
       status: (formData.get('status') as TaskStatus) || TaskStatus.PENDING,
       goal_id: goalIdValue ? parseInt(goalIdValue, 10) : undefined,
+      // Recurrence fields
+      is_recurring: isRecurring,
+      recurrence_type: isRecurring ? (formData.get('recurrence_type') as RecurrenceType) : undefined,
+      recurrence_interval: isRecurring ? parseInt(formData.get('recurrence_interval') as string, 10) || 1 : undefined,
+      recurrence_end_date: isRecurring && recurrenceEndType === 'date' ? (formData.get('recurrence_end_date') as string || undefined) : undefined,
+      recurrence_count: isRecurring && recurrenceEndType === 'count' ? parseInt(formData.get('recurrence_count') as string, 10) || undefined : undefined,
     };
 
     if (editingTask) {
@@ -216,11 +217,22 @@ export default function Tasks() {
 
   const handleTaskClick = (task: Task) => {
     setEditingTask(task);
+    setIsRecurring(task.is_recurring);
+    // Determine recurrence end type based on task data
+    if (task.recurrence_end_date) {
+      setRecurrenceEndType('date');
+    } else if (task.recurrence_count) {
+      setRecurrenceEndType('count');
+    } else {
+      setRecurrenceEndType('never');
+    }
     setIsModalOpen(true);
   };
 
   const handleNewTask = () => {
     setEditingTask(null);
+    setIsRecurring(false);
+    setRecurrenceEndType('never');
     setIsModalOpen(true);
   };
 
@@ -272,12 +284,6 @@ export default function Tasks() {
       if (filterValue === 'this_month') return isThisMonth(task.due_date);
       if (filterValue === 'overdue') return isOverdue(task.due_date) && task.status !== TaskStatus.COMPLETED;
 
-      // Week-based filters (1-4 weeks)
-      if (filterValue === 'week1') return isInWeek(task.due_date, 1);
-      if (filterValue === 'week2') return isInWeek(task.due_date, 2);
-      if (filterValue === 'week3') return isInWeek(task.due_date, 3);
-      if (filterValue === 'week4') return isInWeek(task.due_date, 4);
-
       // Status-based filters
       if (filterValue === TaskStatus.PENDING) return task.status === TaskStatus.PENDING;
       if (filterValue === TaskStatus.IN_PROGRESS) return task.status === TaskStatus.IN_PROGRESS;
@@ -294,10 +300,6 @@ export default function Tasks() {
     { label: 'This Week', value: 'this_week' },
     { label: 'This Month', value: 'this_month' },
     { label: 'Overdue', value: 'overdue' },
-    { label: 'Week 1', value: 'week1' },
-    { label: 'Week 2', value: 'week2' },
-    { label: 'Week 3', value: 'week3' },
-    { label: 'Week 4', value: 'week4' },
     { label: 'Pending', value: TaskStatus.PENDING },
     { label: 'In Progress', value: TaskStatus.IN_PROGRESS },
     { label: 'Completed', value: TaskStatus.COMPLETED },
@@ -314,12 +316,6 @@ export default function Tasks() {
           if (filter === 'this_week') return isThisWeek(task.due_date);
           if (filter === 'this_month') return isThisMonth(task.due_date);
           if (filter === 'overdue') return isOverdue(task.due_date) && task.status !== TaskStatus.COMPLETED;
-
-          // Week-based filters (Week 1-4)
-          if (filter === 'week1') return isInWeek(task.due_date, 1);
-          if (filter === 'week2') return isInWeek(task.due_date, 2);
-          if (filter === 'week3') return isInWeek(task.due_date, 3);
-          if (filter === 'week4') return isInWeek(task.due_date, 4);
 
           // Status-based filters
           if (filter === TaskStatus.PENDING) return task.status === TaskStatus.PENDING;
@@ -568,6 +564,8 @@ export default function Tasks() {
                 onClick={() => {
                   setIsModalOpen(false);
                   setEditingTask(null);
+                  setIsRecurring(false);
+                  setRecurrenceEndType('never');
                 }}
                 className="text-gray-400 hover:text-gray-600"
               >
@@ -659,6 +657,104 @@ export default function Tasks() {
                 </select>
               </div>
 
+              {/* Recurrence Section */}
+              <div className="border-t pt-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <input
+                    type="checkbox"
+                    id="is_recurring"
+                    checked={isRecurring}
+                    onChange={(e) => {
+                      setIsRecurring(e.target.checked);
+                      if (!e.target.checked) {
+                        setRecurrenceEndType('never');
+                      }
+                    }}
+                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  />
+                  <label htmlFor="is_recurring" className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                    <Repeat className="w-4 h-4" />
+                    Repeat this task
+                  </label>
+                </div>
+
+                {isRecurring && (
+                  <div className="ml-6 space-y-3 p-3 bg-gray-50 rounded-lg">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Repeat every
+                        </label>
+                        <div className="flex gap-2">
+                          <input
+                            type="number"
+                            name="recurrence_interval"
+                            min="1"
+                            defaultValue={editingTask?.recurrence_interval || 1}
+                            className="w-20 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                          <select
+                            name="recurrence_type"
+                            defaultValue={editingTask?.recurrence_type || RecurrenceType.DAILY}
+                            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          >
+                            <option value={RecurrenceType.DAILY}>Day(s)</option>
+                            <option value={RecurrenceType.WEEKLY}>Week(s)</option>
+                            <option value={RecurrenceType.MONTHLY}>Month(s)</option>
+                            <option value={RecurrenceType.YEARLY}>Year(s)</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Ends
+                        </label>
+                        <select
+                          value={recurrenceEndType}
+                          onChange={(e) => setRecurrenceEndType(e.target.value as 'never' | 'date' | 'count')}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                          <option value="never">Never</option>
+                          <option value="date">On date</option>
+                          <option value="count">After occurrences</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    {recurrenceEndType === 'date' && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          End date
+                        </label>
+                        <input
+                          type="date"
+                          name="recurrence_end_date"
+                          defaultValue={editingTask?.recurrence_end_date}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                    )}
+
+                    {recurrenceEndType === 'count' && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Number of occurrences
+                        </label>
+                        <input
+                          type="number"
+                          name="recurrence_count"
+                          min="1"
+                          defaultValue={editingTask?.recurrence_count}
+                          placeholder="e.g., 10"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Link to Goal (Optional)
@@ -683,6 +779,8 @@ export default function Tasks() {
                   onClick={() => {
                     setIsModalOpen(false);
                     setEditingTask(null);
+                    setIsRecurring(false);
+                    setRecurrenceEndType('never');
                   }}
                   className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
                 >
