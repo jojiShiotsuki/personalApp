@@ -1,7 +1,10 @@
 import os
 from typing import List, Dict, Any, AsyncGenerator
 from anthropic import Anthropic
+from sqlalchemy.orm import Session
 from app.schemas.ai import Message
+from app.services.ai_tools import get_tools_for_page
+from app.services.tool_executor import ToolExecutor
 
 class AIService:
     def __init__(self):
@@ -33,13 +36,15 @@ class AIService:
         self,
         messages: List[Message],
         context: Dict[str, Any],
-        tools: List[Dict[str, Any]] = []
+        db: Session
     ) -> AsyncGenerator[str, None]:
         """
-        Stream chat responses from Claude.
-        Yields text chunks as they arrive.
+        Stream chat responses from Claude with tool use support.
         """
         system_prompt = self.build_system_prompt(context)
+        page = context.get("page", "unknown")
+        tools = get_tools_for_page(page)
+        executor = ToolExecutor(db)
 
         # Convert messages to Anthropic format
         anthropic_messages = [
@@ -47,12 +52,39 @@ class AIService:
             for msg in messages
         ]
 
-        # For now, just send without tools (we'll add tool use in next task)
-        with self.client.messages.stream(
-            model=self.model,
-            max_tokens=1024,
-            system=system_prompt,
-            messages=anthropic_messages,
-        ) as stream:
-            for text in stream.text_stream:
-                yield text
+        # Tool use loop
+        while True:
+            response = self.client.messages.create(
+                model=self.model,
+                max_tokens=1024,
+                system=system_prompt,
+                messages=anthropic_messages,
+                tools=tools if tools else None
+            )
+
+            # Check if Claude wants to use tools
+            tool_use_blocks = [block for block in response.content if block.type == "tool_use"]
+
+            if not tool_use_blocks:
+                # No tools used, stream final text response
+                for block in response.content:
+                    if hasattr(block, "text"):
+                        yield block.text
+                break
+
+            # Execute tools
+            tool_results = []
+            for tool_block in tool_use_blocks:
+                result = executor.execute(tool_block.name, tool_block.input)
+                tool_results.append({
+                    "type": "tool_result",
+                    "tool_use_id": tool_block.id,
+                    "content": str(result)
+                })
+
+                # Yield status update
+                yield f"[Using tool: {tool_block.name}]\n"
+
+            # Add assistant response and tool results to conversation
+            anthropic_messages.append({"role": "assistant", "content": response.content})
+            anthropic_messages.append({"role": "user", "content": tool_results})
