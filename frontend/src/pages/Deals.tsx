@@ -6,6 +6,7 @@ import { DealStage } from '@/types';
 import { Plus, X } from 'lucide-react';
 import KanbanBoard from '@/components/KanbanBoard';
 import AddInteractionModal from '@/components/AddInteractionModal';
+import AIChatPanel from '@/components/AIChatPanel';
 
 const stages = [
   { id: DealStage.LEAD, title: 'Lead' },
@@ -65,6 +66,11 @@ export default function Deals() {
     setIsAddInteractionOpen(true);
   };
 
+  const handleDataChange = () => {
+    // Refetch deals when AI makes changes
+    queryClient.invalidateQueries({ queryKey: ['deals'] });
+  };
+
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
@@ -86,44 +92,51 @@ export default function Deals() {
   };
 
   return (
-    <div className="h-full flex flex-col bg-gray-100">
-      {/* Header */}
-      <div className="bg-white border-b px-8 py-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Deals Pipeline</h1>
-            <p className="mt-1 text-sm text-gray-500">
-              Manage your sales pipeline visually
-            </p>
+    <div className="flex h-full">
+      <div className="flex-1 flex flex-col bg-gray-100">
+        {/* Header */}
+        <div className="bg-white border-b px-8 py-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Deals Pipeline</h1>
+              <p className="mt-1 text-sm text-gray-500">
+                Manage your sales pipeline visually
+              </p>
+            </div>
+            <button
+              onClick={() => {
+                setEditingDeal(null);
+                setSelectedStage(DealStage.LEAD);
+                setIsModalOpen(true);
+              }}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              <Plus className="inline-block w-5 h-5 mr-2 -mt-1" />
+              Add Deal
+            </button>
           </div>
-          <button
-            onClick={() => {
-              setEditingDeal(null);
-              setSelectedStage(DealStage.LEAD);
+        </div>
+
+        {/* Kanban Board */}
+        <div className="flex-1 overflow-hidden">
+          <KanbanBoard
+            deals={deals}
+            contacts={contacts}
+            onEditDeal={(deal) => {
+              setEditingDeal(deal);
+              setSelectedStage(deal.stage);
               setIsModalOpen(true);
             }}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            <Plus className="inline-block w-5 h-5 mr-2 -mt-1" />
-            Add Deal
-          </button>
+            onDeleteDeal={(id) => deleteMutation.mutate(id)}
+            onAddInteraction={handleAddInteraction}
+          />
         </div>
       </div>
 
-      {/* Kanban Board */}
-      <div className="flex-1 overflow-hidden">
-        <KanbanBoard
-          deals={deals}
-          contacts={contacts}
-          onEditDeal={(deal) => {
-            setEditingDeal(deal);
-            setSelectedStage(deal.stage);
-            setIsModalOpen(true);
-          }}
-          onDeleteDeal={(id) => deleteMutation.mutate(id)}
-          onAddInteraction={handleAddInteraction}
-        />
-      </div>
+      <AIChatPanel
+        page="deals"
+        onDataChange={handleDataChange}
+      />
 
       {/* Modal */}
       {isModalOpen && (
