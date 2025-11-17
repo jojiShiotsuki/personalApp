@@ -7,6 +7,7 @@ import { ContactStatus } from '@/types';
 import { Plus, Search, User, Mail, Phone, Building2, X } from 'lucide-react';
 import ContactDetailModal from '@/components/ContactDetailModal';
 import AddInteractionModal from '@/components/AddInteractionModal';
+import AIChatPanel from '@/components/AIChatPanel';
 
 export default function Contacts() {
   const location = useLocation();
@@ -92,8 +93,13 @@ export default function Contacts() {
     setIsModalOpen(true);
   };
 
+  const handleDataChange = () => {
+    queryClient.invalidateQueries({ queryKey: ['contacts'] });
+  };
+
   return (
-    <div className="h-full flex flex-col">
+    <div className="flex h-full">
+      <div className="flex-1 h-full flex flex-col">
       {/* Header */}
       <div className="bg-white border-b px-8 py-6">
         <div className="flex items-center justify-between">
@@ -389,7 +395,12 @@ export default function Contacts() {
           onClose={() => setIsAddInteractionOpen(false)}
         />
       )}
+      </div>
+
+      <AIChatPanel
+        page="contacts"
+        onDataChange={handleDataChange}
+      />
     </div>
   );
 }
-
