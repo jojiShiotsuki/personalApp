@@ -4,6 +4,7 @@ import { taskApi, goalApi } from '@/lib/api';
 import type { Task, TaskCreate, TaskUpdate } from '@/types';
 import { TaskStatus, TaskPriority, RecurrenceType } from '@/types';
 import TaskList from '@/components/TaskList';
+import AIChatPanel from '@/components/AIChatPanel';
 import { Filter, Plus, X, Repeat } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -88,6 +89,11 @@ export default function Tasks() {
   const [isRecurring, setIsRecurring] = useState(false);
   const [recurrenceEndType, setRecurrenceEndType] = useState<'never' | 'date' | 'count'>('never');
   const queryClient = useQueryClient();
+
+  const handleDataChange = () => {
+    // Refetch tasks when AI makes changes
+    queryClient.invalidateQueries({ queryKey: ['tasks'] });
+  };
 
   // Debounce search input
   useEffect(() => {
@@ -341,7 +347,8 @@ export default function Tasks() {
   }, [tasks, filter, debouncedSearch, sortBy]);
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="flex h-full">
+      <div className="flex-1 flex flex-col">
       {/* Header */}
       <div className="bg-white border-b px-8 py-6 shadow-sm">
         <div className="flex items-center justify-between">
@@ -874,6 +881,13 @@ export default function Tasks() {
         </div>
       )}
 
+      </div>
+
+      <AIChatPanel
+        page="tasks"
+        context={{ status: filter, priority: undefined }}
+        onDataChange={handleDataChange}
+      />
     </div>
   );
 }
