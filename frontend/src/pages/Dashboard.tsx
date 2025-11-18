@@ -95,17 +95,17 @@ export default function Dashboard() {
       {/* Content */}
       <div className="p-8">
         {/* Command Bar Hint - Enhanced */}
-        <div className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 backdrop-blur-sm border border-blue-200/50 rounded-xl p-4 mb-8 shadow-sm hover:shadow-md transition-all duration-300 animate-in fade-in slide-in-from-top-4">
+        <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 mb-8 shadow-sm hover:shadow-md transition-all duration-300">
           <div className="flex items-center">
             <div className="flex-shrink-0">
-              <div className="p-2 bg-blue-500/10 rounded-lg">
-                <Sparkles className="h-5 w-5 text-blue-600" />
+              <div className="p-2 bg-gray-100 rounded-lg">
+                <Sparkles className="h-5 w-5 text-gray-600" />
               </div>
             </div>
             <div className="ml-3 flex-1">
               <p className="text-sm text-gray-700">
-                <strong className="text-blue-700">Pro tip:</strong> Press{' '}
-                <kbd className="px-2.5 py-1 bg-white/80 backdrop-blur-sm rounded-lg border border-blue-300/50 text-xs font-mono shadow-sm">
+                <strong className="text-gray-700">Pro tip:</strong> Press{' '}
+                <kbd className="px-2.5 py-1 bg-white rounded-lg border border-slate-300 text-xs font-mono shadow-sm">
                   Ctrl+K
                 </kbd>{' '}
                 to quickly add tasks using natural language like "meeting tomorrow at 3pm"
