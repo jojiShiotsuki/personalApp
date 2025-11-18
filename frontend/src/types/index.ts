@@ -280,4 +280,125 @@ export type ContextExport = {
   markdown: string;
   start_date: string;
   end_date: string;
+};
+
+// Social Content Types
+export type ContentType =
+  | 'reel'
+  | 'carousel'
+  | 'single_post'
+  | 'story'
+  | 'tiktok'
+  | 'youtube_short'
+  | 'youtube_video'
+  | 'blog_post';
+
+export type ContentStatus =
+  | 'not_started'
+  | 'scripted'
+  | 'filmed'
+  | 'editing'
+  | 'scheduled'
+  | 'posted';
+
+export type EditingStyle =
+  | 'fast_paced'
+  | 'cinematic'
+  | 'educational'
+  | 'behind_scenes'
+  | 'trending'
+  | 'tutorial'
+  | 'interview'
+  | 'custom';
+
+export interface SocialContent {
+  id: number;
+  content_date: string; // ISO date string
+  content_type: ContentType;
+  status: ContentStatus;
+  script?: string;
+  editing_style?: EditingStyle;
+  editing_notes?: string;
+  platforms?: string[]; // ['instagram', 'tiktok', etc.]
+  hashtags?: string;
+  music_audio?: string;
+  thumbnail_reference?: string;
+  notes?: string;
+  project_id?: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SocialContentCreate {
+  content_date: string;
+  content_type: ContentType;
+  status?: ContentStatus;
+  script?: string;
+  editing_style?: EditingStyle;
+  editing_notes?: string;
+  platforms?: string[];
+  hashtags?: string;
+  music_audio?: string;
+  thumbnail_reference?: string;
+  notes?: string;
+  project_id?: number;
+}
+
+export interface SocialContentUpdate {
+  content_date?: string;
+  content_type?: ContentType;
+  status?: ContentStatus;
+  script?: string;
+  editing_style?: EditingStyle;
+  editing_notes?: string;
+  platforms?: string[];
+  hashtags?: string;
+  music_audio?: string;
+  thumbnail_reference?: string;
+  notes?: string;
+  project_id?: number;
+}
+
+export interface MonthSummary {
+  month: number;
+  total_content: number;
+  by_status: Record<string, number>;
+  by_type: Record<string, number>;
+}
+
+export interface YearSummary {
+  year: number;
+  months: MonthSummary[];
+}
+
+// Enums for UI
+export const ContentType = {
+  REEL: 'reel' as const,
+  CAROUSEL: 'carousel' as const,
+  SINGLE_POST: 'single_post' as const,
+  STORY: 'story' as const,
+  TIKTOK: 'tiktok' as const,
+  YOUTUBE_SHORT: 'youtube_short' as const,
+  YOUTUBE_VIDEO: 'youtube_video' as const,
+  BLOG_POST: 'blog_post' as const,
+};
+
+export const ContentStatus = {
+  NOT_STARTED: 'not_started' as const,
+  SCRIPTED: 'scripted' as const,
+  FILMED: 'filmed' as const,
+  EDITING: 'editing' as const,
+  SCHEDULED: 'scheduled' as const,
+  POSTED: 'posted' as const,
+};
+
+export const EditingStyle = {
+  FAST_PACED: 'fast_paced' as const,
+  CINEMATIC: 'cinematic' as const,
+  EDUCATIONAL: 'educational' as const,
+  BEHIND_SCENES: 'behind_scenes' as const,
+  TRENDING: 'trending' as const,
+  TUTORIAL: 'tutorial' as const,
+  INTERVIEW: 'interview' as const,
+  CUSTOM: 'custom' as const,
 }
