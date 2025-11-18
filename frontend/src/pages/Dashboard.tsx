@@ -83,8 +83,8 @@ export default function Dashboard() {
     <div className="h-full bg-gray-50 overflow-auto">
       {/* Header with gradient */}
       <div className="bg-white border-b border-gray-200 px-8 py-6">
-        <h1 className="text-4xl font-bold text-gray-900">Dashboard</h1>
-        <p className="mt-2 text-gray-500 text-base">
+        <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+        <p className="mt-1 text-sm text-gray-500">
           Welcome back! Here's your overview for today
         </p>
       </div>
