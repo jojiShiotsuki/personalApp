@@ -232,9 +232,9 @@ export default function SocialCalendar() {
             <div className="flex justify-end">
               <button
                 onClick={() => handleAddContent(selectedDay)}
-                className="px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 transition-colors flex items-center gap-2"
+                className="group flex items-center px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 transition-all duration-200 shadow-sm hover:shadow"
               >
-                <Plus className="w-5 h-5" />
+                <Plus className="w-5 h-5 mr-2 transition-transform duration-200 group-hover:rotate-90" />
                 Add Content
               </button>
             </div>
