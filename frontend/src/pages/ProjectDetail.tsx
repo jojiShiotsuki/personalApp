@@ -64,7 +64,7 @@ export default function ProjectDetail() {
     return (
       <div className="max-w-7xl mx-auto p-6">
         <div className="text-center py-12">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-4"></div>
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-slate-600 mb-4"></div>
           <p className="text-gray-500">Loading project...</p>
         </div>
       </div>
@@ -80,7 +80,7 @@ export default function ProjectDetail() {
           </p>
           <button
             onClick={() => navigate('/projects')}
-            className="text-blue-600 hover:text-blue-700"
+            className="text-slate-600 hover:text-slate-700"
           >
             Back to Projects
           </button>
@@ -91,7 +91,7 @@ export default function ProjectDetail() {
 
   const statusConfig = {
     [ProjectStatus.TODO]: { label: 'To Do', color: 'text-gray-700' },
-    [ProjectStatus.IN_PROGRESS]: { label: 'In Progress', color: 'text-blue-700' },
+    [ProjectStatus.IN_PROGRESS]: { label: 'In Progress', color: 'text-slate-700' },
     [ProjectStatus.COMPLETED]: { label: 'Completed', color: 'text-green-700' },
   };
 
@@ -156,7 +156,7 @@ export default function ProjectDetail() {
               className={cn(
                 'pb-3 border-b-2 font-medium capitalize transition-colors',
                 activeTab === tab
-                  ? 'border-blue-600 text-blue-600'
+                  ? 'border-slate-600 text-slate-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700'
               )}
             >
@@ -244,7 +244,7 @@ function OverviewTab({ project }: { project: any }) {
 
         <div className="bg-white rounded-lg border border-gray-200 p-4">
           <div className="text-sm text-gray-500 mb-1">In Progress</div>
-          <div className="text-2xl font-bold text-blue-600">
+          <div className="text-2xl font-bold text-slate-600">
             {(project.task_count || 0) - (project.completed_task_count || 0)}
           </div>
         </div>
@@ -325,7 +325,7 @@ function ListTab({ projectId }: { projectId: number }) {
   if (isLoading) {
     return (
       <div className="text-center py-12">
-        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-4"></div>
+        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-slate-600 mb-4"></div>
         <p className="text-gray-500">Loading tasks...</p>
       </div>
     );
@@ -337,7 +337,7 @@ function ListTab({ projectId }: { projectId: number }) {
         <p className="text-red-500 mb-4">Failed to load tasks</p>
         <button
           onClick={() => window.location.reload()}
-          className="text-blue-600 hover:text-blue-700"
+          className="text-slate-600 hover:text-slate-700"
         >
           Try again
         </button>
@@ -375,7 +375,7 @@ function ListTab({ projectId }: { projectId: number }) {
 
         <button
           onClick={() => setShowAddTask(true)}
-          className="ml-auto flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          className="ml-auto flex items-center gap-2 px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700"
         >
           <Plus className="w-4 h-4" />
           Add Task
@@ -388,7 +388,7 @@ function ListTab({ projectId }: { projectId: number }) {
           <p className="text-gray-500 mb-4">No tasks yet</p>
           <button
             onClick={() => setShowAddTask(true)}
-            className="text-blue-600 hover:text-blue-700"
+            className="text-slate-600 hover:text-slate-700"
           >
             Add your first task
           </button>
@@ -491,7 +491,7 @@ function ListTab({ projectId }: { projectId: number }) {
                 <button
                   type="submit"
                   disabled={createTaskMutation.isPending}
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                  className="flex-1 px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 disabled:opacity-50"
                 >
                   {createTaskMutation.isPending ? 'Creating...' : 'Create Task'}
                 </button>
@@ -544,7 +544,7 @@ function BoardTab({ projectId }: { projectId: number }) {
   if (isLoading) {
     return (
       <div className="text-center py-12">
-        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-4"></div>
+        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-slate-600 mb-4"></div>
         <p className="text-gray-500">Loading tasks...</p>
       </div>
     );
@@ -556,7 +556,7 @@ function BoardTab({ projectId }: { projectId: number }) {
         <p className="text-red-500 mb-4">Failed to load tasks</p>
         <button
           onClick={() => window.location.reload()}
-          className="text-blue-600 hover:text-blue-700"
+          className="text-slate-600 hover:text-slate-700"
         >
           Try again
         </button>
@@ -585,7 +585,7 @@ function BoardTab({ projectId }: { projectId: number }) {
 
   const statusConfig = {
     [TaskStatus.PENDING]: { label: 'Pending', color: 'bg-gray-100' },
-    [TaskStatus.IN_PROGRESS]: { label: 'In Progress', color: 'bg-blue-100' },
+    [TaskStatus.IN_PROGRESS]: { label: 'In Progress', color: 'bg-slate-100' },
     [TaskStatus.COMPLETED]: { label: 'Completed', color: 'bg-green-100' },
     [TaskStatus.DELAYED]: { label: 'Delayed', color: 'bg-red-100' },
   };
@@ -601,7 +601,7 @@ function BoardTab({ projectId }: { projectId: number }) {
                 {...provided.droppableProps}
                 className={cn(
                   'flex-shrink-0 w-80 bg-gray-50 rounded-lg p-4',
-                  snapshot.isDraggingOver && 'bg-blue-50'
+                  snapshot.isDraggingOver && 'bg-slate-50'
                 )}
               >
                 <div className="flex items-center justify-between mb-4">
