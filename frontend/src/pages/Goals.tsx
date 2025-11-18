@@ -347,9 +347,9 @@ export default function Goals() {
                                             {...provided.draggableProps}
                                             {...provided.dragHandleProps}
                                             className={cn(
-                                              'bg-white p-4 rounded-lg border-2 border-gray-200',
+                                              'bg-white p-4 rounded-lg border border-gray-200',
                                               'hover:shadow-md transition-shadow cursor-move',
-                                              snapshot.isDragging && 'shadow-xl border-slate-400'
+                                              snapshot.isDragging && 'shadow-xl border-slate-300'
                                             )}
                                           >
                                             {/* Goal Header */}

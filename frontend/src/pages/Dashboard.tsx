@@ -331,7 +331,7 @@ export default function Dashboard() {
                     <div
                       key={project.id}
                       onClick={() => navigate(`/projects/${project.id}`)}
-                      className="group p-4 border-2 border-gray-200 rounded-xl hover:border-gray-300 hover:bg-gray-50 cursor-pointer transition-all duration-300 hover:shadow-md"
+                      className="group p-4 border border-gray-200 rounded-xl hover:border-gray-300 hover:bg-gray-50 cursor-pointer transition-all duration-300 hover:shadow-md"
                     >
                       <div className="font-semibold text-gray-900 mb-3 transition-colors">
                         {project.name}
@@ -424,8 +424,8 @@ export default function Dashboard() {
                   </div>
 
                   {/* Total Pipeline - Highlighted */}
-                  <div className="mt-6 pt-6 border-t-2 border-gray-200">
-                    <div className="p-5 bg-slate-100 rounded-xl border-2 border-slate-300">
+                  <div className="mt-6 pt-6 border-t border-gray-200">
+                    <div className="p-5 bg-slate-100 rounded-xl border border-slate-200">
                       <div className="flex items-center justify-between">
                         <span className="text-sm font-bold text-gray-700 uppercase tracking-wide">
                           Total Pipeline Value

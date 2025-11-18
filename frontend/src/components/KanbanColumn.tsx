@@ -25,12 +25,12 @@ const STAGE_CONFIG = {
 };
 
 const COLOR_CLASSES = {
-  blue: 'bg-blue-50 border-blue-300',
-  purple: 'bg-purple-50 border-purple-300',
-  yellow: 'bg-yellow-50 border-yellow-300',
-  orange: 'bg-orange-50 border-orange-300',
-  green: 'bg-green-50 border-green-300',
-  red: 'bg-red-50 border-red-300',
+  blue: 'bg-blue-50 border-blue-200',
+  purple: 'bg-purple-50 border-purple-200',
+  yellow: 'bg-yellow-50 border-yellow-200',
+  orange: 'bg-orange-50 border-orange-200',
+  green: 'bg-green-50 border-green-200',
+  red: 'bg-red-50 border-red-200',
 };
 
 export default function KanbanColumn({
@@ -52,7 +52,7 @@ export default function KanbanColumn({
       {/* Column Header */}
       <div
         className={cn(
-          'p-3 border-b-2 flex items-center justify-between cursor-pointer',
+          'p-3 border-b flex items-center justify-between cursor-pointer',
           COLOR_CLASSES[config.color as keyof typeof COLOR_CLASSES]
         )}
         onClick={isClosedStage ? onToggleCollapse : undefined}

@@ -182,7 +182,7 @@ export default function TaskItem({ task, onStatusChange, onClick, onDelete, isUp
         'flex flex-col gap-3',
         'p-5',
         'bg-white',
-        'border-l-2',
+        'border-l',
         priority.border,
         'rounded-xl shadow-sm',
         'transition-all duration-200 ease-out',
@@ -212,7 +212,7 @@ export default function TaskItem({ task, onStatusChange, onClick, onDelete, isUp
             'flex-shrink-0',
             'flex items-center justify-center',
             'w-5 h-5 mt-0.5',
-            'border-2 rounded',
+            'border rounded',
             'transition-all duration-200',
             isCompleted
               ? 'bg-green-500 border-green-500'

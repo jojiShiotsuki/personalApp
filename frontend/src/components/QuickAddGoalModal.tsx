@@ -98,7 +98,7 @@ export default function QuickAddGoalModal({ isOpen, onClose, onSuccess }: QuickA
             placeholder="e.g., Launch new product Q2 May high priority&#10;Complete annual review Q4 December&#10;Reach 50k followers Q3 August"
             disabled={parseMutation.isPending || showSuccess}
             rows={6}
-            className="w-full px-4 py-3 text-base border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 resize-none"
+            className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 resize-none"
           />
 
           <div className="flex items-center justify-between mt-4">

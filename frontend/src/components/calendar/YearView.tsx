@@ -17,7 +17,7 @@ export default function YearView({ year, months, onMonthClick }: YearViewProps) 
           <button
             key={monthData.month}
             onClick={() => onMonthClick(monthData.month)}
-            className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 hover:shadow-lg transition-shadow text-left"
+            className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-300 p-6 hover:shadow-lg transition-shadow text-left"
           >
             <h2 className="text-xl font-semibold mb-3">
               {getMonthName(monthData.month)}
@@ -33,7 +33,7 @@ export default function YearView({ year, months, onMonthClick }: YearViewProps) 
 
               {monthData.total_content > 0 && (
                 <>
-                  <div className="border-t border-gray-200 dark:border-gray-700 pt-2 mt-2">
+                  <div className="border-t border-gray-200 dark:border-gray-300 pt-2 mt-2">
                     <p className="text-gray-600 dark:text-gray-400 mb-1">By Status:</p>
                     {Object.entries(monthData.by_status).map(([status, count]) => (
                       <div key={status} className="flex justify-between text-xs">
@@ -43,7 +43,7 @@ export default function YearView({ year, months, onMonthClick }: YearViewProps) 
                     ))}
                   </div>
 
-                  <div className="border-t border-gray-200 dark:border-gray-700 pt-2 mt-2">
+                  <div className="border-t border-gray-200 dark:border-gray-300 pt-2 mt-2">
                     <p className="text-gray-600 dark:text-gray-400 mb-1">By Type:</p>
                     {Object.entries(monthData.by_type).map(([type, count]) => (
                       <div key={type} className="flex justify-between text-xs">

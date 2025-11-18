@@ -89,7 +89,7 @@ export default function CommandBar() {
             onChange={(e) => setInput(e.target.value)}
             placeholder="e.g., Review contract next Monday 2pm urgent"
             disabled={parseMutation.isPending || showSuccess}
-            className="w-full px-4 py-3 text-lg border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
+            className="w-full px-4 py-3 text-lg border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
           />
 
           <div className="flex items-center justify-between mt-4">
