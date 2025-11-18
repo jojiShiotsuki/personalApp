@@ -83,10 +83,7 @@ export default function Dashboard() {
     <div className="h-full bg-gray-50 overflow-auto">
       {/* Header with gradient */}
       <div className="bg-white border-b border-gray-200 px-8 py-6">
-        <div className="flex items-center gap-3">
-          <Sparkles className="w-8 h-8 text-gray-600" />
-          <h1 className="text-4xl font-bold text-gray-900">Dashboard</h1>
-        </div>
+        <h1 className="text-4xl font-bold text-gray-900">Dashboard</h1>
         <p className="mt-2 text-gray-500 text-base">
           Welcome back! Here's your overview for today
         </p>
