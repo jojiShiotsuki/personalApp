@@ -111,7 +111,7 @@ export default function Contacts() {
           </div>
           <button
             onClick={handleNewContact}
-            className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            className="flex items-center px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 transition-colors"
           >
             <Plus className="w-5 h-5 mr-2" />
             New Contact
@@ -128,7 +128,7 @@ export default function Contacts() {
             placeholder="Search contacts..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500"
           />
         </div>
       </div>
@@ -137,7 +137,7 @@ export default function Contacts() {
       <div className="flex-1 overflow-auto px-8 py-6">
         {isLoading ? (
           <div className="flex justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-600"></div>
           </div>
         ) : contacts.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -150,8 +150,8 @@ export default function Contacts() {
               >
                 <div className="flex items-start justify-between">
                   <div className="flex items-center">
-                    <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                      <User className="w-6 h-6 text-blue-600" />
+                    <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center">
+                      <User className="w-6 h-6 text-gray-600" />
                     </div>
                     <div className="ml-4">
                       <h3 className="text-lg font-semibold text-gray-900">
@@ -160,10 +160,10 @@ export default function Contacts() {
                       <span
                         className={`inline-block px-2 py-1 text-xs rounded mt-1 ${
                           contact.status === ContactStatus.CLIENT
-                            ? 'bg-green-100 text-green-700'
+                            ? 'bg-emerald-50 text-emerald-600 border border-emerald-200'
                             : contact.status === ContactStatus.PROSPECT
-                            ? 'bg-blue-100 text-blue-700'
-                            : 'bg-gray-100 text-gray-700'
+                            ? 'bg-sky-50 text-sky-600 border border-sky-200'
+                            : 'bg-gray-100 text-gray-600 border border-gray-200'
                         }`}
                       >
                         {contact.status}
@@ -266,7 +266,7 @@ export default function Contacts() {
                   name="name"
                   defaultValue={editingContact?.name}
                   required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500"
                 />
               </div>
 
@@ -278,7 +278,7 @@ export default function Contacts() {
                   type="email"
                   name="email"
                   defaultValue={editingContact?.email}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500"
                 />
               </div>
 
@@ -290,7 +290,7 @@ export default function Contacts() {
                   type="tel"
                   name="phone"
                   defaultValue={editingContact?.phone}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500"
                 />
               </div>
 
@@ -302,7 +302,7 @@ export default function Contacts() {
                   type="text"
                   name="company"
                   defaultValue={editingContact?.company}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500"
                 />
               </div>
 
@@ -315,7 +315,7 @@ export default function Contacts() {
                   name="source"
                   defaultValue={editingContact?.source}
                   placeholder="TikTok, Website, Referral, etc."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500"
                 />
               </div>
 
@@ -326,7 +326,7 @@ export default function Contacts() {
                 <select
                   name="status"
                   defaultValue={editingContact?.status || ContactStatus.LEAD}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500"
                 >
                   <option value={ContactStatus.LEAD}>Lead</option>
                   <option value={ContactStatus.PROSPECT}>Prospect</option>
@@ -343,7 +343,7 @@ export default function Contacts() {
                   name="notes"
                   defaultValue={editingContact?.notes}
                   rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500"
                 />
               </div>
 
@@ -361,7 +361,7 @@ export default function Contacts() {
                 <button
                   type="submit"
                   disabled={createMutation.isPending || updateMutation.isPending}
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+                  className="flex-1 px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 transition-colors disabled:opacity-50"
                 >
                   {createMutation.isPending || updateMutation.isPending
                     ? 'Saving...'
