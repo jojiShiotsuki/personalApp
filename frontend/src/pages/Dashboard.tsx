@@ -80,19 +80,16 @@ export default function Dashboard() {
       : 0;
 
   return (
-    <div className="h-full bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/30 overflow-auto">
+    <div className="h-full bg-gray-50 overflow-auto">
       {/* Header with gradient */}
-      <div className="relative bg-gradient-to-r from-blue-600 to-purple-600 px-8 py-8 shadow-lg">
-        <div className="absolute inset-0 bg-black/5"></div>
-        <div className="relative">
-          <div className="flex items-center gap-3">
-            <Sparkles className="w-8 h-8 text-white/90" />
-            <h1 className="text-4xl font-bold text-white drop-shadow-md">Dashboard</h1>
-          </div>
-          <p className="mt-2 text-blue-100 text-base">
-            Welcome back! Here's your overview for today
-          </p>
+      <div className="bg-white border-b border-gray-200 px-8 py-6">
+        <div className="flex items-center gap-3">
+          <Sparkles className="w-8 h-8 text-gray-600" />
+          <h1 className="text-4xl font-bold text-gray-900">Dashboard</h1>
         </div>
+        <p className="mt-2 text-gray-500 text-base">
+          Welcome back! Here's your overview for today
+        </p>
       </div>
 
       {/* Content */}
