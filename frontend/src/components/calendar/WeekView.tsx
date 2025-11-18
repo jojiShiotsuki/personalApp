@@ -36,15 +36,7 @@ export default function WeekView({
   }, [content]);
 
   return (
-    <div>
-      <h2 className="text-2xl font-bold mb-6">
-        Week {weekNumber} - {new Date(year, month - 1).toLocaleDateString('en-US', {
-          month: 'long',
-          year: 'numeric',
-        })}
-      </h2>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-4">
         {weekDays.map((day) => {
           const dateStr = formatDateForApi(day);
           const dayContent = contentByDate[dateStr] || [];
@@ -56,9 +48,9 @@ export default function WeekView({
               key={dateStr}
               onClick={() => onDayClick(day)}
               className={cn(
-                "bg-white dark:bg-gray-800 rounded-lg border p-4 hover:shadow-lg transition-shadow text-left min-h-[180px] flex flex-col",
-                isTodayDate && "border-blue-500 dark:border-blue-400 border-2",
-                !isTodayDate && "border-gray-200 dark:border-gray-700",
+                "bg-white rounded-xl border p-4 shadow-sm hover:shadow-md transition-all text-left min-h-[180px] flex flex-col",
+                isTodayDate && "border-blue-500 border-2",
+                !isTodayDate && "border-gray-200",
                 isPastDate && "opacity-75"
               )}
             >
@@ -68,7 +60,7 @@ export default function WeekView({
                   <p className="text-2xl font-bold">{day.getDate()}</p>
                 </div>
                 {dayContent.length > 0 ? (
-                  <span className="bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 px-2 py-1 rounded text-xs font-semibold">
+                  <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs font-semibold">
                     {dayContent.length}
                   </span>
                 ) : (
@@ -80,7 +72,7 @@ export default function WeekView({
                 {dayContent.map((item) => (
                   <div
                     key={item.id}
-                    className="bg-gray-50 dark:bg-gray-700 rounded p-2 text-xs"
+                    className="bg-gray-50 rounded p-2 text-xs"
                   >
                     <div className="flex items-center gap-1 mb-1">
                       <Calendar className="w-3 h-3" />
@@ -88,7 +80,7 @@ export default function WeekView({
                         {item.content_type.replace('_', ' ')}
                       </span>
                     </div>
-                    <p className="text-gray-600 dark:text-gray-300 capitalize text-xs">
+                    <p className="text-gray-600 capitalize text-xs">
                       {item.status.replace('_', ' ')}
                     </p>
                   </div>
@@ -97,7 +89,6 @@ export default function WeekView({
             </button>
           );
         })}
-      </div>
     </div>
   );
 }
