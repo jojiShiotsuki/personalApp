@@ -425,9 +425,9 @@ export default function Tasks() {
                 className={cn(
                   'group flex items-center',
                   'px-4 py-2',
-                  'bg-blue-600 text-white',
+                  'bg-slate-600 text-white',
                   'rounded-lg',
-                  'hover:bg-blue-700',
+                  'hover:bg-slate-700',
                   'transition-all duration-200',
                   'shadow-sm hover:shadow'
                 )}
@@ -441,7 +441,7 @@ export default function Tasks() {
       </div>
 
       {/* Filters */}
-      <div className="bg-gradient-to-r from-gray-50 to-white border-b px-8 py-4">
+      <div className="bg-gray-50 border-b px-8 py-4">
         <div className="flex items-start gap-2">
           <Filter className="w-4 h-4 text-gray-400 mt-2 flex-shrink-0" />
           <div className="flex flex-wrap gap-2">
@@ -454,10 +454,9 @@ export default function Tasks() {
                   className={cn(
                     'px-4 py-2 text-sm font-medium rounded-lg',
                     'transition-all duration-200',
-                    'active:scale-95',
                     'whitespace-nowrap',
                     filter === f.value
-                      ? 'bg-blue-100 text-blue-700 shadow-sm'
+                      ? 'bg-slate-100 text-slate-700 shadow-sm border border-slate-200'
                       : 'text-gray-600 hover:bg-gray-100'
                   )}
                 >
@@ -496,7 +495,7 @@ export default function Tasks() {
                   'w-full px-4 py-2 pl-10',
                   'border border-gray-300 rounded-lg',
                   'shadow-sm',
-                  'focus:outline-none focus:ring-2 focus:ring-blue-500 focus:shadow-md',
+                  'focus:outline-none focus:ring-2 focus:ring-slate-500 focus:shadow-md',
                   'transition-all duration-200'
                 )}
               />
@@ -524,7 +523,7 @@ export default function Tasks() {
                 'w-full px-4 py-2',
                 'border border-gray-300 rounded-lg',
                 'shadow-sm',
-                'focus:outline-none focus:ring-2 focus:ring-blue-500',
+                'focus:outline-none focus:ring-2 focus:ring-slate-500',
                 'transition-all duration-200',
                 'cursor-pointer'
               )}
@@ -542,7 +541,7 @@ export default function Tasks() {
       <div className="flex-1 overflow-auto px-8 py-6">
         {isLoading ? (
           <div className="flex justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-600"></div>
           </div>
         ) : (
           <TaskList
@@ -590,7 +589,7 @@ export default function Tasks() {
                   name="title"
                   defaultValue={editingTask?.title}
                   required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500"
                 />
               </div>
 
@@ -602,7 +601,7 @@ export default function Tasks() {
                   name="description"
                   defaultValue={editingTask?.description}
                   rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500"
                 />
               </div>
 
@@ -615,7 +614,7 @@ export default function Tasks() {
                     type="date"
                     name="due_date"
                     defaultValue={editingTask?.due_date}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500"
                   />
                 </div>
 
@@ -627,7 +626,7 @@ export default function Tasks() {
                     type="time"
                     name="due_time"
                     defaultValue={editingTask?.due_time}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500"
                   />
                 </div>
               </div>
@@ -639,7 +638,7 @@ export default function Tasks() {
                 <select
                   name="priority"
                   defaultValue={editingTask?.priority || TaskPriority.MEDIUM}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500"
                 >
                   <option value={TaskPriority.LOW}>Low</option>
                   <option value={TaskPriority.MEDIUM}>Medium</option>
@@ -655,7 +654,7 @@ export default function Tasks() {
                 <select
                   name="status"
                   defaultValue={editingTask?.status || TaskStatus.PENDING}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500"
                 >
                   <option value={TaskStatus.PENDING}>Pending</option>
                   <option value={TaskStatus.IN_PROGRESS}>In Progress</option>
@@ -677,7 +676,7 @@ export default function Tasks() {
                         setRecurrenceEndType('never');
                       }
                     }}
-                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    className="w-4 h-4 text-slate-600 border-gray-300 rounded focus:ring-slate-500"
                   />
                   <label htmlFor="is_recurring" className="flex items-center gap-2 text-sm font-medium text-gray-700">
                     <Repeat className="w-4 h-4" />
@@ -720,7 +719,7 @@ export default function Tasks() {
                         <select
                           value={recurrenceEndType}
                           onChange={(e) => setRecurrenceEndType(e.target.value as 'never' | 'date' | 'count')}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500"
                         >
                           <option value="never">Never</option>
                           <option value="date">On date</option>
@@ -738,7 +737,7 @@ export default function Tasks() {
                           type="date"
                           name="recurrence_end_date"
                           defaultValue={editingTask?.recurrence_end_date}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500"
                         />
                       </div>
                     )}
@@ -754,7 +753,7 @@ export default function Tasks() {
                           min="1"
                           defaultValue={editingTask?.recurrence_count}
                           placeholder="e.g., 10"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500"
                         />
                       </div>
                     )}
@@ -769,7 +768,7 @@ export default function Tasks() {
                 <select
                   name="goal_id"
                   defaultValue={editingTask?.goal_id || ''}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500"
                 >
                   <option value="">No Goal</option>
                   {goals.map((goal) => (
@@ -796,7 +795,7 @@ export default function Tasks() {
                 <button
                   type="submit"
                   disabled={createMutation.isPending || updateMutation.isPending}
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+                  className="flex-1 px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 transition-colors disabled:opacity-50"
                 >
                   {createMutation.isPending || updateMutation.isPending
                     ? 'Saving...'
@@ -858,16 +857,16 @@ export default function Tasks() {
               <button
                 onClick={() => handleBulkStatusChange(TaskStatus.IN_PROGRESS)}
                 disabled={bulkStatusUpdateMutation.isPending}
-                className="w-full px-4 py-3 text-left border border-gray-300 rounded-lg hover:bg-blue-50 transition-colors disabled:opacity-50"
+                className="w-full px-4 py-3 text-left border border-gray-300 rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-50"
               >
-                <span className="font-medium text-blue-600">In Progress</span>
+                <span className="font-medium text-slate-600">In Progress</span>
               </button>
               <button
                 onClick={() => handleBulkStatusChange(TaskStatus.COMPLETED)}
                 disabled={bulkStatusUpdateMutation.isPending}
-                className="w-full px-4 py-3 text-left border border-gray-300 rounded-lg hover:bg-green-50 transition-colors disabled:opacity-50"
+                className="w-full px-4 py-3 text-left border border-gray-300 rounded-lg hover:bg-emerald-50 transition-colors disabled:opacity-50"
               >
-                <span className="font-medium text-green-600">Completed</span>
+                <span className="font-medium text-emerald-600">Completed</span>
               </button>
             </div>
             <button
