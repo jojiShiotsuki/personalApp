@@ -137,72 +137,72 @@ export default function Dashboard() {
           ) : (
             <>
               {/* Today's Tasks - Enhanced */}
-              <div className="group bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg hover:shadow-xl p-6 transition-all duration-300 hover:scale-105 border border-blue-100/50 hover:border-blue-200">
+              <div className="group bg-white rounded-2xl shadow-sm hover:shadow-md p-6 transition-all duration-300 border border-gray-200 hover:border-gray-300">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-semibold text-gray-600 uppercase tracking-wide">
                       Today
                     </p>
-                    <p className="text-4xl font-bold text-gray-900 mt-2 transition-all duration-300 group-hover:scale-110">
+                    <p className="text-4xl font-bold text-gray-900 mt-2">
                       {todayTasks.length}
                     </p>
                   </div>
-                  <div className="p-4 bg-gradient-to-br from-blue-100 to-blue-200 rounded-2xl group-hover:from-blue-200 group-hover:to-blue-300 transition-all duration-300 shadow-md">
-                    <Clock className="w-7 h-7 text-blue-600" />
+                  <div className="p-4 bg-gray-100 rounded-2xl transition-all duration-300">
+                    <Clock className="w-7 h-7 text-gray-600" />
                   </div>
                 </div>
                 <p className="text-sm text-gray-500 mt-4 font-medium">Tasks due today</p>
               </div>
 
               {/* Overdue Tasks - Enhanced */}
-              <div className="group bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg hover:shadow-xl p-6 transition-all duration-300 hover:scale-105 border border-red-100/50 hover:border-red-200">
+              <div className="group bg-white rounded-2xl shadow-sm hover:shadow-md p-6 transition-all duration-300 border border-gray-200 hover:border-gray-300">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-semibold text-gray-600 uppercase tracking-wide">
                       Overdue
                     </p>
-                    <p className="text-4xl font-bold text-red-600 mt-2 transition-all duration-300 group-hover:scale-110">
+                    <p className="text-4xl font-bold text-rose-500 mt-2">
                       {overdueTasks.length}
                     </p>
                   </div>
-                  <div className="p-4 bg-gradient-to-br from-red-100 to-red-200 rounded-2xl group-hover:from-red-200 group-hover:to-red-300 transition-all duration-300 shadow-md">
-                    <AlertCircle className="w-7 h-7 text-red-600" />
+                  <div className="p-4 bg-gray-100 rounded-2xl transition-all duration-300">
+                    <AlertCircle className="w-7 h-7 text-gray-600" />
                   </div>
                 </div>
                 <p className="text-sm text-gray-500 mt-4 font-medium">Need attention</p>
               </div>
 
               {/* Completed Tasks - Enhanced */}
-              <div className="group bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg hover:shadow-xl p-6 transition-all duration-300 hover:scale-105 border border-green-100/50 hover:border-green-200">
+              <div className="group bg-white rounded-2xl shadow-sm hover:shadow-md p-6 transition-all duration-300 border border-gray-200 hover:border-gray-300">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-semibold text-gray-600 uppercase tracking-wide">
                       Completed
                     </p>
-                    <p className="text-4xl font-bold text-green-600 mt-2 transition-all duration-300 group-hover:scale-110">
+                    <p className="text-4xl font-bold text-emerald-600 mt-2">
                       {completedTasks.length}
                     </p>
                   </div>
-                  <div className="p-4 bg-gradient-to-br from-green-100 to-green-200 rounded-2xl group-hover:from-green-200 group-hover:to-green-300 transition-all duration-300 shadow-md">
-                    <CheckCircle2 className="w-7 h-7 text-green-600" />
+                  <div className="p-4 bg-gray-100 rounded-2xl transition-all duration-300">
+                    <CheckCircle2 className="w-7 h-7 text-gray-600" />
                   </div>
                 </div>
                 <p className="text-sm text-gray-500 mt-4 font-medium">Tasks done</p>
               </div>
 
               {/* Pipeline Value - Enhanced */}
-              <div className="group bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg hover:shadow-xl p-6 transition-all duration-300 hover:scale-105 border border-purple-100/50 hover:border-purple-200">
+              <div className="group bg-white rounded-2xl shadow-sm hover:shadow-md p-6 transition-all duration-300 border border-gray-200 hover:border-gray-300">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-semibold text-gray-600 uppercase tracking-wide">
                       Pipeline
                     </p>
-                    <p className="text-4xl font-bold text-gray-900 mt-2 transition-all duration-300 group-hover:scale-110">
+                    <p className="text-4xl font-bold text-gray-900 mt-2">
                       {formatCurrency(pipelineValue)}
                     </p>
                   </div>
-                  <div className="p-4 bg-gradient-to-br from-purple-100 to-purple-200 rounded-2xl group-hover:from-purple-200 group-hover:to-purple-300 transition-all duration-300 shadow-md">
-                    <DollarSign className="w-7 h-7 text-purple-600" />
+                  <div className="p-4 bg-gray-100 rounded-2xl transition-all duration-300">
+                    <DollarSign className="w-7 h-7 text-gray-600" />
                   </div>
                 </div>
                 <p className="text-sm text-gray-500 mt-4 font-medium">
