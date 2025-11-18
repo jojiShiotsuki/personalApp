@@ -53,7 +53,7 @@ export default function Export() {
             <button
               onClick={handleCopy}
               disabled={!exportData}
-              className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {copied ? (
                 <>
@@ -92,7 +92,7 @@ export default function Export() {
               onChange={(e) =>
                 setDateRange({ ...dateRange, start: e.target.value })
               }
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500"
             />
             <span className="text-gray-500">to</span>
             <input
@@ -101,7 +101,7 @@ export default function Export() {
               onChange={(e) =>
                 setDateRange({ ...dateRange, end: e.target.value })
               }
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500"
             />
           </div>
           <button
@@ -111,7 +111,7 @@ export default function Export() {
                 end: format(new Date(), 'yyyy-MM-dd'),
               })
             }
-            className="px-3 py-2 text-sm text-blue-600 hover:text-blue-700"
+            className="px-3 py-2 text-sm text-slate-600 hover:text-slate-700"
           >
             Last 7 days
           </button>
@@ -122,7 +122,7 @@ export default function Export() {
                 end: format(new Date(), 'yyyy-MM-dd'),
               })
             }
-            className="px-3 py-2 text-sm text-blue-600 hover:text-blue-700"
+            className="px-3 py-2 text-sm text-slate-600 hover:text-slate-700"
           >
             Last 30 days
           </button>
@@ -133,7 +133,7 @@ export default function Export() {
                 end: format(new Date(), 'yyyy-MM-dd'),
               })
             }
-            className="px-3 py-2 text-sm text-blue-600 hover:text-blue-700"
+            className="px-3 py-2 text-sm text-slate-600 hover:text-slate-700"
           >
             Last year
           </button>
@@ -144,7 +144,7 @@ export default function Export() {
       <div className="flex-1 overflow-auto px-8 py-6">
         {isLoading ? (
           <div className="flex justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-600"></div>
           </div>
         ) : exportData ? (
           <div className="bg-white rounded-lg shadow">
@@ -173,11 +173,11 @@ export default function Export() {
       </div>
 
       {/* Help Text */}
-      <div className="bg-blue-50 border-t border-blue-100 px-8 py-4">
+      <div className="bg-slate-50 border-t border-slate-100 px-8 py-4">
         <div className="flex items-start">
           <div className="flex-shrink-0">
             <svg
-              className="h-5 w-5 text-blue-600"
+              className="h-5 w-5 text-slate-600"
               fill="currentColor"
               viewBox="0 0 20 20"
             >
@@ -189,10 +189,10 @@ export default function Export() {
             </svg>
           </div>
           <div className="ml-3 flex-1">
-            <h3 className="text-sm font-medium text-blue-900">
+            <h3 className="text-sm font-medium text-slate-900">
               How to use your CEO AI Briefing
             </h3>
-            <div className="mt-2 text-sm text-blue-700">
+            <div className="mt-2 text-sm text-slate-700">
               <p>
                 1. Review the Executive Summary and Recommendations above
                 <br />
