@@ -350,7 +350,7 @@ export default function Tasks() {
     <div className="flex h-full">
       <div className="flex-1 flex flex-col">
       {/* Header */}
-      <div className="bg-white border-b px-8 py-6 shadow-sm">
+      <div className="bg-white border-b border-gray-200 px-8 py-6 shadow-sm">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Tasks</h1>
@@ -441,7 +441,7 @@ export default function Tasks() {
       </div>
 
       {/* Filters */}
-      <div className="bg-gray-50 border-b px-8 py-4">
+      <div className="bg-gray-50 border-b border-gray-200 px-8 py-4">
         <div className="flex items-start gap-2">
           <Filter className="w-4 h-4 text-gray-400 mt-2 flex-shrink-0" />
           <div className="flex flex-wrap gap-2">
@@ -469,7 +469,7 @@ export default function Tasks() {
       </div>
 
       {/* Search and Sort Toolbar */}
-      <div className="bg-white border-b px-8 py-4">
+      <div className="bg-white border-b border-gray-200 px-8 py-4">
         <div className="flex flex-col sm:flex-row gap-4">
           {/* Select All Checkbox (only in edit mode) */}
           {isEditMode && filteredAndSortedTasks.length > 0 && (
@@ -562,7 +562,7 @@ export default function Tasks() {
       {isModalOpen && (
         <div className="fixed inset-0 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-2xl w-full max-w-md mx-4">
-            <div className="flex items-center justify-between px-6 py-4 border-b">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
               <h2 className="text-xl font-bold text-gray-900">
                 {editingTask ? 'Edit Task' : 'New Task'}
               </h2>

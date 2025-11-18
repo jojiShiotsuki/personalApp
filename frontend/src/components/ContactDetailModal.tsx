@@ -85,7 +85,7 @@ export default function ContactDetailModal({
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg shadow-2xl w-full max-w-4xl mx-4 max-h-[90vh] flex flex-col">
         {/* Modal Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
           <h2 className="text-xl font-bold text-gray-900">Contact Details</h2>
           <button
             onClick={onClose}
@@ -98,7 +98,7 @@ export default function ContactDetailModal({
         {/* Modal Body - Two Column Layout */}
         <div className="flex flex-1 overflow-hidden">
           {/* Left Column - Contact Info */}
-          <div className="w-80 border-r p-6 overflow-y-auto">
+          <div className="w-80 border-r border-gray-200 p-6 overflow-y-auto">
             {/* Contact Summary Card */}
             <div className="flex items-start mb-6">
               <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
@@ -200,7 +200,7 @@ export default function ContactDetailModal({
           {/* Right Column - Interaction Timeline */}
           <div className="flex-1 flex flex-col overflow-hidden">
             {/* Timeline Header */}
-            <div className="px-6 py-4 border-b flex items-center justify-between">
+            <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
               <h3 className="text-lg font-semibold text-gray-900">
                 Interaction History
               </h3>

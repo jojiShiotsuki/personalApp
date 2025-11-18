@@ -101,7 +101,7 @@ export default function Contacts() {
     <div className="flex h-full">
       <div className="flex-1 h-full flex flex-col">
       {/* Header */}
-      <div className="bg-white border-b px-8 py-6">
+      <div className="bg-white border-b border-gray-200 px-8 py-6">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Contacts</h1>
@@ -120,7 +120,7 @@ export default function Contacts() {
       </div>
 
       {/* Search */}
-      <div className="bg-white border-b px-8 py-4">
+      <div className="bg-white border-b border-gray-200 px-8 py-4">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
           <input
@@ -241,7 +241,7 @@ export default function Contacts() {
       {isModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-2xl w-full max-w-md mx-4">
-            <div className="flex items-center justify-between px-6 py-4 border-b">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
               <h2 className="text-xl font-bold text-gray-900">
                 {editingContact ? 'Edit Contact' : 'New Contact'}
               </h2>

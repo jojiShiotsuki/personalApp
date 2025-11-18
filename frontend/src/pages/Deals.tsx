@@ -95,7 +95,7 @@ export default function Deals() {
     <div className="flex h-full">
       <div className="flex-1 flex flex-col bg-gray-100">
         {/* Header */}
-        <div className="bg-white border-b px-8 py-6">
+        <div className="bg-white border-b border-gray-200 px-8 py-6">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold text-gray-900">Deals Pipeline</h1>
@@ -142,7 +142,7 @@ export default function Deals() {
       {isModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-2xl w-full max-w-md mx-4">
-            <div className="flex items-center justify-between px-6 py-4 border-b">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
               <h2 className="text-xl font-bold text-gray-900">
                 {editingDeal ? 'Edit Deal' : 'New Deal'}
               </h2>

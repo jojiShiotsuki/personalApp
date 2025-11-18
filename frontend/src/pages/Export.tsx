@@ -41,7 +41,7 @@ export default function Export() {
   return (
     <div className="h-full flex flex-col">
       {/* Header */}
-      <div className="bg-white border-b px-8 py-6">
+      <div className="bg-white border-b border-gray-200 px-8 py-6">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">CEO AI Briefing</h1>
@@ -80,7 +80,7 @@ export default function Export() {
       </div>
 
       {/* Date Range Filter */}
-      <div className="bg-white border-b px-8 py-4">
+      <div className="bg-white border-b border-gray-200 px-8 py-4">
         <div className="flex items-center space-x-4">
           <label className="text-sm font-medium text-gray-700">
             Date Range:
@@ -148,7 +148,7 @@ export default function Export() {
           </div>
         ) : exportData ? (
           <div className="bg-white rounded-lg shadow">
-            <div className="px-6 py-4 border-b bg-gray-50">
+            <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
               <h2 className="text-lg font-semibold text-gray-900">
                 Markdown Preview
               </h2>
@@ -173,7 +173,7 @@ export default function Export() {
       </div>
 
       {/* Help Text */}
-      <div className="bg-slate-50 border-t border-slate-100 px-8 py-4">
+      <div className="bg-slate-50 border-t border-gray-200 px-8 py-4">
         <div className="flex items-start">
           <div className="flex-shrink-0">
             <svg

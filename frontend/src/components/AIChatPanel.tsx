@@ -104,9 +104,9 @@ export default function AIChatPanel({ page, context = {}, onDataChange }: AIChat
   }
 
   return (
-    <div className="w-96 border-l bg-white flex flex-col h-full">
+    <div className="w-96 border-l border-gray-200 bg-white flex flex-col h-full">
       {/* Header */}
-      <div className="p-4 border-b flex items-center justify-between">
+      <div className="p-4 border-b border-gray-200 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Bot className="w-5 h-5 text-blue-600" />
           <h3 className="font-semibold">AI Assistant</h3>
@@ -174,7 +174,7 @@ export default function AIChatPanel({ page, context = {}, onDataChange }: AIChat
       </div>
 
       {/* Input */}
-      <div className="p-4 border-t">
+      <div className="p-4 border-t border-gray-200">
         <div className="flex gap-2">
           <input
             type="text"
