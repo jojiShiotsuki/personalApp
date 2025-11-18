@@ -16,6 +16,10 @@ import type {
   Project,
   ProjectCreate,
   ProjectUpdate,
+  SocialContent,
+  SocialContentCreate,
+  SocialContentUpdate,
+  YearSummary,
 } from '../types/index';
 import {
   TaskStatus,
@@ -276,6 +280,63 @@ export const projectApi = {
 
   createTask: async (projectId: number, data: TaskCreate): Promise<Task> => {
     const response = await api.post(`/api/projects/${projectId}/tasks`, data);
+    return response.data;
+  },
+};
+
+// Social Content API
+export const socialContentApi = {
+  list: async (params?: {
+    status?: string;
+    content_type?: string;
+    platform?: string;
+    project_id?: number;
+    start_date?: string;
+    end_date?: string;
+  }): Promise<SocialContent[]> => {
+    const queryParams: Record<string, any> = {};
+    if (params?.status) queryParams.status = params.status;
+    if (params?.content_type) queryParams.content_type = params.content_type;
+    if (params?.platform) queryParams.platform = params.platform;
+    if (params?.project_id) queryParams.project_id = params.project_id;
+    if (params?.start_date) queryParams.start_date = params.start_date;
+    if (params?.end_date) queryParams.end_date = params.end_date;
+
+    const response = await api.get('/api/social-content/', { params: queryParams });
+    return response.data;
+  },
+
+  get: async (id: number): Promise<SocialContent> => {
+    const response = await api.get(`/api/social-content/${id}`);
+    return response.data;
+  },
+
+  create: async (data: SocialContentCreate): Promise<SocialContent> => {
+    const response = await api.post('/api/social-content/', data);
+    return response.data;
+  },
+
+  update: async (id: number, data: SocialContentUpdate): Promise<SocialContent> => {
+    const response = await api.put(`/api/social-content/${id}`, data);
+    return response.data;
+  },
+
+  delete: async (id: number): Promise<void> => {
+    await api.delete(`/api/social-content/${id}`);
+  },
+
+  getMonthContent: async (year: number, month: number): Promise<SocialContent[]> => {
+    const response = await api.get(`/api/social-content/by-date/${year}/${month}`);
+    return response.data;
+  },
+
+  getWeekContent: async (year: number, month: number, week: number): Promise<SocialContent[]> => {
+    const response = await api.get(`/api/social-content/by-date/${year}/${month}/${week}`);
+    return response.data;
+  },
+
+  getYearSummary: async (year: number): Promise<YearSummary> => {
+    const response = await api.get(`/api/social-content/calendar-summary/${year}`);
     return response.data;
   },
 };
