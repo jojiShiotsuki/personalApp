@@ -230,37 +230,41 @@ export default function Goals() {
   }, []);
 
   return (
-    <div className="p-8">
+    <div className="h-full flex flex-col">
       {/* Header */}
-      <div className="flex justify-between items-center mb-8">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Goals</h1>
-          <p className="text-gray-500 mt-1">Track quarterly and monthly objectives</p>
-        </div>
+      <div className="bg-white border-b border-gray-200 px-8 py-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Goals</h1>
+            <p className="mt-1 text-sm text-gray-500">Track quarterly and monthly objectives</p>
+          </div>
 
-        {/* Year selector and Quick Add */}
-        <div className="flex items-center gap-4">
-          <select
-            value={selectedYear}
-            onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500"
-          >
-            {[currentYear - 1, currentYear, currentYear + 1].map(year => (
-              <option key={year} value={year}>{year}</option>
-            ))}
-          </select>
+          {/* Year selector and Quick Add */}
+          <div className="flex items-center gap-4">
+            <select
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500"
+            >
+              {[currentYear - 1, currentYear, currentYear + 1].map(year => (
+                <option key={year} value={year}>{year}</option>
+              ))}
+            </select>
 
-          <button
-            onClick={handleQuickAdd}
-            className="flex items-center gap-2 px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 transition-colors shadow-md"
-          >
-            <Plus className="w-5 h-5" />
-            New Goal
-            <span className="text-xs opacity-75 ml-1">(Ctrl+G)</span>
-          </button>
+            <button
+              onClick={handleQuickAdd}
+              className="flex items-center gap-2 px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 transition-colors"
+            >
+              <Plus className="w-5 h-5" />
+              New Goal
+              <span className="text-xs opacity-75 ml-1">(Ctrl+G)</span>
+            </button>
+          </div>
         </div>
       </div>
 
+      {/* Content */}
+      <div className="flex-1 overflow-auto px-8 py-6">
       {isLoading ? (
         <div className="flex items-center justify-center h-64">
           <div className="text-gray-500">Loading goals...</div>
@@ -443,6 +447,7 @@ export default function Goals() {
           </div>
         </DragDropContext>
       )}
+      </div>
 
       {/* Goal Modal */}
       {isModalOpen && (
