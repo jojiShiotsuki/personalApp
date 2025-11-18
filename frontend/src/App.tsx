@@ -11,6 +11,7 @@ import Goals from './pages/Goals';
 import Projects from './pages/Projects';
 import ProjectDetail from './pages/ProjectDetail';
 import Export from './pages/Export';
+import SocialCalendar from './pages/SocialCalendar';
 import QuickAddModal from './components/QuickAddModal';
 
 function App() {
@@ -47,6 +48,7 @@ function App() {
           <Route path="/projects" element={<Projects />} />
           <Route path="/projects/:id" element={<ProjectDetail />} />
           <Route path="/export" element={<Export />} />
+          <Route path="/social-calendar" element={<SocialCalendar />} />
         </Routes>
       </Layout>
       <QuickAddModal

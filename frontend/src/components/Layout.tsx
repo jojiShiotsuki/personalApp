@@ -8,6 +8,7 @@ import {
   Target,
   Download,
   Folder,
+  Calendar,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -22,6 +23,7 @@ const navigation = [
   { name: 'Deals', href: '/deals', icon: Briefcase },
   { name: 'Goals', href: '/goals', icon: Target },
   { name: 'Projects', href: '/projects', icon: Folder },
+  { name: 'Social Calendar', href: '/social-calendar', icon: Calendar },
   { name: 'Export', href: '/export', icon: Download },
 ];
 
