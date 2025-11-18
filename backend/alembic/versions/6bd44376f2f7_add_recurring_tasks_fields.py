@@ -30,6 +30,13 @@ def upgrade() -> None:
     #            type_=sa.Enum('MEETING', 'EMAIL', 'CALL', 'NOTE', 'SOCIAL_MEDIA', name='interactiontype'),
     #            existing_nullable=False)
 
+    # Add goal_id column first if it doesn't exist
+    with op.batch_alter_table('tasks', schema=None) as batch_op:
+        try:
+            batch_op.add_column(sa.Column('goal_id', sa.Integer(), nullable=True))
+        except:
+            pass  # Column might already exist
+
     # Add recurring task fields
     op.add_column('tasks', sa.Column('is_recurring', sa.Boolean(), nullable=False, server_default='0'))
     op.add_column('tasks', sa.Column('recurrence_type', sa.Enum('DAILY', 'WEEKLY', 'MONTHLY', 'YEARLY', name='recurrencetype'), nullable=True))
