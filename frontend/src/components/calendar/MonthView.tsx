@@ -83,7 +83,7 @@ export default function MonthView({
   };
 
   return (
-    <div className="p-6">
+    <div>
       <div className="flex items-center justify-between mb-8">
         <div>
           <button

@@ -36,7 +36,7 @@ export default function WeekView({
   }, [content]);
 
   return (
-    <div className="p-6">
+    <div>
       <h2 className="text-2xl font-bold mb-6">
         Week {weekNumber} - {new Date(year, month - 1).toLocaleDateString('en-US', {
           month: 'long',

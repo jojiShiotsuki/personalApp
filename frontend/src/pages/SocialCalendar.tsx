@@ -116,19 +116,18 @@ export default function SocialCalendar() {
     : undefined;
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <div className="max-w-7xl mx-auto">
-        {/* Breadcrumb */}
-        <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4">
-          <CalendarBreadcrumb
-            year={selectedYear}
-            month={selectedMonth}
-            weekNumber={selectedWeek}
-            onYearClick={handleBackToYear}
-            onMonthClick={handleBackToMonth}
-            onWeekClick={handleBackToWeek}
-          />
-        </div>
+    <div className="max-w-7xl mx-auto p-6">
+      {/* Breadcrumb */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 px-6 py-4 mb-6">
+        <CalendarBreadcrumb
+          year={selectedYear}
+          month={selectedMonth}
+          weekNumber={selectedWeek}
+          onYearClick={handleBackToYear}
+          onMonthClick={handleBackToMonth}
+          onWeekClick={handleBackToWeek}
+        />
+      </div>
 
         {/* Views */}
         {viewLevel === 'year' && yearSummary && (
@@ -162,20 +161,19 @@ export default function SocialCalendar() {
             />
           )}
 
-        {/* Day Content Modal */}
-        {selectedDay && (
-          <DayContentModal
-            isOpen={isModalOpen}
-            date={selectedDay}
-            existingContent={existingContentForDay}
-            onClose={() => {
-              setIsModalOpen(false);
-              setSelectedDay(null);
-            }}
-            onSave={handleSaveContent}
-          />
-        )}
-      </div>
+      {/* Day Content Modal */}
+      {selectedDay && (
+        <DayContentModal
+          isOpen={isModalOpen}
+          date={selectedDay}
+          existingContent={existingContentForDay}
+          onClose={() => {
+            setIsModalOpen(false);
+            setSelectedDay(null);
+          }}
+          onSave={handleSaveContent}
+        />
+      )}
     </div>
   );
 }
