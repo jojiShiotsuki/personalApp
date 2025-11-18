@@ -49,7 +49,7 @@ export default function Projects() {
         <h1 className="text-3xl font-bold">Projects</h1>
         <button
           onClick={() => setIsModalOpen(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          className="flex items-center gap-2 px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700"
         >
           <Plus className="w-4 h-4" />
           New Project
@@ -73,7 +73,7 @@ export default function Projects() {
       {/* Projects Grid */}
       {isLoading ? (
         <div className="text-center py-12">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-4"></div>
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-slate-600 mb-4"></div>
           <p className="text-gray-500">Loading projects...</p>
         </div>
       ) : isError ? (
@@ -81,7 +81,7 @@ export default function Projects() {
           <p className="text-red-500 mb-4">Failed to load projects</p>
           <button
             onClick={() => window.location.reload()}
-            className="text-blue-600 hover:text-blue-700"
+            className="text-slate-600 hover:text-slate-700"
           >
             Try again
           </button>
@@ -94,7 +94,7 @@ export default function Projects() {
           {!searchQuery && (
             <button
               onClick={() => setIsModalOpen(true)}
-              className="text-blue-600 hover:text-blue-700"
+              className="text-slate-600 hover:text-slate-700"
             >
               Create your first project
             </button>
