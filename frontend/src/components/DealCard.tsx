@@ -122,7 +122,7 @@ export default function DealCard({ deal, index, contacts, onEdit, onDelete, onAd
                     e.stopPropagation();
                     onAddInteraction(deal.contact_id);
                   }}
-                  className="flex-1 px-2 py-1 text-xs bg-blue-50 text-blue-600 hover:bg-blue-100 rounded flex items-center justify-center gap-1 transition-colors"
+                  className="flex-1 px-2 py-1 text-xs bg-slate-50 text-slate-600 hover:bg-slate-100 rounded flex items-center justify-center gap-1 transition-colors"
                   title="Add follow-up interaction"
                 >
                   <Plus className="w-3 h-3" />
@@ -135,7 +135,7 @@ export default function DealCard({ deal, index, contacts, onEdit, onDelete, onAd
                   unsnoozeMutation.mutate(deal.id);
                 }}
                 disabled={unsnoozeMutation.isPending}
-                className="flex-1 px-2 py-1 text-xs bg-orange-50 text-orange-600 hover:bg-orange-100 rounded flex items-center justify-center gap-1 transition-colors disabled:opacity-50"
+                className="flex-1 px-2 py-1 text-xs bg-amber-50 text-amber-600 hover:bg-amber-100 rounded flex items-center justify-center gap-1 transition-colors disabled:opacity-50"
                 title="Move closer by 3 days"
               >
                 <Timer className="w-3 h-3" />
