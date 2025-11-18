@@ -124,8 +124,8 @@ export default function SocialCalendar() {
   return (
     <div className="h-full bg-gray-50 overflow-auto">
       {/* Header */}
-      <div className="border-b border-gray-200 px-8 py-6 bg-gradient-to-r from-white to-gray-50">
-        <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+      <div className="border-b border-gray-200 px-8 py-6 bg-white">
+        <h1 className="text-3xl font-bold text-gray-900">
           Social Media Calendar
         </h1>
         <p className="mt-2 text-sm text-gray-600">
@@ -232,7 +232,7 @@ export default function SocialCalendar() {
             <div className="flex justify-end">
               <button
                 onClick={() => handleAddContent(selectedDay)}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+                className="px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 transition-colors flex items-center gap-2"
               >
                 <Plus className="w-5 h-5" />
                 Add Content
@@ -248,7 +248,7 @@ export default function SocialCalendar() {
                 <button
                   key={item.id}
                   onClick={() => handleEditContent(item)}
-                  className="w-full text-left bg-white border border-gray-200 rounded-xl p-6 shadow-sm hover:shadow-lg hover:border-blue-300 transition-all cursor-pointer"
+                  className="w-full text-left bg-white border border-gray-200 rounded-xl p-6 shadow-sm hover:shadow-md hover:border-gray-300 transition-all cursor-pointer"
                 >
                   {/* Header Row */}
                   <div className="flex items-start justify-between mb-4">
@@ -257,7 +257,7 @@ export default function SocialCalendar() {
                         <h3 className="text-lg font-semibold capitalize">
                           {item.content_type.replace('_', ' ')}
                         </h3>
-                        <span className="inline-block mt-1 px-3 py-1 text-xs font-medium rounded-full capitalize bg-blue-100 text-blue-700">
+                        <span className="inline-block mt-1 px-3 py-1 text-xs font-medium rounded-full capitalize bg-slate-100 text-slate-600 border border-slate-200">
                           {item.status.replace('_', ' ')}
                         </span>
                       </div>
@@ -284,7 +284,7 @@ export default function SocialCalendar() {
                           {item.platforms.map((platform) => (
                             <span
                               key={platform}
-                              className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-medium capitalize"
+                              className="px-3 py-1 bg-slate-100 text-slate-600 border border-slate-200 rounded-full text-xs font-medium capitalize"
                             >
                               {platform}
                             </span>
@@ -328,7 +328,7 @@ export default function SocialCalendar() {
                     {item.hashtags && (
                       <div>
                         <p className="text-sm font-semibold text-gray-700 mb-2">Hashtags</p>
-                        <p className="text-sm text-blue-600">{item.hashtags}</p>
+                        <p className="text-sm text-slate-600">{item.hashtags}</p>
                       </div>
                     )}
 
@@ -354,7 +354,7 @@ export default function SocialCalendar() {
                     {item.project_id && (
                       <div>
                         <p className="text-sm font-semibold text-gray-700 mb-1">Linked Project</p>
-                        <p className="text-sm text-blue-600">Project #{item.project_id}</p>
+                        <p className="text-sm text-slate-600">Project #{item.project_id}</p>
                       </div>
                     )}
                   </div>
