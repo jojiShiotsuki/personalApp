@@ -185,3 +185,40 @@ export function getMonthName(month: number): string {
   const date = new Date(2025, month - 1, 1);
   return format(date, 'MMMM');
 }
+
+/**
+ * Get the day name for a given date
+ * e.g., Date -> "Monday"
+ */
+export function getDayName(date: Date): string {
+  return format(date, 'EEEE');
+}
+
+/**
+ * Format a date string for API calls (YYYY-MM-DD format)
+ */
+export function formatDateForApi(date: Date): string {
+  return format(date, 'yyyy-MM-dd');
+}
+
+/**
+ * Check if a date is today
+ */
+export function isToday(date: Date): boolean {
+  const today = new Date();
+  return (
+    date.getDate() === today.getDate() &&
+    date.getMonth() === today.getMonth() &&
+    date.getFullYear() === today.getFullYear()
+  );
+}
+
+/**
+ * Check if a date is in the past
+ */
+export function isPast(date: Date): boolean {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  date.setHours(0, 0, 0, 0);
+  return date < today;
+}
