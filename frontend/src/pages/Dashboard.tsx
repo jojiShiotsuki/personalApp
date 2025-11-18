@@ -216,10 +216,10 @@ export default function Dashboard() {
         {/* Three Column Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Task List Widget - Enhanced */}
-          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-100 overflow-hidden hover:shadow-xl transition-all duration-300">
-            <div className="px-6 py-5 bg-gradient-to-r from-blue-500/5 to-purple-500/5 border-b border-gray-100">
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-all duration-300">
+            <div className="px-6 py-5 bg-gray-50 border-b border-gray-200">
               <div className="flex items-center gap-2">
-                <ListTodo className="w-5 h-5 text-blue-600" />
+                <ListTodo className="w-5 h-5 text-gray-600" />
                 <h2 className="text-lg font-bold text-gray-900">
                   Upcoming Tasks
                 </h2>
@@ -247,14 +247,10 @@ export default function Dashboard() {
                     .map((task, index) => (
                       <div
                         key={task.id}
-                        className="group flex items-center justify-between p-4 bg-gradient-to-r from-gray-50 to-blue-50/30 rounded-xl hover:shadow-md transition-all duration-300 hover:scale-102 cursor-pointer border border-transparent hover:border-blue-200"
-                        style={{
-                          animationDelay: `${index * 50}ms`,
-                          animation: 'fadeInUp 0.5s ease-out forwards',
-                        }}
+                        className="group flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:shadow-md transition-all duration-300 cursor-pointer border border-transparent hover:border-gray-300"
                       >
                         <div className="flex-1">
-                          <p className="text-sm font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
+                          <p className="text-sm font-semibold text-gray-900 transition-colors">
                             {task.title}
                           </p>
                           <p className="text-xs text-gray-500 mt-1 font-medium">
@@ -264,12 +260,12 @@ export default function Dashboard() {
                           </p>
                         </div>
                         <span
-                          className={`px-3 py-1.5 text-xs font-semibold rounded-lg shadow-sm ${
+                          className={`px-3 py-1.5 text-xs font-semibold rounded-lg border ${
                             task.priority === 'urgent'
-                              ? 'bg-gradient-to-r from-red-100 to-red-200 text-red-700'
+                              ? 'bg-rose-50 text-rose-600 border-rose-200'
                               : task.priority === 'high'
-                              ? 'bg-gradient-to-r from-orange-100 to-orange-200 text-orange-700'
-                              : 'bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700'
+                              ? 'bg-amber-50 text-amber-600 border-amber-200'
+                              : 'bg-gray-100 text-gray-600 border-gray-200'
                           }`}
                         >
                           {task.priority}
@@ -291,18 +287,18 @@ export default function Dashboard() {
           </div>
 
           {/* Active Projects Widget - Enhanced */}
-          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-100 overflow-hidden hover:shadow-xl transition-all duration-300">
-            <div className="px-6 py-5 bg-gradient-to-r from-purple-500/5 to-pink-500/5 border-b border-gray-100">
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-all duration-300">
+            <div className="px-6 py-5 bg-gray-50 border-b border-gray-200">
               <div className="flex justify-between items-center">
                 <div className="flex items-center gap-2">
-                  <Folder className="w-5 h-5 text-purple-600" />
+                  <Folder className="w-5 h-5 text-gray-600" />
                   <h2 className="text-lg font-bold text-gray-900">
                     Active Projects
                   </h2>
                 </div>
                 <button
                   onClick={() => navigate('/projects')}
-                  className="text-sm text-purple-600 hover:text-purple-700 font-semibold hover:underline transition-all"
+                  className="text-sm text-gray-600 hover:text-gray-700 font-semibold hover:underline transition-all"
                 >
                   View All →
                 </button>
@@ -338,19 +334,15 @@ export default function Dashboard() {
                     <div
                       key={project.id}
                       onClick={() => navigate(`/projects/${project.id}`)}
-                      className="group p-4 border-2 border-gray-200 rounded-xl hover:border-purple-300 hover:bg-gradient-to-r hover:from-purple-50/50 hover:to-pink-50/50 cursor-pointer transition-all duration-300 hover:shadow-md hover:scale-102"
-                      style={{
-                        animationDelay: `${index * 50}ms`,
-                        animation: 'fadeInUp 0.5s ease-out forwards',
-                      }}
+                      className="group p-4 border-2 border-gray-200 rounded-xl hover:border-gray-300 hover:bg-gray-50 cursor-pointer transition-all duration-300 hover:shadow-md"
                     >
-                      <div className="font-semibold text-gray-900 mb-3 group-hover:text-purple-600 transition-colors">
+                      <div className="font-semibold text-gray-900 mb-3 transition-colors">
                         {project.name}
                       </div>
                       <div className="flex items-center gap-3">
                         <div className="flex-1 bg-gray-200 rounded-full h-2.5 overflow-hidden">
                           <div
-                            className="bg-gradient-to-r from-purple-500 to-pink-500 h-2.5 rounded-full transition-all duration-500 shadow-sm"
+                            className="bg-slate-500 h-2.5 rounded-full transition-all duration-500"
                             style={{ width: `${project.progress}%` }}
                           />
                         </div>
@@ -367,10 +359,10 @@ export default function Dashboard() {
 
 
           {/* CRM Stats Widget - Enhanced */}
-          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-100 overflow-hidden hover:shadow-xl transition-all duration-300">
-            <div className="px-6 py-5 bg-gradient-to-r from-green-500/5 to-emerald-500/5 border-b border-gray-100">
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-all duration-300">
+            <div className="px-6 py-5 bg-gray-50 border-b border-gray-200">
               <div className="flex items-center gap-2">
-                <Briefcase className="w-5 h-5 text-green-600" />
+                <Briefcase className="w-5 h-5 text-gray-600" />
                 <h2 className="text-lg font-bold text-gray-900">
                   CRM Overview
                 </h2>
@@ -390,25 +382,25 @@ export default function Dashboard() {
               ) : (
                 <div className="space-y-5">
                   {/* Win Rate */}
-                  <div className="group flex items-center justify-between p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl hover:shadow-md transition-all duration-300 border border-green-100">
+                  <div className="group flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:shadow-md transition-all duration-300 border border-gray-200">
                     <div className="flex items-center gap-3">
-                      <div className="p-2.5 bg-green-100 rounded-lg group-hover:scale-110 transition-transform">
-                        <TrendingUp className="w-5 h-5 text-green-600" />
+                      <div className="p-2.5 bg-gray-100 rounded-lg transition-transform">
+                        <TrendingUp className="w-5 h-5 text-gray-600" />
                       </div>
                       <span className="text-sm font-semibold text-gray-700">
                         Win Rate
                       </span>
                     </div>
-                    <span className="text-2xl font-bold text-green-600">
+                    <span className="text-2xl font-bold text-gray-900">
                       {winRate.toFixed(0)}%
                     </span>
                   </div>
 
                   {/* Active Deals */}
-                  <div className="group flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-xl hover:shadow-md transition-all duration-300 border border-blue-100">
+                  <div className="group flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:shadow-md transition-all duration-300 border border-gray-200">
                     <div className="flex items-center gap-3">
-                      <div className="p-2.5 bg-blue-100 rounded-lg group-hover:scale-110 transition-transform">
-                        <Briefcase className="w-5 h-5 text-blue-600" />
+                      <div className="p-2.5 bg-gray-100 rounded-lg transition-transform">
+                        <Briefcase className="w-5 h-5 text-gray-600" />
                       </div>
                       <span className="text-sm font-semibold text-gray-700">
                         Active Deals
@@ -420,10 +412,10 @@ export default function Dashboard() {
                   </div>
 
                   {/* Won Deals */}
-                  <div className="group flex items-center justify-between p-4 bg-gradient-to-r from-emerald-50 to-teal-50 rounded-xl hover:shadow-md transition-all duration-300 border border-emerald-100">
+                  <div className="group flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:shadow-md transition-all duration-300 border border-gray-200">
                     <div className="flex items-center gap-3">
-                      <div className="p-2.5 bg-emerald-100 rounded-lg group-hover:scale-110 transition-transform">
-                        <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                      <div className="p-2.5 bg-gray-100 rounded-lg transition-transform">
+                        <CheckCircle2 className="w-5 h-5 text-gray-600" />
                       </div>
                       <span className="text-sm font-semibold text-gray-700">
                         Closed Won
@@ -436,12 +428,12 @@ export default function Dashboard() {
 
                   {/* Total Pipeline - Highlighted */}
                   <div className="mt-6 pt-6 border-t-2 border-gray-200">
-                    <div className="p-5 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl shadow-lg">
+                    <div className="p-5 bg-slate-100 rounded-xl border-2 border-slate-300">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm font-bold text-white/90 uppercase tracking-wide">
+                        <span className="text-sm font-bold text-gray-700 uppercase tracking-wide">
                           Total Pipeline Value
                         </span>
-                        <span className="text-3xl font-bold text-white drop-shadow-md">
+                        <span className="text-3xl font-bold text-gray-900">
                           {formatCurrency(pipelineValue)}
                         </span>
                       </div>
