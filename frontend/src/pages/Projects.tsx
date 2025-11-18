@@ -43,21 +43,28 @@ export default function Projects() {
   );
 
   return (
-    <div className="max-w-7xl mx-auto p-6">
+    <div className="h-full flex flex-col">
       {/* Header */}
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Projects</h1>
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700"
-        >
-          <Plus className="w-4 h-4" />
-          New Project
-        </button>
+      <div className="bg-white border-b border-gray-200 px-8 py-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Projects</h1>
+            <p className="mt-1 text-sm text-gray-500">
+              Manage your projects and track progress
+            </p>
+          </div>
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 transition-colors"
+          >
+            <Plus className="w-5 h-5" />
+            New Project
+          </button>
+        </div>
       </div>
 
       {/* Search Bar */}
-      <div className="mb-6">
+      <div className="bg-white border-b border-gray-200 px-8 py-4">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
           <input
@@ -65,12 +72,13 @@ export default function Projects() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search projects..."
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg"
+            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500"
           />
         </div>
       </div>
 
       {/* Projects Grid */}
+      <div className="flex-1 overflow-auto px-8 py-6">
       {isLoading ? (
         <div className="text-center py-12">
           <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-slate-600 mb-4"></div>
@@ -107,6 +115,7 @@ export default function Projects() {
           ))}
         </div>
       )}
+      </div>
 
       {/* Create Modal */}
       <ProjectModal
