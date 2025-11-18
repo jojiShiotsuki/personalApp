@@ -62,8 +62,8 @@ export default function ProjectDetail() {
 
   if (isLoading) {
     return (
-      <div className="max-w-7xl mx-auto p-6">
-        <div className="text-center py-12">
+      <div className="h-full flex items-center justify-center bg-gray-50">
+        <div className="text-center">
           <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-slate-600 mb-4"></div>
           <p className="text-gray-500">Loading project...</p>
         </div>
@@ -73,8 +73,8 @@ export default function ProjectDetail() {
 
   if (isError || !project) {
     return (
-      <div className="max-w-7xl mx-auto p-6">
-        <div className="text-center py-12">
+      <div className="h-full flex items-center justify-center bg-gray-50">
+        <div className="text-center">
           <p className="text-red-500 mb-4">
             {isError ? 'Failed to load project' : 'Project not found'}
           </p>
@@ -96,9 +96,9 @@ export default function ProjectDetail() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto p-6">
+    <div className="h-full flex flex-col">
       {/* Header */}
-      <div className="mb-6">
+      <div className="bg-white border-b border-gray-200 px-8 py-6">
         <button
           onClick={() => navigate('/projects')}
           className="flex items-center gap-2 text-gray-600 hover:text-gray-800 mb-4"
@@ -109,9 +109,9 @@ export default function ProjectDetail() {
 
         <div className="flex justify-between items-start">
           <div>
-            <h1 className="text-3xl font-bold mb-2">{project.name}</h1>
+            <h1 className="text-3xl font-bold text-gray-900">{project.name}</h1>
             {project.description && (
-              <p className="text-gray-600">{project.description}</p>
+              <p className="text-gray-600 mt-1">{project.description}</p>
             )}
           </div>
 
@@ -147,7 +147,7 @@ export default function ProjectDetail() {
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-gray-200 mb-6">
+      <div className="bg-white border-b border-gray-200 px-8">
         <div className="flex gap-6">
           {(['overview', 'list', 'board'] as Tab[]).map((tab) => (
             <button
@@ -167,7 +167,7 @@ export default function ProjectDetail() {
       </div>
 
       {/* Tab Content */}
-      <div>
+      <div className="flex-1 overflow-auto px-8 py-6 bg-gray-50">
         {activeTab === 'overview' && <OverviewTab project={project} />}
         {activeTab === 'list' && <ListTab projectId={projectId} />}
         {activeTab === 'board' && <BoardTab projectId={projectId} />}
