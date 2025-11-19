@@ -14,9 +14,6 @@ interface WeekViewProps {
 }
 
 export default function WeekView({
-  year,
-  month,
-  weekNumber,
   weekDays,
   content,
   onDayClick,

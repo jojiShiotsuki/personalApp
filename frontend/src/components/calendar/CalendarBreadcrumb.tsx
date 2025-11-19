@@ -1,4 +1,4 @@
-import { getMonthName, formatWeekNumber, getDayName, formatDayAndMonth, formatDateForApi } from '@/lib/dateUtils';
+import { getMonthName, formatWeekNumber, getDayName, formatDayAndMonth } from '@/lib/dateUtils';
 import { ChevronRight } from 'lucide-react';
 
 interface CalendarBreadcrumbProps {

@@ -44,6 +44,7 @@ class Task(Base):
     is_recurring = Column(Boolean, default=False, nullable=False)
     recurrence_type = Column(Enum(RecurrenceType), nullable=True)
     recurrence_interval = Column(Integer, default=1, nullable=True)  # Repeat every N days/weeks/months
+    recurrence_days = Column(String(255), nullable=True)  # Comma-separated days for weekly recurrence (e.g. "Mon,Wed,Fri")
     recurrence_end_date = Column(Date, nullable=True)  # When to stop creating new instances
     recurrence_count = Column(Integer, nullable=True)  # Alternative: how many times to repeat
     occurrences_created = Column(Integer, default=0, nullable=False)  # Track how many have been created

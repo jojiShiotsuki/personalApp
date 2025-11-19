@@ -1,6 +1,6 @@
 import { getDayName, formatDateForApi, isToday, isPast } from '@/lib/dateUtils';
 import { SocialContent } from '@/types';
-import { Calendar, Plus } from 'lucide-react';
+import { Plus, Instagram, Youtube, Facebook, Twitter, Linkedin } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface MonthViewProps {
@@ -9,6 +9,44 @@ interface MonthViewProps {
   content: SocialContent[];
   onDayClick: (date: Date) => void;
 }
+
+const getStatusColor = (status: string) => {
+  switch (status) {
+    case 'posted':
+      return 'bg-emerald-100 text-emerald-700 border-emerald-200';
+    case 'scheduled':
+      return 'bg-sky-100 text-sky-700 border-sky-200';
+    case 'editing':
+      return 'bg-amber-100 text-amber-700 border-amber-200';
+    case 'filmed':
+      return 'bg-purple-100 text-purple-700 border-purple-200';
+    case 'scripted':
+      return 'bg-indigo-100 text-indigo-700 border-indigo-200';
+    default:
+      return 'bg-gray-100 text-gray-600 border-gray-200';
+  }
+};
+
+const getPlatformIcon = (platform: string) => {
+  switch (platform.toLowerCase()) {
+    case 'instagram':
+      return <Instagram className="w-3 h-3" />;
+    case 'youtube':
+    case 'youtube_shorts':
+      return <Youtube className="w-3 h-3" />;
+    case 'facebook':
+      return <Facebook className="w-3 h-3" />;
+    case 'twitter':
+    case 'x':
+      return <Twitter className="w-3 h-3" />;
+    case 'linkedin':
+      return <Linkedin className="w-3 h-3" />;
+    case 'tiktok':
+      return <span className="text-[8px] font-bold">TT</span>;
+    default:
+      return null;
+  }
+};
 
 export default function MonthView({
   year,
@@ -52,40 +90,62 @@ export default function MonthView({
             key={dateStr}
             onClick={() => onDayClick(day)}
             className={cn(
-              "bg-white rounded-xl border p-4 shadow-sm hover:shadow-md transition-all text-left min-h-[150px] flex flex-col",
+              "bg-white rounded-xl border p-4 shadow-sm hover:shadow-md transition-all text-left min-h-[150px] flex flex-col group relative",
               isTodayDate && "border-blue-500 border-2",
               !isTodayDate && "border-gray-200",
-              isPastDate && "opacity-75"
+              isPastDate && "opacity-75 hover:opacity-100"
             )}
           >
             <div className="flex justify-between items-start mb-3">
               <div>
-                <p className="font-semibold">{getDayName(day)}</p>
-                <p className="text-2xl font-bold">{day.getDate()}</p>
+                <p className="font-semibold text-sm text-gray-500">{getDayName(day)}</p>
+                <p className={cn("text-2xl font-bold", isTodayDate ? "text-blue-600" : "text-gray-900")}>
+                  {day.getDate()}
+                </p>
               </div>
               {dayContent.length > 0 && (
-                <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs font-semibold">
+                <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded-full text-xs font-medium">
                   {dayContent.length}
                 </span>
               )}
             </div>
 
-            <div className="flex-1 space-y-1.5 overflow-y-auto">
+            <div className="flex-1 space-y-2 overflow-y-auto">
               {dayContent.map((item) => (
                 <div
                   key={item.id}
-                  className="bg-gray-50 rounded p-2 text-xs border border-gray-200"
+                  className={cn(
+                    "rounded-lg p-2 text-xs border transition-colors",
+                    getStatusColor(item.status)
+                  )}
                 >
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="font-semibold capitalize text-gray-900 truncate">
+                  <div className="flex items-center justify-between gap-2 mb-1">
+                    <span className="font-semibold capitalize truncate">
                       {item.content_type.replace('_', ' ')}
                     </span>
-                    <span className="capitalize text-xs text-gray-600 shrink-0">
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <span className="capitalize opacity-75 text-[10px]">
                       {item.status.replace('_', ' ')}
                     </span>
+                    <div className="flex gap-1">
+                      {item.platforms?.slice(0, 3).map((platform) => (
+                        <div key={platform} title={platform}>
+                          {getPlatformIcon(platform)}
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
               ))}
+            </div>
+            
+            {/* Quick Add Indicator (visible on hover) */}
+            <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="bg-slate-100 p-1.5 rounded-full text-slate-600 hover:bg-slate-200">
+                <Plus className="w-4 h-4" />
+              </div>
             </div>
           </button>
         );

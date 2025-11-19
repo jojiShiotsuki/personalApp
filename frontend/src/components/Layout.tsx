@@ -31,57 +31,60 @@ export default function Layout({ children }: LayoutProps) {
   const location = useLocation();
 
   return (
-    <div className="flex h-screen bg-gray-100">
+    <div className="flex h-screen bg-gray-50">
       {/* Sidebar */}
-      <div className="w-64 bg-white shadow-xl border-r border-gray-200">
-        <div className="flex flex-col h-full">
-          {/* Logo */}
-          <div className="flex items-center justify-center h-16 border-b border-gray-200 bg-gradient-to-br from-white to-gray-50">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-600 to-blue-700 flex items-center justify-center shadow-sm">
-                <span className="text-white font-bold text-sm">V</span>
-              </div>
-              <h1 className="text-xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
-                Vertex
-              </h1>
+      <div className="w-64 bg-white border-r border-gray-200/60 flex flex-col h-full">
+        {/* Logo */}
+        <div className="h-16 flex items-center px-6 border-b border-gray-100">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shadow-sm shadow-blue-200">
+              <span className="text-white font-bold text-sm">V</span>
             </div>
+            <span className="text-lg font-bold text-gray-900 tracking-tight">
+              Vertex
+            </span>
           </div>
+        </div>
 
-          {/* Navigation */}
-          <nav className="flex-1 px-3 py-6 space-y-1 overflow-y-auto">
-            {navigation.map((item) => {
-              const isActive = location.pathname === item.href;
-              const Icon = item.icon;
+        {/* Navigation */}
+        <nav className="flex-1 px-3 py-6 space-y-0.5 overflow-y-auto">
+          {navigation.map((item) => {
+            const isActive = location.pathname === item.href;
+            const Icon = item.icon;
 
-              return (
-                <Link
-                  key={item.name}
-                  to={item.href}
-                  className={cn(
-                    'flex items-center px-3 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 group relative',
-                    isActive
-                      ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-sm'
-                      : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
-                  )}
-                >
-                  {isActive && (
-                    <div className="absolute left-0 w-1 h-8 bg-blue-600 rounded-r-full -ml-3" />
-                  )}
-                  <Icon className={cn(
-                    "w-5 h-5 mr-3 transition-transform group-hover:scale-110",
-                    isActive ? "text-white" : "text-gray-500"
-                  )} />
-                  {item.name}
-                </Link>
-              );
-            })}
-          </nav>
+            return (
+              <Link
+                key={item.name}
+                to={item.href}
+                className={cn(
+                  'flex items-center px-3 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 group relative',
+                  isActive
+                    ? 'bg-blue-50 text-blue-700'
+                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                )}
+              >
+                <Icon className={cn(
+                  "w-5 h-5 mr-3 transition-colors",
+                  isActive ? "text-blue-600" : "text-gray-400 group-hover:text-gray-600"
+                )} />
+                {item.name}
+                {isActive && (
+                  <div className="absolute right-2 w-1.5 h-1.5 rounded-full bg-blue-600" />
+                )}
+              </Link>
+            );
+          })}
+        </nav>
 
-          {/* Footer */}
-          <div className="p-4 border-t border-gray-200 bg-gradient-to-br from-gray-50 to-white">
-            <div className="flex items-center justify-center gap-2 text-xs text-gray-500">
-              <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-              <span className="font-medium">v1.0.0</span>
+        {/* User Profile / Footer */}
+        <div className="p-4 border-t border-gray-100">
+          <div className="flex items-center gap-3 px-2 py-2 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer">
+            <div className="w-8 h-8 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center text-xs font-medium text-gray-600">
+              JD
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-gray-900 truncate">John Doe</p>
+              <p className="text-xs text-gray-500 truncate">john@example.com</p>
             </div>
           </div>
         </div>

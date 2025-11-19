@@ -39,12 +39,14 @@ export default function Export() {
   };
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col bg-gray-50">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-8 py-6">
+      <div className="bg-white/50 backdrop-blur-sm border-b border-gray-200/60 px-8 py-6 sticky top-0 z-10">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">CEO AI Briefing</h1>
+            <h1 className="text-2xl font-semibold text-gray-900 tracking-tight">
+              CEO AI Briefing
+            </h1>
             <p className="mt-1 text-sm text-gray-500">
               Strategic insights and data export optimized for Claude AI analysis
             </p>
@@ -53,16 +55,16 @@ export default function Export() {
             <button
               onClick={handleCopy}
               disabled={!exportData}
-              className="flex items-center px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all shadow-sm hover:shadow-md font-medium disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none text-sm"
             >
               {copied ? (
                 <>
-                  <Check className="w-5 h-5 mr-2" />
+                  <Check className="w-4 h-4 mr-2" />
                   Copied!
                 </>
               ) : (
                 <>
-                  <Copy className="w-5 h-5 mr-2" />
+                  <Copy className="w-4 h-4 mr-2" />
                   Copy to Clipboard
                 </>
               )}
@@ -70,9 +72,9 @@ export default function Export() {
             <button
               onClick={handleDownload}
               disabled={!exportData}
-              className="flex items-center px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center px-4 py-2 bg-white border border-gray-200/60 text-gray-700 rounded-xl hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm hover:shadow-md font-medium disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none text-sm"
             >
-              <Download className="w-5 h-5 mr-2" />
+              <Download className="w-4 h-4 mr-2" />
               Download
             </button>
           </div>
@@ -80,7 +82,7 @@ export default function Export() {
       </div>
 
       {/* Date Range Filter */}
-      <div className="bg-white border-b border-gray-200 px-8 py-4">
+      <div className="bg-white border-b border-gray-200/60 px-8 py-4">
         <div className="flex items-center space-x-4">
           <label className="text-sm font-medium text-gray-700">
             Date Range:
@@ -92,127 +94,41 @@ export default function Export() {
               onChange={(e) =>
                 setDateRange({ ...dateRange, start: e.target.value })
               }
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500"
+              className="px-4 py-2 border border-gray-200/60 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm"
             />
-            <span className="text-gray-500">to</span>
+            <span className="text-gray-400 font-medium">to</span>
             <input
               type="date"
               value={dateRange.end}
               onChange={(e) =>
                 setDateRange({ ...dateRange, end: e.target.value })
               }
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500"
+              className="px-4 py-2 border border-gray-200/60 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm"
             />
           </div>
-          <button
-            onClick={() =>
-              setDateRange({
-                start: format(subDays(new Date(), 7), 'yyyy-MM-dd'),
-                end: format(new Date(), 'yyyy-MM-dd'),
-              })
-            }
-            className="px-3 py-2 text-sm text-slate-600 hover:text-slate-700"
-          >
-            Last 7 days
-          </button>
-          <button
-            onClick={() =>
-              setDateRange({
-                start: format(subDays(new Date(), 30), 'yyyy-MM-dd'),
-                end: format(new Date(), 'yyyy-MM-dd'),
-              })
-            }
-            className="px-3 py-2 text-sm text-slate-600 hover:text-slate-700"
-          >
-            Last 30 days
-          </button>
-          <button
-            onClick={() =>
-              setDateRange({
-                start: format(subDays(new Date(), 365), 'yyyy-MM-dd'),
-                end: format(new Date(), 'yyyy-MM-dd'),
-              })
-            }
-            className="px-3 py-2 text-sm text-slate-600 hover:text-slate-700"
-          >
-            Last year
-          </button>
         </div>
       </div>
 
-      {/* Markdown Preview */}
-      <div className="flex-1 overflow-auto px-8 py-6">
+      {/* Content */}
+      <div className="flex-1 overflow-auto p-8">
         {isLoading ? (
-          <div className="flex justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-600"></div>
+          <div className="flex flex-col items-center justify-center h-64">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-4"></div>
+            <p className="text-gray-500 font-medium">Generating briefing...</p>
           </div>
         ) : exportData ? (
-          <div className="bg-white rounded-lg shadow">
-            <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
-              <h2 className="text-lg font-semibold text-gray-900">
-                Markdown Preview
-              </h2>
-              <p className="text-sm text-gray-500 mt-1">
-                Copy this and paste into Claude for strategic advice
-              </p>
-            </div>
-            <div className="p-6">
-              <pre className="whitespace-pre-wrap font-mono text-sm text-gray-800 bg-gray-50 p-4 rounded-lg border border-gray-200 overflow-auto max-h-[600px]">
+          <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-sm border border-gray-200/60 overflow-hidden animate-in fade-in duration-500">
+            <div className="p-8">
+              <pre className="font-mono text-sm text-gray-800 whitespace-pre-wrap overflow-x-auto">
                 {exportData.markdown}
               </pre>
             </div>
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center py-12 text-center">
-            <p className="text-gray-500">No data available for export</p>
-            <p className="text-sm text-gray-400 mt-2">
-              Adjust the date range or add some tasks and deals first
-            </p>
+          <div className="flex flex-col items-center justify-center h-64 text-gray-500">
+            <p>No data available for the selected range.</p>
           </div>
         )}
-      </div>
-
-      {/* Help Text */}
-      <div className="bg-slate-50 border-t border-gray-200 px-8 py-4">
-        <div className="flex items-start">
-          <div className="flex-shrink-0">
-            <svg
-              className="h-5 w-5 text-slate-600"
-              fill="currentColor"
-              viewBox="0 0 20 20"
-            >
-              <path
-                fillRule="evenodd"
-                d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
-                clipRule="evenodd"
-              />
-            </svg>
-          </div>
-          <div className="ml-3 flex-1">
-            <h3 className="text-sm font-medium text-slate-900">
-              How to use your CEO AI Briefing
-            </h3>
-            <div className="mt-2 text-sm text-slate-700">
-              <p>
-                1. Review the Executive Summary and Recommendations above
-                <br />
-                2. Click "Copy to Clipboard"
-                <br />
-                3. Open Claude.ai or your Claude app
-                <br />
-                4. Paste the briefing into a new conversation
-                <br />
-                5. Ask Claude strategic questions like:
-                <br />
-                &nbsp;&nbsp;&nbsp;- "Based on these bottlenecks, what should I prioritize?"
-                <br />
-                &nbsp;&nbsp;&nbsp;- "How can I improve my win rate?"
-                <br />
-                &nbsp;&nbsp;&nbsp;- "What's the pattern in my stalled deals?"
-              </p>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   );

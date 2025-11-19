@@ -62,7 +62,7 @@ def create_goal(goal: GoalCreate, db: Session = Depends(get_db)):
     goal_data = goal.model_dump()
 
     # Convert key_results list to JSON string
-    if goal_data.get("key_results"):
+    if goal_data.get("key_results") is not None:
         goal_data["key_results"] = json.dumps([kr.model_dump() for kr in goal_data["key_results"]])
 
     db_goal = Goal(**goal_data)

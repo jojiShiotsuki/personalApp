@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
+import RichTextEditor from '../RichTextEditor';
 import type { SocialContentCreate, ContentType, ContentStatus } from '@/types';
 import { formatDateForApi } from '@/lib/dateUtils';
 
@@ -152,14 +153,12 @@ export default function AddContentForm({
           {/* Script/Caption */}
           <div>
             <label className="block text-sm font-semibold mb-2">Script / Caption</label>
-            <textarea
+            <RichTextEditor
               value={formData.script || ''}
-              onChange={(e) =>
-                setFormData({ ...formData, script: e.target.value })
+              onChange={(value) =>
+                setFormData({ ...formData, script: value })
               }
-              placeholder="Enter your script or caption..."
-              rows={4}
-              className="w-full border border-gray-200 bg-white rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="min-h-[150px]"
               disabled={isLoading}
             />
           </div>

@@ -1,11 +1,13 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { taskApi, goalApi } from '@/lib/api';
+import { taskApi, goalApi, projectApi } from '@/lib/api';
 import type { Task, TaskCreate, TaskUpdate } from '@/types';
 import { TaskStatus, TaskPriority, RecurrenceType } from '@/types';
 import TaskList from '@/components/TaskList';
+import TaskKanbanBoard from '@/components/TaskKanbanBoard';
 import AIChatPanel from '@/components/AIChatPanel';
-import { Filter, Plus, X, Repeat } from 'lucide-react';
+import RecurrenceCustomModal from '@/components/RecurrenceCustomModal';
+import { Filter, Plus, X, Repeat, LayoutList, Kanban } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 type FilterValue = TaskStatus | 'all' | 'today' | 'this_week' | 'this_month' | 'overdue';
@@ -75,6 +77,8 @@ const sortFunctions: Record<SortOption, (a: Task, b: Task) => number> = {
   }
 };
 
+import { getNextOccurrences, getRecurrenceText } from '@/lib/recurrence';
+
 export default function Tasks() {
   const [filter, setFilter] = useState<FilterValue>('all');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -88,6 +92,14 @@ export default function Tasks() {
   const [showBulkStatusChange, setShowBulkStatusChange] = useState(false);
   const [isRecurring, setIsRecurring] = useState(false);
   const [recurrenceEndType, setRecurrenceEndType] = useState<'never' | 'date' | 'count'>('never');
+  const [recurrenceDays, setRecurrenceDays] = useState<string[]>([]);
+  const [recurrenceType, setRecurrenceType] = useState<RecurrenceType>(RecurrenceType.DAILY);
+  const [recurrenceInterval, setRecurrenceInterval] = useState(1);
+  const [recurrenceEndDate, setRecurrenceEndDate] = useState('');
+  const [recurrenceCount, setRecurrenceCount] = useState(13);
+  const [isCustomRecurrenceOpen, setIsCustomRecurrenceOpen] = useState(false);
+  const [dueDate, setDueDate] = useState('');
+  const [viewMode, setViewMode] = useState<'list' | 'board'>('list');
   const queryClient = useQueryClient();
 
   const handleDataChange = () => {
@@ -120,6 +132,11 @@ export default function Tasks() {
   const { data: goals = [] } = useQuery({
     queryKey: ['goals'],
     queryFn: () => goalApi.getAll(),
+  });
+
+  const { data: projects = [] } = useQuery({
+    queryKey: ['projects'],
+    queryFn: projectApi.getAll,
   });
 
   const createMutation = useMutation({
@@ -184,30 +201,24 @@ export default function Tasks() {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     const goalIdValue = formData.get('goal_id') as string;
-
-    // DIAGNOSTIC: Log state variables
-    console.log("=== FRONTEND SUBMIT DIAGNOSTIC ===");
-    console.log("isRecurring state:", isRecurring);
-    console.log("recurrenceEndType state:", recurrenceEndType);
-    console.log("FormData recurrence_type:", formData.get('recurrence_type'));
-    console.log("FormData recurrence_interval:", formData.get('recurrence_interval'));
-    console.log("FormData recurrence_end_date:", formData.get('recurrence_end_date'));
-    console.log("FormData recurrence_count:", formData.get('recurrence_count'));
+    const projectIdValue = formData.get('project_id') as string;
 
     const data: TaskCreate = {
       title: formData.get('title') as string,
       description: formData.get('description') as string || undefined,
-      due_date: formData.get('due_date') as string || undefined,
+      due_date: dueDate || undefined,
       due_time: formData.get('due_time') as string || undefined,
       priority: (formData.get('priority') as TaskPriority) || TaskPriority.MEDIUM,
       status: (formData.get('status') as TaskStatus) || TaskStatus.PENDING,
       goal_id: goalIdValue ? parseInt(goalIdValue, 10) : undefined,
+      project_id: projectIdValue ? parseInt(projectIdValue, 10) : undefined,
       // Recurrence fields
       is_recurring: isRecurring,
-      recurrence_type: isRecurring ? (formData.get('recurrence_type') as RecurrenceType) : undefined,
-      recurrence_interval: isRecurring ? parseInt(formData.get('recurrence_interval') as string, 10) || 1 : undefined,
-      recurrence_end_date: isRecurring && recurrenceEndType === 'date' ? (formData.get('recurrence_end_date') as string || undefined) : undefined,
-      recurrence_count: isRecurring && recurrenceEndType === 'count' ? parseInt(formData.get('recurrence_count') as string, 10) || undefined : undefined,
+      recurrence_type: isRecurring ? recurrenceType : undefined,
+      recurrence_interval: isRecurring ? recurrenceInterval : undefined,
+      recurrence_days: isRecurring && recurrenceType === RecurrenceType.WEEKLY ? recurrenceDays : undefined,
+      recurrence_end_date: isRecurring && recurrenceEndType === 'date' ? recurrenceEndDate : undefined,
+      recurrence_count: isRecurring && recurrenceEndType === 'count' ? recurrenceCount : undefined,
     };
 
     if (editingTask) {
@@ -223,7 +234,13 @@ export default function Tasks() {
 
   const handleTaskClick = (task: Task) => {
     setEditingTask(task);
+    setDueDate(task.due_date || '');
     setIsRecurring(task.is_recurring);
+    setRecurrenceType(task.recurrence_type || RecurrenceType.DAILY);
+    setRecurrenceInterval(task.recurrence_interval || 1);
+    setRecurrenceDays(task.recurrence_days || []);
+    setRecurrenceEndDate(task.recurrence_end_date || '');
+    setRecurrenceCount(task.recurrence_count || 13);
     // Determine recurrence end type based on task data
     if (task.recurrence_end_date) {
       setRecurrenceEndType('date');
@@ -237,7 +254,13 @@ export default function Tasks() {
 
   const handleNewTask = () => {
     setEditingTask(null);
+    setDueDate(new Date().toISOString().split('T')[0]);
     setIsRecurring(false);
+    setRecurrenceType(RecurrenceType.DAILY);
+    setRecurrenceInterval(1);
+    setRecurrenceDays([]);
+    setRecurrenceEndDate('');
+    setRecurrenceCount(13);
     setRecurrenceEndType('never');
     setIsModalOpen(true);
   };
@@ -346,21 +369,110 @@ export default function Tasks() {
     return result;
   }, [tasks, filter, debouncedSearch, sortBy]);
 
+  const currentDateObj = useMemo(() => dueDate ? new Date(dueDate) : new Date(), [dueDate]);
+  const currentDayShort = currentDateObj.toLocaleDateString('en-US', { weekday: 'short' });
+  const currentDayLong = currentDateObj.toLocaleDateString('en-US', { weekday: 'long' });
+  const currentMonthDay = currentDateObj.getDate();
+  const currentMonthLong = currentDateObj.toLocaleDateString('en-US', { month: 'long' });
+
+  const getRecurrenceValue = () => {
+    if (!isRecurring) return 'none';
+    if (recurrenceType === RecurrenceType.DAILY && recurrenceInterval === 1) return 'daily';
+    
+    if (recurrenceType === RecurrenceType.WEEKLY && recurrenceInterval === 1) {
+      if (recurrenceDays.length === 1 && recurrenceDays[0] === currentDayShort) return 'weekly';
+      if (recurrenceDays.length === 5 && 
+          ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'].every(d => recurrenceDays.includes(d)) &&
+          recurrenceDays.length === 5) return 'weekday';
+    }
+    
+    if (recurrenceType === RecurrenceType.MONTHLY && recurrenceInterval === 1) return 'monthly';
+    if (recurrenceType === RecurrenceType.YEARLY && recurrenceInterval === 1) return 'yearly';
+    
+    return 'custom';
+  };
+
+  const handleRecurrenceChange = (value: string) => {
+    if (value === 'custom') {
+      setIsCustomRecurrenceOpen(true);
+      return;
+    }
+
+    setIsRecurring(value !== 'none');
+    
+    if (value === 'none') {
+      setRecurrenceInterval(1);
+      setRecurrenceDays([]);
+      setRecurrenceEndType('never');
+      return;
+    }
+
+    setRecurrenceInterval(1);
+    setRecurrenceEndType('never');
+    setRecurrenceEndDate('');
+    setRecurrenceCount(13);
+
+    switch (value) {
+      case 'daily':
+        setRecurrenceType(RecurrenceType.DAILY);
+        setRecurrenceDays([]);
+        break;
+      case 'weekly':
+        setRecurrenceType(RecurrenceType.WEEKLY);
+        setRecurrenceDays([currentDayShort]);
+        break;
+      case 'monthly':
+        setRecurrenceType(RecurrenceType.MONTHLY);
+        setRecurrenceDays([]);
+        break;
+      case 'yearly':
+        setRecurrenceType(RecurrenceType.YEARLY);
+        setRecurrenceDays([]);
+        break;
+      case 'weekday':
+        setRecurrenceType(RecurrenceType.WEEKLY);
+        setRecurrenceDays(['Mon', 'Tue', 'Wed', 'Thu', 'Fri']);
+        break;
+    }
+  };
+
   return (
-    <div className="flex h-full">
-      <div className="flex-1 flex flex-col">
+    <div className="flex h-full bg-gray-50">
+      <div className="flex-1 h-full flex flex-col">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-8 py-6 shadow-sm">
+      <div className="bg-white border-b border-gray-200/60 px-8 py-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Tasks</h1>
+            <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Tasks</h1>
             <p className="mt-1 text-sm text-gray-500">
-              {selectedTaskIds.size > 0
-                ? `${selectedTaskIds.size} task(s) selected`
-                : 'Manage your tasks and stay organized'}
+              Manage and track your daily tasks
             </p>
           </div>
           <div className="flex items-center gap-3">
+            {/* View Toggle */}
+            <div className="flex items-center bg-gray-100 p-1 rounded-xl">
+              <button
+                onClick={() => setViewMode('list')}
+                className={cn(
+                  "p-2 rounded-lg transition-all",
+                  viewMode === 'list' ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
+                )}
+                title="List View"
+              >
+                <LayoutList className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setViewMode('board')}
+                className={cn(
+                  "p-2 rounded-lg transition-all",
+                  viewMode === 'board' ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
+                )}
+                title="Board View"
+              >
+                <Kanban className="w-4 h-4" />
+              </button>
+            </div>
+
             {/* Bulk action buttons (show when tasks are selected in edit mode) */}
             {isEditMode && selectedTaskIds.size > 0 && (
               <>
@@ -370,15 +482,15 @@ export default function Tasks() {
                   className={cn(
                     'flex items-center',
                     'px-4 py-2',
-                    'bg-red-600 text-white',
-                    'rounded-lg',
-                    'hover:bg-red-700',
+                    'bg-rose-50 text-rose-600 border border-rose-100',
+                    'rounded-xl',
+                    'hover:bg-rose-100',
                     'transition-all duration-200',
-                    'shadow-sm hover:shadow',
+                    'text-sm font-medium',
                     'disabled:opacity-50'
                   )}
                 >
-                  <X className="w-5 h-5 mr-2" />
+                  <X className="w-4 h-4 mr-2" />
                   Delete {selectedTaskIds.size}
                 </button>
 
@@ -388,11 +500,11 @@ export default function Tasks() {
                   className={cn(
                     'flex items-center',
                     'px-4 py-2',
-                    'bg-green-600 text-white',
-                    'rounded-lg',
-                    'hover:bg-green-700',
+                    'bg-emerald-50 text-emerald-600 border border-emerald-100',
+                    'rounded-xl',
+                    'hover:bg-emerald-100',
                     'transition-all duration-200',
-                    'shadow-sm hover:shadow',
+                    'text-sm font-medium',
                     'disabled:opacity-50'
                   )}
                 >
@@ -407,12 +519,12 @@ export default function Tasks() {
               className={cn(
                 'flex items-center',
                 'px-4 py-2',
-                'rounded-lg',
+                'rounded-xl',
                 'transition-all duration-200',
-                'shadow-sm hover:shadow',
+                'text-sm font-medium',
                 isEditMode
-                  ? 'bg-gray-600 text-white hover:bg-gray-700'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  ? 'bg-gray-900 text-white hover:bg-gray-800 shadow-sm'
+                  : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'
               )}
             >
               {isEditMode ? 'Done' : 'Edit'}
@@ -425,11 +537,12 @@ export default function Tasks() {
                 className={cn(
                   'group flex items-center',
                   'px-4 py-2',
-                  'bg-slate-600 text-white',
-                  'rounded-lg',
-                  'hover:bg-slate-700',
+                  'bg-blue-600 text-white',
+                  'rounded-xl',
+                  'hover:bg-blue-700',
                   'transition-all duration-200',
-                  'shadow-sm hover:shadow'
+                  'shadow-sm hover:shadow-md',
+                  'text-sm font-medium'
                 )}
               >
                 <Plus className="w-5 h-5 mr-2 transition-transform duration-200 group-hover:rotate-90" />
@@ -441,10 +554,10 @@ export default function Tasks() {
       </div>
 
       {/* Filters */}
-      <div className="bg-gray-50 border-b border-gray-200 px-8 py-4">
-        <div className="flex items-start gap-2">
-          <Filter className="w-4 h-4 text-gray-400 mt-2 flex-shrink-0" />
-          <div className="flex flex-wrap gap-2">
+      <div className="bg-white border-b border-gray-200/60 px-8 py-2">
+        <div className="flex items-center gap-2 overflow-x-auto pb-2 sm:pb-0 no-scrollbar">
+          <Filter className="w-4 h-4 text-gray-400 flex-shrink-0 mr-2" />
+          <div className="flex gap-2">
             {filters.map((f) => {
               const count = getFilterCount(f.value);
               return (
@@ -452,15 +565,15 @@ export default function Tasks() {
                   key={f.value}
                   onClick={() => setFilter(f.value)}
                   className={cn(
-                    'px-4 py-2 text-sm font-medium rounded-lg',
+                    'px-3 py-1.5 text-sm font-medium rounded-lg',
                     'transition-all duration-200',
                     'whitespace-nowrap',
                     filter === f.value
-                      ? 'bg-slate-100 text-slate-700 shadow-sm border border-slate-200'
-                      : 'text-gray-600 hover:bg-gray-100'
+                      ? 'bg-blue-50 text-blue-700'
+                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                   )}
                 >
-                  {f.label} <span className="text-xs opacity-70">({count})</span>
+                  {f.label} <span className={cn("text-xs ml-1", filter === f.value ? "text-blue-500" : "text-gray-400")}>({count})</span>
                 </button>
               );
             })}
@@ -469,7 +582,7 @@ export default function Tasks() {
       </div>
 
       {/* Search and Sort Toolbar */}
-      <div className="bg-white border-b border-gray-200 px-8 py-4">
+      <div className="bg-white border-b border-gray-200/60 px-8 py-4">
         <div className="flex flex-col sm:flex-row gap-4">
           {/* Select All Checkbox (only in edit mode) */}
           {isEditMode && filteredAndSortedTasks.length > 0 && (
@@ -480,7 +593,7 @@ export default function Tasks() {
                 onChange={handleSelectAll}
                 className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
               />
-              <label className="ml-2 text-sm text-gray-700">Select All</label>
+              <label className="ml-2 text-sm text-gray-700 font-medium">Select All</label>
             </div>
           )}
           {/* Search Input */}
@@ -492,11 +605,11 @@ export default function Tasks() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className={cn(
-                  'w-full px-4 py-2 pl-10',
-                  'border border-gray-300 rounded-lg',
-                  'shadow-sm',
-                  'focus:outline-none focus:ring-2 focus:ring-slate-500 focus:shadow-md',
-                  'transition-all duration-200'
+                  'w-full px-4 py-2.5 pl-10',
+                  'bg-gray-50 border border-gray-200 rounded-xl',
+                  'focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500',
+                  'transition-all duration-200',
+                  'text-sm'
                 )}
               />
               <svg
@@ -520,12 +633,11 @@ export default function Tasks() {
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as SortOption)}
               className={cn(
-                'w-full px-4 py-2',
-                'border border-gray-300 rounded-lg',
-                'shadow-sm',
-                'focus:outline-none focus:ring-2 focus:ring-slate-500',
+                'w-full px-4 py-2.5',
+                'bg-gray-50 border border-gray-200 rounded-xl',
+                'focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500',
                 'transition-all duration-200',
-                'cursor-pointer'
+                'cursor-pointer text-sm'
               )}
             >
               <option value="dueDate">Sort by: Due Date</option>
@@ -537,33 +649,46 @@ export default function Tasks() {
         </div>
       </div>
 
-      {/* Task List */}
-      <div className="flex-1 overflow-auto px-8 py-6">
+      {/* Task List or Kanban Board */}
+      <div className="flex-1 overflow-auto px-8 py-6 bg-gray-50/30">
         {isLoading ? (
           <div className="flex justify-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-600"></div>
           </div>
         ) : (
-          <TaskList
-            tasks={filteredAndSortedTasks}
-            onStatusChange={handleStatusChange}
-            onTaskClick={handleTaskClick}
-            onDelete={(id) => deleteMutation.mutate(id)}
-            isUpdating={updateStatusMutation.isPending}
-            searchQuery={searchQuery}
-            selectedTaskIds={isEditMode ? selectedTaskIds : undefined}
-            onToggleSelect={isEditMode ? handleToggleSelect : undefined}
-            goals={goals}
-          />
+          <div className="h-full animate-in fade-in duration-300">
+            {viewMode === 'board' ? (
+              <TaskKanbanBoard
+                tasks={filteredAndSortedTasks}
+                projects={projects}
+                goals={goals}
+                onStatusChange={handleStatusChange}
+                onTaskClick={handleTaskClick}
+              />
+            ) : (
+              <TaskList
+                tasks={filteredAndSortedTasks}
+                onStatusChange={handleStatusChange}
+                onTaskClick={handleTaskClick}
+                onDelete={(id) => deleteMutation.mutate(id)}
+                isUpdating={updateStatusMutation.isPending}
+                searchQuery={searchQuery}
+                selectedTaskIds={isEditMode ? selectedTaskIds : undefined}
+                onToggleSelect={isEditMode ? handleToggleSelect : undefined}
+                goals={goals}
+              />
+            )}
+          </div>
         )}
       </div>
 
       {/* Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-2xl w-full max-w-md mx-4">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-              <h2 className="text-xl font-bold text-gray-900">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
+          <div className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm transition-opacity" onClick={() => setIsModalOpen(false)} />
+          <div className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl ring-1 ring-gray-900/5 flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+              <h2 className="text-lg font-bold text-gray-900">
                 {editingTask ? 'Edit Task' : 'New Task'}
               </h2>
               <button
@@ -573,213 +698,226 @@ export default function Tasks() {
                   setIsRecurring(false);
                   setRecurrenceEndType('never');
                 }}
-                className="text-gray-400 hover:text-gray-600"
+                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl transition-all"
               >
-                <X className="w-6 h-6" />
+                <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
+            <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-5">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Title *
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  Title <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="text"
                   name="title"
                   defaultValue={editingTask?.title}
                   required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500"
+                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                  placeholder="What needs to be done?"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
                   Description
                 </label>
                 <textarea
                   name="description"
                   defaultValue={editingTask?.description}
                   rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500"
+                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all resize-none"
+                  placeholder="Add details..."
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Due Date
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    {isRecurring ? 'Start Date' : 'Due Date'}
                   </label>
                   <input
                     type="date"
                     name="due_date"
-                    defaultValue={editingTask?.due_date}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500"
+                    value={dueDate}
+                    onChange={(e) => setDueDate(e.target.value)}
+                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
                     Due Time
                   </label>
                   <input
                     type="time"
                     name="due_time"
                     defaultValue={editingTask?.due_time}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500"
+                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
                   />
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Priority
-                </label>
-                <select
-                  name="priority"
-                  defaultValue={editingTask?.priority || TaskPriority.MEDIUM}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500"
-                >
-                  <option value={TaskPriority.LOW}>Low</option>
-                  <option value={TaskPriority.MEDIUM}>Medium</option>
-                  <option value={TaskPriority.HIGH}>High</option>
-                  <option value={TaskPriority.URGENT}>Urgent</option>
-                </select>
-              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    Priority
+                  </label>
+                  <select
+                    name="priority"
+                    defaultValue={editingTask?.priority || TaskPriority.MEDIUM}
+                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all appearance-none"
+                  >
+                    <option value={TaskPriority.LOW}>Low</option>
+                    <option value={TaskPriority.MEDIUM}>Medium</option>
+                    <option value={TaskPriority.HIGH}>High</option>
+                    <option value={TaskPriority.URGENT}>Urgent</option>
+                  </select>
+                </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Status
-                </label>
-                <select
-                  name="status"
-                  defaultValue={editingTask?.status || TaskStatus.PENDING}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500"
-                >
-                  <option value={TaskStatus.PENDING}>Pending</option>
-                  <option value={TaskStatus.IN_PROGRESS}>In Progress</option>
-                  <option value={TaskStatus.COMPLETED}>Completed</option>
-                  <option value={TaskStatus.DELAYED}>Delayed</option>
-                </select>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    Status
+                  </label>
+                  <select
+                    name="status"
+                    defaultValue={editingTask?.status || TaskStatus.PENDING}
+                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all appearance-none"
+                  >
+                    <option value={TaskStatus.PENDING}>Pending</option>
+                    <option value={TaskStatus.IN_PROGRESS}>In Progress</option>
+                    <option value={TaskStatus.COMPLETED}>Completed</option>
+                    <option value={TaskStatus.DELAYED}>Delayed</option>
+                  </select>
+                </div>
               </div>
 
               {/* Recurrence Section */}
-              <div className="border-t pt-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <input
-                    type="checkbox"
-                    id="is_recurring"
-                    checked={isRecurring}
-                    onChange={(e) => {
-                      setIsRecurring(e.target.checked);
-                      if (!e.target.checked) {
-                        setRecurrenceEndType('never');
-                      }
-                    }}
-                    className="w-4 h-4 text-slate-600 border-gray-300 rounded focus:ring-slate-500"
-                  />
-                  <label htmlFor="is_recurring" className="flex items-center gap-2 text-sm font-medium text-gray-700">
-                    <Repeat className="w-4 h-4" />
-                    Repeat this task
-                  </label>
+              <div className="border-t border-gray-100 pt-5">
+                <div className="flex items-center gap-3 mb-4">
+                  <Repeat className="w-4 h-4 text-gray-400" />
+                  <select
+                    value={getRecurrenceValue()}
+                    onChange={(e) => handleRecurrenceChange(e.target.value)}
+                    className="flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm"
+                  >
+                    <option value="none">Does not repeat</option>
+                    <option value="daily">Daily</option>
+                    <option value="weekly">Weekly on {currentDayLong}</option>
+                    <option value="monthly">Monthly on the {currentMonthDay}{
+                      currentMonthDay === 1 ? 'st' : 
+                      currentMonthDay === 2 ? 'nd' : 
+                      currentMonthDay === 3 ? 'rd' : 'th'
+                    }</option>
+                    <option value="yearly">Annually on {currentMonthLong} {currentMonthDay}</option>
+                    <option value="weekday">Every weekday (Monday to Friday)</option>
+                    <option value="custom">Custom...</option>
+                  </select>
                 </div>
 
+                {/* Recurrence Summary & Preview */}
                 {isRecurring && (
-                  <div className="ml-6 space-y-3 p-3 bg-gray-50 rounded-lg">
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Repeat every
-                        </label>
-                        <div className="flex gap-2">
-                          <input
-                            type="number"
-                            name="recurrence_interval"
-                            min="1"
-                            defaultValue={editingTask?.recurrence_interval || 1}
-                            className="w-20 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          />
-                          <select
-                            name="recurrence_type"
-                            defaultValue={editingTask?.recurrence_type || RecurrenceType.DAILY}
-                            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          >
-                            <option value={RecurrenceType.DAILY}>Day(s)</option>
-                            <option value={RecurrenceType.WEEKLY}>Week(s)</option>
-                            <option value={RecurrenceType.MONTHLY}>Month(s)</option>
-                            <option value={RecurrenceType.YEARLY}>Year(s)</option>
-                          </select>
-                        </div>
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Ends
-                        </label>
-                        <select
-                          value={recurrenceEndType}
-                          onChange={(e) => setRecurrenceEndType(e.target.value as 'never' | 'date' | 'count')}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500"
-                        >
-                          <option value="never">Never</option>
-                          <option value="date">On date</option>
-                          <option value="count">After occurrences</option>
-                        </select>
-                      </div>
+                  <div className="mt-3 p-3 bg-blue-50 border border-blue-100 rounded-lg text-sm">
+                    <p className="text-blue-800 font-medium mb-2">
+                      {getRecurrenceText(
+                        recurrenceType,
+                        recurrenceInterval,
+                        recurrenceDays,
+                        recurrenceEndType,
+                        recurrenceEndDate,
+                        recurrenceCount
+                      )}
+                    </p>
+                    <div className="text-blue-600 text-xs">
+                      <span className="font-semibold block mb-1">Upcoming occurrences:</span>
+                      <ul className="list-disc list-inside space-y-0.5">
+                        {getNextOccurrences(
+                          dueDate,
+                          recurrenceType,
+                          recurrenceInterval,
+                          recurrenceDays,
+                          recurrenceEndType,
+                          recurrenceEndDate,
+                          recurrenceCount
+                        ).map((dateStr) => (
+                          <li key={dateStr}>
+                            {new Date(dateStr).toLocaleDateString(undefined, { 
+                              weekday: 'short', 
+                              year: 'numeric', 
+                              month: 'short', 
+                              day: 'numeric' 
+                            })}
+                          </li>
+                        ))}
+                      </ul>
                     </div>
-
-                    {recurrenceEndType === 'date' && (
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          End date
-                        </label>
-                        <input
-                          type="date"
-                          name="recurrence_end_date"
-                          defaultValue={editingTask?.recurrence_end_date}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500"
-                        />
-                      </div>
-                    )}
-
-                    {recurrenceEndType === 'count' && (
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Number of occurrences
-                        </label>
-                        <input
-                          type="number"
-                          name="recurrence_count"
-                          min="1"
-                          defaultValue={editingTask?.recurrence_count}
-                          placeholder="e.g., 10"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500"
-                        />
-                      </div>
-                    )}
                   </div>
                 )}
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Link to Goal (Optional)
-                </label>
-                <select
-                  name="goal_id"
-                  defaultValue={editingTask?.goal_id || ''}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500"
-                >
-                  <option value="">No Goal</option>
-                  {goals.map((goal) => (
-                    <option key={goal.id} value={goal.id}>
-                      {goal.title} ({goal.quarter} {goal.year})
-                    </option>
-                  ))}
-                </select>
+              {/* Custom Recurrence Modal */}
+              <RecurrenceCustomModal
+                isOpen={isCustomRecurrenceOpen}
+                onClose={() => setIsCustomRecurrenceOpen(false)}
+                onSave={(data) => {
+                  setIsRecurring(true);
+                  setRecurrenceInterval(data.recurrence_interval);
+                  setRecurrenceType(data.recurrence_type);
+                  setRecurrenceDays(data.recurrence_days);
+                  setRecurrenceEndType(data.recurrence_end_type);
+                  setRecurrenceEndDate(data.recurrence_end_date || '');
+                  setRecurrenceCount(data.recurrence_count || 13);
+                }}
+                initialData={{
+                  recurrence_interval: recurrenceInterval,
+                  recurrence_type: recurrenceType,
+                  recurrence_days: recurrenceDays,
+                  recurrence_end_type: recurrenceEndType,
+                  recurrence_end_date: recurrenceEndDate,
+                  recurrence_count: recurrenceCount,
+                }}
+              />
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    Project (Optional)
+                  </label>
+                  <select
+                    name="project_id"
+                    defaultValue={editingTask?.project_id || ''}
+                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all appearance-none"
+                  >
+                    <option value="">No Project</option>
+                    {projects.map((project) => (
+                      <option key={project.id} value={project.id}>
+                        {project.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    Goal (Optional)
+                  </label>
+                  <select
+                    name="goal_id"
+                    defaultValue={editingTask?.goal_id || ''}
+                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all appearance-none"
+                  >
+                    <option value="">No Goal</option>
+                    {goals.map((goal) => (
+                      <option key={goal.id} value={goal.id}>
+                        {goal.title} ({goal.quarter} {goal.year})
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
-              <div className="flex space-x-3 pt-4">
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-100 mt-6">
                 <button
                   type="button"
                   onClick={() => {
@@ -788,20 +926,20 @@ export default function Tasks() {
                     setIsRecurring(false);
                     setRecurrenceEndType('never');
                   }}
-                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                  className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-xl transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={createMutation.isPending || updateMutation.isPending}
-                  className="flex-1 px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 transition-colors disabled:opacity-50"
+                  className="px-6 py-2 bg-blue-600 text-white text-sm font-medium rounded-xl hover:bg-blue-700 shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:shadow-none"
                 >
                   {createMutation.isPending || updateMutation.isPending
                     ? 'Saving...'
                     : editingTask
-                    ? 'Update'
-                    : 'Create'}
+                    ? 'Update Task'
+                    : 'Create Task'}
                 </button>
               </div>
             </form>
@@ -881,7 +1019,6 @@ export default function Tasks() {
       )}
 
       </div>
-
       <AIChatPanel
         page="tasks"
         context={{ status: filter, priority: undefined }}

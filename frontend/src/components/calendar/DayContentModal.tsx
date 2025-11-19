@@ -1,12 +1,5 @@
-import { useState, useEffect } from 'react';
-import { X, Calendar, Plus, Edit2 } from 'lucide-react';
-import type { SocialContent, ContentType, ContentStatus, EditingStyle } from '@/types';
-import {
-  ContentType as ContentTypeEnum,
-  ContentStatus as ContentStatusEnum,
-  EditingStyle as EditingStyleEnum,
-} from '@/types';
-import { formatDateForApi } from '@/lib/dateUtils';
+import { X, Calendar } from 'lucide-react';
+import type { SocialContent } from '@/types';
 
 interface DayContentModalProps {
   isOpen: boolean;
@@ -17,14 +10,11 @@ interface DayContentModalProps {
   isLoading?: boolean;
 }
 
-const PLATFORMS = ['instagram', 'tiktok', 'facebook', 'youtube', 'linkedin', 'twitter'];
-
 export default function DayContentModal({
   isOpen,
   selectedDate,
   dayContent,
   onClose,
-  onSubmit,
   isLoading = false,
 }: DayContentModalProps) {
   if (!isOpen) return null;
@@ -90,9 +80,10 @@ export default function DayContentModal({
                   {item.script && (
                     <div>
                       <p className="text-sm font-semibold text-gray-700 mb-2">Script / Caption</p>
-                      <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg whitespace-pre-wrap">
-                        {item.script}
-                      </p>
+                      <div 
+                        className="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg [&_h1]:text-lg [&_h1]:font-bold [&_h2]:font-bold [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5"
+                        dangerouslySetInnerHTML={{ __html: item.script }}
+                      />
                     </div>
                   )}
 

@@ -92,13 +92,13 @@ export default function Deals() {
   };
 
   return (
-    <div className="flex h-full">
-      <div className="flex-1 flex flex-col bg-gray-100">
+    <div className="flex h-full bg-gray-50">
+      <div className="flex-1 flex flex-col h-full">
         {/* Header */}
-        <div className="bg-white border-b border-gray-200 px-8 py-6">
+        <div className="bg-white border-b border-gray-200/60 px-8 py-6">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Deals Pipeline</h1>
+              <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Deals Pipeline</h1>
               <p className="mt-1 text-sm text-gray-500">
                 Manage your sales pipeline visually
               </p>
@@ -109,7 +109,7 @@ export default function Deals() {
                 setSelectedStage(DealStage.LEAD);
                 setIsModalOpen(true);
               }}
-              className="group flex items-center px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 transition-all duration-200 shadow-sm hover:shadow"
+              className="group flex items-center px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all duration-200 shadow-sm hover:shadow-md"
             >
               <Plus className="w-5 h-5 mr-2 transition-transform duration-200 group-hover:rotate-90" />
               Add Deal

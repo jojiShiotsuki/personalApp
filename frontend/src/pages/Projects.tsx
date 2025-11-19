@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Search } from 'lucide-react';
+import { Plus, Search, Folder } from 'lucide-react';
 import { projectApi } from '@/lib/api';
 import { ProjectCreate } from '@/types';
 import ProjectCard from '@/components/ProjectCard';
@@ -43,36 +43,34 @@ export default function Projects() {
   );
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col bg-gray-50">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-8 py-6">
+      <div className="bg-white border-b border-gray-200/60 px-8 py-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Projects</h1>
+            <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Projects</h1>
             <p className="mt-1 text-sm text-gray-500">
               Manage your projects and track progress
             </p>
           </div>
           <button
             onClick={() => setIsModalOpen(true)}
-            className="group flex items-center px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 transition-all duration-200 shadow-sm hover:shadow"
+            className="group flex items-center px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all duration-200 shadow-sm hover:shadow-md"
           >
             <Plus className="w-5 h-5 mr-2 transition-transform duration-200 group-hover:rotate-90" />
             New Project
           </button>
         </div>
-      </div>
 
-      {/* Search Bar */}
-      <div className="bg-white border-b border-gray-200 px-8 py-4">
-        <div className="relative">
+        {/* Search Bar */}
+        <div className="mt-6 relative max-w-md">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search projects..."
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500"
+            className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
           />
         </div>
       </div>
@@ -80,36 +78,41 @@ export default function Projects() {
       {/* Projects Grid */}
       <div className="flex-1 overflow-auto px-8 py-6">
       {isLoading ? (
-        <div className="text-center py-12">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-slate-600 mb-4"></div>
-          <p className="text-gray-500">Loading projects...</p>
+        <div className="flex justify-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
         </div>
       ) : isError ? (
         <div className="text-center py-12">
-          <p className="text-red-500 mb-4">Failed to load projects</p>
+          <p className="text-rose-500 mb-4">Failed to load projects</p>
           <button
             onClick={() => window.location.reload()}
-            className="text-slate-600 hover:text-slate-700"
+            className="text-gray-600 hover:text-gray-900 underline"
           >
             Try again
           </button>
         </div>
       ) : filteredProjects.length === 0 ? (
-        <div className="text-center py-12">
-          <p className="text-gray-500 mb-4">
+        <div className="flex flex-col items-center justify-center py-16 text-center">
+          <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+            <Folder className="w-10 h-10 text-gray-400" />
+          </div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-1">
             {searchQuery ? 'No projects found' : 'No projects yet'}
+          </h3>
+          <p className="text-gray-500 max-w-sm mx-auto mb-6">
+            {searchQuery ? `No projects match "${searchQuery}"` : "Create your first project to start tracking your work."}
           </p>
           {!searchQuery && (
             <button
               onClick={() => setIsModalOpen(true)}
-              className="text-slate-600 hover:text-slate-700"
+              className="px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors shadow-sm"
             >
-              Create your first project
+              Create Project
             </button>
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 animate-in fade-in duration-500">
           {filteredProjects.map((project) => (
             <ProjectCard key={project.id} project={project} />
           ))}

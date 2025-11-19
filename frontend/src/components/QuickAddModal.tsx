@@ -107,137 +107,100 @@ export default function QuickAddModal({
   if (!isOpen) return null;
 
   return (
-    <div
-      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
-      onClick={(e) => {
-        // Close when clicking backdrop
-        if (e.target === e.currentTarget) {
-          handleClose();
-        }
-      }}
-    >
-      <div className="bg-white rounded-lg shadow-2xl w-full max-w-2xl mx-4 max-h-[90vh] flex flex-col">
-        {/* Modal Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
+      {/* Backdrop */}
+      <div
+        className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm transition-opacity"
+        onClick={handleClose}
+      />
+
+      {/* Modal */}
+      <div className="relative w-full max-w-2xl bg-white rounded-2xl shadow-2xl ring-1 ring-gray-900/5 flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
           <div>
-            <h2 className="text-xl font-bold text-gray-900">Quick Add Tasks</h2>
-            <p className="text-sm text-gray-500 mt-1">
-              Paste your tasks, one per line
+            <h2 className="text-lg font-bold text-gray-900">Quick Add Tasks</h2>
+            <p className="text-sm text-gray-500 mt-0.5">
+              Enter one task per line. Use natural language for dates (e.g., "tomorrow at 3pm").
             </p>
           </div>
           <button
             onClick={handleClose}
-            disabled={isSubmitting}
-            className="text-gray-400 hover:text-gray-600 disabled:opacity-50"
-            aria-label="Close modal"
+            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl transition-all"
           >
-            <X className="w-6 h-6" />
+            <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Modal Body */}
-        <div className="flex-1 overflow-auto p-6">
-          <div className="space-y-4">
-            {/* Textarea */}
-            <div>
-              <textarea
-                ref={textareaRef}
-                value={taskText}
-                onChange={(e) => setTaskText(e.target.value)}
-                disabled={isSubmitting}
-                placeholder="Paste your tasks here... (one per line)
-
-Examples:
-- Meeting tomorrow at 3pm
-- Call John high priority
-- Review proposal Friday
-1. Send email to team
-2. Update documentation"
-                className={cn(
-                  'w-full h-64 px-4 py-3',
-                  'border border-gray-300 rounded-lg',
-                  'focus:outline-none focus:ring-2 focus:ring-blue-500',
-                  'transition-all duration-200',
-                  'resize-none',
-                  'font-mono text-sm',
-                  isSubmitting && 'bg-gray-50 cursor-wait'
-                )}
-                aria-label="Task list input"
-              />
-
-              {/* Line Count */}
-              <div className="flex items-center justify-between mt-2">
-                <p className="text-sm text-gray-500">
-                  {lineCount === 0
-                    ? 'No tasks'
-                    : lineCount === 1
-                    ? '1 task'
-                    : `${lineCount} tasks`}
-                </p>
-                <p className="text-xs text-gray-400">
-                  Press{' '}
-                  <kbd className="px-2 py-1 bg-gray-100 border border-gray-300 rounded text-xs font-mono">
-                    {navigator.platform.includes('Mac') ? '⌘' : 'Ctrl'}
-                  </kbd>
-                  {' + '}
-                  <kbd className="px-2 py-1 bg-gray-100 border border-gray-300 rounded text-xs font-mono">
-                    Enter
-                  </kbd>
-                  {' to submit'}
-                </p>
-              </div>
+        {/* Body */}
+        <div className="flex-1 p-6 overflow-y-auto">
+          <div className="relative">
+            <textarea
+              ref={textareaRef}
+              value={taskText}
+              onChange={(e) => setTaskText(e.target.value)}
+              placeholder="Call John about the project tomorrow&#10;Review Q3 budget next Friday&#10;Buy milk today"
+              className={cn(
+                "w-full h-64 p-4 text-base text-gray-900 placeholder:text-gray-400 bg-gray-50 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all resize-none font-medium",
+                error ? "border-rose-300 focus:border-rose-500 focus:ring-rose-500/20 bg-rose-50/30" : "border-gray-200"
+              )}
+              disabled={isSubmitting}
+            />
+            <div className="absolute bottom-4 right-4 text-xs font-medium text-gray-400 bg-white/80 backdrop-blur px-2 py-1 rounded-lg border border-gray-100 shadow-sm">
+              {lineCount} task{lineCount !== 1 ? 's' : ''}
             </div>
-
-            {/* Error Message */}
-            {error && (
-              <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
-                <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-                <p className="text-sm text-red-700">{error}</p>
-              </div>
-            )}
           </div>
+
+          {error && (
+            <div className="mt-4 p-3 bg-rose-50 border border-rose-100 rounded-xl flex items-start gap-3 text-sm text-rose-600 animate-in slide-in-from-top-2">
+              <AlertCircle className="w-5 h-5 shrink-0" />
+              <p>{error}</p>
+            </div>
+          )}
         </div>
 
-        {/* Modal Footer */}
-        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t bg-gray-50">
-          <button
-            type="button"
-            onClick={handleClose}
-            disabled={isSubmitting}
-            className={cn(
-              'px-4 py-2',
-              'border border-gray-300 text-gray-700',
-              'rounded-lg',
-              'hover:bg-gray-100',
-              'transition-colors',
-              'disabled:opacity-50 disabled:cursor-not-allowed'
-            )}
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            onClick={handleSubmit}
-            disabled={isSubmitting || lineCount === 0}
-            className={cn(
-              'flex items-center gap-2',
-              'px-4 py-2',
-              'bg-blue-600 text-white',
-              'rounded-lg',
-              'hover:bg-blue-700',
-              'transition-colors',
-              'disabled:opacity-50 disabled:cursor-not-allowed'
-            )}
-          >
-            {isSubmitting ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Creating tasks...
-              </>
-            ) : (
-              `Create ${lineCount > 0 ? lineCount : ''} Task${lineCount !== 1 ? 's' : ''}`
-            )}
-          </button>
+        {/* Footer */}
+        <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 rounded-b-2xl flex items-center justify-between">
+          <div className="flex items-center gap-4 text-xs text-gray-500 font-medium">
+            <span className="flex items-center gap-1.5">
+              <kbd className="px-2 py-1 bg-white border border-gray-200 rounded-lg shadow-sm font-mono text-gray-600">Enter</kbd>
+              <span>new line</span>
+            </span>
+            <span className="flex items-center gap-1.5">
+              <kbd className="px-2 py-1 bg-white border border-gray-200 rounded-lg shadow-sm font-mono text-gray-600">Ctrl + Enter</kbd>
+              <span>save</span>
+            </span>
+            <span className="flex items-center gap-1.5">
+              <kbd className="px-2 py-1 bg-white border border-gray-200 rounded-lg shadow-sm font-mono text-gray-600">Esc</kbd>
+              <span>cancel</span>
+            </span>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleClose}
+              disabled={isSubmitting}
+              className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-white rounded-xl transition-all disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSubmit}
+              disabled={isSubmitting || lineCount === 0}
+              className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white text-sm font-medium rounded-xl hover:bg-blue-700 shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed"
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                <>
+                  Create {lineCount > 0 ? `${lineCount} Task${lineCount !== 1 ? 's' : ''}` : 'Tasks'}
+                </>
+              )}
+            </button>
+          </div>
         </div>
       </div>
     </div>

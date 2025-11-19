@@ -17,7 +17,7 @@ export default function AIChatPanel({ page, context = {}, onDataChange }: AIChat
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -104,27 +104,35 @@ export default function AIChatPanel({ page, context = {}, onDataChange }: AIChat
   }
 
   return (
-    <div className="w-96 border-l border-gray-200 bg-white flex flex-col h-full">
+    <div className="w-96 border-l border-gray-200/60 bg-white flex flex-col h-full shadow-xl shadow-gray-200/50 z-20">
       {/* Header */}
-      <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+      <div className="p-4 border-b border-gray-200/60 flex items-center justify-between bg-gray-50/50 backdrop-blur-sm">
         <div className="flex items-center gap-2">
-          <Bot className="w-5 h-5 text-blue-600" />
-          <h3 className="font-semibold">AI Assistant</h3>
+          <div className="p-1.5 bg-blue-50 rounded-lg">
+            <Bot className="w-4 h-4 text-blue-600" />
+          </div>
+          <h3 className="font-semibold text-gray-900">AI Assistant</h3>
         </div>
         <button
           onClick={() => setIsOpen(false)}
-          className="text-gray-400 hover:text-gray-600"
+          className="text-gray-400 hover:text-gray-600 p-1 hover:bg-gray-100 rounded-lg transition-colors"
         >
-          ×
+          <span className="sr-only">Close</span>
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
         </button>
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 overflow-y-auto p-4 space-y-6 bg-gray-50/30">
         {messages.length === 0 && (
-          <div className="text-center text-gray-500 py-8">
-            <Bot className="w-12 h-12 mx-auto mb-2 text-gray-300" />
-            <p>Ask me anything about your {page}!</p>
+          <div className="text-center text-gray-500 py-12">
+            <div className="w-16 h-16 mx-auto mb-4 bg-blue-50 rounded-2xl flex items-center justify-center">
+              <Bot className="w-8 h-8 text-blue-600" />
+            </div>
+            <h4 className="font-semibold text-gray-900 mb-1">How can I help?</h4>
+            <p className="text-sm text-gray-500">Ask me anything about your {page}!</p>
           </div>
         )}
 
@@ -137,23 +145,23 @@ export default function AIChatPanel({ page, context = {}, onDataChange }: AIChat
             )}
           >
             {msg.role === 'assistant' && (
-              <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+              <div className="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center flex-shrink-0 shadow-sm mt-1">
                 <Bot className="w-4 h-4 text-blue-600" />
               </div>
             )}
             <div
               className={cn(
-                'rounded-lg px-4 py-2 max-w-[80%]',
+                'rounded-2xl px-4 py-3 max-w-[85%] shadow-sm text-sm leading-relaxed',
                 msg.role === 'user'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-900'
+                  ? 'bg-blue-600 text-white rounded-tr-sm'
+                  : 'bg-white border border-gray-200 text-gray-700 rounded-tl-sm'
               )}
             >
-              <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+              <p className="whitespace-pre-wrap">{msg.content}</p>
             </div>
             {msg.role === 'user' && (
-              <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0">
-                <User className="w-4 h-4 text-gray-600" />
+              <div className="w-8 h-8 rounded-full bg-gray-900 flex items-center justify-center flex-shrink-0 shadow-sm mt-1">
+                <User className="w-4 h-4 text-white" />
               </div>
             )}
           </div>
@@ -161,11 +169,15 @@ export default function AIChatPanel({ page, context = {}, onDataChange }: AIChat
 
         {isStreaming && messages[messages.length - 1]?.role !== 'assistant' && (
           <div className="flex gap-3">
-            <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center shadow-sm mt-1">
               <Loader2 className="w-4 h-4 text-blue-600 animate-spin" />
             </div>
-            <div className="bg-gray-100 rounded-lg px-4 py-2">
-              <p className="text-sm text-gray-500">Thinking...</p>
+            <div className="bg-white border border-gray-200 rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm">
+              <div className="flex gap-1">
+                <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+              </div>
             </div>
           </div>
         )}
@@ -174,29 +186,38 @@ export default function AIChatPanel({ page, context = {}, onDataChange }: AIChat
       </div>
 
       {/* Input */}
-      <div className="p-4 border-t border-gray-200">
-        <div className="flex gap-2">
-          <input
-            type="text"
+      <div className="p-4 border-t border-gray-200/60 bg-white">
+        <div className="flex gap-2 items-end bg-gray-50 border border-gray-200 rounded-2xl p-2 focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500 transition-all">
+          <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
+            onKeyPress={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+              }
+            }}
             placeholder="Ask me anything..."
             disabled={isStreaming}
-            className="flex-1 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            rows={1}
+            className="flex-1 px-3 py-2 bg-transparent border-none focus:outline-none resize-none max-h-32 text-sm"
+            style={{ minHeight: '40px' }}
           />
           <button
             onClick={sendMessage}
             disabled={!input.trim() || isStreaming}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="p-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm mb-0.5"
           >
             {isStreaming ? (
-              <Loader2 className="w-5 h-5 animate-spin" />
+              <Loader2 className="w-4 h-4 animate-spin" />
             ) : (
-              <Send className="w-5 h-5" />
+              <Send className="w-4 h-4" />
             )}
           </button>
         </div>
+        <p className="text-xs text-center text-gray-400 mt-2">
+          AI can make mistakes. Review generated content.
+        </p>
       </div>
     </div>
   );

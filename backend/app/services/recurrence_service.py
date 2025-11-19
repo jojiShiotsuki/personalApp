@@ -10,12 +10,48 @@ from app.models.task import Task, TaskStatus, RecurrenceType
 def calculate_next_due_date(
     current_due_date: date,
     recurrence_type: RecurrenceType,
-    interval: int = 1
+    interval: int = 1,
+    recurrence_days: Optional[str] = None
 ) -> date:
     """Calculate the next due date based on recurrence type and interval."""
     if recurrence_type == RecurrenceType.DAILY:
         return current_due_date + timedelta(days=interval)
     elif recurrence_type == RecurrenceType.WEEKLY:
+        if recurrence_days:
+            # Map days to integers (0=Monday, 6=Sunday)
+            day_map = {
+                "Mon": 0, "Tue": 1, "Wed": 2, "Thu": 3, "Fri": 4, "Sat": 5, "Sun": 6
+            }
+            target_days = sorted([day_map[d] for d in recurrence_days.split(",") if d in day_map])
+            
+            if not target_days:
+                return current_due_date + timedelta(weeks=interval)
+                
+            current_weekday = current_due_date.weekday()
+            
+            # Find next day in the same week
+            for day in target_days:
+                if day > current_weekday:
+                    days_ahead = day - current_weekday
+                    return current_due_date + timedelta(days=days_ahead)
+            
+            # If no day left in this week, go to the first day of the next interval
+            # If interval is 1, it's next week. If 2, it's 2 weeks from the start of this week?
+            # Usually "Every 2 weeks" means skip a week.
+            # So we find the first target day in the next cycle.
+            
+            # Calculate days to the first target day in the next interval
+            # First, get to the start of the next interval week (Monday)
+            # Days to next Monday = 7 - current_weekday
+            # Then add weeks for interval - 1 (since we are already moving to next week)
+            # Then add the first target day offset
+            
+            days_to_next_monday = 7 - current_weekday
+            weeks_to_skip = interval - 1
+            days_offset = days_to_next_monday + (weeks_to_skip * 7) + target_days[0]
+            
+            return current_due_date + timedelta(days=days_offset)
+            
         return current_due_date + timedelta(weeks=interval)
     elif recurrence_type == RecurrenceType.MONTHLY:
         return current_due_date + relativedelta(months=interval)
@@ -55,7 +91,8 @@ def create_next_occurrence(task: Task, db: Session) -> Optional[Task]:
     next_due_date = calculate_next_due_date(
         task.due_date,
         task.recurrence_type,
-        task.recurrence_interval or 1
+        task.recurrence_interval or 1,
+        task.recurrence_days
     )
 
     # Check if next due date exceeds end date
@@ -111,7 +148,8 @@ def create_all_future_occurrences(task: Task, db: Session) -> int:
         next_date = calculate_next_due_date(
             current_date,
             task.recurrence_type,
-            task.recurrence_interval or 1
+            task.recurrence_interval or 1,
+            task.recurrence_days
         )
 
         # Check if next date exceeds end date

@@ -4,7 +4,7 @@ import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea
 import { goalApi } from '@/lib/api';
 import type { Goal, GoalCreate, GoalUpdate, KeyResult } from '@/types';
 import { Quarter, Month, GoalPriority } from '@/types';
-import { ChevronDown, ChevronRight, Plus, Target, Trash2, Edit, Calendar } from 'lucide-react';
+import { ChevronDown, ChevronRight, Plus, Target, Trash2, Edit, Calendar, CheckCircle2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import QuickAddGoalModal from '@/components/QuickAddGoalModal';
 import { toast } from 'sonner';
@@ -68,6 +68,11 @@ export default function Goals() {
       queryClient.invalidateQueries({ queryKey: ['goals'] });
       setIsModalOpen(false);
       resetForm();
+      toast.success('Goal created successfully');
+    },
+    onError: (error) => {
+      console.error('Failed to create goal:', error);
+      toast.error('Failed to create goal');
     },
   });
 
@@ -79,6 +84,11 @@ export default function Goals() {
       setIsModalOpen(false);
       setEditingGoal(null);
       resetForm();
+      toast.success('Goal updated successfully');
+    },
+    onError: (error) => {
+      console.error('Failed to update goal:', error);
+      toast.error('Failed to update goal');
     },
   });
 
@@ -133,10 +143,18 @@ export default function Goals() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Clean data
+    const dataToSubmit = {
+      ...formData,
+      target_date: formData.target_date || undefined,
+      key_results: formData.key_results?.length ? formData.key_results : undefined,
+    };
+
     if (editingGoal) {
-      updateMutation.mutate({ id: editingGoal.id, data: formData });
+      updateMutation.mutate({ id: editingGoal.id, data: dataToSubmit });
     } else {
-      createMutation.mutate(formData);
+      createMutation.mutate(dataToSubmit);
     }
   };
 
@@ -230,12 +248,12 @@ export default function Goals() {
   }, []);
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col bg-gray-50">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-8 py-6">
+      <div className="bg-white border-b border-gray-200/60 px-8 py-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Goals</h1>
+            <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Goals</h1>
             <p className="mt-1 text-sm text-gray-500">Track quarterly and monthly objectives</p>
           </div>
 
@@ -244,7 +262,7 @@ export default function Goals() {
             <select
               value={selectedYear}
               onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500"
+              className="px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 text-sm font-medium"
             >
               {[currentYear - 1, currentYear, currentYear + 1].map(year => (
                 <option key={year} value={year}>{year}</option>
@@ -253,11 +271,23 @@ export default function Goals() {
 
             <button
               onClick={handleQuickAdd}
-              className="group flex items-center px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 transition-all duration-200 shadow-sm hover:shadow"
+              className="flex items-center px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-all duration-200 shadow-sm hover:shadow-md text-sm font-medium"
+              title="Quick Add (Ctrl+G)"
+            >
+              <Target className="w-4 h-4 mr-2 text-blue-600" />
+              Quick Add
+            </button>
+
+            <button
+              onClick={() => {
+                setEditingGoal(null);
+                resetForm();
+                setIsModalOpen(true);
+              }}
+              className="group flex items-center px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all duration-200 shadow-sm hover:shadow-md text-sm font-medium"
             >
               <Plus className="w-5 h-5 mr-2 transition-transform duration-200 group-hover:rotate-90" />
               New Goal
-              <span className="text-xs opacity-75 ml-1">(Ctrl+G)</span>
             </button>
           </div>
         </div>
@@ -266,19 +296,19 @@ export default function Goals() {
       {/* Content */}
       <div className="flex-1 overflow-auto px-8 py-6">
       {isLoading ? (
-        <div className="flex items-center justify-center h-64">
-          <div className="text-gray-500">Loading goals...</div>
+        <div className="flex justify-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-600"></div>
         </div>
       ) : (
         <DragDropContext onDragEnd={handleDragEnd}>
-          <div className="space-y-6">
+          <div className="space-y-6 animate-in fade-in duration-500">
             {/* Quarters */}
             {Object.values(Quarter).map((quarter) => {
               const isExpanded = expandedQuarters.has(quarter);
               const quarterGoals = goals.filter(g => g.quarter === quarter);
 
               return (
-                <div key={quarter} className="bg-white rounded-lg shadow">
+                <div key={quarter} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                   {/* Quarter Header */}
                   <button
                     onClick={() => toggleQuarter(quarter)}
@@ -286,19 +316,24 @@ export default function Goals() {
                   >
                     <div className="flex items-center gap-3">
                       {isExpanded ? (
-                        <ChevronDown className="w-5 h-5 text-gray-600" />
+                        <ChevronDown className="w-5 h-5 text-gray-400" />
                       ) : (
-                        <ChevronRight className="w-5 h-5 text-gray-600" />
+                        <ChevronRight className="w-5 h-5 text-gray-400" />
                       )}
-                      <Target className="w-6 h-6 text-slate-600" />
-                      <h2 className="text-xl font-semibold text-gray-900">{quarter}</h2>
-                      <span className="text-sm text-gray-500">({quarterGoals.length} goals)</span>
+                      <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center text-slate-600">
+                        <Target className="w-5 h-5" />
+                      </div>
+                      <div className="text-left">
+                        <h2 className="text-lg font-bold text-gray-900">{quarter}</h2>
+                        <p className="text-sm text-gray-500">{quarterGoals.length} goals</p>
+                      </div>
                     </div>
                   </button>
 
                   {/* Quarter Content - Months */}
                   {isExpanded && (
-                    <div className="border-t border-gray-200 p-6 space-y-6">
+                    <div className="border-t border-gray-100 p-6 bg-gray-50/50">
+                      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                       {QUARTER_MONTHS[quarter].map((month) => {
                         const monthGoals = goals.filter(
                           g => g.quarter === quarter && g.month === month
@@ -306,20 +341,22 @@ export default function Goals() {
                         const droppableId = `${quarter}-${month}`;
 
                         return (
-                          <div key={month} className="bg-gray-50 rounded-lg p-4">
+                          <div key={month} className="flex flex-col h-full">
                             {/* Month Header */}
-                            <div className="flex items-center justify-between mb-4">
+                            <div className="flex items-center justify-between mb-4 px-1">
                               <div className="flex items-center gap-2">
-                                <Calendar className="w-5 h-5 text-gray-600" />
-                                <h3 className="text-lg font-semibold text-gray-800">{month}</h3>
-                                <span className="text-sm text-gray-500">({monthGoals.length})</span>
+                                <Calendar className="w-4 h-4 text-gray-400" />
+                                <h3 className="font-bold text-gray-700">{month}</h3>
+                                <span className="text-xs font-medium bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
+                                  {monthGoals.length}
+                                </span>
                               </div>
                               <button
                                 onClick={() => handleNewGoal(quarter, month)}
-                                className="flex items-center gap-1 px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-50 rounded-lg transition-colors"
+                                className="p-1 text-gray-400 hover:text-slate-600 hover:bg-slate-100 rounded-md transition-colors"
+                                title="Add Goal"
                               >
                                 <Plus className="w-4 h-4" />
-                                Add Goal
                               </button>
                             </div>
 
@@ -330,13 +367,19 @@ export default function Goals() {
                                   ref={provided.innerRef}
                                   {...provided.droppableProps}
                                   className={cn(
-                                    'min-h-[100px] space-y-3',
-                                    snapshot.isDraggingOver && 'bg-slate-50 rounded-lg'
+                                    'flex-1 min-h-[150px] space-y-3 rounded-xl transition-colors',
+                                    snapshot.isDraggingOver ? 'bg-slate-100/50 ring-2 ring-slate-200 ring-inset' : ''
                                   )}
                                 >
                                   {monthGoals.length === 0 ? (
-                                    <div className="flex items-center justify-center h-24 text-gray-400 text-sm">
-                                      No goals for {month}
+                                    <div className="flex flex-col items-center justify-center h-32 border-2 border-dashed border-gray-200 rounded-xl text-center p-4">
+                                      <p className="text-sm text-gray-400 mb-2">No goals set</p>
+                                      <button
+                                        onClick={() => handleNewGoal(quarter, month)}
+                                        className="text-xs font-medium text-slate-600 hover:text-slate-800 hover:underline"
+                                      >
+                                        Add one now
+                                      </button>
                                     </div>
                                   ) : (
                                     monthGoals.map((goal, index) => (
@@ -351,47 +394,47 @@ export default function Goals() {
                                             {...provided.draggableProps}
                                             {...provided.dragHandleProps}
                                             className={cn(
-                                              'bg-white p-4 rounded-lg border border-gray-200',
-                                              'hover:shadow-md transition-shadow cursor-move',
-                                              snapshot.isDragging && 'shadow-xl border-slate-300'
+                                              'bg-white p-4 rounded-xl border border-gray-200 shadow-sm group',
+                                              'hover:shadow-md hover:border-gray-300 transition-all duration-200',
+                                              snapshot.isDragging && 'shadow-xl rotate-2 scale-105 z-50 ring-2 ring-slate-400 ring-opacity-50'
                                             )}
                                           >
                                             {/* Goal Header */}
-                                            <div className="flex items-start justify-between mb-2">
-                                              <h4 className="font-semibold text-gray-900 flex-1">
+                                            <div className="flex items-start justify-between mb-3">
+                                              <h4 className="font-bold text-gray-900 text-sm leading-snug flex-1 pr-2">
                                                 {goal.title}
                                               </h4>
-                                              <div className="flex items-center gap-1">
+                                              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                                 <button
                                                   onClick={(e) => {
                                                     e.stopPropagation();
                                                     handleEditGoal(goal);
                                                   }}
-                                                  className="p-1 text-gray-500 hover:text-slate-600 hover:bg-slate-50 rounded"
+                                                  className="p-1.5 text-gray-400 hover:text-slate-600 hover:bg-slate-50 rounded-md transition-colors"
                                                 >
-                                                  <Edit className="w-4 h-4" />
+                                                  <Edit className="w-3.5 h-3.5" />
                                                 </button>
                                                 <button
                                                   onClick={(e) => {
                                                     e.stopPropagation();
                                                     handleDelete(goal.id);
                                                   }}
-                                                  className="p-1 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded"
+                                                  className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
                                                 >
-                                                  <Trash2 className="w-4 h-4" />
+                                                  <Trash2 className="w-3.5 h-3.5" />
                                                 </button>
                                               </div>
                                             </div>
 
                                             {goal.description && (
-                                              <p className="text-sm text-gray-600 mb-3">{goal.description}</p>
+                                              <p className="text-xs text-gray-500 mb-4 line-clamp-2">{goal.description}</p>
                                             )}
 
                                             {/* Goal Details */}
-                                            <div className="flex items-center gap-3 flex-wrap">
+                                            <div className="flex items-center gap-2 flex-wrap mb-3">
                                               {/* Priority */}
                                               <span className={cn(
-                                                'text-xs px-2 py-1 rounded-full border',
+                                                'text-[10px] font-bold px-2 py-0.5 rounded-full border uppercase tracking-wide',
                                                 priorityConfig[goal.priority].badge
                                               )}>
                                                 {priorityConfig[goal.priority].label}
@@ -399,26 +442,26 @@ export default function Goals() {
 
                                               {/* Target Date */}
                                               {goal.target_date && (
-                                                <span className="text-xs text-gray-500 flex items-center gap-1">
+                                                <span className="text-[10px] font-medium text-gray-500 flex items-center gap-1 bg-gray-50 px-2 py-0.5 rounded-full border border-gray-100">
                                                   <Calendar className="w-3 h-3" />
-                                                  {goal.target_date}
+                                                  {new Date(goal.target_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                                                 </span>
                                               )}
                                             </div>
 
                                             {/* Key Results */}
                                             {goal.key_results && goal.key_results.length > 0 && (
-                                              <div className="mt-3 space-y-1">
+                                              <div className="pt-3 border-t border-gray-50 space-y-2">
                                                 {goal.key_results.map((kr) => (
-                                                  <div key={kr.id} className="flex items-center gap-2 text-sm">
-                                                    <input
-                                                      type="checkbox"
-                                                      checked={kr.completed}
-                                                      readOnly
-                                                      className="w-4 h-4 rounded"
-                                                    />
+                                                  <div key={kr.id} className="flex items-start gap-2 text-xs group/kr">
+                                                    <div className={cn(
+                                                      "w-4 h-4 rounded border flex items-center justify-center mt-0.5 flex-shrink-0 transition-colors",
+                                                      kr.completed ? "bg-emerald-50 border-emerald-200 text-emerald-600" : "border-gray-300 bg-white"
+                                                    )}>
+                                                      {kr.completed && <CheckCircle2 className="w-3 h-3" />}
+                                                    </div>
                                                     <span className={cn(
-                                                      'text-gray-700',
+                                                      'text-gray-600 leading-tight transition-colors',
                                                       kr.completed && 'line-through text-gray-400'
                                                     )}>
                                                       {kr.title}
@@ -439,6 +482,7 @@ export default function Goals() {
                           </div>
                         );
                       })}
+                      </div>
                     </div>
                   )}
                 </div>

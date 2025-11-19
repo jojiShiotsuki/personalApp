@@ -17,6 +17,7 @@ class TaskBase(BaseModel):
     is_recurring: bool = False
     recurrence_type: Optional[RecurrenceType] = None
     recurrence_interval: Optional[int] = Field(None, ge=1, description="Repeat every N days/weeks/months/years")
+    recurrence_days: Optional[List[str]] = None
     recurrence_end_date: Optional[date] = None
     recurrence_count: Optional[int] = Field(None, ge=1, description="Number of occurrences to create")
 
@@ -37,6 +38,7 @@ class TaskUpdate(BaseModel):
     is_recurring: Optional[bool] = None
     recurrence_type: Optional[RecurrenceType] = None
     recurrence_interval: Optional[int] = Field(None, ge=1)
+    recurrence_days: Optional[List[str]] = None
     recurrence_end_date: Optional[date] = None
     recurrence_count: Optional[int] = Field(None, ge=1)
 

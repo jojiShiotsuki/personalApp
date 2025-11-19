@@ -91,7 +91,12 @@
       "Bash(venv/Scripts/alembic current)",
       "Bash(venv/Scripts/alembic revision:*)",
       "Bash(venv/Scripts/pip list:*)",
-      "Bash(tee:*)"
+      "Bash(tee:*)",
+      "Bash(if [ -d \".worktrees/feature/social-media-calendar\" ])",
+      "Bash(then rm -rf .worktrees/feature/social-media-calendar)",
+      "Bash(else echo \"Directory already removed\")",
+      "Bash(fi)",
+      "Bash(git diff:*)"
     ],
     "deny": [],
     "ask": []

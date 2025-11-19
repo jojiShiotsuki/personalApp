@@ -67,6 +67,7 @@ export type Task = {
   is_recurring: boolean;
   recurrence_type?: RecurrenceType;
   recurrence_interval?: number;
+  recurrence_days?: string[];
   recurrence_end_date?: string;
   recurrence_count?: number;
   occurrences_created: number;
@@ -87,6 +88,7 @@ export type TaskCreate = {
   is_recurring?: boolean;
   recurrence_type?: RecurrenceType;
   recurrence_interval?: number;
+  recurrence_days?: string[];
   recurrence_end_date?: string;
   recurrence_count?: number;
 }
@@ -98,13 +100,14 @@ export type TaskUpdate = {
   due_time?: string;
   priority?: TaskPriority;
   status?: TaskStatus;
-  goal_id?: number;
   project_id?: number;
+  goal_id?: number;
 
   // Recurrence fields
   is_recurring?: boolean;
   recurrence_type?: RecurrenceType;
   recurrence_interval?: number;
+  recurrence_days?: string[];
   recurrence_end_date?: string;
   recurrence_count?: number;
 }
