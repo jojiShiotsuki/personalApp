@@ -3,6 +3,7 @@ from .crm import Contact, Deal, Interaction, ContactStatus, DealStage, Interacti
 from .project import Project, ProjectStatus
 from .goal import Goal
 from .social_content import SocialContent, ContentType, ContentStatus, EditingStyle
+from .time_entry import TimeEntry
 
 __all__ = [
     "Task", "TaskPriority", "TaskStatus",
@@ -10,5 +11,6 @@ __all__ = [
     "ContactStatus", "DealStage", "InteractionType",
     "Project", "ProjectStatus",
     "Goal",
-    "SocialContent", "ContentType", "ContentStatus", "EditingStyle"
+    "SocialContent", "ContentType", "ContentStatus", "EditingStyle",
+    "TimeEntry",
 ]

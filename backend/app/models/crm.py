@@ -59,6 +59,7 @@ class Deal(Base):
     expected_close_date = Column(Date, nullable=True)
     actual_close_date = Column(Date, nullable=True)
     next_followup_date = Column(Date, nullable=True)  # Next scheduled follow-up date
+    hourly_rate = Column(Numeric(10, 2), nullable=True)  # For time tracking billing
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

@@ -1,8 +1,12 @@
+import { useState } from 'react';
 import type { Task, Goal } from '@/types';
 import { TaskStatus, TaskPriority } from '@/types';
 import { format, isPast, isToday, isTomorrow, parseISO } from 'date-fns';
-import { Check, Clock, AlertCircle, Trash2, Edit, Calendar, Target, Repeat } from 'lucide-react';
+import { Check, Clock, AlertCircle, Trash2, Edit, Calendar, Target, Repeat, Play, Square } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import ConfirmModal from './ConfirmModal';
+import { useTimer, formatElapsedTime } from '@/contexts/TimerContext';
+import { toast } from 'sonner';
 
 interface TaskItemProps {
   task: Task;
@@ -19,25 +23,25 @@ interface TaskItemProps {
 const priorityConfig = {
   [TaskPriority.URGENT]: {
     border: 'border-l-red-500',
-    badge: 'bg-red-50 text-red-700 border-red-200',
+    badge: 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800',
     dot: 'bg-red-500',
     label: 'Urgent'
   },
   [TaskPriority.HIGH]: {
     border: 'border-l-orange-500',
-    badge: 'bg-orange-50 text-orange-700 border-orange-200',
+    badge: 'bg-orange-50 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 border-orange-200 dark:border-orange-800',
     dot: 'bg-orange-500',
     label: 'High'
   },
   [TaskPriority.MEDIUM]: {
     border: 'border-l-blue-500',
-    badge: 'bg-blue-50 text-blue-700 border-blue-200',
+    badge: 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800',
     dot: 'bg-blue-500',
     label: 'Medium'
   },
   [TaskPriority.LOW]: {
     border: 'border-l-gray-400',
-    badge: 'bg-gray-50 text-gray-600 border-gray-200',
+    badge: 'bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-600',
     dot: 'bg-gray-400',
     label: 'Low'
   }
@@ -47,38 +51,41 @@ const priorityConfig = {
 const statusConfig = {
   [TaskStatus.PENDING]: {
     dot: 'bg-gray-400',
-    text: 'text-gray-600',
+    text: 'text-gray-600 dark:text-gray-400',
     label: 'Pending'
   },
   [TaskStatus.IN_PROGRESS]: {
     dot: 'bg-blue-500',
-    text: 'text-blue-600',
+    text: 'text-blue-600 dark:text-blue-400',
     label: 'In Progress'
   },
   [TaskStatus.COMPLETED]: {
     dot: 'bg-green-500',
-    text: 'text-green-600',
+    text: 'text-green-600 dark:text-green-400',
     label: 'Completed'
   },
   [TaskStatus.DELAYED]: {
     dot: 'bg-yellow-500',
-    text: 'text-yellow-600',
+    text: 'text-yellow-600 dark:text-yellow-400',
     label: 'Delayed'
   }
 };
 
 export default function TaskItem({ task, onStatusChange, onClick, onDelete, isUpdating, isSelected, onToggleSelect, goals }: TaskItemProps) {
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const { currentTimer, startTimer, stopTimer, elapsedSeconds } = useTimer();
   const isCompleted = task.status === TaskStatus.COMPLETED;
   const priority = priorityConfig[task.priority];
   const status = statusConfig[task.status];
+  const isTimerRunningForThis = currentTimer?.task_id === task.id;
 
   // Find linked goal
   const linkedGoal = goals?.find(g => g.id === task.goal_id);
 
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (onDelete && confirm('Delete this task?')) {
-      onDelete(task.id);
+    if (onDelete) {
+      setShowDeleteConfirm(true);
     }
   };
 
@@ -109,8 +116,8 @@ export default function TaskItem({ task, onStatusChange, onClick, onDelete, isUp
           'inline-flex items-center gap-1.5',
           'px-2.5 py-1',
           'text-xs font-medium',
-          'text-red-700 bg-red-50',
-          'border border-red-200',
+          'text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-900/30',
+          'border border-red-200 dark:border-red-800',
           'rounded-full',
           'transition-all duration-200'
         )}>
@@ -126,8 +133,8 @@ export default function TaskItem({ task, onStatusChange, onClick, onDelete, isUp
           'inline-flex items-center gap-1.5',
           'px-2.5 py-1',
           'text-xs font-medium',
-          'text-yellow-700 bg-yellow-50',
-          'border border-yellow-200',
+          'text-yellow-700 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/30',
+          'border border-yellow-200 dark:border-yellow-800',
           'rounded-full',
           'transition-all duration-200'
         )}>
@@ -143,8 +150,8 @@ export default function TaskItem({ task, onStatusChange, onClick, onDelete, isUp
           'inline-flex items-center gap-1.5',
           'px-2.5 py-1',
           'text-xs font-medium',
-          'text-blue-700 bg-blue-50',
-          'border border-blue-200',
+          'text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30',
+          'border border-blue-200 dark:border-blue-800',
           'rounded-full',
           'transition-all duration-200'
         )}>
@@ -159,8 +166,8 @@ export default function TaskItem({ task, onStatusChange, onClick, onDelete, isUp
         'inline-flex items-center gap-1.5',
         'px-2.5 py-1',
         'text-xs font-medium',
-        'text-gray-600 bg-gray-50',
-        'border border-gray-200',
+        'text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-700',
+        'border border-gray-200 dark:border-gray-600',
         'rounded-full'
       )}>
         <Calendar className="w-3 h-3" />
@@ -175,13 +182,28 @@ export default function TaskItem({ task, onStatusChange, onClick, onDelete, isUp
     onStatusChange(task.id, newStatus);
   };
 
+  const handleTimerClick = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (isTimerRunningForThis) {
+      await stopTimer();
+      toast.success('Timer stopped');
+    } else {
+      await startTimer({
+        task_id: task.id,
+        description: task.title,
+        project_id: task.project_id || undefined,
+      });
+      toast.success('Timer started');
+    }
+  };
+
   return (
     <div
       className={cn(
         'group',
         'flex flex-col gap-3',
         'p-5',
-        'bg-white',
+        'bg-white dark:bg-gray-800',
         'border-l',
         priority.border,
         'rounded-xl shadow-sm',
@@ -200,7 +222,7 @@ export default function TaskItem({ task, onStatusChange, onClick, onDelete, isUp
             checked={isSelected}
             onClick={handleCheckboxClick}
             onChange={handleCheckboxChange}
-            className="flex-shrink-0 w-4 h-4 mt-1 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+            className="flex-shrink-0 w-4 h-4 mt-1 text-blue-600 border-gray-300 dark:border-gray-600 rounded focus:ring-blue-500 dark:bg-gray-700"
           />
         )}
 
@@ -216,7 +238,7 @@ export default function TaskItem({ task, onStatusChange, onClick, onDelete, isUp
             'transition-all duration-200',
             isCompleted
               ? 'bg-green-500 border-green-500'
-              : 'border-gray-300 hover:border-green-400 hover:scale-110',
+              : 'border-gray-300 dark:border-gray-600 hover:border-green-400 dark:hover:border-green-500 hover:scale-110',
             isUpdating && 'opacity-50 cursor-not-allowed'
           )}
         >
@@ -227,7 +249,7 @@ export default function TaskItem({ task, onStatusChange, onClick, onDelete, isUp
         <h3
           className={cn(
             'flex-1 text-base font-semibold leading-snug',
-            isCompleted ? 'line-through text-gray-400' : 'text-gray-900'
+            isCompleted ? 'line-through text-gray-400 dark:text-gray-500' : 'text-gray-900 dark:text-white'
           )}
         >
           {task.title}
@@ -250,7 +272,7 @@ export default function TaskItem({ task, onStatusChange, onClick, onDelete, isUp
 
       {/* Middle row: Description (if exists) */}
       {task.description && (
-        <p className="text-sm text-gray-600 leading-relaxed pl-8">
+        <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed pl-8">
           {task.description}
         </p>
       )}
@@ -273,7 +295,7 @@ export default function TaskItem({ task, onStatusChange, onClick, onDelete, isUp
 
           {/* Due Time */}
           {task.due_time && (
-            <span className="text-xs text-gray-500 flex items-center gap-1">
+            <span className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
               <Clock className="w-3 h-3" />
               {task.due_time}
             </span>
@@ -285,8 +307,8 @@ export default function TaskItem({ task, onStatusChange, onClick, onDelete, isUp
               'inline-flex items-center gap-1.5',
               'px-2.5 py-1',
               'text-xs font-medium',
-              'text-purple-700 bg-purple-50',
-              'border border-purple-200',
+              'text-purple-700 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/30',
+              'border border-purple-200 dark:border-purple-800',
               'rounded-full',
               'transition-all duration-200'
             )}>
@@ -301,8 +323,8 @@ export default function TaskItem({ task, onStatusChange, onClick, onDelete, isUp
               'inline-flex items-center gap-1.5',
               'px-2.5 py-1',
               'text-xs font-medium',
-              'text-green-700 bg-green-50',
-              'border border-green-200',
+              'text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/30',
+              'border border-green-200 dark:border-green-800',
               'rounded-full',
               'transition-all duration-200'
             )}
@@ -314,11 +336,37 @@ export default function TaskItem({ task, onStatusChange, onClick, onDelete, isUp
           )}
         </div>
 
+        {/* Timer indicator if running */}
+        {isTimerRunningForThis && (
+          <span className="text-xs font-mono font-semibold text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 px-2 py-1 rounded-lg animate-pulse">
+            {formatElapsedTime(elapsedSeconds)}
+          </span>
+        )}
+
         {/* Action Buttons (group-hover pattern) */}
-        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+        <div className={cn(
+          "flex gap-1 transition-opacity duration-200",
+          isTimerRunningForThis ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+        )}>
+          {/* Timer Button */}
+          {!isCompleted && (
+            <button
+              onClick={handleTimerClick}
+              className={cn(
+                "p-1.5 rounded-md transition-colors",
+                isTimerRunningForThis
+                  ? "text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30"
+                  : "text-green-500 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-900/30"
+              )}
+              title={isTimerRunningForThis ? "Stop timer" : "Start timer"}
+            >
+              {isTimerRunningForThis ? <Square className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+            </button>
+          )}
+
           <button
             onClick={handleEdit}
-            className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+            className="p-1.5 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors"
             title="Edit task"
           >
             <Edit className="w-4 h-4" />
@@ -327,7 +375,7 @@ export default function TaskItem({ task, onStatusChange, onClick, onDelete, isUp
           {onDelete && (
             <button
               onClick={handleDelete}
-              className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+              className="p-1.5 text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-md transition-colors"
               title="Delete task"
             >
               <Trash2 className="w-4 h-4" />
@@ -335,6 +383,19 @@ export default function TaskItem({ task, onStatusChange, onClick, onDelete, isUp
           )}
         </div>
       </div>
+
+      <ConfirmModal
+        isOpen={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        onConfirm={() => {
+          if (onDelete) onDelete(task.id);
+          setShowDeleteConfirm(false);
+        }}
+        title="Delete Task"
+        message="Are you sure you want to delete this task? This action cannot be undone."
+        confirmText="Delete"
+        variant="danger"
+      />
     </div>
   );
 }

@@ -278,6 +278,20 @@ export type GoalUpdate = {
   key_results?: KeyResult[];
 }
 
+export type GoalParseError = {
+  line_number: number;
+  text: string;
+  error: string;
+}
+
+export type GoalBulkParseResponse = {
+  goals: Goal[];
+  errors: GoalParseError[];
+  total_lines: number;
+  success_count: number;
+  error_count: number;
+}
+
 // Export types
 export type ContextExport = {
   markdown: string;
@@ -404,4 +418,69 @@ export const EditingStyle = {
   TUTORIAL: 'tutorial' as const,
   INTERVIEW: 'interview' as const,
   CUSTOM: 'custom' as const,
+}
+
+// Time Tracking Types
+export interface TimeEntry {
+  id: number;
+  description?: string;
+  start_time: string;
+  end_time?: string;
+  duration_seconds?: number;
+  is_running: boolean;
+  is_paused: boolean;
+  paused_duration_seconds: number;
+  task_id?: number;
+  project_id?: number;
+  deal_id?: number;
+  hourly_rate?: number;
+  created_at: string;
+  updated_at: string;
+  billable_amount?: number;
+  task_title?: string;
+  project_name?: string;
+  deal_title?: string;
+}
+
+export interface TimeEntryStart {
+  description?: string;
+  task_id?: number;
+  project_id?: number;
+  deal_id?: number;
+  hourly_rate?: number;
+}
+
+export interface TimeEntryCreate {
+  description?: string;
+  start_time: string;
+  end_time: string;
+  duration_seconds?: number;
+  task_id?: number;
+  project_id?: number;
+  deal_id?: number;
+  hourly_rate?: number;
+}
+
+export interface TimeEntryUpdate {
+  description?: string;
+  start_time?: string;
+  end_time?: string;
+  duration_seconds?: number;
+  task_id?: number;
+  project_id?: number;
+  deal_id?: number;
+  hourly_rate?: number;
+}
+
+export interface TimeSummary {
+  total_seconds: number;
+  total_hours: number;
+  total_billable: number;
+  entry_count: number;
+}
+
+export interface TimeSummaryResponse {
+  today: TimeSummary;
+  this_week: TimeSummary;
+  this_month: TimeSummary;
 }

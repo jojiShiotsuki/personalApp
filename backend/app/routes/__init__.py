@@ -1,3 +1,3 @@
-from . import tasks, crm, task_parser, export, goals, goal_parser, projects
+from . import tasks, crm, task_parser, export, goals, goal_parser, projects, ai, social_content, dashboard, time
 
-__all__ = ["tasks", "crm", "task_parser", "export", "goals", "goal_parser", "projects"]
+__all__ = ["tasks", "crm", "task_parser", "export", "goals", "goal_parser", "projects", "ai", "social_content", "dashboard", "time"]

@@ -13,6 +13,7 @@ import type {
   Goal,
   GoalCreate,
   GoalUpdate,
+  GoalBulkParseResponse,
   Project,
   ProjectCreate,
   ProjectUpdate,
@@ -20,6 +21,12 @@ import type {
   SocialContentCreate,
   SocialContentUpdate,
   YearSummary,
+  TimeEntry,
+  TimeEntryStart,
+  TimeEntryCreate,
+  TimeEntryUpdate,
+  TimeSummary,
+  TimeSummaryResponse,
 } from '../types/index';
 import {
   TaskStatus,
@@ -192,7 +199,7 @@ export const interactionApi = {
 // Export API
 export const exportApi = {
   getContext: async (startDate?: string, endDate?: string): Promise<ContextExport> => {
-    const params: any = {};
+    const params: Record<string, string> = {};
     if (startDate) params.start_date = startDate;
     if (endDate) params.end_date = endDate;
     const response = await api.get('/api/export/context', { params });
@@ -203,7 +210,7 @@ export const exportApi = {
 // Goal API
 export const goalApi = {
   getAll: async (quarter?: Quarter, year?: number): Promise<Goal[]> => {
-    const params: any = {};
+    const params: Record<string, string | number> = {};
     if (quarter) params.quarter = quarter;
     if (year) params.year = year;
     const response = await api.get('/api/goals', { params });
@@ -241,7 +248,7 @@ export const goalApi = {
     return response.data;
   },
 
-  parseBulk: async (text: string): Promise<Goal[]> => {
+  parseBulk: async (text: string): Promise<GoalBulkParseResponse> => {
     const response = await api.post('/api/goal-parser/parse-bulk', { text });
     return response.data;
   },
@@ -287,32 +294,27 @@ export const projectApi = {
 // Social Content API
 export const socialContentApi = {
   list: async (params?: {
-    status?: string;
-    content_type?: string;
-    platform?: string;
-    project_id?: number;
     start_date?: string;
     end_date?: string;
+    status?: string;
+    content_type?: string;
   }): Promise<SocialContent[]> => {
-    const queryParams: Record<string, any> = {};
-    if (params?.status) queryParams.status = params.status;
-    if (params?.content_type) queryParams.content_type = params.content_type;
-    if (params?.platform) queryParams.platform = params.platform;
-    if (params?.project_id) queryParams.project_id = params.project_id;
-    if (params?.start_date) queryParams.start_date = params.start_date;
-    if (params?.end_date) queryParams.end_date = params.end_date;
-
-    const response = await api.get('/api/social-content/', { params: queryParams });
+    const response = await api.get('/api/social-content', { params });
     return response.data;
   },
 
-  get: async (id: number): Promise<SocialContent> => {
-    const response = await api.get(`/api/social-content/${id}`);
+  getYearSummary: async (year: number): Promise<YearSummary> => {
+    const response = await api.get(`/api/social-content/calendar-summary/${year}`);
+    return response.data;
+  },
+
+  getMonthContent: async (year: number, month: number): Promise<SocialContent[]> => {
+    const response = await api.get(`/api/social-content/by-date/${year}/${month}`);
     return response.data;
   },
 
   create: async (data: SocialContentCreate): Promise<SocialContent> => {
-    const response = await api.post('/api/social-content/', data);
+    const response = await api.post('/api/social-content', data);
     return response.data;
   },
 
@@ -324,19 +326,115 @@ export const socialContentApi = {
   delete: async (id: number): Promise<void> => {
     await api.delete(`/api/social-content/${id}`);
   },
+};
 
-  getMonthContent: async (year: number, month: number): Promise<SocialContent[]> => {
-    const response = await api.get(`/api/social-content/by-date/${year}/${month}`);
+export const dashboardApi = {
+  getBriefing: async () => {
+    const response = await api.get('/api/dashboard/briefing');
     return response.data;
   },
 
-  getWeekContent: async (year: number, month: number, week: number): Promise<SocialContent[]> => {
-    const response = await api.get(`/api/social-content/by-date/${year}/${month}/${week}`);
+  // Quick actions from briefing
+  completeTask: async (taskId: number) => {
+    const response = await api.post(`/api/dashboard/actions/task/${taskId}/complete`);
     return response.data;
   },
 
-  getYearSummary: async (year: number): Promise<YearSummary> => {
-    const response = await api.get(`/api/social-content/calendar-summary/${year}`);
+  rescheduleTask: async (taskId: number, days: number = 1) => {
+    const response = await api.post(`/api/dashboard/actions/task/${taskId}/reschedule`, { days });
+    return response.data;
+  },
+
+  snoozeDeal: async (dealId: number) => {
+    const response = await api.post(`/api/dashboard/actions/deal/${dealId}/snooze`);
+    return response.data;
+  },
+
+  logDealFollowup: async (dealId: number) => {
+    const response = await api.post(`/api/dashboard/actions/deal/${dealId}/log-followup`);
+    return response.data;
+  },
+};
+
+// Time Tracking API
+export const timeApi = {
+  // Timer control
+  getCurrent: async (): Promise<TimeEntry | null> => {
+    const response = await api.get('/api/time/current');
+    return response.data;
+  },
+
+  start: async (data: TimeEntryStart): Promise<TimeEntry> => {
+    const response = await api.post('/api/time/start', data);
+    return response.data;
+  },
+
+  stop: async (): Promise<TimeEntry> => {
+    const response = await api.post('/api/time/stop');
+    return response.data;
+  },
+
+  pause: async (): Promise<TimeEntry> => {
+    const response = await api.post('/api/time/pause');
+    return response.data;
+  },
+
+  resume: async (): Promise<TimeEntry> => {
+    const response = await api.post('/api/time/resume');
+    return response.data;
+  },
+
+  // Time entries CRUD
+  listEntries: async (params?: {
+    start_date?: string;
+    end_date?: string;
+    task_id?: number;
+    project_id?: number;
+    deal_id?: number;
+    limit?: number;
+    offset?: number;
+  }): Promise<TimeEntry[]> => {
+    const response = await api.get('/api/time/entries', { params });
+    return response.data;
+  },
+
+  createEntry: async (data: TimeEntryCreate): Promise<TimeEntry> => {
+    const response = await api.post('/api/time/entries', data);
+    return response.data;
+  },
+
+  getEntry: async (id: number): Promise<TimeEntry> => {
+    const response = await api.get(`/api/time/entries/${id}`);
+    return response.data;
+  },
+
+  updateEntry: async (id: number, data: TimeEntryUpdate): Promise<TimeEntry> => {
+    const response = await api.put(`/api/time/entries/${id}`, data);
+    return response.data;
+  },
+
+  deleteEntry: async (id: number): Promise<void> => {
+    await api.delete(`/api/time/entries/${id}`);
+  },
+
+  // Summaries
+  getSummary: async (): Promise<TimeSummaryResponse> => {
+    const response = await api.get('/api/time/summary');
+    return response.data;
+  },
+
+  getDealSummary: async (dealId: number): Promise<TimeSummary> => {
+    const response = await api.get(`/api/time/summary/deal/${dealId}`);
+    return response.data;
+  },
+
+  getProjectSummary: async (projectId: number): Promise<TimeSummary> => {
+    const response = await api.get(`/api/time/summary/project/${projectId}`);
+    return response.data;
+  },
+
+  getTaskSummary: async (taskId: number): Promise<TimeSummary> => {
+    const response = await api.get(`/api/time/summary/task/${taskId}`);
     return response.data;
   },
 };
