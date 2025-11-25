@@ -222,3 +222,54 @@ export function isPast(date: Date): boolean {
   date.setHours(0, 0, 0, 0);
   return date < today;
 }
+
+// ============ String-based date helpers ============
+// These functions accept date strings (e.g., "2025-11-25") and handle null/undefined
+
+/**
+ * Check if a date string is today
+ */
+export function isDateStringToday(dateString?: string | null): boolean {
+  if (!dateString) return false;
+  const today = new Date();
+  const taskDate = new Date(dateString);
+  return taskDate.toDateString() === today.toDateString();
+}
+
+/**
+ * Check if a date string is within this week (Sunday to Saturday)
+ */
+export function isDateStringThisWeek(dateString?: string | null): boolean {
+  if (!dateString) return false;
+  const today = new Date();
+  const taskDate = new Date(dateString);
+  const weekStart = new Date(today);
+  weekStart.setDate(today.getDate() - today.getDay()); // Start of week (Sunday)
+  weekStart.setHours(0, 0, 0, 0);
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekStart.getDate() + 7);
+  return taskDate >= weekStart && taskDate < weekEnd;
+}
+
+/**
+ * Check if a date string is within this month
+ */
+export function isDateStringThisMonth(dateString?: string | null): boolean {
+  if (!dateString) return false;
+  const today = new Date();
+  const taskDate = new Date(dateString);
+  return taskDate.getMonth() === today.getMonth() &&
+         taskDate.getFullYear() === today.getFullYear();
+}
+
+/**
+ * Check if a date string is overdue (in the past, not including today)
+ */
+export function isDateStringOverdue(dateString?: string | null): boolean {
+  if (!dateString) return false;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const taskDate = new Date(dateString);
+  taskDate.setHours(0, 0, 0, 0);
+  return taskDate < today;
+}

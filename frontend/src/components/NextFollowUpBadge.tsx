@@ -49,27 +49,27 @@ export default function NextFollowUpBadge({ date, className }: NextFollowUpBadge
   const config = {
     overdue: {
       icon: AlertCircle,
-      bgColor: 'bg-red-100',
-      textColor: 'text-red-700',
-      borderColor: 'border-red-300',
+      bgColor: 'bg-red-100 dark:bg-red-900/30',
+      textColor: 'text-red-700 dark:text-red-400',
+      borderColor: 'border-red-300 dark:border-red-800',
     },
     soon: {
       icon: Clock,
-      bgColor: 'bg-yellow-100',
-      textColor: 'text-yellow-700',
-      borderColor: 'border-yellow-300',
+      bgColor: 'bg-yellow-100 dark:bg-yellow-900/30',
+      textColor: 'text-yellow-700 dark:text-yellow-400',
+      borderColor: 'border-yellow-300 dark:border-yellow-800',
     },
     future: {
       icon: Calendar,
-      bgColor: 'bg-green-100',
-      textColor: 'text-green-700',
-      borderColor: 'border-green-300',
+      bgColor: 'bg-green-100 dark:bg-green-900/30',
+      textColor: 'text-green-700 dark:text-green-400',
+      borderColor: 'border-green-300 dark:border-green-800',
     },
     unset: {
       icon: Calendar,
-      bgColor: 'bg-gray-100',
-      textColor: 'text-gray-500',
-      borderColor: 'border-gray-300',
+      bgColor: 'bg-gray-100 dark:bg-gray-800',
+      textColor: 'text-gray-500 dark:text-gray-400',
+      borderColor: 'border-gray-300 dark:border-gray-700',
     },
   };
 

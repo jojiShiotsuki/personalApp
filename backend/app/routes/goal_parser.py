@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 from pydantic import BaseModel, Field
 import json
 
@@ -16,6 +16,18 @@ class GoalParseRequest(BaseModel):
 
 class GoalBulkParseRequest(BaseModel):
     text: str = Field(..., min_length=1, max_length=50000)
+
+class ParseError(BaseModel):
+    line_number: int
+    text: str
+    error: str
+
+class BulkParseResponse(BaseModel):
+    goals: List[GoalResponse]
+    errors: List[ParseError]
+    total_lines: int
+    success_count: int
+    error_count: int
 
 @router.post("/parse", response_model=GoalResponse, status_code=201)
 def parse_goal(request: GoalParseRequest, db: Session = Depends(get_db)):
@@ -51,10 +63,11 @@ def parse_goal(request: GoalParseRequest, db: Session = Depends(get_db)):
 
     return db_goal
 
-@router.post("/parse-bulk", response_model=List[GoalResponse], status_code=201)
+@router.post("/parse-bulk", response_model=BulkParseResponse, status_code=201)
 def parse_bulk_goals(request: GoalBulkParseRequest, db: Session = Depends(get_db)):
     """
     Parse multiple goals from text (one per line) and create them.
+    Returns structured response with success/error details.
 
     Example:
     Launch new website Q1 January
@@ -68,10 +81,15 @@ def parse_bulk_goals(request: GoalBulkParseRequest, db: Session = Depends(get_db
         raise HTTPException(status_code=400, detail="No goals to parse")
 
     created_goals = []
+    parse_errors = []
 
-    for line in lines:
+    for idx, line in enumerate(lines, start=1):
         try:
             parsed = GoalParser.parse(line)
+
+            # Validate required fields
+            if not parsed.get("title") or parsed["title"] == "New Goal":
+                raise ValueError("Could not extract a meaningful title from the text")
 
             goal_data = {
                 "title": parsed["title"],
@@ -88,17 +106,30 @@ def parse_bulk_goals(request: GoalBulkParseRequest, db: Session = Depends(get_db
             db.add(db_goal)
             created_goals.append(db_goal)
         except Exception as e:
-            # Skip invalid lines but continue processing
+            parse_errors.append(ParseError(
+                line_number=idx,
+                text=line[:100] + ("..." if len(line) > 100 else ""),
+                error=str(e)
+            ))
             continue
 
-    if not created_goals:
-        raise HTTPException(status_code=400, detail="No valid goals could be parsed")
+    if not created_goals and parse_errors:
+        raise HTTPException(
+            status_code=400,
+            detail=f"No valid goals could be parsed. {len(parse_errors)} line(s) had errors."
+        )
 
-    db.commit()
+    if created_goals:
+        db.commit()
+        # Refresh all goals and set empty key_results
+        for goal in created_goals:
+            db.refresh(goal)
+            goal.key_results = []
 
-    # Refresh all goals and set empty key_results
-    for goal in created_goals:
-        db.refresh(goal)
-        goal.key_results = []
-
-    return created_goals
+    return BulkParseResponse(
+        goals=created_goals,
+        errors=parse_errors,
+        total_lines=len(lines),
+        success_count=len(created_goals),
+        error_count=len(parse_errors)
+    )

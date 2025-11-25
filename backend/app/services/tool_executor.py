@@ -64,7 +64,14 @@ class ToolExecutor:
         )
 
         if "due_date" in params:
-            task.due_date = datetime.strptime(params["due_date"], "%Y-%m-%d").date()
+            try:
+                task.due_date = datetime.strptime(params["due_date"], "%Y-%m-%d").date()
+            except ValueError:
+                # Try ISO format just in case
+                try:
+                    task.due_date = datetime.fromisoformat(params["due_date"]).date()
+                except ValueError:
+                    return {"error": f"Invalid date format: {params['due_date']}. Use YYYY-MM-DD"}
 
         self.db.add(task)
         self.db.commit()

@@ -7,48 +7,16 @@ import TaskList from '@/components/TaskList';
 import TaskKanbanBoard from '@/components/TaskKanbanBoard';
 import AIChatPanel from '@/components/AIChatPanel';
 import RecurrenceCustomModal from '@/components/RecurrenceCustomModal';
+import ConfirmModal from '@/components/ConfirmModal';
 import { Filter, Plus, X, Repeat, LayoutList, Kanban } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { getNextOccurrences, getRecurrenceText } from '@/lib/recurrence';
+import { useRecurrence } from '@/hooks/useRecurrence';
+import { isDateStringToday, isDateStringThisWeek, isDateStringThisMonth, isDateStringOverdue } from '@/lib/dateUtils';
+import { toast } from 'sonner';
 
 type FilterValue = TaskStatus | 'all' | 'today' | 'this_week' | 'this_month' | 'overdue';
 type SortOption = 'dueDate' | 'priority' | 'createdDate' | 'title';
-
-// Date helper functions
-const isToday = (dateString?: string | null): boolean => {
-  if (!dateString) return false;
-  const today = new Date();
-  const taskDate = new Date(dateString);
-  return taskDate.toDateString() === today.toDateString();
-};
-
-const isThisWeek = (dateString?: string | null): boolean => {
-  if (!dateString) return false;
-  const today = new Date();
-  const taskDate = new Date(dateString);
-  const weekStart = new Date(today);
-  weekStart.setDate(today.getDate() - today.getDay()); // Start of week (Sunday)
-  weekStart.setHours(0, 0, 0, 0);
-  const weekEnd = new Date(weekStart);
-  weekEnd.setDate(weekStart.getDate() + 7);
-  return taskDate >= weekStart && taskDate < weekEnd;
-};
-
-const isThisMonth = (dateString?: string | null): boolean => {
-  if (!dateString) return false;
-  const today = new Date();
-  const taskDate = new Date(dateString);
-  return taskDate.getMonth() === today.getMonth() &&
-         taskDate.getFullYear() === today.getFullYear();
-};
-
-const isOverdue = (dateString?: string | null): boolean => {
-  if (!dateString) return false;
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const taskDate = new Date(dateString);
-  taskDate.setHours(0, 0, 0, 0);
-  return taskDate < today;
-};
 
 // Sort comparison functions
 const sortFunctions: Record<SortOption, (a: Task, b: Task) => number> = {
@@ -77,8 +45,6 @@ const sortFunctions: Record<SortOption, (a: Task, b: Task) => number> = {
   }
 };
 
-import { getNextOccurrences, getRecurrenceText } from '@/lib/recurrence';
-
 export default function Tasks() {
   const [filter, setFilter] = useState<FilterValue>('all');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -90,22 +56,23 @@ export default function Tasks() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [showBulkStatusChange, setShowBulkStatusChange] = useState(false);
-  const [isRecurring, setIsRecurring] = useState(false);
-  const [recurrenceEndType, setRecurrenceEndType] = useState<'never' | 'date' | 'count'>('never');
-  const [recurrenceDays, setRecurrenceDays] = useState<string[]>([]);
-  const [recurrenceType, setRecurrenceType] = useState<RecurrenceType>(RecurrenceType.DAILY);
-  const [recurrenceInterval, setRecurrenceInterval] = useState(1);
-  const [recurrenceEndDate, setRecurrenceEndDate] = useState('');
-  const [recurrenceCount, setRecurrenceCount] = useState(13);
-  const [isCustomRecurrenceOpen, setIsCustomRecurrenceOpen] = useState(false);
+  // Recurrence state managed by custom hook
+  const {
+    isRecurring, setIsRecurring,
+    recurrenceType, setRecurrenceType,
+    recurrenceInterval, setRecurrenceInterval,
+    recurrenceDays, setRecurrenceDays,
+    recurrenceEndType, setRecurrenceEndType,
+    recurrenceEndDate, setRecurrenceEndDate,
+    recurrenceCount, setRecurrenceCount,
+    isCustomRecurrenceOpen, setIsCustomRecurrenceOpen,
+    resetRecurrence,
+    initFromTask,
+  } = useRecurrence();
   const [dueDate, setDueDate] = useState('');
   const [viewMode, setViewMode] = useState<'list' | 'board'>('list');
   const queryClient = useQueryClient();
 
-  const handleDataChange = () => {
-    // Refetch tasks when AI makes changes
-    queryClient.invalidateQueries({ queryKey: ['tasks'] });
-  };
 
   // Debounce search input
   useEffect(() => {
@@ -145,6 +112,10 @@ export default function Tasks() {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
       setIsModalOpen(false);
       setEditingTask(null);
+      toast.success('Task created successfully');
+    },
+    onError: () => {
+      toast.error('Failed to create task. Please try again.');
     },
   });
 
@@ -155,6 +126,10 @@ export default function Tasks() {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
       setIsModalOpen(false);
       setEditingTask(null);
+      toast.success('Task updated successfully');
+    },
+    onError: () => {
+      toast.error('Failed to update task. Please try again.');
     },
   });
 
@@ -164,8 +139,8 @@ export default function Tasks() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
     },
-    onError: (error) => {
-      console.error('Failed to update task status:', error);
+    onError: () => {
+      toast.error('Failed to update task status. Please try again.');
     },
   });
 
@@ -174,15 +149,22 @@ export default function Tasks() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
     },
+    onError: () => {
+      toast.error('Failed to delete task. Please try again.');
+    },
   });
 
   const bulkDeleteMutation = useMutation({
     mutationFn: (ids: number[]) => taskApi.bulkDelete(ids),
-    onSuccess: () => {
+    onSuccess: (_, ids) => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
       setSelectedTaskIds(new Set());
       setShowDeleteConfirm(false);
       setIsEditMode(false);
+      toast.success(`Deleted ${ids.length} task${ids.length !== 1 ? 's' : ''} successfully`);
+    },
+    onError: () => {
+      toast.error('Failed to delete tasks. Please try again.');
     },
   });
 
@@ -190,10 +172,14 @@ export default function Tasks() {
     mutationFn: async ({ ids, status }: { ids: number[]; status: TaskStatus }) => {
       await Promise.all(ids.map(id => taskApi.updateStatus(id, status)));
     },
-    onSuccess: () => {
+    onSuccess: (_, { ids }) => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
       setSelectedTaskIds(new Set());
       setShowBulkStatusChange(false);
+      toast.success(`Updated ${ids.length} task${ids.length !== 1 ? 's' : ''} successfully`);
+    },
+    onError: () => {
+      toast.error('Failed to update tasks. Please try again.');
     },
   });
 
@@ -235,34 +221,21 @@ export default function Tasks() {
   const handleTaskClick = (task: Task) => {
     setEditingTask(task);
     setDueDate(task.due_date || '');
-    setIsRecurring(task.is_recurring);
-    setRecurrenceType(task.recurrence_type || RecurrenceType.DAILY);
-    setRecurrenceInterval(task.recurrence_interval || 1);
-    setRecurrenceDays(task.recurrence_days || []);
-    setRecurrenceEndDate(task.recurrence_end_date || '');
-    setRecurrenceCount(task.recurrence_count || 13);
-    // Determine recurrence end type based on task data
-    if (task.recurrence_end_date) {
-      setRecurrenceEndType('date');
-    } else if (task.recurrence_count) {
-      setRecurrenceEndType('count');
-    } else {
-      setRecurrenceEndType('never');
-    }
+    initFromTask(task);
     setIsModalOpen(true);
   };
 
   const handleNewTask = () => {
     setEditingTask(null);
     setDueDate(new Date().toISOString().split('T')[0]);
-    setIsRecurring(false);
-    setRecurrenceType(RecurrenceType.DAILY);
-    setRecurrenceInterval(1);
-    setRecurrenceDays([]);
-    setRecurrenceEndDate('');
-    setRecurrenceCount(13);
-    setRecurrenceEndType('never');
+    resetRecurrence();
     setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setEditingTask(null);
+    resetRecurrence();
   };
 
   const handleToggleSelect = (taskId: number) => {
@@ -308,10 +281,10 @@ export default function Tasks() {
 
     return tasks.filter(task => {
       // Time-based filters
-      if (filterValue === 'today') return isToday(task.due_date);
-      if (filterValue === 'this_week') return isThisWeek(task.due_date);
-      if (filterValue === 'this_month') return isThisMonth(task.due_date);
-      if (filterValue === 'overdue') return isOverdue(task.due_date) && task.status !== TaskStatus.COMPLETED;
+      if (filterValue === 'today') return isDateStringToday(task.due_date);
+      if (filterValue === 'this_week') return isDateStringThisWeek(task.due_date);
+      if (filterValue === 'this_month') return isDateStringThisMonth(task.due_date);
+      if (filterValue === 'overdue') return isDateStringOverdue(task.due_date) && task.status !== TaskStatus.COMPLETED;
 
       // Status-based filters
       if (filterValue === TaskStatus.PENDING) return task.status === TaskStatus.PENDING;
@@ -341,10 +314,10 @@ export default function Tasks() {
       ? tasks
       : tasks.filter(task => {
           // Time-based filters
-          if (filter === 'today') return isToday(task.due_date);
-          if (filter === 'this_week') return isThisWeek(task.due_date);
-          if (filter === 'this_month') return isThisMonth(task.due_date);
-          if (filter === 'overdue') return isOverdue(task.due_date) && task.status !== TaskStatus.COMPLETED;
+          if (filter === 'today') return isDateStringToday(task.due_date);
+          if (filter === 'this_week') return isDateStringThisWeek(task.due_date);
+          if (filter === 'this_month') return isDateStringThisMonth(task.due_date);
+          if (filter === 'overdue') return isDateStringOverdue(task.due_date) && task.status !== TaskStatus.COMPLETED;
 
           // Status-based filters
           if (filter === TaskStatus.PENDING) return task.status === TaskStatus.PENDING;
@@ -692,12 +665,7 @@ export default function Tasks() {
                 {editingTask ? 'Edit Task' : 'New Task'}
               </h2>
               <button
-                onClick={() => {
-                  setIsModalOpen(false);
-                  setEditingTask(null);
-                  setIsRecurring(false);
-                  setRecurrenceEndType('never');
-                }}
+                onClick={handleCloseModal}
                 className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl transition-all"
               >
                 <X className="w-5 h-5" />
@@ -920,12 +888,7 @@ export default function Tasks() {
               <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-100 mt-6">
                 <button
                   type="button"
-                  onClick={() => {
-                    setIsModalOpen(false);
-                    setEditingTask(null);
-                    setIsRecurring(false);
-                    setRecurrenceEndType('never');
-                  }}
+                  onClick={handleCloseModal}
                   className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-xl transition-colors"
                 >
                   Cancel
@@ -948,34 +911,15 @@ export default function Tasks() {
       )}
 
       {/* Delete Confirmation Dialog */}
-      {showDeleteConfirm && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-2xl w-full max-w-md mx-4 p-6">
-            <h3 className="text-lg font-bold text-gray-900 mb-2">
-              Delete {selectedTaskIds.size} Task{selectedTaskIds.size !== 1 ? 's' : ''}?
-            </h3>
-            <p className="text-sm text-gray-600 mb-6">
-              This action cannot be undone. Are you sure you want to delete {selectedTaskIds.size === 1 ? 'this task' : 'these tasks'}?
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowDeleteConfirm(false)}
-                disabled={bulkDeleteMutation.isPending}
-                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleBulkDelete}
-                disabled={bulkDeleteMutation.isPending}
-                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
-              >
-                {bulkDeleteMutation.isPending ? 'Deleting...' : 'Delete'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmModal
+        isOpen={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        onConfirm={handleBulkDelete}
+        title={`Delete ${selectedTaskIds.size} Task${selectedTaskIds.size !== 1 ? 's' : ''}?`}
+        message={`This action cannot be undone. Are you sure you want to delete ${selectedTaskIds.size === 1 ? 'this task' : 'these tasks'}?`}
+        confirmText={bulkDeleteMutation.isPending ? 'Deleting...' : 'Delete'}
+        variant="danger"
+      />
 
       {/* Bulk Status Change Dialog */}
       {showBulkStatusChange && (
@@ -1019,11 +963,7 @@ export default function Tasks() {
       )}
 
       </div>
-      <AIChatPanel
-        page="tasks"
-        context={{ status: filter, priority: undefined }}
-        onDataChange={handleDataChange}
-      />
+      <AIChatPanel />
     </div>
   );
 }

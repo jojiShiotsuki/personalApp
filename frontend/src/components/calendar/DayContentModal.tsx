@@ -28,19 +28,19 @@ export default function DayContentModal({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-2xl w-full max-w-4xl mx-4 max-h-[90vh] flex flex-col">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl w-full max-w-4xl mx-4 max-h-[90vh] flex flex-col">
         {/* Header */}
-        <div className="bg-white border-b border-gray-200 p-6 flex justify-between items-center">
+        <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-6 flex justify-between items-center rounded-t-lg">
           <div>
-            <h2 className="text-2xl font-bold">Content for {formattedDate}</h2>
-            <p className="text-sm text-gray-600 mt-1">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Content for {formattedDate}</h2>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
               {dayContent.length} {dayContent.length === 1 ? 'item' : 'items'} scheduled
             </p>
           </div>
           <button
             onClick={onClose}
             disabled={isLoading}
-            className="text-gray-400 hover:text-gray-600"
+            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
           >
             <X className="w-6 h-6" />
           </button>
@@ -49,25 +49,25 @@ export default function DayContentModal({
         {/* Content List */}
         <div className="flex-1 overflow-y-auto p-6 space-y-4">
           {dayContent.length === 0 ? (
-            <div className="text-center py-12 text-gray-500">
-              <Calendar className="w-12 h-12 mx-auto mb-3 text-gray-400" />
+            <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+              <Calendar className="w-12 h-12 mx-auto mb-3 text-gray-400 dark:text-gray-500" />
               <p>No content scheduled for this day</p>
             </div>
           ) : (
             dayContent.map((item) => (
               <div
                 key={item.id}
-                className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-all"
+                className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6 shadow-sm hover:shadow-md transition-all"
               >
                 {/* Header Row */}
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-3">
-                    <Calendar className="w-5 h-5 text-blue-600" />
+                    <Calendar className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                     <div>
-                      <h3 className="text-lg font-semibold capitalize">
+                      <h3 className="text-lg font-semibold capitalize text-gray-900 dark:text-white">
                         {item.content_type.replace('_', ' ')}
                       </h3>
-                      <span className="inline-block mt-1 px-3 py-1 text-xs font-medium rounded-full capitalize bg-blue-100 text-blue-700">
+                      <span className="inline-block mt-1 px-3 py-1 text-xs font-medium rounded-full capitalize bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
                         {item.status.replace('_', ' ')}
                       </span>
                     </div>
@@ -79,9 +79,9 @@ export default function DayContentModal({
                   {/* Script/Caption */}
                   {item.script && (
                     <div>
-                      <p className="text-sm font-semibold text-gray-700 mb-2">Script / Caption</p>
+                      <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Script / Caption</p>
                       <div 
-                        className="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg [&_h1]:text-lg [&_h1]:font-bold [&_h2]:font-bold [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5"
+                        className="text-sm text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg [&_h1]:text-lg [&_h1]:font-bold [&_h2]:font-bold [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5"
                         dangerouslySetInnerHTML={{ __html: item.script }}
                       />
                     </div>
@@ -90,12 +90,12 @@ export default function DayContentModal({
                   {/* Platforms */}
                   {item.platforms && item.platforms.length > 0 && (
                     <div>
-                      <p className="text-sm font-semibold text-gray-700 mb-2">Platforms</p>
+                      <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Platforms</p>
                       <div className="flex flex-wrap gap-2">
                         {item.platforms.map((platform) => (
                           <span
                             key={platform}
-                            className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-medium capitalize"
+                            className="px-3 py-1 bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400 rounded-full text-xs font-medium capitalize"
                           >
                             {platform}
                           </span>

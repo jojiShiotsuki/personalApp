@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { goalApi } from '@/lib/api';
-import { X, Loader2, Check, Target } from 'lucide-react';
+import { X, Loader2, Check, Target, AlertTriangle } from 'lucide-react';
+import type { GoalParseError, Goal } from '@/types';
 
 interface QuickAddGoalModalProps {
   isOpen: boolean;
@@ -9,29 +10,55 @@ interface QuickAddGoalModalProps {
   onSuccess: (count: number) => void;
 }
 
+type ParseResult = {
+  goals: Goal[];
+  errors: GoalParseError[];
+  success_count: number;
+  error_count: number;
+};
+
 export default function QuickAddGoalModal({ isOpen, onClose, onSuccess }: QuickAddGoalModalProps) {
   const [input, setInput] = useState('');
   const [showSuccess, setShowSuccess] = useState(false);
+  const [parseErrors, setParseErrors] = useState<GoalParseError[]>([]);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   const parseMutation = useMutation({
-    mutationFn: (text: string) => {
+    mutationFn: async (text: string): Promise<ParseResult> => {
       // Check if multiple lines (bulk add)
       const lines = text.split('\n').filter(line => line.trim());
       if (lines.length > 1) {
-        return goalApi.parseBulk(text);
+        const response = await goalApi.parseBulk(text);
+        return {
+          goals: response.goals,
+          errors: response.errors,
+          success_count: response.success_count,
+          error_count: response.error_count,
+        };
       } else {
-        return goalApi.parse(text).then(goal => [goal]);
+        const goal = await goalApi.parse(text);
+        return {
+          goals: [goal],
+          errors: [],
+          success_count: 1,
+          error_count: 0,
+        };
       }
     },
-    onSuccess: (goals) => {
-      setShowSuccess(true);
-      setTimeout(() => {
-        onClose();
-        setInput('');
-        setShowSuccess(false);
-        onSuccess(Array.isArray(goals) ? goals.length : 1);
-      }, 1500);
+    onSuccess: (result) => {
+      setParseErrors(result.errors);
+      if (result.success_count > 0) {
+        setShowSuccess(true);
+        // If there are errors, show longer so user can see them
+        const delay = result.error_count > 0 ? 3000 : 1500;
+        setTimeout(() => {
+          onClose();
+          setInput('');
+          setShowSuccess(false);
+          setParseErrors([]);
+          onSuccess(result.success_count);
+        }, delay);
+      }
     },
   });
 
@@ -52,6 +79,7 @@ export default function QuickAddGoalModal({ isOpen, onClose, onSuccess }: QuickA
     onClose();
     setInput('');
     setShowSuccess(false);
+    setParseErrors([]);
   };
 
   // Handle Escape key to close
@@ -71,22 +99,22 @@ export default function QuickAddGoalModal({ isOpen, onClose, onSuccess }: QuickA
 
   return (
     <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-start justify-center z-50 pt-32 animate-in fade-in duration-200">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl mx-4 border border-gray-100 transform transition-all animate-in slide-in-from-top-4 duration-200">
-        <div className="flex items-center px-6 py-5 border-b border-gray-100">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-2xl mx-4 border border-gray-100 dark:border-gray-700 transform transition-all animate-in slide-in-from-top-4 duration-200">
+        <div className="flex items-center px-6 py-5 border-b border-gray-100 dark:border-gray-700">
           <div className="flex-1">
-            <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-              <div className="p-1.5 bg-blue-50 rounded-lg">
-                <Target className="w-4 h-4 text-blue-600" />
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+              <div className="p-1.5 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                <Target className="w-4 h-4 text-blue-600 dark:text-blue-400" />
               </div>
               Quick Add Goals
             </h2>
-            <p className="text-sm text-gray-500 mt-1 ml-9">
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 ml-9">
               Type naturally: "Launch website Q1 January", "Complete certification Q2 April high priority"
             </p>
           </div>
           <button
             onClick={handleClose}
-            className="text-gray-400 hover:text-gray-600 p-1 hover:bg-gray-100 rounded-lg transition-colors"
+            className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
@@ -101,15 +129,28 @@ export default function QuickAddGoalModal({ isOpen, onClose, onSuccess }: QuickA
               placeholder="e.g., Launch new product Q2 May high priority&#10;Complete annual review Q4 December&#10;Reach 50k followers Q3 August"
               disabled={parseMutation.isPending || showSuccess}
               rows={6}
-              className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-base placeholder:text-gray-400 resize-none"
+              className="w-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-base placeholder:text-gray-400 dark:placeholder:text-gray-500 resize-none"
             />
             {showSuccess && (
-              <div className="absolute inset-0 flex items-center justify-center bg-white/80 backdrop-blur-sm rounded-xl">
-                <div className="flex flex-col items-center text-emerald-600 animate-in zoom-in duration-300">
-                  <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center mb-2">
-                    <Check className="w-6 h-6" />
-                  </div>
-                  <span className="font-semibold">Goals Added!</span>
+              <div className="absolute inset-0 flex items-center justify-center bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl">
+                <div className="flex flex-col items-center animate-in zoom-in duration-300">
+                  {parseErrors.length > 0 ? (
+                    <>
+                      <div className="w-12 h-12 bg-amber-100 dark:bg-amber-900/20 rounded-full flex items-center justify-center mb-2">
+                        <AlertTriangle className="w-6 h-6 text-amber-600 dark:text-amber-400" />
+                      </div>
+                      <span className="font-semibold text-amber-600 dark:text-amber-400">
+                        {parseMutation.data?.success_count} created, {parseErrors.length} failed
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-900/20 rounded-full flex items-center justify-center mb-2">
+                        <Check className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
+                      </div>
+                      <span className="font-semibold text-emerald-600 dark:text-emerald-400">Goals Added!</span>
+                    </>
+                  )}
                 </div>
               </div>
             )}
@@ -161,6 +202,26 @@ export default function QuickAddGoalModal({ isOpen, onClose, onSuccess }: QuickA
               <p className="text-sm text-rose-700">
                 Failed to create goals. Please try again.
               </p>
+            </div>
+          )}
+
+          {parseErrors.length > 0 && !showSuccess && (
+            <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-xl">
+              <div className="flex items-center gap-2 mb-2">
+                <AlertTriangle className="w-4 h-4 text-amber-600" />
+                <span className="text-sm font-medium text-amber-800">
+                  {parseErrors.length} line(s) could not be parsed:
+                </span>
+              </div>
+              <ul className="space-y-1.5 max-h-32 overflow-y-auto">
+                {parseErrors.map((err, idx) => (
+                  <li key={idx} className="text-xs text-amber-700">
+                    <span className="font-medium">Line {err.line_number}:</span>{' '}
+                    <span className="text-amber-600">{err.text}</span>
+                    <span className="text-amber-500 block ml-4">({err.error})</span>
+                  </li>
+                ))}
+              </ul>
             </div>
           )}
         </form>

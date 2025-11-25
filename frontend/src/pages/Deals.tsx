@@ -66,10 +66,6 @@ export default function Deals() {
     setIsAddInteractionOpen(true);
   };
 
-  const handleDataChange = () => {
-    // Refetch deals when AI makes changes
-    queryClient.invalidateQueries({ queryKey: ['deals'] });
-  };
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -133,10 +129,7 @@ export default function Deals() {
         </div>
       </div>
 
-      <AIChatPanel
-        page="deals"
-        onDataChange={handleDataChange}
-      />
+      <AIChatPanel />
 
       {/* Modal */}
       {isModalOpen && (

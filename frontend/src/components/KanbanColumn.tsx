@@ -25,12 +25,12 @@ const STAGE_CONFIG = {
 };
 
 const COLOR_CLASSES = {
-  blue: 'bg-blue-50 text-blue-700 border-blue-200',
-  purple: 'bg-purple-50 text-purple-700 border-purple-200',
-  yellow: 'bg-amber-50 text-amber-700 border-amber-200',
-  orange: 'bg-orange-50 text-orange-700 border-orange-200',
-  green: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  red: 'bg-rose-50 text-rose-700 border-rose-200',
+  blue: 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800',
+  purple: 'bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800',
+  yellow: 'bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800',
+  orange: 'bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-800',
+  green: 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800',
+  red: 'bg-rose-50 dark:bg-rose-900/20 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800',
 };
 
 export default function KanbanColumn({
@@ -72,7 +72,7 @@ export default function KanbanColumn({
             <h2 className="text-sm tracking-tight">
               {config.label}
             </h2>
-            <span className="text-xs bg-white/50 px-2 py-0.5 rounded-full font-semibold">
+            <span className="text-xs bg-white/50 dark:bg-black/20 px-2 py-0.5 rounded-full font-semibold">
               {deals.length}
             </span>
           </div>
@@ -87,8 +87,8 @@ export default function KanbanColumn({
               ref={provided.innerRef}
               {...provided.droppableProps}
               className={cn(
-                'flex-1 px-3 pb-3 overflow-y-auto transition-colors duration-200',
-                snapshot.isDraggingOver ? 'bg-blue-50/50 rounded-lg' : ''
+                'flex-1 px-3 pb-3 overflow-y-auto transition-colors duration-200 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-300 dark:[&::-webkit-scrollbar-thumb]:bg-gray-600 [&::-webkit-scrollbar-track]:bg-transparent',
+                snapshot.isDraggingOver ? 'bg-blue-50/50 dark:bg-blue-900/10 rounded-lg' : ''
               )}
               style={{ scrollbarWidth: 'thin' }}
             >

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>API Test</title>
+</head>
+<body>
+  <h1>Source Field API Test</h1>
+  <button onclick="fetchContacts()">Fetch Contacts</button>
+  <pre id="result"></pre>
+
+  <script>
+    async function fetchContacts() {
+      try {
+        const response = await fetch('http://localhost:8000/api/crm/contacts');
+        const data = await response.json();
+        document.getElementById('result').textContent = JSON.stringify(data, null, 2);
+
+        console.log('🔍 API Response:', data);
+        if (data.length > 0) {
+          console.log('🔍 First contact:', data[0]);
+          console.log('🔍 First contact source:', data[0].source);
+        }
+      } catch (error) {
+        document.getElementById('result').textContent = 'Error: ' + error.message;
+      }
+    }
+  </script>
+</body>
+</html>

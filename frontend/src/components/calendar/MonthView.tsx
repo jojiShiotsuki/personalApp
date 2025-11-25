@@ -13,17 +13,17 @@ interface MonthViewProps {
 const getStatusColor = (status: string) => {
   switch (status) {
     case 'posted':
-      return 'bg-emerald-100 text-emerald-700 border-emerald-200';
+      return 'bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800';
     case 'scheduled':
-      return 'bg-sky-100 text-sky-700 border-sky-200';
+      return 'bg-sky-100 text-sky-700 border-sky-200 dark:bg-sky-900/30 dark:text-sky-400 dark:border-sky-800';
     case 'editing':
-      return 'bg-amber-100 text-amber-700 border-amber-200';
+      return 'bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800';
     case 'filmed':
-      return 'bg-purple-100 text-purple-700 border-purple-200';
+      return 'bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-800';
     case 'scripted':
-      return 'bg-indigo-100 text-indigo-700 border-indigo-200';
+      return 'bg-indigo-100 text-indigo-700 border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-400 dark:border-indigo-800';
     default:
-      return 'bg-gray-100 text-gray-600 border-gray-200';
+      return 'bg-gray-100 text-gray-600 border-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700';
   }
 };
 
@@ -90,21 +90,21 @@ export default function MonthView({
             key={dateStr}
             onClick={() => onDayClick(day)}
             className={cn(
-              "bg-white rounded-xl border p-4 shadow-sm hover:shadow-md transition-all text-left min-h-[150px] flex flex-col group relative",
-              isTodayDate && "border-blue-500 border-2",
-              !isTodayDate && "border-gray-200",
+              "bg-white dark:bg-gray-800 rounded-xl border p-4 shadow-sm hover:shadow-md transition-all text-left min-h-[150px] flex flex-col group relative",
+              isTodayDate && "border-blue-500 dark:border-blue-400 border-2",
+              !isTodayDate && "border-gray-200 dark:border-gray-700",
               isPastDate && "opacity-75 hover:opacity-100"
             )}
           >
             <div className="flex justify-between items-start mb-3">
-              <div>
-                <p className="font-semibold text-sm text-gray-500">{getDayName(day)}</p>
-                <p className={cn("text-2xl font-bold", isTodayDate ? "text-blue-600" : "text-gray-900")}>
+              <div className="text-gray-900 dark:text-white">
+                <p className="font-semibold text-sm text-gray-500 dark:text-gray-400">{getDayName(day)}</p>
+                <p className={cn("text-2xl font-bold", isTodayDate ? "text-blue-600 dark:text-blue-400" : "text-gray-900 dark:text-white")}>
                   {day.getDate()}
                 </p>
               </div>
               {dayContent.length > 0 && (
-                <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded-full text-xs font-medium">
+                <span className="bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-2 py-1 rounded-full text-xs font-medium">
                   {dayContent.length}
                 </span>
               )}
@@ -143,7 +143,7 @@ export default function MonthView({
             
             {/* Quick Add Indicator (visible on hover) */}
             <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-              <div className="bg-slate-100 p-1.5 rounded-full text-slate-600 hover:bg-slate-200">
+              <div className="bg-slate-100 dark:bg-slate-700 p-1.5 rounded-full text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600">
                 <Plus className="w-4 h-4" />
               </div>
             </div>

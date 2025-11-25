@@ -7,23 +7,24 @@ import ContentForm from '@/components/calendar/ContentForm';
 import { getMonthName, formatDateForApi } from '@/lib/dateUtils';
 import { Plus, Instagram, Youtube, Facebook, Twitter, Linkedin, Video, Calendar } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 type ViewLevel = 'months' | 'month' | 'day';
 
 const getStatusColor = (status: string) => {
   switch (status) {
     case 'posted':
-      return 'bg-emerald-100 text-emerald-700 border-emerald-200';
+      return 'bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800';
     case 'scheduled':
-      return 'bg-sky-100 text-sky-700 border-sky-200';
+      return 'bg-sky-100 text-sky-700 border-sky-200 dark:bg-sky-900/20 dark:text-sky-400 dark:border-sky-800';
     case 'editing':
-      return 'bg-amber-100 text-amber-700 border-amber-200';
+      return 'bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800';
     case 'filmed':
-      return 'bg-purple-100 text-purple-700 border-purple-200';
+      return 'bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-900/20 dark:text-purple-400 dark:border-purple-800';
     case 'scripted':
-      return 'bg-indigo-100 text-indigo-700 border-indigo-200';
+      return 'bg-indigo-100 text-indigo-700 border-indigo-200 dark:bg-indigo-900/20 dark:text-indigo-400 dark:border-indigo-800';
     default:
-      return 'bg-gray-100 text-gray-600 border-gray-200';
+      return 'bg-gray-100 text-gray-600 border-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700';
   }
 };
 
@@ -79,6 +80,10 @@ export default function SocialCalendar() {
       queryClient.invalidateQueries({ queryKey: ['social-content'] });
       setShowForm(false);
       setFormContentDate(null);
+      toast.success('Content created successfully');
+    },
+    onError: () => {
+      toast.error('Failed to create content');
     },
   });
 
@@ -89,6 +94,10 @@ export default function SocialCalendar() {
       queryClient.invalidateQueries({ queryKey: ['social-content'] });
       setShowForm(false);
       setEditingContent(null);
+      toast.success('Content updated successfully');
+    },
+    onError: () => {
+      toast.error('Failed to update content');
     },
   });
 
@@ -98,6 +107,10 @@ export default function SocialCalendar() {
       queryClient.invalidateQueries({ queryKey: ['social-content'] });
       setShowForm(false);
       setEditingContent(null);
+      toast.success('Content deleted');
+    },
+    onError: () => {
+      toast.error('Failed to delete content');
     },
   });
 
@@ -136,23 +149,15 @@ export default function SocialCalendar() {
   };
 
   const handleSubmitContent = async (data: SocialContentCreate | SocialContentUpdate) => {
-    try {
-      if (editingContent) {
-        await updateMutation.mutateAsync({ id: editingContent.id, data: data as SocialContentUpdate });
-      } else {
-        await createMutation.mutateAsync(data as SocialContentCreate);
-      }
-    } catch (error) {
-      console.error('Error submitting content:', error);
+    if (editingContent) {
+      updateMutation.mutate({ id: editingContent.id, data: data as SocialContentUpdate });
+    } else {
+      createMutation.mutate(data as SocialContentCreate);
     }
   };
 
-  const handleDeleteContent = async (id: number) => {
-    try {
-      await deleteMutation.mutateAsync(id);
-    } catch (error) {
-      console.error('Error deleting content:', error);
-    }
+  const handleDeleteContent = (id: number) => {
+    deleteMutation.mutate(id);
   };
 
   // Find all content for selected day
@@ -161,15 +166,15 @@ export default function SocialCalendar() {
     : [];
 
   return (
-    <div className="h-full bg-gray-50 overflow-auto">
+    <div className="h-full bg-gray-50 dark:bg-gray-900 overflow-auto transition-colors duration-200">
       {/* Header */}
-      <div className="border-b border-gray-200/60 px-8 py-6 bg-white/50 backdrop-blur-sm sticky top-0 z-10">
+      <div className="border-b border-gray-200/60 dark:border-gray-700 px-8 py-6 bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm sticky top-0 z-10 transition-colors duration-200">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-semibold text-gray-900 tracking-tight">
+            <h1 className="text-2xl font-semibold text-gray-900 dark:text-white tracking-tight">
               Social Media Calendar
             </h1>
-            <p className="mt-1 text-sm text-gray-500">
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
               {viewLevel === 'months' && `Plan and track your content for ${selectedYear}`}
               {viewLevel === 'month' && selectedMonth && `${new Date(selectedYear, selectedMonth - 1).toLocaleString('default', { month: 'long' })} ${selectedYear}`}
               {viewLevel === 'day' && selectedDay && selectedDay.toLocaleDateString('default', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
@@ -178,7 +183,7 @@ export default function SocialCalendar() {
           <div className="flex items-center gap-3">
             <button
               onClick={() => setShowForm(true)}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-xl hover:bg-blue-700 transition-colors shadow-sm hover:shadow-md"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 dark:bg-blue-500 text-white text-sm font-medium rounded-xl hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors shadow-sm hover:shadow-md"
             >
               <Plus className="w-4 h-4" />
               New Post
@@ -187,19 +192,19 @@ export default function SocialCalendar() {
         </div>
         {/* Breadcrumb */}
         {(viewLevel === 'month' || viewLevel === 'day') && (
-          <div className="mt-6 flex items-center gap-2 text-sm text-gray-600">
-            <button onClick={handleBackToMonths} className="hover:text-gray-900 transition-colors hover:underline">
+          <div className="mt-6 flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+            <button onClick={handleBackToMonths} className="hover:text-gray-900 dark:hover:text-white transition-colors hover:underline">
               {selectedYear}
             </button>
             {selectedMonth && (
               <>
-                <span className="text-gray-300">/</span>
+                <span className="text-gray-300 dark:text-gray-600">/</span>
                 {viewLevel === 'day' ? (
-                  <button onClick={handleBackToMonth} className="hover:text-gray-900 transition-colors hover:underline">
+                  <button onClick={handleBackToMonth} className="hover:text-gray-900 dark:hover:text-white transition-colors hover:underline">
                     {new Date(selectedYear, selectedMonth - 1).toLocaleString('default', { month: 'long' })}
                   </button>
                 ) : (
-                  <span className="text-gray-900 font-medium">
+                  <span className="text-gray-900 dark:text-white font-medium">
                     {new Date(selectedYear, selectedMonth - 1).toLocaleString('default', { month: 'long' })}
                   </span>
                 )}
@@ -207,8 +212,8 @@ export default function SocialCalendar() {
             )}
             {viewLevel === 'day' && selectedDay && (
               <>
-                <span className="text-gray-300">/</span>
-                <span className="text-gray-900 font-medium">
+                <span className="text-gray-300 dark:text-gray-600">/</span>
+                <span className="text-gray-900 dark:text-white font-medium">
                   {selectedDay.toLocaleDateString('default', { day: 'numeric' })}
                 </span>
               </>
@@ -226,34 +231,34 @@ export default function SocialCalendar() {
               <button
                 key={monthData.month}
                 onClick={() => handleMonthClick(monthData.month)}
-                className="bg-white rounded-2xl border border-gray-200/60 p-6 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1 text-left group"
+                className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200/60 dark:border-gray-700 p-6 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1 text-left group"
               >
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-xl font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
+                  <h2 className="text-xl font-semibold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                     {getMonthName(monthData.month)}
                   </h2>
-                  <div className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
+                  <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-gray-500 dark:text-gray-400 group-hover:bg-blue-50 dark:group-hover:bg-blue-900/20 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                     <Calendar className="w-4 h-4" />
                   </div>
                 </div>
 
                 <div className="space-y-3 text-sm">
-                  <div className="flex justify-between items-center p-2 bg-gray-50 rounded-lg">
-                    <span className="text-gray-600 font-medium">
+                  <div className="flex justify-between items-center p-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                    <span className="text-gray-500 dark:text-gray-400 font-medium">
                       Total Content
                     </span>
-                    <span className="font-semibold text-gray-900 bg-white px-2 py-0.5 rounded shadow-sm border border-gray-100">{monthData.total_content}</span>
+                    <span className="font-semibold text-gray-900 dark:text-white bg-white dark:bg-gray-800 px-2 py-0.5 rounded shadow-sm border border-gray-200 dark:border-gray-600">{monthData.total_content}</span>
                   </div>
 
                   {monthData.total_content > 0 && (
                     <>
                       <div className="pt-2">
-                        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">By Status</p>
+                        <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">By Status</p>
                         <div className="space-y-1.5">
                           {Object.entries(monthData.by_status).map(([status, count]) => (
                             <div key={status} className="flex justify-between text-xs items-center">
-                              <span className="capitalize text-gray-600">{status.replace('_', ' ')}</span>
-                              <span className="font-medium text-gray-900">{count}</span>
+                              <span className="capitalize text-gray-500 dark:text-gray-400">{status.replace('_', ' ')}</span>
+                              <span className="font-medium text-gray-900 dark:text-white">{count}</span>
                             </div>
                           ))}
                         </div>
@@ -283,7 +288,7 @@ export default function SocialCalendar() {
             <div className="flex justify-end">
               <button
                 onClick={() => handleAddContent(selectedDay)}
-                className="group flex items-center px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all duration-200 shadow-sm hover:shadow-md"
+                className="group flex items-center px-4 py-2 bg-blue-600 dark:bg-blue-500 text-white rounded-xl hover:bg-blue-700 dark:hover:bg-blue-600 transition-all duration-200 shadow-sm hover:shadow-md"
               >
                 <Plus className="w-5 h-5 mr-2 transition-transform duration-200 group-hover:rotate-90" />
                 Add Content
@@ -291,12 +296,12 @@ export default function SocialCalendar() {
             </div>
 
             {contentForDay.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-center bg-white rounded-2xl border border-gray-200/60 shadow-sm">
-                <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
-                  <Video className="w-8 h-8 text-gray-400" />
+              <div className="flex flex-col items-center justify-center py-16 text-center bg-white dark:bg-gray-800 rounded-2xl border border-gray-200/60 dark:border-gray-700 shadow-sm">
+                <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mb-4">
+                  <Video className="w-8 h-8 text-gray-400 dark:text-gray-500" />
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-1">No content scheduled</h3>
-                <p className="text-gray-500">Plan your social media content for this day.</p>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">No content scheduled</h3>
+                <p className="text-gray-500 dark:text-gray-400">Plan your social media content for this day.</p>
               </div>
             ) : (
               <div className="grid gap-4">
@@ -306,7 +311,7 @@ export default function SocialCalendar() {
                   <button
                     key={item.id}
                     onClick={() => handleEditContent(item)}
-                    className="w-full text-left bg-white border border-gray-200/60 rounded-2xl p-6 shadow-sm hover:shadow-md hover:border-blue-200 transition-all duration-200 group"
+                    className="w-full text-left bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-6 shadow-sm hover:shadow-md hover:border-blue-500/50 dark:hover:border-blue-400/50 transition-all duration-200 group"
                   >
                     {/* Header Row */}
                     <div className="flex items-start justify-between mb-4">
@@ -323,7 +328,7 @@ export default function SocialCalendar() {
                           {getPlatformIcon(platform)}
                         </div>
                         <div>
-                          <h3 className="text-lg font-semibold text-gray-900 capitalize group-hover:text-blue-600 transition-colors">
+                          <h3 className="text-lg font-semibold text-gray-900 dark:text-white capitalize group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                             {item.content_type.replace('_', ' ')}
                           </h3>
                           <span className={cn(
@@ -335,7 +340,7 @@ export default function SocialCalendar() {
                         </div>
                       </div>
                       <div className="text-right">
-                        <div className="text-sm font-medium text-gray-900">
+                        <div className="text-sm font-medium text-gray-900 dark:text-white">
                           {new Date(item.content_date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
                         </div>
                       </div>
@@ -343,7 +348,7 @@ export default function SocialCalendar() {
 
                     {/* Details */}
                     <div className="pl-16">
-                      <p className="text-sm text-gray-600 line-clamp-2 mb-3">
+                      <p className="text-sm text-gray-500 dark:text-gray-400 line-clamp-2 mb-3">
                         {item.notes || (item.script ? item.script.replace(/<[^>]+>/g, '') : "No description")}
                       </p>
                     </div>

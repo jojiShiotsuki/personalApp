@@ -3,11 +3,13 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Trash2, Plus, Clock } from 'lucide-react';
 import { projectApi, taskApi } from '@/lib/api';
+import type { Project } from '@/types';
 import { ProjectStatus, TaskStatus, TaskCreate, TaskPriority } from '@/types';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import TaskItem from '@/components/TaskItem';
-import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
+import ConfirmModal from '@/components/ConfirmModal';
+import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { format } from 'date-fns';
 
 type Tab = 'overview' | 'list' | 'board';
@@ -18,6 +20,7 @@ export default function ProjectDetail() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<Tab>('overview');
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   // Fetch project
   const { data: project, isLoading, isError } = useQuery({
@@ -52,21 +55,15 @@ export default function ProjectDetail() {
   });
 
   const handleDelete = () => {
-    if (
-      confirm(
-        `Delete "${project?.name}"? This will also delete ${project?.task_count || 0} tasks.`
-      )
-    ) {
-      deleteMutation.mutate();
-    }
+    setShowDeleteConfirm(true);
   };
 
   if (isLoading) {
     return (
-      <div className="h-full flex items-center justify-center bg-gray-50">
+      <div className="h-full flex items-center justify-center bg-background">
         <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-slate-600 mb-4"></div>
-          <p className="text-gray-500">Loading project...</p>
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-4"></div>
+          <p className="text-muted-foreground">Loading project...</p>
         </div>
       </div>
     );
@@ -74,14 +71,14 @@ export default function ProjectDetail() {
 
   if (isError || !project) {
     return (
-      <div className="h-full flex items-center justify-center bg-gray-50">
+      <div className="h-full flex items-center justify-center bg-background">
         <div className="text-center">
-          <p className="text-red-500 mb-4">
+          <p className="text-destructive mb-4">
             {isError ? 'Failed to load project' : 'Project not found'}
           </p>
           <button
             onClick={() => navigate('/projects')}
-            className="text-slate-600 hover:text-slate-700"
+            className="text-muted-foreground hover:text-foreground"
           >
             Back to Projects
           </button>
@@ -91,20 +88,20 @@ export default function ProjectDetail() {
   }
 
   const statusConfig = {
-    [ProjectStatus.TODO]: { label: 'To Do', color: 'text-gray-700' },
-    [ProjectStatus.IN_PROGRESS]: { label: 'In Progress', color: 'text-slate-700' },
-    [ProjectStatus.COMPLETED]: { label: 'Completed', color: 'text-green-700' },
+    [ProjectStatus.TODO]: { label: 'To Do', color: 'text-muted-foreground' },
+    [ProjectStatus.IN_PROGRESS]: { label: 'In Progress', color: 'text-foreground' },
+    [ProjectStatus.COMPLETED]: { label: 'Completed', color: 'text-green-600 dark:text-green-400' },
   };
 
   return (
-    <div className="h-full flex flex-col bg-gray-50">
+    <div className="h-full flex flex-col bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
       {/* Header */}
-      <div className="bg-white/50 backdrop-blur-sm border-b border-gray-200/60 px-8 py-6 sticky top-0 z-10">
+      <div className="bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm border-b border-gray-200/60 dark:border-gray-700 px-8 py-6 sticky top-0 z-10 transition-colors duration-200">
         <button
           onClick={() => navigate('/projects')}
-          className="flex items-center gap-2 text-gray-500 hover:text-gray-900 mb-6 transition-colors group"
+          className="flex items-center gap-2 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white mb-6 transition-colors group"
         >
-          <div className="p-1 rounded-full group-hover:bg-gray-100 transition-colors">
+          <div className="p-1 rounded-full group-hover:bg-gray-100 dark:group-hover:bg-gray-700 transition-colors">
             <ArrowLeft className="w-4 h-4" />
           </div>
           <span className="font-medium">Back to Projects</span>
@@ -112,9 +109,9 @@ export default function ProjectDetail() {
 
         <div className="flex justify-between items-start">
           <div>
-            <h1 className="text-2xl font-semibold text-gray-900 tracking-tight">{project.name}</h1>
+            <h1 className="text-2xl font-semibold text-gray-900 dark:text-white tracking-tight">{project.name}</h1>
             {project.description && (
-              <p className="text-gray-500 mt-2 text-base">{project.description}</p>
+              <p className="text-gray-500 dark:text-gray-400 mt-2 text-base">{project.description}</p>
             )}
           </div>
 
@@ -129,10 +126,10 @@ export default function ProjectDetail() {
                 className={cn(
                   'appearance-none pl-4 pr-10 py-2 border rounded-xl font-medium text-sm focus:outline-none focus:ring-2 focus:ring-offset-1 transition-all cursor-pointer',
                   project.status === ProjectStatus.COMPLETED
-                    ? 'bg-emerald-50 border-emerald-200 text-emerald-700 focus:ring-emerald-500'
+                    ? 'bg-emerald-50 border-emerald-200 text-emerald-700 focus:ring-emerald-500 dark:bg-emerald-900/20 dark:border-emerald-800 dark:text-emerald-400'
                     : project.status === ProjectStatus.IN_PROGRESS
-                    ? 'bg-blue-50 border-blue-200 text-blue-700 focus:ring-blue-500'
-                    : 'bg-white border-gray-200 text-gray-700 focus:ring-gray-500'
+                    ? 'bg-blue-50 border-blue-200 text-blue-700 focus:ring-blue-500 dark:bg-blue-900/20 dark:border-blue-800 dark:text-blue-400'
+                    : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white focus:ring-gray-400'
                 )}
               >
                 {Object.entries(statusConfig).map(([value, config]) => (
@@ -146,7 +143,7 @@ export default function ProjectDetail() {
                   "w-2 h-2 border-r-2 border-b-2 rotate-45",
                   project.status === ProjectStatus.COMPLETED ? "border-emerald-600" :
                   project.status === ProjectStatus.IN_PROGRESS ? "border-blue-600" :
-                  "border-gray-600"
+                  "border-gray-400"
                 )} />
               </div>
             </div>
@@ -154,7 +151,7 @@ export default function ProjectDetail() {
             {/* Delete Button */}
             <button
               onClick={handleDelete}
-              className="p-2 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all duration-200"
+              className="p-2 text-gray-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl transition-all duration-200"
               title="Delete Project"
             >
               <Trash2 className="w-5 h-5" />
@@ -163,7 +160,7 @@ export default function ProjectDetail() {
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-8 mt-8 border-b border-gray-200/60">
+        <div className="flex gap-8 mt-8 border-b border-gray-200 dark:border-gray-700">
           {(['overview', 'list', 'board'] as Tab[]).map((tab) => (
             <button
               key={tab}
@@ -171,13 +168,13 @@ export default function ProjectDetail() {
               className={cn(
                 'pb-4 font-medium capitalize transition-all relative text-sm',
                 activeTab === tab
-                  ? 'text-blue-600'
-                  : 'text-gray-500 hover:text-gray-700'
+                  ? 'text-blue-600 dark:text-blue-400'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
               )}
             >
               {tab}
               {activeTab === tab && (
-                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 rounded-t-full" />
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400 rounded-t-full" />
               )}
             </button>
           ))}
@@ -192,12 +189,25 @@ export default function ProjectDetail() {
           {activeTab === 'board' && <BoardTab projectId={projectId} />}
         </div>
       </div>
+
+      <ConfirmModal
+        isOpen={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        onConfirm={() => {
+          deleteMutation.mutate();
+          setShowDeleteConfirm(false);
+        }}
+        title="Delete Project"
+        message={`Are you sure you want to delete "${project?.name}"? This will also delete ${project?.task_count || 0} tasks. This action cannot be undone.`}
+        confirmText="Delete"
+        variant="danger"
+      />
     </div>
   );
 }
 
 // Placeholder components (will implement in next tasks)
-function OverviewTab({ project }: { project: any }) {
+function OverviewTab({ project }: { project: Project }) {
   const progressColor =
     project.progress < 34 ? 'text-rose-600' :
     project.progress < 67 ? 'text-amber-600' :
@@ -211,12 +221,12 @@ function OverviewTab({ project }: { project: any }) {
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       {/* Progress Circle */}
-      <div className="bg-white rounded-2xl border border-gray-200 p-8 shadow-sm">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200/60 dark:border-gray-700 p-8 shadow-sm">
         <div className="flex flex-col items-center justify-center">
           <div className="relative inline-flex items-center justify-center mb-4">
             <svg className="w-48 h-48 transform -rotate-90">
               <circle
-                className="text-gray-100"
+                className="text-gray-100 dark:text-gray-700"
                 strokeWidth="12"
                 stroke="currentColor"
                 fill="transparent"
@@ -241,10 +251,10 @@ function OverviewTab({ project }: { project: any }) {
               <span className={cn('text-5xl font-bold tracking-tight', progressColor)}>
                 {project.progress}%
               </span>
-              <span className="text-sm font-medium text-gray-400 uppercase tracking-wider mt-1">Complete</span>
+              <span className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mt-1">Complete</span>
             </div>
           </div>
-          <p className="text-gray-500 text-center max-w-md">
+          <p className="text-gray-500 dark:text-gray-400 text-center max-w-md">
             {project.progress === 100 
               ? "All tasks completed! Great job!" 
               : `${project.completed_task_count || 0} of ${project.task_count || 0} tasks completed`}
@@ -254,28 +264,28 @@ function OverviewTab({ project }: { project: any }) {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-all duration-300">
-          <div className="text-sm font-medium text-gray-500 mb-2 uppercase tracking-wider">Total Tasks</div>
-          <div className="text-3xl font-bold text-gray-900">{project.task_count || 0}</div>
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200/60 dark:border-gray-700 p-6 shadow-sm hover:shadow-md transition-all duration-300">
+          <div className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wider">Total Tasks</div>
+          <div className="text-3xl font-bold text-gray-900 dark:text-white">{project.task_count || 0}</div>
         </div>
 
-        <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-all duration-300">
-          <div className="text-sm font-medium text-gray-500 mb-2 uppercase tracking-wider">Completed</div>
-          <div className="text-3xl font-bold text-emerald-600">
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200/60 dark:border-gray-700 p-6 shadow-sm hover:shadow-md transition-all duration-300">
+          <div className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wider">Completed</div>
+          <div className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">
             {project.completed_task_count || 0}
           </div>
         </div>
 
-        <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-all duration-300">
-          <div className="text-sm font-medium text-gray-500 mb-2 uppercase tracking-wider">In Progress</div>
-          <div className="text-3xl font-bold text-blue-600">
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200/60 dark:border-gray-700 p-6 shadow-sm hover:shadow-md transition-all duration-300">
+          <div className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wider">In Progress</div>
+          <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">
             {(project.task_count || 0) - (project.completed_task_count || 0)}
           </div>
         </div>
 
-        <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-all duration-300">
-          <div className="text-sm font-medium text-gray-500 mb-2 uppercase tracking-wider">Status</div>
-          <div className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800 capitalize">
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200/60 dark:border-gray-700 p-6 shadow-sm hover:shadow-md transition-all duration-300">
+          <div className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wider">Status</div>
+          <div className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white capitalize">
             {project.status.replace('_', ' ')}
           </div>
         </div>
@@ -283,10 +293,10 @@ function OverviewTab({ project }: { project: any }) {
 
       {/* Completion Message */}
       {project.progress === 100 && (
-        <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-8 text-center animate-in zoom-in duration-500">
+        <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-8 text-center animate-in zoom-in duration-500 dark:bg-emerald-900/20 dark:border-emerald-800">
           <div className="text-4xl mb-4">🎉</div>
-          <h3 className="text-xl font-bold text-emerald-900 mb-2">Project Completed!</h3>
-          <p className="text-emerald-700">You've finished all tasks in this project. Ready to archive it?</p>
+          <h3 className="text-xl font-bold text-emerald-900 mb-2 dark:text-emerald-100">Project Completed!</h3>
+          <p className="text-emerald-700 dark:text-emerald-300">You've finished all tasks in this project. Ready to archive it?</p>
         </div>
       )}
     </div>
@@ -319,10 +329,23 @@ function ListTab({ projectId }: { projectId: number }) {
     },
   });
 
+  // Update task status mutation
+  const updateStatusMutation = useMutation({
+    mutationFn: ({ taskId, status }: { taskId: number; status: TaskStatus }) =>
+      taskApi.update(taskId, { status }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['projects', projectId, 'tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['projects', projectId] });
+      toast.success('Task status updated');
+    },
+    onError: () => {
+      toast.error('Failed to update task status');
+    },
+  });
+
   // Handle task status change
   const handleStatusChange = (taskId: number, status: TaskStatus) => {
-    // TODO: Implement with taskApi.update when available
-    console.log('Update task status', taskId, status);
+    updateStatusMutation.mutate({ taskId, status });
   };
 
   const filteredTasks = tasks.filter((task) => {
@@ -338,7 +361,7 @@ function ListTab({ projectId }: { projectId: number }) {
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
-            className="px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+            className="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
           >
             <option value="all">All Status</option>
             <option value={TaskStatus.PENDING}>Pending</option>
@@ -348,7 +371,7 @@ function ListTab({ projectId }: { projectId: number }) {
           <select
             value={filterPriority}
             onChange={(e) => setFilterPriority(e.target.value)}
-            className="px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+            className="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
           >
             <option value="all">All Priority</option>
             <option value={TaskPriority.HIGH}>High</option>
@@ -358,7 +381,7 @@ function ListTab({ projectId }: { projectId: number }) {
         </div>
         <button
           onClick={() => setShowAddTask(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all shadow-sm hover:shadow-md font-medium"
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 dark:bg-blue-500 text-white rounded-xl hover:bg-blue-700 dark:hover:bg-blue-600 transition-all shadow-sm hover:shadow-md font-medium"
         >
           <Plus className="w-4 h-4" />
           Add Task
@@ -366,8 +389,8 @@ function ListTab({ projectId }: { projectId: number }) {
       </div>
 
       {showAddTask && (
-        <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-lg animate-in slide-in-from-top-2 duration-300">
-          <h3 className="text-lg font-bold text-gray-900 mb-4">New Task</h3>
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700 shadow-lg animate-in slide-in-from-top-2 duration-300">
+          <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">New Task</h3>
           {/* Simple form for now */}
           <form
             onSubmit={(e) => {
@@ -442,12 +465,12 @@ function ListTab({ projectId }: { projectId: number }) {
         {isLoading ? (
           <div className="text-center py-12">
             <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-4"></div>
-            <p className="text-gray-500">Loading tasks...</p>
+            <p className="text-gray-500 dark:text-gray-400">Loading tasks...</p>
           </div>
         ) : filteredTasks.length === 0 ? (
-          <div className="text-center py-12 bg-white rounded-xl border border-gray-200 border-dashed">
-            <p className="text-gray-500 font-medium">No tasks found</p>
-            <p className="text-sm text-gray-400 mt-1">
+          <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 border-dashed">
+            <p className="text-gray-500 dark:text-gray-400 font-medium">No tasks found</p>
+            <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">
               {tasks.length === 0
                 ? "Get started by adding a task to this project"
                 : "Try adjusting your filters"}
@@ -484,7 +507,7 @@ function BoardTab({ projectId }: { projectId: number }) {
     },
   });
 
-  const onDragEnd = (result: any) => {
+  const onDragEnd = (result: DropResult) => {
     if (!result.destination) return;
 
     const { draggableId, destination } = result;
@@ -498,15 +521,15 @@ function BoardTab({ projectId }: { projectId: number }) {
     return (
       <div className="text-center py-12">
         <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-4"></div>
-        <p className="text-gray-500">Loading board...</p>
+        <p className="text-gray-500 dark:text-gray-400">Loading board...</p>
       </div>
     );
   }
 
   const columns = [
-    { id: TaskStatus.PENDING, title: 'To Do', color: 'bg-gray-100' },
-    { id: TaskStatus.IN_PROGRESS, title: 'In Progress', color: 'bg-blue-50' },
-    { id: TaskStatus.COMPLETED, title: 'Completed', color: 'bg-emerald-50' },
+    { id: TaskStatus.PENDING, title: 'To Do', color: 'bg-gray-100 dark:bg-gray-700' },
+    { id: TaskStatus.IN_PROGRESS, title: 'In Progress', color: 'bg-blue-50 dark:bg-blue-900/20' },
+    { id: TaskStatus.COMPLETED, title: 'Completed', color: 'bg-emerald-50 dark:bg-emerald-900/20' },
   ];
 
   return (
@@ -515,8 +538,8 @@ function BoardTab({ projectId }: { projectId: number }) {
         {columns.map((column) => (
           <div key={column.id} className="flex flex-col h-full">
             <div className="flex items-center justify-between mb-4 px-1">
-              <h3 className="font-bold text-gray-900">{column.title}</h3>
-              <span className="bg-gray-100 text-gray-600 px-2.5 py-0.5 rounded-full text-xs font-medium">
+              <h3 className="font-bold text-gray-900 dark:text-white">{column.title}</h3>
+              <span className="bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-2.5 py-0.5 rounded-full text-xs font-medium">
                 {tasks.filter((t) => t.status === column.id).length}
               </span>
             </div>
@@ -528,7 +551,7 @@ function BoardTab({ projectId }: { projectId: number }) {
                   className={cn(
                     'flex-1 rounded-xl p-4 transition-colors border border-transparent',
                     column.color,
-                    snapshot.isDraggingOver ? 'ring-2 ring-blue-500/20 bg-white' : ''
+                    snapshot.isDraggingOver ? 'ring-2 ring-blue-500/20 dark:ring-blue-500/40 bg-white dark:bg-gray-800' : ''
                   )}
                 >
                   <div className="space-y-3">
@@ -546,7 +569,7 @@ function BoardTab({ projectId }: { projectId: number }) {
                               {...provided.draggableProps}
                               {...provided.dragHandleProps}
                               className={cn(
-                                'bg-white p-4 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all group',
+                                'bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md transition-all group',
                                 snapshot.isDragging ? 'shadow-lg rotate-2 scale-105 z-50' : ''
                               )}
                             >

@@ -28,35 +28,31 @@ class Task(Base):
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
-    due_date = Column(Date, nullable=True)
+    due_date = Column(Date, nullable=True, index=True)
     due_time = Column(Time, nullable=True)
     priority = Column(Enum(TaskPriority), default=TaskPriority.MEDIUM)
-    status = Column(Enum(TaskStatus), default=TaskStatus.PENDING)
+    status = Column(Enum(TaskStatus), default=TaskStatus.PENDING, index=True)
     goal_id = Column(Integer, ForeignKey('goals.id', ondelete='SET NULL'), nullable=True, index=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     completed_at = Column(DateTime, nullable=True)
 
     # Project relationship
-    project_id = Column(Integer, ForeignKey("projects.id"), nullable=True)
+    project_id = Column(Integer, ForeignKey("projects.id"), nullable=True, index=True)
 
     # Recurrence fields
     is_recurring = Column(Boolean, default=False, nullable=False)
     recurrence_type = Column(Enum(RecurrenceType), nullable=True)
-    recurrence_interval = Column(Integer, default=1, nullable=True)  # Repeat every N days/weeks/months
-    recurrence_days = Column(String(255), nullable=True)  # Comma-separated days for weekly recurrence (e.g. "Mon,Wed,Fri")
-    recurrence_end_date = Column(Date, nullable=True)  # When to stop creating new instances
-    recurrence_count = Column(Integer, nullable=True)  # Alternative: how many times to repeat
-    occurrences_created = Column(Integer, default=0, nullable=False)  # Track how many have been created
-    parent_task_id = Column(Integer, ForeignKey("tasks.id"), nullable=True)  # Link to parent recurring task
+    recurrence_interval = Column(Integer, default=1, nullable=True)
+    recurrence_days = Column(String(255), nullable=True)
+    recurrence_end_date = Column(Date, nullable=True)
+    recurrence_count = Column(Integer, nullable=True)
+    occurrences_created = Column(Integer, default=0, nullable=False)
+    parent_task_id = Column(Integer, ForeignKey("tasks.id"), nullable=True)
     
     # Relationships
     project = relationship("Project", back_populates="tasks")
-
-    # Relationship to Goal
     goal = relationship("Goal", back_populates="tasks")
-
-    # Self-referential relationship for recurring tasks
     parent_task = relationship("Task", remote_side=[id], foreign_keys=[parent_task_id], backref="child_tasks")
 
     def __repr__(self):

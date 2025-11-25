@@ -72,14 +72,14 @@ export default function AddContentForm({
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-2xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex justify-between items-center">
-          <h2 className="text-2xl font-bold">Add New Content</h2>
+        <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-6 flex justify-between items-center">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Add New Content</h2>
           <button
             onClick={onClose}
             disabled={isLoading}
-            className="text-gray-400 hover:text-gray-600"
+            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
           >
             <X className="w-6 h-6" />
           </button>
@@ -88,14 +88,14 @@ export default function AddContentForm({
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           {/* Date */}
           <div>
-            <label className="block text-sm font-semibold mb-2">Content Date *</label>
+            <label className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300">Content Date *</label>
             <input
               type="date"
               value={formData.content_date || ''}
               onChange={(e) =>
                 setFormData({ ...formData, content_date: e.target.value })
               }
-              className="w-full border border-gray-200 bg-white rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
               disabled={isLoading}
             />
@@ -103,7 +103,7 @@ export default function AddContentForm({
 
           {/* Content Type */}
           <div>
-            <label className="block text-sm font-semibold mb-2">Content Type *</label>
+            <label className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300">Content Type *</label>
             <select
               value={formData.content_type || 'reel'}
               onChange={(e) =>
@@ -112,7 +112,7 @@ export default function AddContentForm({
                   content_type: e.target.value as ContentType,
                 })
               }
-              className="w-full border border-gray-200 bg-white rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
               disabled={isLoading}
             >
@@ -129,7 +129,7 @@ export default function AddContentForm({
 
           {/* Status */}
           <div>
-            <label className="block text-sm font-semibold mb-2">Status</label>
+            <label className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300">Status</label>
             <select
               value={formData.status || 'not_started'}
               onChange={(e) =>
@@ -138,7 +138,7 @@ export default function AddContentForm({
                   status: e.target.value as ContentStatus,
                 })
               }
-              className="w-full border border-gray-200 bg-white rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               disabled={isLoading}
             >
               <option value="not_started">Not Started</option>
@@ -152,7 +152,7 @@ export default function AddContentForm({
 
           {/* Script/Caption */}
           <div>
-            <label className="block text-sm font-semibold mb-2">Script / Caption</label>
+            <label className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300">Script / Caption</label>
             <RichTextEditor
               value={formData.script || ''}
               onChange={(value) =>
@@ -165,7 +165,7 @@ export default function AddContentForm({
 
           {/* Platforms */}
           <div>
-            <label className="block text-sm font-semibold mb-3">Platforms</label>
+            <label className="block text-sm font-semibold mb-3 text-gray-700 dark:text-gray-300">Platforms</label>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
               {PLATFORMS.map((platform) => (
                 <label
@@ -176,29 +176,29 @@ export default function AddContentForm({
                     type="checkbox"
                     checked={selectedPlatforms.includes(platform)}
                     onChange={() => handlePlatformToggle(platform)}
-                    className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-blue-600 dark:text-blue-500 focus:ring-blue-500"
                     disabled={isLoading}
                   />
-                  <span className="text-sm capitalize">{platform}</span>
+                  <span className="text-sm capitalize text-gray-700 dark:text-gray-300">{platform}</span>
                 </label>
               ))}
             </div>
           </div>
 
           {/* Action Buttons */}
-          <div className="flex gap-3 justify-end border-t border-gray-200 pt-6">
+          <div className="flex gap-3 justify-end border-t border-gray-200 dark:border-gray-700 pt-6">
             <button
               type="button"
               onClick={onClose}
               disabled={isLoading}
-              className="px-4 py-2 border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50"
+              className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isLoading || !formData.content_date || !formData.content_type}
-              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 bg-blue-600 dark:bg-blue-500 text-white rounded hover:bg-blue-700 dark:hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading ? 'Creating...' : 'Create Content'}
             </button>

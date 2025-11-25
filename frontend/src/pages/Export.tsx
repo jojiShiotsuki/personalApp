@@ -39,15 +39,15 @@ export default function Export() {
   };
 
   return (
-    <div className="h-full flex flex-col bg-gray-50">
+    <div className="h-full flex flex-col bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
       {/* Header */}
-      <div className="bg-white/50 backdrop-blur-sm border-b border-gray-200/60 px-8 py-6 sticky top-0 z-10">
+      <div className="bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm border-b border-gray-200/60 dark:border-gray-700 px-8 py-6 sticky top-0 z-10 transition-colors duration-200">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-semibold text-gray-900 tracking-tight">
+            <h1 className="text-2xl font-semibold text-gray-900 dark:text-white tracking-tight">
               CEO AI Briefing
             </h1>
-            <p className="mt-1 text-sm text-gray-500">
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
               Strategic insights and data export optimized for Claude AI analysis
             </p>
           </div>
@@ -55,7 +55,7 @@ export default function Export() {
             <button
               onClick={handleCopy}
               disabled={!exportData}
-              className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all shadow-sm hover:shadow-md font-medium disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none text-sm"
+              className="flex items-center px-4 py-2 bg-blue-600 dark:bg-blue-500 text-white rounded-xl hover:bg-blue-700 dark:hover:bg-blue-600 transition-all shadow-sm hover:shadow-md font-medium disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none text-sm"
             >
               {copied ? (
                 <>
@@ -72,7 +72,7 @@ export default function Export() {
             <button
               onClick={handleDownload}
               disabled={!exportData}
-              className="flex items-center px-4 py-2 bg-white border border-gray-200/60 text-gray-700 rounded-xl hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm hover:shadow-md font-medium disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none text-sm"
+              className="flex items-center px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-all shadow-sm hover:shadow-md font-medium disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none text-sm"
             >
               <Download className="w-4 h-4 mr-2" />
               Download
@@ -82,9 +82,9 @@ export default function Export() {
       </div>
 
       {/* Date Range Filter */}
-      <div className="bg-white border-b border-gray-200/60 px-8 py-4">
+      <div className="bg-white dark:bg-gray-800 border-b border-gray-200/60 dark:border-gray-700 px-8 py-4 transition-colors duration-200">
         <div className="flex items-center space-x-4">
-          <label className="text-sm font-medium text-gray-700">
+          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
             Date Range:
           </label>
           <div className="flex items-center space-x-2">
@@ -94,16 +94,16 @@ export default function Export() {
               onChange={(e) =>
                 setDateRange({ ...dateRange, start: e.target.value })
               }
-              className="px-4 py-2 border border-gray-200/60 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm"
+              className="px-4 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm text-gray-900 dark:text-white"
             />
-            <span className="text-gray-400 font-medium">to</span>
+            <span className="text-gray-500 dark:text-gray-400 font-medium">to</span>
             <input
               type="date"
               value={dateRange.end}
               onChange={(e) =>
                 setDateRange({ ...dateRange, end: e.target.value })
               }
-              className="px-4 py-2 border border-gray-200/60 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm"
+              className="px-4 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm text-gray-900 dark:text-white"
             />
           </div>
         </div>
@@ -113,19 +113,19 @@ export default function Export() {
       <div className="flex-1 overflow-auto p-8">
         {isLoading ? (
           <div className="flex flex-col items-center justify-center h-64">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-4"></div>
-            <p className="text-gray-500 font-medium">Generating briefing...</p>
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <p className="text-gray-500 dark:text-gray-400 font-medium">Generating briefing...</p>
           </div>
         ) : exportData ? (
-          <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-sm border border-gray-200/60 overflow-hidden animate-in fade-in duration-500">
+          <div className="max-w-4xl mx-auto bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200/60 dark:border-gray-700 overflow-hidden animate-in fade-in duration-500">
             <div className="p-8">
-              <pre className="font-mono text-sm text-gray-800 whitespace-pre-wrap overflow-x-auto">
+              <pre className="font-mono text-sm text-gray-900 dark:text-white whitespace-pre-wrap overflow-x-auto">
                 {exportData.markdown}
               </pre>
             </div>
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center h-64 text-gray-500">
+          <div className="flex flex-col items-center justify-center h-64 text-gray-500 dark:text-gray-400">
             <p>No data available for the selected range.</p>
           </div>
         )}

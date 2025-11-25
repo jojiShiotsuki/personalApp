@@ -8,6 +8,7 @@ import { Plus, Search, User, Mail, Phone, Building2, MoreHorizontal, Trash2, Edi
 import ContactDetailModal from '@/components/ContactDetailModal';
 import ContactModal from '@/components/ContactModal';
 import AddInteractionModal from '@/components/AddInteractionModal';
+import ConfirmModal from '@/components/ConfirmModal';
 import AIChatPanel from '@/components/AIChatPanel';
 import { cn } from '@/lib/utils';
 
@@ -18,6 +19,7 @@ export default function Contacts() {
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [isAddInteractionOpen, setIsAddInteractionOpen] = useState(false);
+  const [contactToDelete, setContactToDelete] = useState<number | null>(null);
   const queryClient = useQueryClient();
 
   const getInitials = (name: string) => {
@@ -116,9 +118,7 @@ export default function Contacts() {
     setIsModalOpen(true);
   };
 
-  const handleDataChange = () => {
-    queryClient.invalidateQueries({ queryKey: ['contacts'] });
-  };
+  
 
   return (
     <div className="flex h-full bg-gray-50">
@@ -239,11 +239,7 @@ export default function Contacts() {
                     <Edit2 className="w-4 h-4" />
                   </button>
                   <button
-                    onClick={() => {
-                      if (confirm('Delete this contact?')) {
-                        deleteMutation.mutate(contact.id);
-                      }
-                    }}
+                    onClick={() => setContactToDelete(contact.id)}
                     className="flex items-center justify-center p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg border border-transparent hover:border-red-100 transition-colors"
                     title="Delete"
                   >
@@ -309,10 +305,21 @@ export default function Contacts() {
       )}
       </div>
 
-      <AIChatPanel
-        page="contacts"
-        onDataChange={handleDataChange}
+      <ConfirmModal
+        isOpen={contactToDelete !== null}
+        onClose={() => setContactToDelete(null)}
+        onConfirm={() => {
+          if (contactToDelete !== null) {
+            deleteMutation.mutate(contactToDelete);
+          }
+          setContactToDelete(null);
+        }}
+        title="Delete Contact"
+        message="Are you sure you want to delete this contact? This action cannot be undone."
+        confirmText="Delete"
+        variant="danger"
       />
+      <AIChatPanel />
     </div>
   );
 }

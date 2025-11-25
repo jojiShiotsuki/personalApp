@@ -43,19 +43,19 @@ export default function Projects() {
   );
 
   return (
-    <div className="h-full flex flex-col bg-gray-50">
+    <div className="h-full flex flex-col bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200/60 px-8 py-6">
+      <div className="bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm border-b border-gray-200/60 dark:border-gray-700 px-8 py-6 sticky top-0 z-10 transition-colors duration-200">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Projects</h1>
-            <p className="mt-1 text-sm text-gray-500">
-              Manage your projects and track progress
+            <h1 className="text-2xl font-semibold text-gray-900 dark:text-white tracking-tight">Projects</h1>
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              Manage and track your projects
             </p>
           </div>
           <button
             onClick={() => setIsModalOpen(true)}
-            className="group flex items-center px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all duration-200 shadow-sm hover:shadow-md"
+            className="group flex items-center px-4 py-2 bg-blue-600 dark:bg-blue-500 text-white rounded-xl hover:bg-blue-700 dark:hover:bg-blue-600 transition-all duration-200 shadow-sm hover:shadow-md"
           >
             <Plus className="w-5 h-5 mr-2 transition-transform duration-200 group-hover:rotate-90" />
             New Project
@@ -70,7 +70,7 @@ export default function Projects() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search projects..."
-            className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
+            className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500"
           />
         </div>
       </div>
@@ -86,26 +86,26 @@ export default function Projects() {
           <p className="text-rose-500 mb-4">Failed to load projects</p>
           <button
             onClick={() => window.location.reload()}
-            className="text-gray-600 hover:text-gray-900 underline"
+            className="text-gray-500 hover:text-gray-900 dark:hover:text-white underline"
           >
             Try again
           </button>
         </div>
       ) : filteredProjects.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 text-center">
-          <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-            <Folder className="w-10 h-10 text-gray-400" />
+          <div className="w-20 h-20 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4">
+            <Folder className="w-10 h-10 text-gray-400 dark:text-gray-500" />
           </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-1">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
             {searchQuery ? 'No projects found' : 'No projects yet'}
           </h3>
-          <p className="text-gray-500 max-w-sm mx-auto mb-6">
+          <p className="text-gray-500 dark:text-gray-400 max-w-sm mx-auto mb-6">
             {searchQuery ? `No projects match "${searchQuery}"` : "Create your first project to start tracking your work."}
           </p>
           {!searchQuery && (
             <button
               onClick={() => setIsModalOpen(true)}
-              className="px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors shadow-sm"
+              className="px-4 py-2 bg-blue-600 dark:bg-blue-500 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors shadow-sm"
             >
               Create Project
             </button>

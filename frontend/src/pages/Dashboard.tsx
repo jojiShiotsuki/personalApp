@@ -18,11 +18,13 @@ import {
   Facebook,
   Video,
   Target,
+  Users,
 } from 'lucide-react';
 import { isPast, isToday, parseISO, format, addDays } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 import { formatDateForApi } from '@/lib/dateUtils';
 import { cn } from '@/lib/utils';
+import MorningBriefing from '@/components/MorningBriefing';
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -103,21 +105,21 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="h-full bg-gray-50 overflow-auto">
+    <div className="h-full bg-gray-50 dark:bg-gray-900 overflow-auto transition-colors duration-200">
       {/* Header with gradient */}
-      <div className="bg-white/50 backdrop-blur-sm border-b border-gray-200/60 px-8 py-6 sticky top-0 z-10">
+      <div className="bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm border-b border-gray-200/60 dark:border-gray-700 px-8 py-6 sticky top-0 z-10 transition-colors duration-200">
         <div className="flex justify-between items-start">
           <div>
-            <h1 className="text-2xl font-semibold text-gray-900 tracking-tight">Dashboard</h1>
-            <p className="mt-1 text-sm text-gray-500">
+            <h1 className="text-2xl font-semibold text-gray-900 dark:text-white tracking-tight">Dashboard</h1>
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
               Welcome back! Here's your overview for today
             </p>
           </div>
           <div className="text-right hidden sm:block">
-            <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
               {format(new Date(), 'EEEE')}
             </p>
-            <p className="text-xl font-semibold text-gray-900">
+            <p className="text-xl font-semibold text-gray-900 dark:text-white">
               {format(new Date(), 'MMMM do, yyyy')}
             </p>
           </div>
@@ -126,18 +128,20 @@ export default function Dashboard() {
 
       {/* Content */}
       <div className="p-8">
+        <MorningBriefing />
+        
         {/* Command Bar Hint - Enhanced */}
-        <div className="bg-white border border-gray-200/60 rounded-2xl p-4 mb-8 shadow-sm hover:shadow-md transition-all duration-300">
+        <div className="bg-white dark:bg-gray-800 border border-gray-200/60 dark:border-gray-700 rounded-2xl p-4 mb-8 shadow-sm hover:shadow-md transition-all duration-300">
           <div className="flex items-center">
             <div className="flex-shrink-0">
-              <div className="p-2 bg-blue-50 rounded-xl">
-                <Sparkles className="h-5 w-5 text-blue-600" />
+              <div className="p-2 bg-blue-50 dark:bg-blue-900/30 rounded-xl">
+                <Sparkles className="h-5 w-5 text-blue-600 dark:text-blue-400" />
               </div>
             </div>
             <div className="ml-3 flex-1">
-              <p className="text-sm text-gray-700">
-                <strong className="text-gray-900 font-semibold">Pro tip:</strong> Press{' '}
-                <kbd className="px-2.5 py-1 bg-gray-50 rounded-lg border border-gray-200 text-xs font-mono shadow-sm text-gray-600 mx-1">
+              <p className="text-sm text-gray-700 dark:text-gray-300">
+                <strong className="text-gray-900 dark:text-white font-semibold">Pro tip:</strong> Press{' '}
+                <kbd className="px-2.5 py-1 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600 text-xs font-mono shadow-sm text-gray-600 dark:text-gray-300 mx-1">
                   Ctrl+K
                 </kbd>{' '}
                 to quickly add tasks using natural language like "meeting tomorrow at 3pm"
@@ -153,7 +157,7 @@ export default function Dashboard() {
               {[...Array(4)].map((_, i) => (
                 <div
                   key={i}
-                  className="bg-white rounded-2xl shadow-sm p-6 animate-pulse border border-gray-200/60"
+                  className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-6 animate-pulse border border-gray-200/60 dark:border-gray-700/60"
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
@@ -169,75 +173,75 @@ export default function Dashboard() {
           ) : (
             <>
               {/* Today's Tasks - Enhanced */}
-              <div className="group bg-white rounded-2xl shadow-sm hover:shadow-md p-6 transition-all duration-300 border border-gray-200/60 hover:border-blue-200 hover:-translate-y-1">
+              <div className="group bg-white dark:bg-gray-800 rounded-2xl shadow-sm hover:shadow-md p-6 transition-all duration-300 border border-gray-200/60 dark:border-gray-700 hover:border-blue-200 dark:hover:border-blue-800 hover:-translate-y-1">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                       Today
                     </p>
-                    <p className="text-3xl font-bold text-gray-900 mt-2">
+                    <p className="text-3xl font-bold text-gray-900 dark:text-white mt-2">
                       {todayTasks.length}
                     </p>
                   </div>
-                  <div className="p-3 bg-blue-50 rounded-xl transition-all duration-300 group-hover:bg-blue-100">
-                    <Clock className="w-6 h-6 text-blue-600" />
+                  <div className="p-3 bg-blue-50 dark:bg-blue-900/30 rounded-xl transition-all duration-300 group-hover:bg-blue-100 dark:group-hover:bg-blue-900/50">
+                    <Clock className="w-6 h-6 text-blue-600 dark:text-blue-400" />
                   </div>
                 </div>
-                <p className="text-sm text-gray-500 mt-4 font-medium">Tasks due today</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-4 font-medium">Tasks due today</p>
               </div>
 
               {/* Overdue Tasks - Enhanced */}
-              <div className="group bg-white rounded-2xl shadow-sm hover:shadow-md p-6 transition-all duration-300 border border-gray-200/60 hover:border-rose-200 hover:-translate-y-1">
+              <div className="group bg-white dark:bg-gray-800 rounded-2xl shadow-sm hover:shadow-md p-6 transition-all duration-300 border border-gray-200/60 dark:border-gray-700 hover:border-rose-200 dark:hover:border-rose-800 hover:-translate-y-1">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                       Overdue
                     </p>
-                    <p className="text-3xl font-bold text-rose-500 mt-2">
+                    <p className="text-3xl font-bold text-rose-500 dark:text-rose-400 mt-2">
                       {overdueTasks.length}
                     </p>
                   </div>
-                  <div className="p-3 bg-rose-50 rounded-xl transition-all duration-300 group-hover:bg-rose-100">
-                    <AlertCircle className="w-6 h-6 text-rose-600" />
+                  <div className="p-3 bg-rose-50 dark:bg-rose-900/30 rounded-xl transition-all duration-300 group-hover:bg-rose-100 dark:group-hover:bg-rose-900/50">
+                    <AlertCircle className="w-6 h-6 text-rose-600 dark:text-rose-400" />
                   </div>
                 </div>
-                <p className="text-sm text-gray-500 mt-4 font-medium">Need attention</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-4 font-medium">Need attention</p>
               </div>
 
               {/* Completed Tasks - Enhanced */}
-              <div className="group bg-white rounded-2xl shadow-sm hover:shadow-md p-6 transition-all duration-300 border border-gray-200/60 hover:border-emerald-200 hover:-translate-y-1">
+              <div className="group bg-white dark:bg-gray-800 rounded-2xl shadow-sm hover:shadow-md p-6 transition-all duration-300 border border-gray-200/60 dark:border-gray-700 hover:border-emerald-200 dark:hover:border-emerald-800 hover:-translate-y-1">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                       Completed
                     </p>
-                    <p className="text-3xl font-bold text-emerald-600 mt-2">
+                    <p className="text-3xl font-bold text-emerald-600 dark:text-emerald-400 mt-2">
                       {completedTasks.length}
                     </p>
                   </div>
-                  <div className="p-3 bg-emerald-50 rounded-xl transition-all duration-300 group-hover:bg-emerald-100">
-                    <CheckCircle2 className="w-6 h-6 text-emerald-600" />
+                  <div className="p-3 bg-emerald-50 dark:bg-emerald-900/30 rounded-xl transition-all duration-300 group-hover:bg-emerald-100 dark:group-hover:bg-emerald-900/50">
+                    <CheckCircle2 className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
                   </div>
                 </div>
-                <p className="text-sm text-gray-500 mt-4 font-medium">Tasks done</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-4 font-medium">Tasks done</p>
               </div>
 
               {/* Pipeline Value - Enhanced */}
-              <div className="group bg-white rounded-2xl shadow-sm hover:shadow-md p-6 transition-all duration-300 border border-gray-200/60 hover:border-purple-200 hover:-translate-y-1">
+              <div className="group bg-white dark:bg-gray-800 rounded-2xl shadow-sm hover:shadow-md p-6 transition-all duration-300 border border-gray-200/60 dark:border-gray-700 hover:border-purple-200 dark:hover:border-purple-800 hover:-translate-y-1">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                       Pipeline
                     </p>
-                    <p className="text-3xl font-bold text-gray-900 mt-2">
+                    <p className="text-3xl font-bold text-gray-900 dark:text-white mt-2">
                       {formatCurrency(pipelineValue)}
                     </p>
                   </div>
-                  <div className="p-3 bg-purple-50 rounded-xl transition-all duration-300 group-hover:bg-purple-100">
-                    <DollarSign className="w-6 h-6 text-purple-600" />
+                  <div className="p-3 bg-purple-50 dark:bg-purple-900/30 rounded-xl transition-all duration-300 group-hover:bg-purple-100 dark:group-hover:bg-purple-900/50">
+                    <DollarSign className="w-6 h-6 text-purple-600 dark:text-purple-400" />
                   </div>
                 </div>
-                <p className="text-sm text-gray-500 mt-4 font-medium">
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-4 font-medium">
                   {activeDeals.length} active deals
                 </p>
               </div>
@@ -248,13 +252,13 @@ export default function Dashboard() {
         {/* Three Column Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-100">
           {/* Task List Widget - Enhanced */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-200/60 overflow-hidden hover:shadow-md transition-all duration-300">
-            <div className="px-6 py-5 border-b border-gray-100">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200/60 dark:border-gray-700 overflow-hidden hover:shadow-md transition-all duration-300">
+            <div className="px-6 py-5 border-b border-gray-100 dark:border-gray-700">
               <div className="flex items-center gap-2">
-                <div className="p-1.5 bg-blue-50 rounded-lg">
-                  <ListTodo className="w-4 h-4 text-blue-600" />
+                <div className="p-1.5 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
+                  <ListTodo className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                 </div>
-                <h2 className="text-lg font-semibold text-gray-900">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
                   Upcoming Tasks
                 </h2>
               </div>
@@ -266,10 +270,10 @@ export default function Dashboard() {
                   {[...Array(3)].map((_, i) => (
                     <div
                       key={i}
-                      className="p-4 bg-gray-50 rounded-xl animate-pulse"
+                      className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl animate-pulse"
                     >
-                      <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-                      <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                      <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded w-3/4 mb-2"></div>
+                      <div className="h-3 bg-gray-200 dark:bg-gray-600 rounded w-1/2"></div>
                     </div>
                   ))}
                 </div>
@@ -281,7 +285,7 @@ export default function Dashboard() {
                     .map((task) => (
                       <div
                         key={task.id}
-                        className="group flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:shadow-md transition-all duration-300 cursor-pointer border border-transparent hover:border-gray-200 hover:bg-white"
+                        className="group flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl hover:shadow-md transition-all duration-300 cursor-pointer border border-transparent hover:border-gray-200 dark:hover:border-gray-600 hover:bg-white dark:hover:bg-gray-700"
                         onClick={() => navigate('/tasks')}
                       >
                         <div className="flex items-center gap-3">
@@ -295,7 +299,7 @@ export default function Dashboard() {
                             }`}
                           />
                           <div>
-                            <p className="font-medium text-gray-900 group-hover:text-blue-600 transition-colors">
+                            <p className="font-medium text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                               {task.title}
                             </p>
                             <p className="text-xs text-gray-500 mt-0.5">
@@ -322,13 +326,13 @@ export default function Dashboard() {
           </div>
 
           {/* Deals Widget - Enhanced */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-200/60 overflow-hidden hover:shadow-md transition-all duration-300">
-            <div className="px-6 py-5 border-b border-gray-100">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200/60 dark:border-gray-700 overflow-hidden hover:shadow-md transition-all duration-300">
+            <div className="px-6 py-5 border-b border-gray-100 dark:border-gray-700">
               <div className="flex items-center gap-2">
-                <div className="p-1.5 bg-purple-50 rounded-lg">
-                  <Briefcase className="w-4 h-4 text-purple-600" />
+                <div className="p-1.5 bg-purple-50 dark:bg-purple-900/30 rounded-lg">
+                  <Briefcase className="w-4 h-4 text-purple-600 dark:text-purple-400" />
                 </div>
-                <h2 className="text-lg font-semibold text-gray-900">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
                   Active Deals
                 </h2>
               </div>
@@ -339,10 +343,10 @@ export default function Dashboard() {
                   {[...Array(3)].map((_, i) => (
                     <div
                       key={i}
-                      className="p-4 bg-gray-50 rounded-xl animate-pulse"
+                      className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl animate-pulse"
                     >
-                      <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-                      <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                      <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded w-3/4 mb-2"></div>
+                      <div className="h-3 bg-gray-200 dark:bg-gray-600 rounded w-1/2"></div>
                     </div>
                   ))}
                 </div>
@@ -351,90 +355,86 @@ export default function Dashboard() {
                   {activeDeals.slice(0, 5).map((deal) => (
                     <div
                       key={deal.id}
-                      className="group flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:shadow-md transition-all duration-300 cursor-pointer border border-transparent hover:border-gray-200 hover:bg-white"
+                      className="group flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl hover:shadow-md transition-all duration-300 cursor-pointer border border-transparent hover:border-gray-200 dark:hover:border-gray-600 hover:bg-white dark:hover:bg-gray-700"
                       onClick={() => navigate('/deals')}
                     >
                       <div>
-                        <p className="font-medium text-gray-900 group-hover:text-blue-600 transition-colors">
+                        <p className="font-medium text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                           {deal.title}
                         </p>
-                        <p className="text-xs text-gray-500 mt-0.5">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                           {formatCurrency(deal.value || 0)} • {deal.stage}
                         </p>
                       </div>
-                      <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-blue-600 transition-colors" />
+                      <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" />
                     </div>
                   ))}
                 </div>
               ) : (
                 <div className="text-center py-8">
-                  <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <DollarSign className="w-6 h-6 text-gray-400" />
+                  <div className="w-12 h-12 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <DollarSign className="w-6 h-6 text-gray-400 dark:text-gray-500" />
                   </div>
-                  <p className="text-gray-500 font-medium">No active deals</p>
-                  <p className="text-sm text-gray-400 mt-1">Time to find new opportunities!</p>
+                  <p className="text-gray-500 dark:text-gray-400 font-medium">No active deals</p>
+                  <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">Time to find new opportunities!</p>
                 </div>
               )}
             </div>
           </div>
 
           {/* Recent Activity Widget - Enhanced */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-200/60 overflow-hidden hover:shadow-md transition-all duration-300">
-            <div className="px-6 py-5 border-b border-gray-100">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200/60 dark:border-gray-700 overflow-hidden hover:shadow-md transition-all duration-300">
+            <div className="px-6 py-5 border-b border-gray-100 dark:border-gray-700">
               <div className="flex items-center gap-2">
-                <div className="p-1.5 bg-slate-100 rounded-lg">
-                  <Activity className="w-4 h-4 text-slate-600" />
+                <div className="p-1.5 bg-slate-100 dark:bg-slate-800 rounded-lg">
+                  <Activity className="w-4 h-4 text-slate-600 dark:text-slate-400" />
                 </div>
-                <h2 className="text-lg font-semibold text-gray-900">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
                   Recent Activity
                 </h2>
               </div>
             </div>
             <div className="p-6">
-              <div className="space-y-6 relative before:absolute before:left-[27px] before:top-8 before:bottom-8 before:w-0.5 before:bg-gray-100">
-                {/* Mock Activity Items */}
-                {/*
+              <div className="space-y-6 relative before:absolute before:left-[19px] before:top-2 before:bottom-2 before:w-0.5 before:bg-gray-100 dark:before:bg-gray-700">
+                {[
                   {
                     text: 'Completed "Update website content"',
                     time: '2 hours ago',
                     icon: CheckCircle2,
-                    color: 'text-emerald-600',
-                    bg: 'bg-emerald-50',
+                    color: 'text-emerald-600 dark:text-emerald-400',
+                    bg: 'bg-emerald-50 dark:bg-emerald-900/30',
                   },
                   {
                     text: 'New deal "Tech Corp Project" created',
                     time: '4 hours ago',
                     icon: DollarSign,
-                    color: 'text-purple-600',
-                    bg: 'bg-purple-50',
+                    color: 'text-purple-600 dark:text-purple-400',
+                    bg: 'bg-purple-50 dark:bg-purple-900/30',
                   },
                   {
                     text: 'Meeting with John Doe',
                     time: 'Yesterday',
                     icon: Users,
-                    color: 'text-blue-600',
-                    bg: 'bg-blue-50',
+                    color: 'text-blue-600 dark:text-blue-400',
+                    bg: 'bg-blue-50 dark:bg-blue-900/30',
                   },
-                */}
-                {/*
-                  .map((activity, i) => (
+                ].map((activity, i) => (
                   <div key={i} className="relative flex gap-4">
                     <div
-                      className={`relative z-10 w-8 h-8 rounded-full flex items-center justify-center border-2 border-white shadow-sm ${activity.bg}`}
+                      className={`relative z-10 w-10 h-10 rounded-full flex items-center justify-center border-4 border-white dark:border-gray-800 shadow-sm ${activity.bg}`}
                     >
                       <activity.icon className={`w-4 h-4 ${activity.color}`} />
                     </div>
                     <div className="flex-1 pt-1">
-                      <p className="text-sm font-medium text-gray-900">
+                      <p className="font-medium text-gray-900 dark:text-white text-sm">
                         {activity.text}
                       </p>
-                      <p className="text-xs text-gray-500 mt-0.5">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                         {activity.time}
                       </p>
                     </div>
                   </div>
                 ))}
-                */}
               </div>
             </div>
           </div>
@@ -443,20 +443,20 @@ export default function Dashboard() {
         {/* Second Row - Enhanced Widgets */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-8">
           {/* Social Content Widget */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-200/60 overflow-hidden hover:shadow-md transition-all duration-300 lg:col-span-2">
-            <div className="px-6 py-5 bg-white border-b border-gray-100">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200/60 dark:border-gray-700 overflow-hidden hover:shadow-md transition-all duration-300 lg:col-span-2">
+            <div className="px-6 py-5 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700">
               <div className="flex items-center gap-2">
-                <div className="p-1.5 bg-pink-50 rounded-lg">
-                  <Video className="w-4 h-4 text-pink-600" />
+                <div className="p-1.5 bg-pink-50 dark:bg-pink-900/30 rounded-lg">
+                  <Video className="w-4 h-4 text-pink-600 dark:text-pink-400" />
                 </div>
-                <h2 className="text-lg font-semibold text-gray-900">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
                   Upcoming Social Content
                 </h2>
               </div>
             </div>
             <div className="p-6">
               {upcomingContent.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
+                <div className="text-center py-8 text-gray-500 dark:text-gray-400">
                   <p>No upcoming content scheduled</p>
                 </div>
               ) : (
@@ -464,24 +464,24 @@ export default function Dashboard() {
                   {upcomingContent.map((content) => (
                     <div
                       key={content.id}
-                      className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:shadow-md transition-all duration-300 border border-transparent hover:border-gray-200 hover:bg-white"
+                      className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl hover:shadow-md transition-all duration-300 border border-transparent hover:border-gray-200 dark:hover:border-gray-600 hover:bg-white dark:hover:bg-gray-700"
                     >
                       <div className="flex items-center gap-4">
-                        <div className="p-3 bg-white rounded-xl border border-gray-200 shadow-sm">
-                          <span className="text-lg font-bold text-gray-900">
+                        <div className="p-3 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-600 shadow-sm">
+                          <span className="text-lg font-bold text-gray-900 dark:text-white">
                             {format(parseISO(content.content_date), 'd')}
                           </span>
-                          <span className="block text-xs text-gray-500 uppercase font-bold text-center">
+                          <span className="block text-xs text-gray-500 dark:text-gray-400 uppercase font-bold text-center">
                             {format(parseISO(content.content_date), 'MMM')}
                           </span>
                         </div>
                         <div>
-                          <p className="text-sm font-semibold text-gray-900 capitalize">
+                          <p className="text-sm font-semibold text-gray-900 dark:text-white capitalize">
                             {content.content_type.replace('_', ' ')}
                           </p>
                           <div className="flex gap-1 mt-1">
                             {content.platforms?.slice(0, 3).map(p => (
-                              <span key={p} className="flex items-center justify-center w-6 h-6 bg-white rounded-full border border-gray-200 text-gray-600 shadow-sm" title={p}>
+                              <span key={p} className="flex items-center justify-center w-6 h-6 bg-white dark:bg-gray-800 rounded-full border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 shadow-sm" title={p}>
                                 {getPlatformIcon(p)}
                               </span>
                             ))}
@@ -490,9 +490,9 @@ export default function Dashboard() {
                       </div>
                       <span className={cn(
                         "text-xs px-2 py-1 rounded-lg font-medium border",
-                        content.status === 'posted' ? "bg-emerald-50 text-emerald-600 border-emerald-200" :
-                        content.status === 'scheduled' ? "bg-sky-50 text-sky-600 border-sky-200" :
-                        "bg-gray-100 text-gray-600 border-gray-200"
+                        content.status === 'posted' ? "bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800" :
+                        content.status === 'scheduled' ? "bg-sky-50 dark:bg-sky-900/30 text-sky-600 dark:text-sky-400 border-sky-200 dark:border-sky-800" :
+                        "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-600"
                       )}>
                         {content.status.replace('_', ' ')}
                       </span>
@@ -504,20 +504,20 @@ export default function Dashboard() {
           </div>
 
           {/* Goals Widget */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-200/60 overflow-hidden hover:shadow-md transition-all duration-300">
-            <div className="px-6 py-5 bg-white border-b border-gray-100">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200/60 dark:border-gray-700 overflow-hidden hover:shadow-md transition-all duration-300">
+            <div className="px-6 py-5 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700">
               <div className="flex items-center gap-2">
-                <div className="p-1.5 bg-amber-50 rounded-lg">
-                  <Target className="w-4 h-4 text-amber-600" />
+                <div className="p-1.5 bg-amber-50 dark:bg-amber-900/30 rounded-lg">
+                  <Target className="w-4 h-4 text-amber-600 dark:text-amber-400" />
                 </div>
-                <h2 className="text-lg font-semibold text-gray-900">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
                   Active Goals
                 </h2>
               </div>
             </div>
             <div className="p-6">
               {activeGoals.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
+                <div className="text-center py-8 text-gray-500 dark:text-gray-400">
                   <p>No active goals</p>
                 </div>
               ) : (
@@ -525,24 +525,24 @@ export default function Dashboard() {
                   {activeGoals.map((goal) => (
                     <div
                       key={goal.id}
-                      className="p-4 bg-gray-50 rounded-xl hover:shadow-md transition-all duration-300 border border-transparent hover:border-gray-200 hover:bg-white"
+                      className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl hover:shadow-md transition-all duration-300 border border-transparent hover:border-gray-200 dark:hover:border-gray-600 hover:bg-white dark:hover:bg-gray-700"
                     >
                       <div className="flex justify-between items-start mb-2">
-                        <h3 className="font-semibold text-gray-900 text-sm line-clamp-1">
+                        <h3 className="font-semibold text-gray-900 dark:text-white text-sm line-clamp-1">
                           {goal.title}
                         </h3>
-                        <span className="text-xs font-medium px-2 py-1 bg-white text-gray-600 rounded-lg border border-gray-200 shadow-sm">
+                        <span className="text-xs font-medium px-2 py-1 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded-lg border border-gray-200 dark:border-gray-600 shadow-sm">
                           {goal.quarter}
                         </span>
                       </div>
                       <div className="flex items-center gap-3">
-                        <div className="flex-1 bg-gray-200 rounded-full h-2 overflow-hidden">
+                        <div className="flex-1 bg-gray-200 dark:bg-gray-600 rounded-full h-2 overflow-hidden">
                           <div
                             className="bg-rose-500 h-full rounded-full transition-all duration-500"
                             style={{ width: `${goal.progress}%` }}
                           />
                         </div>
-                        <span className="text-xs text-gray-600 font-bold w-8 text-right">
+                        <span className="text-xs text-gray-600 dark:text-gray-300 font-bold w-8 text-right">
                           {goal.progress}%
                         </span>
                       </div>
