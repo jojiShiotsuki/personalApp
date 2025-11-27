@@ -11,7 +11,8 @@ import {
   Calendar,
   Sun,
   Moon,
-  Clock
+  Clock,
+  Send
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTheme } from './ThemeProvider';
@@ -28,6 +29,7 @@ const navigation = [
   { name: 'Tasks', href: '/tasks', icon: CheckSquare },
   { name: 'Contacts', href: '/contacts', icon: Users },
   { name: 'Deals', href: '/deals', icon: Briefcase },
+  { name: 'Outreach', href: '/outreach', icon: Send },
   { name: 'Goals', href: '/goals', icon: Target },
   { name: 'Projects', href: '/projects', icon: Folder },
   { name: 'Time', href: '/time', icon: Clock },
