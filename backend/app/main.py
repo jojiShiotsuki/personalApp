@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from app.database import init_db
-from app.routes import tasks, crm, task_parser, export, goals, goal_parser, projects, ai, social_content, dashboard, time
+from app.routes import tasks, crm, task_parser, export, goals, goal_parser, projects, ai, social_content, dashboard, time, outreach
 
 app = FastAPI(
     title="Personal Productivity App",
@@ -47,6 +47,7 @@ app.include_router(ai.router)
 app.include_router(social_content.router)
 app.include_router(dashboard.router)
 app.include_router(time.router)
+app.include_router(outreach.router)
 
 @app.on_event("startup")
 async def startup_event():

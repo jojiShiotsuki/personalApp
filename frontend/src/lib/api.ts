@@ -438,3 +438,60 @@ export const timeApi = {
     return response.data;
   },
 };
+
+// Outreach API
+export const outreachApi = {
+  // Niches
+  getNiches: async () => {
+    const response = await api.get('/api/outreach/niches');
+    return response.data;
+  },
+
+  createNiche: async (name: string) => {
+    const response = await api.post('/api/outreach/niches', { name });
+    return response.data;
+  },
+
+  deleteNiche: async (id: number) => {
+    await api.delete(`/api/outreach/niches/${id}`);
+  },
+
+  // Situations
+  getSituations: async () => {
+    const response = await api.get('/api/outreach/situations');
+    return response.data;
+  },
+
+  createSituation: async (name: string) => {
+    const response = await api.post('/api/outreach/situations', { name });
+    return response.data;
+  },
+
+  deleteSituation: async (id: number) => {
+    await api.delete(`/api/outreach/situations/${id}`);
+  },
+
+  // Templates
+  getTemplates: async (nicheId?: number, situationId?: number) => {
+    const params: Record<string, number> = {};
+    if (nicheId) params.niche_id = nicheId;
+    if (situationId) params.situation_id = situationId;
+    const response = await api.get('/api/outreach/templates', { params });
+    return response.data;
+  },
+
+  createTemplate: async (data: { niche_id: number; situation_id: number; dm_number: number; content: string }) => {
+    const response = await api.post('/api/outreach/templates', data);
+    return response.data;
+  },
+
+  deleteTemplate: async (id: number) => {
+    await api.delete(`/api/outreach/templates/${id}`);
+  },
+
+  // Quick Actions
+  addToPipeline: async (data: { name: string; niche: string; situation: string }) => {
+    const response = await api.post('/api/outreach/add-to-pipeline', data);
+    return response.data;
+  },
+};
