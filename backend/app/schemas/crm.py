@@ -2,7 +2,7 @@ from pydantic import BaseModel, Field, EmailStr, model_validator
 from datetime import datetime, date
 from typing import Optional, List, Any
 from decimal import Decimal
-from app.models.crm import ContactStatus, DealStage, InteractionType
+from app.models.crm import ContactStatus, DealStage, InteractionType, BillingFrequency, ServiceStatus
 
 # Contact Schemas
 class ContactBase(BaseModel):
@@ -45,6 +45,14 @@ class DealBase(BaseModel):
     expected_close_date: Optional[date] = None
     actual_close_date: Optional[date] = None
     next_followup_date: Optional[date] = None
+    hourly_rate: Optional[Decimal] = Field(None, ge=0)  # For time tracking billing
+    # Subscription fields
+    is_recurring: bool = False
+    billing_frequency: Optional[BillingFrequency] = None
+    recurring_amount: Optional[Decimal] = None
+    next_billing_date: Optional[date] = None
+    service_status: Optional[ServiceStatus] = None
+    service_start_date: Optional[date] = None
 
 class DealCreate(DealBase):
     pass
@@ -59,6 +67,14 @@ class DealUpdate(BaseModel):
     expected_close_date: Optional[date] = None
     actual_close_date: Optional[date] = None
     next_followup_date: Optional[date] = None
+    hourly_rate: Optional[Decimal] = Field(None, ge=0)  # For time tracking billing
+    # Subscription fields
+    is_recurring: Optional[bool] = None
+    billing_frequency: Optional[BillingFrequency] = None
+    recurring_amount: Optional[Decimal] = None
+    next_billing_date: Optional[date] = None
+    service_status: Optional[ServiceStatus] = None
+    service_start_date: Optional[date] = None
 
 class DealResponse(DealBase):
     id: int
@@ -89,6 +105,14 @@ class DealResponse(DealBase):
                     'expected_close_date': data.expected_close_date,
                     'actual_close_date': data.actual_close_date,
                     'next_followup_date': data.next_followup_date,
+                    'hourly_rate': data.hourly_rate,
+                    # Subscription fields
+                    'is_recurring': data.is_recurring,
+                    'billing_frequency': data.billing_frequency,
+                    'recurring_amount': data.recurring_amount,
+                    'next_billing_date': data.next_billing_date,
+                    'service_status': data.service_status,
+                    'service_start_date': data.service_start_date,
                     'created_at': data.created_at,
                     'updated_at': data.updated_at,
                     'contact': ContactResponse.model_validate(data.contact),

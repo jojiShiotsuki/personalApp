@@ -119,7 +119,17 @@
       "Bash(frontend/src/lib/api.ts )",
       "Bash(frontend/src/types/index.ts )",
       "Bash(frontend/src/App.tsx)",
-      "Bash(git reset:*)"
+      "Bash(git reset:*)",
+      "Bash(venvScriptsactivate)",
+      "Bash(python -m uvicorn:*)",
+      "Bash(ls -la \"C:\\Apps\\personalApp\\backend\\app\\models\"\" 2>/dev/null || ls -la \"C:AppspersonalAppbackendapp\"\")",
+      "Bash(sqlite3:*)",
+      "Bash(backend/venv/Scripts/python.exe:*)",
+      "Bash(for pid in 30076 3364 36224 30148 22792 46496)",
+      "Bash(do taskkill //F //PID $pid)",
+      "Bash(done)",
+      "Bash(node -e:*)",
+      "mcp__render__list_postgres_instances"
     ],
     "deny": [],
     "ask": []

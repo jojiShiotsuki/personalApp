@@ -20,6 +20,12 @@ export function TimerProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const intervalRef = useRef<number | null>(null);
+  const timerRef = useRef<TimeEntry | null>(null);
+
+  // Keep timerRef in sync with currentTimer
+  useEffect(() => {
+    timerRef.current = currentTimer;
+  }, [currentTimer]);
 
   // Calculate elapsed time from timer start
   const calculateElapsed = useCallback((timer: TimeEntry): number => {
@@ -61,10 +67,13 @@ export function TimerProvider({ children }: { children: ReactNode }) {
       clearInterval(intervalRef.current);
     }
 
+    // Calculate elapsed from actual timestamps (immune to tab throttling)
     intervalRef.current = window.setInterval(() => {
-      setElapsedSeconds(prev => prev + 1);
+      if (timerRef.current) {
+        setElapsedSeconds(calculateElapsed(timerRef.current));
+      }
     }, 1000);
-  }, []);
+  }, [calculateElapsed]);
 
   // Stop the elapsed time counter
   const stopElapsedCounter = useCallback(() => {
@@ -151,6 +160,20 @@ export function TimerProvider({ children }: { children: ReactNode }) {
       stopElapsedCounter();
     };
   }, [currentTimer?.is_running, currentTimer?.is_paused, startElapsedCounter, stopElapsedCounter]);
+
+  // Immediately update elapsed time when tab becomes visible (handles browser throttling)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && timerRef.current && timerRef.current.is_running && !timerRef.current.is_paused) {
+        setElapsedSeconds(calculateElapsed(timerRef.current));
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [calculateElapsed]);
 
   return (
     <TimerContext.Provider

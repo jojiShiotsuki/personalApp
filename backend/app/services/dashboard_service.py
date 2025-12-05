@@ -228,8 +228,7 @@ class DashboardService:
                     "title": d.title,
                     "value": d.value,
                     "stage": d.stage.value if d.stage else None,
-                    "next_followup_date": d.next_followup_date.isoformat() if d.next_followup_date else None,
-                    "followup_count": d.followup_count
+                    "next_followup_date": d.next_followup_date.isoformat() if d.next_followup_date else None
                 }
                 for d in deals_need_followup
             ],

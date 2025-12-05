@@ -86,6 +86,11 @@ export const taskApi = {
     return response.data;
   },
 
+  updateAllRecurring: async (id: number, task: TaskUpdate): Promise<{ updated_count: number; message: string }> => {
+    const response = await api.put(`/api/tasks/${id}/update-all-recurring`, task);
+    return response.data;
+  },
+
   parse: async (text: string): Promise<Task> => {
     const response = await api.post('/api/task-parser/parse', { text });
     return response.data;
@@ -158,6 +163,22 @@ export const dealApi = {
   delete: async (id: number): Promise<void> => {
     await api.delete(`/api/crm/deals/${id}`);
   },
+
+  bulkDelete: async (ids: number[]): Promise<{ deleted_count: number; message: string }> => {
+    const response = await api.post('/api/crm/deals/bulk-delete', ids);
+    return response.data;
+  },
+
+  bulkStageUpdate: async (ids: number[], stage: DealStage): Promise<{ updated_count: number; message: string }> => {
+    const response = await api.post('/api/crm/deals/bulk-stage-update', null, {
+      params: { deal_ids: ids, stage },
+      paramsSerializer: {
+        indexes: null, // This serializes arrays as deal_ids=1&deal_ids=2
+      },
+    });
+    return response.data;
+  },
+
   snooze: async (id: number): Promise<Deal> => {
     const response = await api.patch(`/api/crm/deals/${id}/snooze`);
     return response.data;
@@ -447,8 +468,8 @@ export const outreachApi = {
     return response.data;
   },
 
-  createNiche: async (name: string) => {
-    const response = await api.post('/api/outreach/niches', { name });
+  createNiche: async (data: { name: string }) => {
+    const response = await api.post('/api/outreach/niches', data);
     return response.data;
   },
 
@@ -462,8 +483,8 @@ export const outreachApi = {
     return response.data;
   },
 
-  createSituation: async (name: string) => {
-    const response = await api.post('/api/outreach/situations', { name });
+  createSituation: async (data: { name: string }) => {
+    const response = await api.post('/api/outreach/situations', data);
     return response.data;
   },
 
@@ -483,6 +504,22 @@ export const outreachApi = {
   createTemplate: async (data: { niche_id: number; situation_id: number; dm_number: number; content: string }) => {
     const response = await api.post('/api/outreach/templates', data);
     return response.data;
+  },
+
+  updateTemplate: async (id: number, data: { niche_id: number; situation_id: number; dm_number: number; content: string }) => {
+    const response = await api.put(`/api/outreach/templates/${id}`, data);
+    return response.data;
+  },
+
+  createOrUpdateTemplate: async (data: { id?: number; niche_id: number; situation_id: number; dm_number: number; content: string }) => {
+    if (data.id) {
+      const { id, ...rest } = data;
+      const response = await api.put(`/api/outreach/templates/${id}`, rest);
+      return response.data;
+    } else {
+      const response = await api.post('/api/outreach/templates', data);
+      return response.data;
+    }
   },
 
   deleteTemplate: async (id: number) => {

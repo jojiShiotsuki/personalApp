@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, Date, Enum, Numeric, ForeignKey
+from sqlalchemy import Column, Integer, String, Text, DateTime, Date, Enum, Numeric, ForeignKey, Boolean
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from app.database import Base
@@ -17,6 +17,18 @@ class DealStage(str, enum.Enum):
     NEGOTIATION = "negotiation"
     CLOSED_WON = "closed_won"
     CLOSED_LOST = "closed_lost"
+
+class BillingFrequency(str, enum.Enum):
+    MONTHLY = "monthly"
+    QUARTERLY = "quarterly"
+    SEMI_ANNUAL = "semi_annual"
+    ANNUAL = "annual"
+
+class ServiceStatus(str, enum.Enum):
+    ACTIVE = "active"
+    PAUSED = "paused"
+    CANCELLED = "cancelled"
+    PENDING = "pending"
 
 class InteractionType(str, enum.Enum):
     MEETING = "meeting"
@@ -60,6 +72,15 @@ class Deal(Base):
     actual_close_date = Column(Date, nullable=True)
     next_followup_date = Column(Date, nullable=True)  # Next scheduled follow-up date
     hourly_rate = Column(Numeric(10, 2), nullable=True)  # For time tracking billing
+
+    # Subscription/Recurring Service Fields
+    is_recurring = Column(Boolean, default=False)
+    billing_frequency = Column(Enum(BillingFrequency), nullable=True)
+    recurring_amount = Column(Numeric(12, 2), nullable=True)
+    next_billing_date = Column(Date, nullable=True)
+    service_status = Column(Enum(ServiceStatus), nullable=True)
+    service_start_date = Column(Date, nullable=True)
+
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

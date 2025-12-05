@@ -13,6 +13,9 @@ interface KanbanColumnProps {
   onEditDeal: (deal: Deal) => void;
   onDeleteDeal: (id: number) => void;
   onAddInteraction?: (contactId: number) => void;
+  isEditMode?: boolean;
+  selectedDealIds?: Set<number>;
+  onToggleSelect?: (dealId: number) => void;
 }
 
 const STAGE_CONFIG = {
@@ -42,6 +45,9 @@ export default function KanbanColumn({
   onEditDeal,
   onDeleteDeal,
   onAddInteraction,
+  isEditMode = false,
+  selectedDealIds = new Set(),
+  onToggleSelect,
 }: KanbanColumnProps) {
   const config = STAGE_CONFIG[stage];
   const isClosedStage =
@@ -102,6 +108,9 @@ export default function KanbanColumn({
                     onEdit={onEditDeal}
                     onDelete={onDeleteDeal}
                     onAddInteraction={onAddInteraction}
+                    isEditMode={isEditMode}
+                    isSelected={selectedDealIds.has(deal.id)}
+                    onToggleSelect={onToggleSelect}
                   />
                 ))}
                 {provided.placeholder}

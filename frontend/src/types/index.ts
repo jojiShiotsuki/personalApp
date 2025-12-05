@@ -36,17 +36,20 @@ export type Project = {
   updated_at: string;
   task_count?: number;
   completed_task_count?: number;
+  hourly_rate?: number;  // For time tracking billing
 }
 
 export type ProjectCreate = {
   name: string;
   description?: string;
+  hourly_rate?: number;  // For time tracking billing
 }
 
 export type ProjectUpdate = {
   name?: string;
   description?: string;
   status?: ProjectStatus;
+  hourly_rate?: number;  // For time tracking billing
 }
 
 export type Task = {
@@ -137,6 +140,20 @@ export enum InteractionType {
   SOCIAL_MEDIA = "social_media",
 }
 
+export enum BillingFrequency {
+  MONTHLY = "monthly",
+  QUARTERLY = "quarterly",
+  SEMI_ANNUAL = "semi_annual",
+  ANNUAL = "annual",
+}
+
+export enum ServiceStatus {
+  ACTIVE = "active",
+  PAUSED = "paused",
+  CANCELLED = "cancelled",
+  PENDING = "pending",
+}
+
 export type Contact = {
   id: number;
   name: string;
@@ -171,6 +188,14 @@ export type Deal = {
   expected_close_date?: string;
   actual_close_date?: string;
   next_followup_date?: string;
+  hourly_rate?: number;  // For time tracking billing
+  // Subscription fields
+  is_recurring: boolean;
+  billing_frequency?: BillingFrequency;
+  recurring_amount?: number;
+  next_billing_date?: string;
+  service_status?: ServiceStatus;
+  service_start_date?: string;
   created_at: string;
   updated_at: string;
   followup_count: number;
@@ -184,6 +209,14 @@ export type DealCreate = {
   stage?: DealStage;
   probability?: number;
   expected_close_date?: string;
+  hourly_rate?: number;  // For time tracking billing
+  // Subscription fields
+  is_recurring?: boolean;
+  billing_frequency?: BillingFrequency;
+  recurring_amount?: number;
+  next_billing_date?: string;
+  service_status?: ServiceStatus;
+  service_start_date?: string;
 }
 
 export type Interaction = {
@@ -421,6 +454,17 @@ export const EditingStyle = {
 }
 
 // Time Tracking Types
+export enum TimeEntryCategory {
+  DEVELOPMENT = "development",
+  DESIGN = "design",
+  MEETING = "meeting",
+  COMMUNICATION = "communication",
+  RESEARCH = "research",
+  ADMIN = "admin",
+  SUPPORT = "support",
+  OTHER = "other",
+}
+
 export interface TimeEntry {
   id: number;
   description?: string;
@@ -434,6 +478,8 @@ export interface TimeEntry {
   project_id?: number;
   deal_id?: number;
   hourly_rate?: number;
+  is_billable: boolean;
+  category?: TimeEntryCategory;
   created_at: string;
   updated_at: string;
   billable_amount?: number;
@@ -448,6 +494,8 @@ export interface TimeEntryStart {
   project_id?: number;
   deal_id?: number;
   hourly_rate?: number;
+  is_billable?: boolean;
+  category?: TimeEntryCategory;
 }
 
 export interface TimeEntryCreate {
@@ -459,6 +507,8 @@ export interface TimeEntryCreate {
   project_id?: number;
   deal_id?: number;
   hourly_rate?: number;
+  is_billable?: boolean;
+  category?: TimeEntryCategory;
 }
 
 export interface TimeEntryUpdate {
@@ -470,6 +520,8 @@ export interface TimeEntryUpdate {
   project_id?: number;
   deal_id?: number;
   hourly_rate?: number;
+  is_billable?: boolean;
+  category?: TimeEntryCategory;
 }
 
 export interface TimeSummary {

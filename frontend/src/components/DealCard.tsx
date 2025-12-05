@@ -20,6 +20,9 @@ interface DealCardProps {
   onEdit: (deal: Deal) => void;
   onDelete: (id: number) => void;
   onAddInteraction?: (contactId: number) => void;
+  isEditMode?: boolean;
+  isSelected?: boolean;
+  onToggleSelect?: (dealId: number) => void;
 }
 
 function getDaysInStage(updatedAt: string): number {
@@ -30,7 +33,7 @@ function getDaysInStage(updatedAt: string): number {
   return diffDays;
 }
 
-export default function DealCard({ deal, index, contacts, onEdit, onDelete, onAddInteraction }: DealCardProps) {
+export default function DealCard({ deal, index, contacts, onEdit, onDelete, onAddInteraction, isEditMode = false, isSelected = false, onToggleSelect }: DealCardProps) {
   const daysInStage = getDaysInStage(deal.updated_at);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const queryClient = useQueryClient();
@@ -76,19 +79,37 @@ export default function DealCard({ deal, index, contacts, onEdit, onDelete, onAd
             'bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 group',
             // Only apply transitions when NOT dragging to avoid interfering with dnd transforms
             !snapshot.isDragging && 'transition-all duration-200 hover:shadow-md hover:border-gray-300 dark:hover:border-gray-600 hover:-translate-y-0.5',
-            snapshot.isDragging && 'shadow-2xl rotate-2 scale-105 z-50 cursor-grabbing'
+            snapshot.isDragging && 'shadow-2xl rotate-2 scale-105 z-50 cursor-grabbing',
+            // Selection styles
+            isEditMode && isSelected && 'ring-2 ring-blue-500 border-blue-500 bg-blue-50 dark:bg-blue-900/20'
           )}
+          onClick={isEditMode && onToggleSelect ? (e) => {
+            e.stopPropagation();
+            onToggleSelect(deal.id);
+          } : undefined}
         >
           <div className="flex items-start justify-between mb-3">
-            <div className="flex-1 pr-2">
-              <h3 className="font-bold text-gray-900 dark:text-white text-sm leading-snug line-clamp-2">
-                {deal.title}
-              </h3>
+            <div className="flex items-start gap-2 flex-1 pr-2">
+              {/* Edit mode checkbox */}
+              {isEditMode && (
+                <input
+                  type="checkbox"
+                  checked={isSelected}
+                  onClick={(e) => e.stopPropagation()}
+                  onChange={() => onToggleSelect?.(deal.id)}
+                  className="mt-0.5 w-4 h-4 text-blue-600 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 rounded focus:ring-blue-500 dark:focus:ring-blue-400 cursor-pointer"
+                />
+              )}
+              <div>
+                <h3 className="font-bold text-gray-900 dark:text-white text-sm leading-snug line-clamp-2">
+                  {deal.title}
+                </h3>
               {isTimerRunningForThis && (
                 <span className="inline-flex items-center mt-1 text-xs font-mono font-semibold text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 px-2 py-0.5 rounded animate-pulse">
                   {formatElapsedTime(elapsedSeconds)}
                 </span>
               )}
+              </div>
             </div>
             <div className={cn(
               "flex-shrink-0 flex gap-1 transition-opacity",

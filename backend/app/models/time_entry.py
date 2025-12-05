@@ -1,7 +1,19 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, Boolean, Numeric, ForeignKey
+from sqlalchemy import Column, Integer, String, Text, DateTime, Boolean, Numeric, ForeignKey, Enum
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from app.database import Base
+import enum
+
+
+class TimeEntryCategory(str, enum.Enum):
+    DEVELOPMENT = "development"
+    DESIGN = "design"
+    MEETING = "meeting"
+    COMMUNICATION = "communication"
+    RESEARCH = "research"
+    ADMIN = "admin"
+    SUPPORT = "support"
+    OTHER = "other"
 
 
 class TimeEntry(Base):
@@ -24,6 +36,10 @@ class TimeEntry(Base):
 
     # Billing
     hourly_rate = Column(Numeric(10, 2), nullable=True)  # copied from deal/project or manual
+    is_billable = Column(Boolean, default=True)  # whether this time counts for billing
+
+    # Categorization
+    category = Column(Enum(TimeEntryCategory), nullable=True)
 
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -36,7 +52,7 @@ class TimeEntry(Base):
     @property
     def billable_amount(self):
         """Calculate billable amount based on duration and hourly rate."""
-        if self.duration_seconds and self.hourly_rate:
+        if self.duration_seconds and self.hourly_rate and self.is_billable:
             hours = self.duration_seconds / 3600
             return float(self.hourly_rate) * hours
         return None

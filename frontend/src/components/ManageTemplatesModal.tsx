@@ -111,6 +111,7 @@ export default function ManageTemplatesModal({ isOpen, onClose }: ManageTemplate
       return;
     }
     saveTemplateMutation.mutate({
+      id: currentTemplate?.id,
       niche_id: selectedNicheId,
       situation_id: selectedSituationId,
       dm_number: selectedDmNumber,

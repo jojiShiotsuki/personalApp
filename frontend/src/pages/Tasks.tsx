@@ -52,10 +52,12 @@ export default function Tasks() {
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [sortBy, setSortBy] = useState<SortOption>('dueDate');
+  const [projectFilter, setProjectFilter] = useState<string>('all'); // 'all', 'none', or project id
   const [selectedTaskIds, setSelectedTaskIds] = useState<Set<number>>(new Set());
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [showBulkStatusChange, setShowBulkStatusChange] = useState(false);
+  const [applyToAllRecurring, setApplyToAllRecurring] = useState(false);
   // Recurrence state managed by custom hook
   const {
     isRecurring, setIsRecurring,
@@ -126,10 +128,26 @@ export default function Tasks() {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
       setIsModalOpen(false);
       setEditingTask(null);
+      setApplyToAllRecurring(false);
       toast.success('Task updated successfully');
     },
     onError: () => {
       toast.error('Failed to update task. Please try again.');
+    },
+  });
+
+  const updateAllRecurringMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: TaskUpdate }) =>
+      taskApi.updateAllRecurring(id, data),
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      setIsModalOpen(false);
+      setEditingTask(null);
+      setApplyToAllRecurring(false);
+      toast.success(`Updated ${result.updated_count} recurring task(s)`);
+    },
+    onError: () => {
+      toast.error('Failed to update recurring tasks. Please try again.');
     },
   });
 
@@ -208,7 +226,12 @@ export default function Tasks() {
     };
 
     if (editingTask) {
-      updateMutation.mutate({ id: editingTask.id, data });
+      // Check if we should update all recurring tasks
+      if (applyToAllRecurring && (editingTask.is_recurring || editingTask.parent_task_id)) {
+        updateAllRecurringMutation.mutate({ id: editingTask.id, data });
+      } else {
+        updateMutation.mutate({ id: editingTask.id, data });
+      }
     } else {
       createMutation.mutate(data);
     }
@@ -235,6 +258,7 @@ export default function Tasks() {
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setEditingTask(null);
+    setApplyToAllRecurring(false);
     resetRecurrence();
   };
 
@@ -336,11 +360,21 @@ export default function Tasks() {
       );
     }
 
+    // Apply project filter
+    if (projectFilter !== 'all') {
+      if (projectFilter === 'none') {
+        result = result.filter(task => !task.project_id);
+      } else {
+        const projectId = parseInt(projectFilter, 10);
+        result = result.filter(task => task.project_id === projectId);
+      }
+    }
+
     // Apply sorting
     result = [...result].sort(sortFunctions[sortBy]);
 
     return result;
-  }, [tasks, filter, debouncedSearch, sortBy]);
+  }, [tasks, filter, debouncedSearch, sortBy, projectFilter]);
 
   const currentDateObj = useMemo(() => dueDate ? new Date(dueDate) : new Date(), [dueDate]);
   const currentDayShort = currentDateObj.toLocaleDateString('en-US', { weekday: 'short' });
@@ -410,14 +444,14 @@ export default function Tasks() {
   };
 
   return (
-    <div className="flex h-full bg-gray-50">
+    <div className="flex h-full bg-gray-50 dark:bg-gray-900">
       <div className="flex-1 h-full flex flex-col">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200/60 px-8 py-6">
+      <div className="bg-white dark:bg-gray-800 border-b border-gray-200/60 dark:border-gray-700 px-8 py-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Tasks</h1>
-            <p className="mt-1 text-sm text-gray-500">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">Tasks</h1>
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
               Manage and track your daily tasks
             </p>
           </div>
@@ -527,7 +561,7 @@ export default function Tasks() {
       </div>
 
       {/* Filters */}
-      <div className="bg-white border-b border-gray-200/60 px-8 py-2">
+      <div className="bg-white dark:bg-gray-800 border-b border-gray-200/60 dark:border-gray-700 px-8 py-2">
         <div className="flex items-center gap-2 overflow-x-auto pb-2 sm:pb-0 no-scrollbar">
           <Filter className="w-4 h-4 text-gray-400 flex-shrink-0 mr-2" />
           <div className="flex gap-2">
@@ -555,7 +589,7 @@ export default function Tasks() {
       </div>
 
       {/* Search and Sort Toolbar */}
-      <div className="bg-white border-b border-gray-200/60 px-8 py-4">
+      <div className="bg-white dark:bg-gray-800 border-b border-gray-200/60 dark:border-gray-700 px-8 py-4">
         <div className="flex flex-col sm:flex-row gap-4">
           {/* Select All Checkbox (only in edit mode) */}
           {isEditMode && filteredAndSortedTasks.length > 0 && (
@@ -600,6 +634,28 @@ export default function Tasks() {
               </svg>
             </div>
           </div>
+          {/* Project Filter Dropdown */}
+          <div className="sm:w-48">
+            <select
+              value={projectFilter}
+              onChange={(e) => setProjectFilter(e.target.value)}
+              className={cn(
+                'w-full px-4 py-2.5',
+                'bg-gray-50 border border-gray-200 rounded-xl',
+                'focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500',
+                'transition-all duration-200',
+                'cursor-pointer text-sm'
+              )}
+            >
+              <option value="all">All Projects</option>
+              <option value="none">No Project</option>
+              {projects.map((project) => (
+                <option key={project.id} value={project.id.toString()}>
+                  {project.name}
+                </option>
+              ))}
+            </select>
+          </div>
           {/* Sort Dropdown */}
           <div className="sm:w-64">
             <select
@@ -623,7 +679,7 @@ export default function Tasks() {
       </div>
 
       {/* Task List or Kanban Board */}
-      <div className="flex-1 overflow-auto px-8 py-6 bg-gray-50/30">
+      <div className="flex-1 overflow-auto px-8 py-6 bg-gray-50/30 dark:bg-gray-900">
         {isLoading ? (
           <div className="flex justify-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-600"></div>
@@ -885,6 +941,22 @@ export default function Tasks() {
                 </div>
               </div>
 
+              {/* Apply to all recurring tasks option */}
+              {editingTask && (editingTask.is_recurring || editingTask.parent_task_id) && (
+                <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-100 rounded-lg">
+                  <input
+                    type="checkbox"
+                    id="applyToAllRecurring"
+                    checked={applyToAllRecurring}
+                    onChange={(e) => setApplyToAllRecurring(e.target.checked)}
+                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  />
+                  <label htmlFor="applyToAllRecurring" className="text-sm text-blue-800">
+                    Apply changes to all related recurring tasks
+                  </label>
+                </div>
+              )}
+
               <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-100 mt-6">
                 <button
                   type="button"
@@ -895,13 +967,13 @@ export default function Tasks() {
                 </button>
                 <button
                   type="submit"
-                  disabled={createMutation.isPending || updateMutation.isPending}
+                  disabled={createMutation.isPending || updateMutation.isPending || updateAllRecurringMutation.isPending}
                   className="px-6 py-2 bg-blue-600 text-white text-sm font-medium rounded-xl hover:bg-blue-700 shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:shadow-none"
                 >
-                  {createMutation.isPending || updateMutation.isPending
+                  {createMutation.isPending || updateMutation.isPending || updateAllRecurringMutation.isPending
                     ? 'Saving...'
                     : editingTask
-                    ? 'Update Task'
+                    ? (applyToAllRecurring ? 'Update All' : 'Update Task')
                     : 'Create Task'}
                 </button>
               </div>

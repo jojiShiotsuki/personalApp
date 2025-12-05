@@ -137,7 +137,7 @@ def get_deals(
         deal.followup_count = followup_count
         deals_with_count.append(deal)
 
-    return deals_with_count
+    return [DealResponse.model_validate(deal) for deal in deals_with_count]
 
 @router.get("/deals/{deal_id}", response_model=DealResponse)
 def get_deal(deal_id: int, db: Session = Depends(get_db)):
@@ -159,7 +159,8 @@ def get_deal(deal_id: int, db: Session = Depends(get_db)):
 
     # Attach followup_count to deal object
     deal.followup_count = followup_count
-    return deal
+    # Explicitly validate to trigger model_validator
+    return DealResponse.model_validate(deal)
 
 @router.post("/deals", response_model=DealResponse, status_code=201)
 def create_deal(deal: DealCreate, db: Session = Depends(get_db)):
@@ -179,7 +180,7 @@ def create_deal(deal: DealCreate, db: Session = Depends(get_db)):
     db.refresh(db_deal)
     # Load the contact relationship
     db.refresh(db_deal, attribute_names=['contact'])
-    return db_deal
+    return DealResponse.model_validate(db_deal)
 
 @router.put("/deals/{deal_id}", response_model=DealResponse)
 def update_deal(deal_id: int, deal_update: DealUpdate, db: Session = Depends(get_db)):
@@ -202,7 +203,7 @@ def update_deal(deal_id: int, deal_update: DealUpdate, db: Session = Depends(get
     db_deal.updated_at = datetime.utcnow()
     db.commit()
     db.refresh(db_deal)
-    return db_deal
+    return DealResponse.model_validate(db_deal)
 
 @router.patch("/deals/{deal_id}/stage", response_model=DealResponse)
 def update_deal_stage(
@@ -225,7 +226,58 @@ def update_deal_stage(
     db_deal.updated_at = datetime.utcnow()
     db.commit()
     db.refresh(db_deal)
-    return db_deal
+    return DealResponse.model_validate(db_deal)
+
+@router.post("/deals/bulk-delete", status_code=200)
+def bulk_delete_deals(deal_ids: List[int], db: Session = Depends(get_db)):
+    """Delete multiple deals by their IDs"""
+    if not deal_ids:
+        raise HTTPException(status_code=400, detail="No deal IDs provided")
+
+    deals = db.query(Deal).filter(Deal.id.in_(deal_ids)).all()
+
+    if not deals:
+        raise HTTPException(status_code=404, detail="No deals found with the provided IDs")
+
+    deleted_count = len(deals)
+
+    for deal in deals:
+        db.delete(deal)
+
+    db.commit()
+
+    return {"deleted_count": deleted_count, "message": f"Successfully deleted {deleted_count} deal(s)"}
+
+
+@router.post("/deals/bulk-stage-update", status_code=200)
+def bulk_update_deal_stage(
+    deal_ids: List[int] = Query(..., description="List of deal IDs to update"),
+    stage: DealStage = Query(..., description="New stage for the deals"),
+    db: Session = Depends(get_db)
+):
+    """Update the stage of multiple deals"""
+    if not deal_ids:
+        raise HTTPException(status_code=400, detail="No deal IDs provided")
+
+    deals = db.query(Deal).filter(Deal.id.in_(deal_ids)).all()
+
+    if not deals:
+        raise HTTPException(status_code=404, detail="No deals found with the provided IDs")
+
+    updated_count = 0
+    for deal in deals:
+        deal.stage = stage
+        # Set actual_close_date if closing
+        if stage in [DealStage.CLOSED_WON, DealStage.CLOSED_LOST]:
+            if not deal.actual_close_date:
+                deal.actual_close_date = datetime.utcnow().date()
+        deal.updated_at = datetime.utcnow()
+        updated_count += 1
+
+    db.commit()
+
+    return {"updated_count": updated_count, "message": f"Successfully updated {updated_count} deal(s) to {stage.value}"}
+
 
 @router.delete("/deals/{deal_id}", status_code=204)
 def delete_deal(deal_id: int, db: Session = Depends(get_db)):
@@ -237,6 +289,7 @@ def delete_deal(deal_id: int, db: Session = Depends(get_db)):
     db.delete(db_deal)
     db.commit()
     return None
+
 
 # ===== INTERACTION ROUTES =====
 

@@ -16,6 +16,9 @@ interface KanbanBoardProps {
   onEditDeal: (deal: Deal) => void;
   onDeleteDeal: (id: number) => void;
   onAddInteraction?: (contactId: number) => void;
+  isEditMode?: boolean;
+  selectedDealIds?: Set<number>;
+  onToggleSelect?: (dealId: number) => void;
 }
 
 const STAGE_ORDER = [
@@ -33,6 +36,9 @@ export default function KanbanBoard({
   onEditDeal,
   onDeleteDeal,
   onAddInteraction,
+  isEditMode = false,
+  selectedDealIds = new Set(),
+  onToggleSelect,
 }: KanbanBoardProps) {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -165,11 +171,11 @@ export default function KanbanBoard({
 
   return (
     <DragDropContext onDragEnd={handleDragEnd}>
-      <div className="relative">
+      <div className="relative h-full">
         {/* Scroll hint for mobile */}
         <div className="sm:hidden absolute top-0 right-0 bg-gradient-to-l from-gray-100 dark:from-gray-900 to-transparent w-8 h-full pointer-events-none z-10" />
 
-        <div className="flex gap-4 overflow-x-auto pb-4 pt-2 px-2 [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-300 dark:[&::-webkit-scrollbar-thumb]:bg-gray-600 [&::-webkit-scrollbar-track]:bg-transparent">
+        <div className="flex gap-4 overflow-x-auto h-full pb-4 pt-2 px-2 [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-300 dark:[&::-webkit-scrollbar-thumb]:bg-gray-600 [&::-webkit-scrollbar-track]:bg-transparent">
         {STAGE_ORDER.map((stage) => (
           <KanbanColumn
             key={stage}
@@ -181,6 +187,9 @@ export default function KanbanBoard({
             onEditDeal={onEditDeal}
             onDeleteDeal={onDeleteDeal}
             onAddInteraction={onAddInteraction}
+            isEditMode={isEditMode}
+            selectedDealIds={selectedDealIds}
+            onToggleSelect={onToggleSelect}
           />
         ))}
         </div>

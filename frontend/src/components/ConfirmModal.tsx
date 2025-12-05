@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 import { X, AlertTriangle } from 'lucide-react';
 
 interface ConfirmModalProps {
@@ -45,7 +46,9 @@ export default function ConfirmModal({
 
   const styles = variantStyles[variant];
 
-  return (
+  // Use portal to render modal outside parent DOM tree
+  // This prevents hover state conflicts with parent components
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div
         className="absolute inset-0 bg-black/50 backdrop-blur-sm"
@@ -88,6 +91,7 @@ export default function ConfirmModal({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

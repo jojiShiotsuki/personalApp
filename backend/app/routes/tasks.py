@@ -173,3 +173,64 @@ def update_task_status(
     db.refresh(db_task)
 
     return prepare_task_for_response(db_task)
+
+
+@router.put("/{task_id}/update-all-recurring", response_model=dict)
+def update_all_recurring_tasks(
+    task_id: int,
+    task_update: TaskUpdate,
+    db: Session = Depends(get_db)
+):
+    """Update a recurring task and all its related tasks (parent and children)"""
+    db_task = db.query(Task).filter(Task.id == task_id).first()
+    if not db_task:
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    # Find all related recurring tasks
+    related_task_ids = []
+
+    # If this task has a parent, get the parent and all siblings
+    if db_task.parent_task_id:
+        parent_id = db_task.parent_task_id
+        # Get parent task
+        related_task_ids.append(parent_id)
+        # Get all sibling tasks (tasks with same parent)
+        siblings = db.query(Task).filter(Task.parent_task_id == parent_id).all()
+        related_task_ids.extend([s.id for s in siblings])
+    else:
+        # This is the parent task, get all children
+        related_task_ids.append(db_task.id)
+        children = db.query(Task).filter(Task.parent_task_id == db_task.id).all()
+        related_task_ids.extend([c.id for c in children])
+
+    # Remove duplicates
+    related_task_ids = list(set(related_task_ids))
+
+    update_data = task_update.model_dump(exclude_unset=True)
+
+    # Handle recurrence_days list to string conversion for DB storage
+    if "recurrence_days" in update_data:
+        if update_data["recurrence_days"]:
+            update_data["recurrence_days"] = ",".join(update_data["recurrence_days"])
+        else:
+            update_data["recurrence_days"] = None
+
+    # Fields to apply to all tasks (exclude date-specific fields for children)
+    shared_fields = ["title", "description", "priority", "project_id", "goal_id", "due_time"]
+
+    updated_count = 0
+    for tid in related_task_ids:
+        task = db.query(Task).filter(Task.id == tid).first()
+        if task:
+            for field in shared_fields:
+                if field in update_data:
+                    setattr(task, field, update_data[field])
+            task.updated_at = datetime.utcnow()
+            updated_count += 1
+
+    db.commit()
+
+    return {
+        "updated_count": updated_count,
+        "message": f"Successfully updated {updated_count} recurring task(s)"
+    }

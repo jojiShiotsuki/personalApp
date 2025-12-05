@@ -346,7 +346,7 @@ export default function TaskItem({ task, onStatusChange, onClick, onDelete, isUp
         {/* Action Buttons (group-hover pattern) */}
         <div className={cn(
           "flex gap-1 transition-opacity duration-200",
-          isTimerRunningForThis ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+          (isTimerRunningForThis || showDeleteConfirm) ? "opacity-100" : "opacity-0 group-hover:opacity-100"
         )}>
           {/* Timer Button */}
           {!isCompleted && (
@@ -388,8 +388,12 @@ export default function TaskItem({ task, onStatusChange, onClick, onDelete, isUp
         isOpen={showDeleteConfirm}
         onClose={() => setShowDeleteConfirm(false)}
         onConfirm={() => {
-          if (onDelete) onDelete(task.id);
+          // Close modal first to prevent visual glitch when TaskItem unmounts
           setShowDeleteConfirm(false);
+          // Small delay to allow modal to close before component unmounts
+          setTimeout(() => {
+            if (onDelete) onDelete(task.id);
+          }, 100);
         }}
         title="Delete Task"
         message="Are you sure you want to delete this task? This action cannot be undone."

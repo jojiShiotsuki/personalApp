@@ -14,6 +14,7 @@ import Export from './pages/Export';
 import SocialCalendar from './pages/SocialCalendar';
 import Time from './pages/Time';
 import Outreach from './pages/Outreach';
+import Services from './pages/Services';
 import QuickAddModal from './components/QuickAddModal';
 import CommandPalette from './components/CommandPalette';
 import { ThemeProvider } from './components/ThemeProvider';
@@ -61,6 +62,7 @@ function App() {
               <Route path="/social-calendar" element={<SocialCalendar />} />
               <Route path="/time" element={<Time />} />
               <Route path="/outreach" element={<Outreach />} />
+              <Route path="/services" element={<Services />} />
             </Routes>
           </Layout>
           <CommandPalette
