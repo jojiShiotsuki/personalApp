@@ -5,6 +5,7 @@ from .goal import Goal
 from .social_content import SocialContent, ContentType, ContentStatus, EditingStyle
 from .time_entry import TimeEntry
 from .activity_log import ActivityLog
+from .coach_insight import CoachInsight, InsightType, InsightPriority
 
 __all__ = [
     "Task", "TaskPriority", "TaskStatus",
@@ -15,4 +16,5 @@ __all__ = [
     "SocialContent", "ContentType", "ContentStatus", "EditingStyle",
     "TimeEntry",
     "ActivityLog",
+    "CoachInsight", "InsightType", "InsightPriority",
 ]
