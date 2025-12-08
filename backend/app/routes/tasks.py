@@ -8,6 +8,7 @@ from app.models.task import Task, TaskStatus, TaskPriority
 from app.schemas.task import TaskCreate, TaskUpdate, TaskResponse
 from app.services.project_service import recalculate_project_progress
 from app.services.recurrence_service import create_all_future_occurrences
+from app.services.activity_service import log_activity
 
 router = APIRouter(prefix="/api/tasks", tags=["tasks"])
 
@@ -82,6 +83,11 @@ def create_task(task: TaskCreate, db: Session = Depends(get_db)):
     if db_task.is_recurring:
         create_all_future_occurrences(db_task, db)
         db.refresh(db_task)
+    # Log activity
+    log_activity(db, "task_created", "task", db_task.id, {
+        "priority": db_task.priority.value if db_task.priority else None,
+        "has_due_date": db_task.due_date is not None
+    })
 
     return prepare_task_for_response(db_task)
 
@@ -113,6 +119,15 @@ def update_task(task_id: int, task_update: TaskUpdate, db: Session = Depends(get
     db.commit()
     db.refresh(db_task)
 
+    # Log activity if task was completed
+    if "status" in update_data and update_data["status"] == TaskStatus.COMPLETED:
+        days_to_complete = None
+        if db_task.created_at:
+            days_to_complete = (datetime.utcnow() - db_task.created_at).days
+        log_activity(db, "task_completed", "task", task_id, {
+            "priority": db_task.priority.value if db_task.priority else None,
+            "days_to_complete": days_to_complete
+        })
     # Recalculate project progress if task belongs to project
     if db_task.project_id:
         recalculate_project_progress(db_task.project_id, db)
