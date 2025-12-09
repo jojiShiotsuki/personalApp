@@ -21,6 +21,7 @@ import CommandPalette from './components/CommandPalette';
 import { ThemeProvider } from './components/ThemeProvider';
 import { ChatProvider } from './contexts/ChatContext';
 import { TimerProvider } from './contexts/TimerContext';
+import { CoachProvider } from './contexts/CoachContext';
 
 function App() {
   const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
@@ -49,7 +50,8 @@ function App() {
     <ThemeProvider defaultTheme="light" storageKey="vite-ui-theme">
       <BrowserRouter>
         <TimerProvider>
-          <ChatProvider>
+          <CoachProvider>
+            <ChatProvider>
             <Layout>
             <Routes>
               <Route path="/" element={<Dashboard />} />
@@ -77,7 +79,8 @@ function App() {
             onClose={() => setIsQuickAddOpen(false)}
             onSuccess={handleQuickAddSuccess}
           />
-        </ChatProvider>
+            </ChatProvider>
+          </CoachProvider>
         </TimerProvider>
       </BrowserRouter>
     </ThemeProvider>
