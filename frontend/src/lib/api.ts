@@ -27,6 +27,9 @@ import type {
   TimeEntryUpdate,
   TimeSummary,
   TimeSummaryResponse,
+  CoachInsight,
+  CoachSettings,
+  CheckInsightRequest,
 } from '../types/index';
 import {
   TaskStatus,
@@ -529,6 +532,40 @@ export const outreachApi = {
   // Quick Actions
   addToPipeline: async (data: { name: string; niche: string; situation: string }) => {
     const response = await api.post('/api/outreach/add-to-pipeline', data);
+    return response.data;
+  },
+};
+
+// Coach API
+export const coachApi = {
+  checkAction: async (
+    request: CheckInsightRequest,
+    settings: CoachSettings
+  ): Promise<CoachInsight | null> => {
+    const params = new URLSearchParams({
+      coach_level: settings.coach_level.toString(),
+    });
+    const response = await api.post(`/api/coach/check?${params}`, request);
+    return response.data;
+  },
+
+  getInsights: async (settings: CoachSettings): Promise<CoachInsight[]> => {
+    const params = new URLSearchParams({
+      coach_level: settings.coach_level.toString(),
+      stale_lead_days: settings.stale_lead_days.toString(),
+      stuck_deal_days: settings.stuck_deal_days.toString(),
+    });
+    const response = await api.get(`/api/coach/insights?${params}`);
+    return response.data;
+  },
+
+  markSeen: async (insightId: number): Promise<{ success: boolean }> => {
+    const response = await api.post(`/api/coach/insights/${insightId}/seen`);
+    return response.data;
+  },
+
+  dismissInsight: async (insightId: number): Promise<{ success: boolean }> => {
+    const response = await api.post(`/api/coach/insights/${insightId}/dismiss`);
     return response.data;
   },
 };
