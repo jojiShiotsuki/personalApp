@@ -9,6 +9,7 @@ import AddInteractionModal from '@/components/AddInteractionModal';
 import AIChatPanel from '@/components/AIChatPanel';
 import ConfirmModal from '@/components/ConfirmModal';
 import { toast } from 'sonner';
+import { useCoach } from '../contexts/CoachContext';
 
 const stages = [
   { id: DealStage.LEAD, title: 'Lead' },
@@ -31,6 +32,7 @@ export default function Deals() {
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
   const [bulkStageTarget, setBulkStageTarget] = useState<DealStage | null>(null);
   const queryClient = useQueryClient();
+  const { checkAction } = useCoach();
 
   const { data: deals = [] } = useQuery({
     queryKey: ['deals'],
@@ -44,20 +46,37 @@ export default function Deals() {
 
   const createMutation = useMutation({
     mutationFn: (deal: DealCreate) => dealApi.create(deal),
-    onSuccess: () => {
+    onSuccess: (newDeal) => {
       queryClient.invalidateQueries({ queryKey: ['deals'] });
       setIsModalOpen(false);
       setEditingDeal(null);
+      // Notify coach of new deal
+      checkAction('deal_created', {
+        deal_id: newDeal.id,
+        title: newDeal.title,
+        value: newDeal.value,
+        stage: newDeal.stage,
+      });
     },
   });
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: number; data: Partial<DealCreate> }) =>
       dealApi.update(id, data),
-    onSuccess: () => {
+    onSuccess: (updatedDeal, variables) => {
       queryClient.invalidateQueries({ queryKey: ['deals'] });
       setIsModalOpen(false);
       setEditingDeal(null);
+      // Check if deal was closed
+      if (variables.data.stage === DealStage.CLOSED_WON || variables.data.stage === DealStage.CLOSED_LOST) {
+        checkAction('deal_closed', {
+          deal_id: updatedDeal.id,
+          title: updatedDeal.title,
+          value: updatedDeal.value,
+          stage: updatedDeal.stage,
+          won: variables.data.stage === DealStage.CLOSED_WON,
+        });
+      }
     },
   });
 
