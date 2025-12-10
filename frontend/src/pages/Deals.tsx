@@ -9,6 +9,7 @@ import AddInteractionModal from '@/components/AddInteractionModal';
 import AIChatPanel from '@/components/AIChatPanel';
 import ConfirmModal from '@/components/ConfirmModal';
 import { toast } from 'sonner';
+import { useCoach } from '../contexts/CoachContext';
 
 const stages = [
   { id: DealStage.LEAD, title: 'Lead' },
@@ -31,6 +32,7 @@ export default function Deals() {
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
   const [bulkStageTarget, setBulkStageTarget] = useState<DealStage | null>(null);
   const queryClient = useQueryClient();
+  const { checkAction } = useCoach();
 
   const { data: deals = [] } = useQuery({
     queryKey: ['deals'],
@@ -44,11 +46,22 @@ export default function Deals() {
 
   const createMutation = useMutation({
     mutationFn: (deal: DealCreate) => dealApi.create(deal),
-    onSuccess: () => {
+    onSuccess: (newDeal) => {
       queryClient.invalidateQueries({ queryKey: ['deals'] });
       setIsModalOpen(false);
       setEditingDeal(null);
       toast.success('Deal created successfully');
+      // Notify coach of new deal
+      checkAction({
+        action: 'deal_created',
+        entity_type: 'deal',
+        entity_id: newDeal.id,
+        metadata: {
+          title: newDeal.title,
+          value: newDeal.value,
+          stage: newDeal.stage,
+        },
+      });
     },
     onError: () => {
       toast.error('Failed to create deal. Please try again.');
@@ -58,11 +71,26 @@ export default function Deals() {
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: number; data: Partial<DealCreate> }) =>
       dealApi.update(id, data),
-    onSuccess: () => {
+    onSuccess: (updatedDeal, variables) => {
       queryClient.invalidateQueries({ queryKey: ['deals'] });
       setIsModalOpen(false);
       setEditingDeal(null);
       toast.success('Deal updated successfully');
+      // Check if deal was closed
+      if (variables.data.stage === DealStage.CLOSED_WON || variables.data.stage === DealStage.CLOSED_LOST) {
+        checkAction({
+          action: 'deal_closed',
+          entity_type: 'deal',
+          entity_id: updatedDeal.id,
+          metadata: {
+            title: updatedDeal.title,
+            value: updatedDeal.value,
+            stage: updatedDeal.stage,
+            won: variables.data.stage === DealStage.CLOSED_WON,
+            contact_id: updatedDeal.contact_id,
+          },
+        });
+      }
     },
     onError: () => {
       toast.error('Failed to update deal. Please try again.');

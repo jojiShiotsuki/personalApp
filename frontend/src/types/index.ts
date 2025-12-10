@@ -536,3 +536,36 @@ export interface TimeSummaryResponse {
   this_week: TimeSummary;
   this_month: TimeSummary;
 }
+
+// Coach Types
+export type InsightType = 'action' | 'time' | 'pattern';
+export type InsightPriority = 'low' | 'medium' | 'high';
+
+export interface CoachInsight {
+  id: number;
+  type: InsightType;
+  priority: InsightPriority;
+  message: string;
+  suggested_action?: string;
+  action_params?: Record<string, any>;
+  entity_type?: string;
+  entity_id?: number;
+  seen: boolean;
+  dismissed: boolean;
+  created_at: string;
+  expires_at?: string;
+}
+
+export interface CoachSettings {
+  coach_level: 1 | 2 | 3;
+  coach_enabled: boolean;
+  stale_lead_days: number;
+  stuck_deal_days: number;
+}
+
+export interface CheckInsightRequest {
+  action: string;
+  entity_type: string;
+  entity_id?: number;
+  metadata?: Record<string, any>;
+}

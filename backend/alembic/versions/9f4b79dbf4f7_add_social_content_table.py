@@ -45,7 +45,7 @@ def upgrade() -> None:
     op.drop_column('crm_contacts', 'source')
     op.add_column('crm_deals', sa.Column('next_followup_date', sa.Date(), nullable=True))
     op.drop_index('ix_tasks_project_id', table_name='tasks')
-    op.create_index(op.f('ix_tasks_goal_id'), 'tasks', ['goal_id'], unique=False)
+    #     op.create_index(op.f('ix_tasks_goal_id'), 'tasks', ['goal_id'], unique=False)
     # SQLite doesn't support adding foreign keys with ALTER, so we wrap in batch_alter_table
     with op.batch_alter_table('tasks', schema=None) as batch_op:
         try:

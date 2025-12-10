@@ -14,6 +14,7 @@ import { getNextOccurrences, getRecurrenceText } from '@/lib/recurrence';
 import { useRecurrence } from '@/hooks/useRecurrence';
 import { isDateStringToday, isDateStringThisWeek, isDateStringThisMonth, isDateStringOverdue } from '@/lib/dateUtils';
 import { toast } from 'sonner';
+import { useCoach } from '../contexts/CoachContext';
 
 type FilterValue = TaskStatus | 'all' | 'today' | 'this_week' | 'this_month' | 'overdue';
 type SortOption = 'dueDate' | 'priority' | 'createdDate' | 'title';
@@ -73,6 +74,7 @@ export default function Tasks() {
   } = useRecurrence();
   const [dueDate, setDueDate] = useState('');
   const [viewMode, setViewMode] = useState<'list' | 'board'>('list');
+  const { checkAction } = useCoach();
   const queryClient = useQueryClient();
 
 
@@ -124,12 +126,22 @@ export default function Tasks() {
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: number; data: TaskUpdate }) =>
       taskApi.update(id, data),
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
       setIsModalOpen(false);
       setEditingTask(null);
       setApplyToAllRecurring(false);
       toast.success('Task updated successfully');
+
+      // Notify coach if task was completed
+      if (variables.data.status === TaskStatus.COMPLETED) {
+        checkAction({
+          action: 'task_completed',
+          entity_type: 'task',
+          entity_id: variables.id,
+          metadata: { priority: variables.data.priority }
+        });
+      }
     },
     onError: () => {
       toast.error('Failed to update task. Please try again.');
@@ -154,8 +166,16 @@ export default function Tasks() {
   const updateStatusMutation = useMutation({
     mutationFn: ({ id, status }: { id: number; status: TaskStatus }) =>
       taskApi.updateStatus(id, status),
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      // Notify coach when task is completed
+      if (variables.status === TaskStatus.COMPLETED) {
+        checkAction({
+          action: 'task_completed',
+          entity_type: 'task',
+          entity_id: variables.id,
+        });
+      }
     },
     onError: () => {
       toast.error('Failed to update task status. Please try again.');

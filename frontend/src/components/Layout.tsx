@@ -13,13 +13,15 @@ import {
   Moon,
   Clock,
   Send,
-  RefreshCw
+  RefreshCw,
+  Settings
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTheme } from './ThemeProvider';
 
 import AIChatPanel from './AIChatPanel';
 import FloatingTimer from './FloatingTimer';
+import { CoachToast } from './CoachToast';
 
 interface LayoutProps {
   children: ReactNode;
@@ -37,6 +39,7 @@ const navigation = [
   { name: 'Time', href: '/time', icon: Clock },
   { name: 'Social Calendar', href: '/social-calendar', icon: Calendar },
   { name: 'Export', href: '/export', icon: Download },
+  { name: 'Settings', href: '/settings', icon: Settings },
 ];
 
 export default function Layout({ children }: LayoutProps) {
@@ -127,6 +130,9 @@ export default function Layout({ children }: LayoutProps) {
 
       {/* Floating Timer Widget */}
       <FloatingTimer />
+
+      {/* AI Business Coach Toast */}
+      <CoachToast />
     </div>
   );
 }

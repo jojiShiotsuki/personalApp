@@ -10,6 +10,7 @@ from app.schemas.crm import (
     DealCreate, DealUpdate, DealResponse,
     InteractionCreate, InteractionUpdate, InteractionResponse
 )
+from app.services.activity_service import log_activity
 
 router = APIRouter(prefix="/api/crm", tags=["crm"])
 
@@ -180,6 +181,12 @@ def create_deal(deal: DealCreate, db: Session = Depends(get_db)):
     db.refresh(db_deal)
     # Load the contact relationship
     db.refresh(db_deal, attribute_names=['contact'])
+    # Log activity
+    log_activity(db, "deal_created", "deal", db_deal.id, {
+        "value": db_deal.value,
+        "stage": db_deal.stage,
+        "contact_id": db_deal.contact_id
+    })
     return DealResponse.model_validate(db_deal)
 
 @router.put("/deals/{deal_id}", response_model=DealResponse)
@@ -202,6 +209,15 @@ def update_deal(deal_id: int, deal_update: DealUpdate, db: Session = Depends(get
 
     db_deal.updated_at = datetime.utcnow()
     db.commit()
+    # Log activity if deal closed
+    if "stage" in update_data:
+        new_stage = update_data["stage"]
+        if new_stage in [DealStage.CLOSED_WON, DealStage.CLOSED_LOST]:
+            log_activity(db, "deal_closed", "deal", deal_id, {
+                "won": new_stage == DealStage.CLOSED_WON,
+                "value": db_deal.value,
+                "contact_id": db_deal.contact_id
+            })
     db.refresh(db_deal)
     return DealResponse.model_validate(db_deal)
 
