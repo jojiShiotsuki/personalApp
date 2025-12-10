@@ -166,8 +166,16 @@ export default function Tasks() {
   const updateStatusMutation = useMutation({
     mutationFn: ({ id, status }: { id: number; status: TaskStatus }) =>
       taskApi.updateStatus(id, status),
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      // Notify coach when task is completed
+      if (variables.status === TaskStatus.COMPLETED) {
+        checkAction({
+          action: 'task_completed',
+          entity_type: 'task',
+          entity_id: variables.id,
+        });
+      }
     },
     onError: () => {
       toast.error('Failed to update task status. Please try again.');

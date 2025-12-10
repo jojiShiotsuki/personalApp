@@ -51,11 +51,15 @@ export default function Deals() {
       setIsModalOpen(false);
       setEditingDeal(null);
       // Notify coach of new deal
-      checkAction('deal_created', {
-        deal_id: newDeal.id,
-        title: newDeal.title,
-        value: newDeal.value,
-        stage: newDeal.stage,
+      checkAction({
+        action: 'deal_created',
+        entity_type: 'deal',
+        entity_id: newDeal.id,
+        metadata: {
+          title: newDeal.title,
+          value: newDeal.value,
+          stage: newDeal.stage,
+        },
       });
     },
   });
@@ -69,12 +73,16 @@ export default function Deals() {
       setEditingDeal(null);
       // Check if deal was closed
       if (variables.data.stage === DealStage.CLOSED_WON || variables.data.stage === DealStage.CLOSED_LOST) {
-        checkAction('deal_closed', {
-          deal_id: updatedDeal.id,
-          title: updatedDeal.title,
-          value: updatedDeal.value,
-          stage: updatedDeal.stage,
-          won: variables.data.stage === DealStage.CLOSED_WON,
+        checkAction({
+          action: 'deal_closed',
+          entity_type: 'deal',
+          entity_id: updatedDeal.id,
+          metadata: {
+            title: updatedDeal.title,
+            value: updatedDeal.value,
+            stage: updatedDeal.stage,
+            won: variables.data.stage === DealStage.CLOSED_WON,
+          },
         });
       }
     },
