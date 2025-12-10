@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { dealApi, contactApi } from '@/lib/api';
-import type { DealCreate } from '@/types';
+import type { Deal, DealCreate } from '@/types';
 import { DealStage, BillingFrequency, ServiceStatus } from '@/types';
 import { Plus, X, CheckSquare, Trash2, ArrowRightLeft } from 'lucide-react';
 import KanbanBoard from '@/components/KanbanBoard';
@@ -21,7 +21,7 @@ const stages = [
 
 export default function Deals() {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingDeal, setEditingDeal] = useState<any>(null);
+  const [editingDeal, setEditingDeal] = useState<Deal | null>(null);
   const [selectedStage, setSelectedStage] = useState<DealStage>(DealStage.LEAD);
   const [isAddInteractionOpen, setIsAddInteractionOpen] = useState(false);
   const [selectedContactId, setSelectedContactId] = useState<number | null>(null);
@@ -48,6 +48,10 @@ export default function Deals() {
       queryClient.invalidateQueries({ queryKey: ['deals'] });
       setIsModalOpen(false);
       setEditingDeal(null);
+      toast.success('Deal created successfully');
+    },
+    onError: () => {
+      toast.error('Failed to create deal. Please try again.');
     },
   });
 
@@ -58,6 +62,10 @@ export default function Deals() {
       queryClient.invalidateQueries({ queryKey: ['deals'] });
       setIsModalOpen(false);
       setEditingDeal(null);
+      toast.success('Deal updated successfully');
+    },
+    onError: () => {
+      toast.error('Failed to update deal. Please try again.');
     },
   });
 
@@ -65,6 +73,10 @@ export default function Deals() {
     mutationFn: (id: number) => dealApi.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['deals'] });
+      toast.success('Deal deleted');
+    },
+    onError: () => {
+      toast.error('Failed to delete deal. Please try again.');
     },
   });
 
@@ -129,8 +141,22 @@ export default function Deals() {
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
+
+    // Validate required fields
+    const contactId = formData.get('contact_id') as string;
+    if (!contactId) {
+      toast.error('Please select a contact');
+      return;
+    }
+
+    const title = formData.get('title') as string;
+    if (!title?.trim()) {
+      toast.error('Please enter a title');
+      return;
+    }
+
     const data: DealCreate = {
-      contact_id: parseInt(formData.get('contact_id') as string),
+      contact_id: parseInt(contactId),
       title: formData.get('title') as string,
       description: formData.get('description') as string || undefined,
       value: parseFloat(formData.get('value') as string) || undefined,
@@ -154,16 +180,16 @@ export default function Deals() {
   };
 
   return (
-    <div className="flex h-full bg-gray-50 overflow-hidden">
+    <div className="flex h-full bg-gray-50 dark:bg-slate-900 overflow-hidden">
       <div className="flex-1 flex flex-col h-full min-w-0">
         {/* Header */}
-        <div className="bg-white border-b border-gray-200/60 px-8 py-6 flex-shrink-0">
+        <div className="bg-white dark:bg-slate-900 border-b border-gray-200/60 dark:border-slate-700/60 px-8 py-6 flex-shrink-0">
           <div className="flex items-center justify-between gap-4">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Deals Pipeline</h1>
-              <p className="mt-1 text-sm text-gray-500">
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">Deals Pipeline</h1>
+              <p className="mt-1 text-sm text-gray-500 dark:text-slate-400">
                 {isEditMode ? (
-                  <span className="text-blue-600">
+                  <span className="text-blue-600 dark:text-blue-400">
                     {selectedDealIds.size} deal{selectedDealIds.size !== 1 ? 's' : ''} selected
                   </span>
                 ) : (
@@ -177,8 +203,8 @@ export default function Deals() {
                 onClick={() => isEditMode ? handleExitEditMode() : setIsEditMode(true)}
                 className={`flex items-center px-4 py-2 rounded-xl transition-all duration-200 ${
                   isEditMode
-                    ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    ? 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-200 hover:bg-gray-300 dark:hover:bg-slate-600'
+                    : 'bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-slate-700'
                 }`}
               >
                 <CheckSquare className="w-5 h-5 mr-2" />
@@ -191,7 +217,7 @@ export default function Deals() {
                   {/* Select All / Deselect All */}
                   <button
                     onClick={handleSelectAll}
-                    className="px-3 py-2 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
+                    className="px-3 py-2 text-sm text-gray-600 dark:text-slate-300 hover:text-gray-800 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
                   >
                     {selectedDealIds.size === deals.length ? 'Deselect All' : 'Select All'}
                   </button>
@@ -205,7 +231,7 @@ export default function Deals() {
                           setBulkStageTarget(e.target.value as DealStage);
                         }
                       }}
-                      className="appearance-none pl-4 pr-8 py-2 bg-amber-100 text-amber-700 rounded-xl border-0 focus:ring-2 focus:ring-amber-500 cursor-pointer text-sm font-medium"
+                      className="appearance-none pl-4 pr-8 py-2 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 rounded-xl border-0 focus:ring-2 focus:ring-amber-500 cursor-pointer text-sm font-medium"
                     >
                       <option value="">Move to...</option>
                       {stages.map((stage) => (

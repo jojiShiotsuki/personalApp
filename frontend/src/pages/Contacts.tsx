@@ -5,6 +5,7 @@ import { contactApi } from '@/lib/api';
 import type { Contact, ContactCreate } from '@/types';
 import { ContactStatus } from '@/types';
 import { Plus, Search, User, Mail, Phone, Building2, MoreHorizontal, Trash2, Edit2, ExternalLink } from 'lucide-react';
+import { toast } from 'sonner';
 import ContactDetailModal from '@/components/ContactDetailModal';
 import ContactModal from '@/components/ContactModal';
 import AddInteractionModal from '@/components/AddInteractionModal';
@@ -80,6 +81,10 @@ export default function Contacts() {
       queryClient.invalidateQueries({ queryKey: ['contacts'] });
       setIsModalOpen(false);
       setEditingContact(null);
+      toast.success('Contact created successfully');
+    },
+    onError: () => {
+      toast.error('Failed to create contact. Please try again.');
     },
   });
 
@@ -90,6 +95,10 @@ export default function Contacts() {
       queryClient.invalidateQueries({ queryKey: ['contacts'] });
       setIsModalOpen(false);
       setEditingContact(null);
+      toast.success('Contact updated successfully');
+    },
+    onError: () => {
+      toast.error('Failed to update contact. Please try again.');
     },
   });
 
@@ -97,6 +106,10 @@ export default function Contacts() {
     mutationFn: (id: number) => contactApi.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['contacts'] });
+      toast.success('Contact deleted');
+    },
+    onError: () => {
+      toast.error('Failed to delete contact. Please try again.');
     },
   });
 
@@ -121,14 +134,14 @@ export default function Contacts() {
   
 
   return (
-    <div className="flex h-full bg-gray-50">
+    <div className="flex h-full bg-gray-50 dark:bg-slate-900">
       <div className="flex-1 h-full flex flex-col">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200/60 px-8 py-6">
+      <div className="bg-white dark:bg-slate-900 border-b border-gray-200/60 dark:border-slate-700/60 px-8 py-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Contacts</h1>
-            <p className="mt-1 text-sm text-gray-500">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">Contacts</h1>
+            <p className="mt-1 text-sm text-gray-500 dark:text-slate-400">
               Manage your contacts and relationships
             </p>
           </div>
@@ -143,13 +156,14 @@ export default function Contacts() {
 
         {/* Search */}
         <div className="mt-6 relative max-w-md">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-slate-500" />
           <input
             type="text"
             placeholder="Search contacts by name, email, or company..."
+            aria-label="Search contacts"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
+            className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 dark:text-white dark:placeholder-slate-500"
           />
         </div>
       </div>
@@ -166,7 +180,7 @@ export default function Contacts() {
               return (
               <div
                 key={contact.id}
-                className="group bg-white rounded-2xl shadow-sm border border-gray-200/60 p-5 hover:shadow-xl hover:shadow-gray-200/50 hover:border-gray-300 transition-all duration-300 hover:-translate-y-1"
+                className="group bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-gray-200/60 dark:border-slate-700/60 p-5 hover:shadow-xl hover:shadow-gray-200/50 dark:hover:shadow-slate-900/50 hover:border-gray-300 dark:hover:border-slate-600 transition-all duration-300 hover:-translate-y-1"
               >
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-3">
@@ -177,7 +191,7 @@ export default function Contacts() {
                       {getInitials(contact.name)}
                     </div>
                     <div>
-                      <h3 className="font-bold text-gray-900 line-clamp-1">
+                      <h3 className="font-bold text-gray-900 dark:text-white line-clamp-1">
                         {contact.name}
                       </h3>
                       <span
@@ -204,29 +218,29 @@ export default function Contacts() {
 
                 <div className="space-y-2.5 mb-5">
                   {contact.company && (
-                    <div className="flex items-center text-sm text-gray-600">
-                      <Building2 className="w-4 h-4 mr-2.5 text-gray-400" />
+                    <div className="flex items-center text-sm text-gray-600 dark:text-slate-300">
+                      <Building2 className="w-4 h-4 mr-2.5 text-gray-400 dark:text-slate-500" />
                       <span className="truncate">{contact.company}</span>
                     </div>
                   )}
                   {contact.email && (
-                    <div className="flex items-center text-sm text-gray-600">
-                      <Mail className="w-4 h-4 mr-2.5 text-gray-400" />
+                    <div className="flex items-center text-sm text-gray-600 dark:text-slate-300">
+                      <Mail className="w-4 h-4 mr-2.5 text-gray-400 dark:text-slate-500" />
                       <span className="truncate">{contact.email}</span>
                     </div>
                   )}
                   {contact.phone && (
-                    <div className="flex items-center text-sm text-gray-600">
-                      <Phone className="w-4 h-4 mr-2.5 text-gray-400" />
+                    <div className="flex items-center text-sm text-gray-600 dark:text-slate-300">
+                      <Phone className="w-4 h-4 mr-2.5 text-gray-400 dark:text-slate-500" />
                       <span className="truncate">{contact.phone}</span>
                     </div>
                   )}
                 </div>
 
-                <div className="pt-4 border-t border-gray-100 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                <div className="pt-4 border-t border-gray-100 dark:border-slate-700 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                   <button
                     onClick={() => setSelectedContact(contact)}
-                    className="flex-1 flex items-center justify-center px-3 py-2 text-xs font-medium text-gray-700 bg-gray-50 hover:bg-gray-100 rounded-lg border border-gray-200 transition-colors"
+                    className="flex-1 flex items-center justify-center px-3 py-2 text-xs font-medium text-gray-700 dark:text-slate-300 bg-gray-50 dark:bg-slate-700 hover:bg-gray-100 dark:hover:bg-slate-600 rounded-lg border border-gray-200 dark:border-slate-600 transition-colors"
                   >
                     <ExternalLink className="w-3.5 h-3.5 mr-1.5" />
                     View
@@ -252,11 +266,11 @@ export default function Contacts() {
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center py-16 text-center">
-            <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-              <User className="w-10 h-10 text-gray-400" />
+            <div className="w-20 h-20 bg-gray-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-4">
+              <User className="w-10 h-10 text-gray-400 dark:text-slate-500" />
             </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-1">No contacts found</h3>
-            <p className="text-gray-500 max-w-sm mx-auto">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">No contacts found</h3>
+            <p className="text-gray-500 dark:text-slate-400 max-w-sm mx-auto">
               {searchTerm ? `No contacts match "${searchTerm}"` : "Get started by adding your first contact to manage your relationships."}
             </p>
             {!searchTerm && (
