@@ -56,9 +56,11 @@ export default function Tasks() {
   const [projectFilter, setProjectFilter] = useState<string>('all'); // 'all', 'none', or project id
   const [selectedTaskIds, setSelectedTaskIds] = useState<Set<number>>(new Set());
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [taskToDelete, setTaskToDelete] = useState<number | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [showBulkStatusChange, setShowBulkStatusChange] = useState(false);
   const [applyToAllRecurring, setApplyToAllRecurring] = useState(false);
+  const [showDeleteAllRecurringConfirm, setShowDeleteAllRecurringConfirm] = useState(false);
   // Recurrence state managed by custom hook
   const {
     isRecurring, setIsRecurring,
@@ -160,6 +162,20 @@ export default function Tasks() {
     },
     onError: () => {
       toast.error('Failed to update recurring tasks. Please try again.');
+    },
+  });
+
+  const deleteAllRecurringMutation = useMutation({
+    mutationFn: (id: number) => taskApi.deleteAllRecurring(id),
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      setIsModalOpen(false);
+      setEditingTask(null);
+      setShowDeleteAllRecurringConfirm(false);
+      toast.success(`Deleted ${result.deleted_count} recurring task(s)`);
+    },
+    onError: () => {
+      toast.error('Failed to delete recurring tasks. Please try again.');
     },
   });
 
@@ -439,6 +455,11 @@ export default function Tasks() {
     setRecurrenceEndDate('');
     setRecurrenceCount(13);
 
+    // Auto-set due date to today if not already set (required for recurrence to work)
+    if (!dueDate) {
+      setDueDate(new Date().toISOString().split('T')[0]);
+    }
+
     switch (value) {
       case 'daily':
         setRecurrenceType(RecurrenceType.DAILY);
@@ -464,25 +485,25 @@ export default function Tasks() {
   };
 
   return (
-    <div className="flex h-full bg-gray-50 dark:bg-gray-900">
-      <div className="flex-1 h-full flex flex-col">
-      {/* Header */}
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-200/60 dark:border-gray-700 px-8 py-6">
+    <div className="flex h-full bg-[--exec-bg]">
+      <div className="flex-1 h-full flex flex-col overflow-hidden">
+      {/* Page Header */}
+      <div className="px-8 pt-6 pb-4">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">Tasks</h1>
-            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+            <h1 className="text-2xl font-bold text-[--exec-text] tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>Tasks</h1>
+            <p className="mt-1 text-sm text-[--exec-text-muted]">
               Manage and track your daily tasks
             </p>
           </div>
           <div className="flex items-center gap-3">
             {/* View Toggle */}
-            <div className="flex items-center bg-gray-100 p-1 rounded-xl">
+            <div className="flex items-center bg-stone-800/50 p-1 rounded-xl">
               <button
                 onClick={() => setViewMode('list')}
                 className={cn(
                   "p-2 rounded-lg transition-all",
-                  viewMode === 'list' ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
+                  viewMode === 'list' ? "bg-stone-700 text-white shadow-sm" : "text-stone-400 hover:text-white hover:bg-stone-700/50"
                 )}
                 title="List View"
               >
@@ -492,7 +513,7 @@ export default function Tasks() {
                 onClick={() => setViewMode('board')}
                 className={cn(
                   "p-2 rounded-lg transition-all",
-                  viewMode === 'board' ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
+                  viewMode === 'board' ? "bg-stone-700 text-white shadow-sm" : "text-stone-400 hover:text-white hover:bg-stone-700/50"
                 )}
                 title="Board View"
               >
@@ -509,9 +530,9 @@ export default function Tasks() {
                   className={cn(
                     'flex items-center',
                     'px-4 py-2',
-                    'bg-rose-50 text-rose-600 border border-rose-100',
+                    'bg-[--exec-danger-bg] text-[--exec-danger] border border-[--exec-danger]/30',
                     'rounded-xl',
-                    'hover:bg-rose-100',
+                    'hover:bg-[--exec-danger]/20',
                     'transition-all duration-200',
                     'text-sm font-medium',
                     'disabled:opacity-50'
@@ -527,9 +548,9 @@ export default function Tasks() {
                   className={cn(
                     'flex items-center',
                     'px-4 py-2',
-                    'bg-emerald-50 text-emerald-600 border border-emerald-100',
+                    'bg-[--exec-sage-bg] text-[--exec-sage] border border-[--exec-sage]/30',
                     'rounded-xl',
-                    'hover:bg-emerald-100',
+                    'hover:bg-[--exec-sage]/20',
                     'transition-all duration-200',
                     'text-sm font-medium',
                     'disabled:opacity-50'
@@ -550,8 +571,8 @@ export default function Tasks() {
                 'transition-all duration-200',
                 'text-sm font-medium',
                 isEditMode
-                  ? 'bg-gray-900 text-white hover:bg-gray-800 shadow-sm'
-                  : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'
+                  ? 'bg-stone-600 text-white hover:bg-stone-500 shadow-sm'
+                  : 'bg-stone-700 border border-stone-600 text-stone-300 hover:bg-stone-600 hover:text-white'
               )}
             >
               {isEditMode ? 'Done' : 'Edit'}
@@ -564,9 +585,9 @@ export default function Tasks() {
                 className={cn(
                   'group flex items-center',
                   'px-4 py-2',
-                  'bg-blue-600 text-white',
+                  'bg-[--exec-accent] text-white',
                   'rounded-xl',
-                  'hover:bg-blue-700',
+                  'hover:bg-[--exec-accent-dark]',
                   'transition-all duration-200',
                   'shadow-sm hover:shadow-md',
                   'text-sm font-medium'
@@ -580,169 +601,214 @@ export default function Tasks() {
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-200/60 dark:border-gray-700 px-8 py-2">
-        <div className="flex items-center gap-2 overflow-x-auto pb-2 sm:pb-0 no-scrollbar">
-          <Filter className="w-4 h-4 text-gray-400 flex-shrink-0 mr-2" />
-          <div className="flex gap-2">
-            {filters.map((f) => {
-              const count = getFilterCount(f.value);
-              return (
-                <button
-                  key={f.value}
-                  onClick={() => setFilter(f.value)}
-                  className={cn(
-                    'px-3 py-1.5 text-sm font-medium rounded-lg',
-                    'transition-all duration-200',
-                    'whitespace-nowrap',
-                    filter === f.value
-                      ? 'bg-blue-50 text-blue-700'
-                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                  )}
-                >
-                  {f.label} <span className={cn("text-xs ml-1", filter === f.value ? "text-blue-500" : "text-gray-400")}>({count})</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-
-      {/* Search and Sort Toolbar */}
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-200/60 dark:border-gray-700 px-8 py-4">
-        <div className="flex flex-col sm:flex-row gap-4">
-          {/* Select All Checkbox (only in edit mode) */}
-          {isEditMode && filteredAndSortedTasks.length > 0 && (
-            <div className="flex items-center">
-              <input
-                type="checkbox"
-                checked={selectedTaskIds.size === filteredAndSortedTasks.length && filteredAndSortedTasks.length > 0}
-                onChange={handleSelectAll}
-                className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-              />
-              <label className="ml-2 text-sm text-gray-700 font-medium">Select All</label>
+      {/* Main Content Card */}
+      <div className="flex-1 overflow-hidden px-8 pb-6">
+        <div className="bento-card-static h-full flex flex-col overflow-hidden">
+          {/* Filters Row */}
+          <div className="px-6 py-4 border-b border-[--exec-border]/30">
+            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
+              <Filter className="w-4 h-4 text-[--exec-text-muted] flex-shrink-0 mr-1" />
+              <div className="flex gap-1">
+                {filters.map((f) => {
+                  const count = getFilterCount(f.value);
+                  const isActive = filter === f.value;
+                  return (
+                    <button
+                      key={f.value}
+                      onClick={() => setFilter(f.value)}
+                      className={cn(
+                        'relative px-4 py-2 text-sm font-medium rounded-lg',
+                        'transition-all duration-200',
+                        'whitespace-nowrap',
+                        isActive
+                          ? 'bg-orange-600 text-white shadow-sm'
+                          : 'text-stone-400 hover:text-white hover:bg-stone-600'
+                      )}
+                    >
+                      {f.label} <span className={cn('text-xs ml-1', isActive ? 'text-white/80' : 'opacity-60')}>({count})</span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-          )}
-          {/* Search Input */}
-          <div className="flex-1">
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Search tasks by title or description..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+          </div>
+
+          {/* Search and Sort Toolbar */}
+          <div className="px-6 py-4 border-b border-[--exec-border]/30">
+            <div className="flex flex-col sm:flex-row gap-3">
+              {/* Select All Checkbox (only in edit mode) */}
+              {isEditMode && filteredAndSortedTasks.length > 0 && (
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={selectedTaskIds.size === filteredAndSortedTasks.length && filteredAndSortedTasks.length > 0}
+                    onChange={handleSelectAll}
+                    className="w-4 h-4 text-[--exec-accent] bg-stone-700 border-stone-600 rounded focus:ring-[--exec-accent]/50"
+                  />
+                  <label className="ml-2 text-sm text-[--exec-text-secondary] font-medium">Select All</label>
+                </div>
+              )}
+              {/* Search Input */}
+              <div className="flex-1">
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="Search tasks..."
+                    aria-label="Search tasks"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className={cn(
+                      'w-full px-4 py-2 pl-10',
+                      'bg-[--exec-surface-alt] border-0 rounded-lg',
+                      'focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20',
+                      'transition-all duration-200',
+                      'text-sm text-[--exec-text] placeholder-[--exec-text-muted]'
+                    )}
+                  />
+                  <svg
+                    className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[--exec-text-muted]"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                    />
+                  </svg>
+                </div>
+              </div>
+              {/* Project Filter Dropdown */}
+              <select
+                value={projectFilter}
+                onChange={(e) => setProjectFilter(e.target.value)}
                 className={cn(
-                  'w-full px-4 py-2.5 pl-10',
-                  'bg-gray-50 border border-gray-200 rounded-xl',
-                  'focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500',
+                  'px-4 py-2 pr-8',
+                  'bg-stone-800 border border-stone-600 rounded-lg',
+                  'hover:border-stone-500 hover:bg-stone-700',
+                  'focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500',
                   'transition-all duration-200',
-                  'text-sm'
+                  'cursor-pointer text-sm text-stone-200',
+                  'appearance-none'
                 )}
-              />
-              <svg
-                className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
+                style={{
+                  backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23a8a29e'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
+                  backgroundRepeat: 'no-repeat',
+                  backgroundPosition: 'right 8px center',
+                  backgroundSize: '16px'
+                }}
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                />
-              </svg>
+                <option value="all">All Projects</option>
+                <option value="none">No Project</option>
+                {projects.map((project) => (
+                  <option key={project.id} value={project.id.toString()}>
+                    {project.name}
+                  </option>
+                ))}
+              </select>
+              {/* Sort Dropdown */}
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as SortOption)}
+                className={cn(
+                  'px-4 py-2 pr-8',
+                  'bg-stone-800 border border-stone-600 rounded-lg',
+                  'hover:border-stone-500 hover:bg-stone-700',
+                  'focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500',
+                  'transition-all duration-200',
+                  'cursor-pointer text-sm text-stone-200',
+                  'appearance-none'
+                )}
+                style={{
+                  backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23a8a29e'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
+                  backgroundRepeat: 'no-repeat',
+                  backgroundPosition: 'right 8px center',
+                  backgroundSize: '16px'
+                }}
+              >
+                <option value="dueDate">Due Date</option>
+                <option value="priority">Priority</option>
+                <option value="createdDate">Created</option>
+                <option value="title">Title</option>
+              </select>
             </div>
           </div>
-          {/* Project Filter Dropdown */}
-          <div className="sm:w-48">
-            <select
-              value={projectFilter}
-              onChange={(e) => setProjectFilter(e.target.value)}
-              className={cn(
-                'w-full px-4 py-2.5',
-                'bg-gray-50 border border-gray-200 rounded-xl',
-                'focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500',
-                'transition-all duration-200',
-                'cursor-pointer text-sm'
-              )}
-            >
-              <option value="all">All Projects</option>
-              <option value="none">No Project</option>
-              {projects.map((project) => (
-                <option key={project.id} value={project.id.toString()}>
-                  {project.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          {/* Sort Dropdown */}
-          <div className="sm:w-64">
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as SortOption)}
-              className={cn(
-                'w-full px-4 py-2.5',
-                'bg-gray-50 border border-gray-200 rounded-xl',
-                'focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500',
-                'transition-all duration-200',
-                'cursor-pointer text-sm'
-              )}
-            >
-              <option value="dueDate">Sort by: Due Date</option>
-              <option value="priority">Sort by: Priority</option>
-              <option value="createdDate">Sort by: Created Date</option>
-              <option value="title">Sort by: Title</option>
-            </select>
-          </div>
-        </div>
-      </div>
 
-      {/* Task List or Kanban Board */}
-      <div className="flex-1 overflow-auto px-8 py-6 bg-gray-50/30 dark:bg-gray-900">
-        {isLoading ? (
-          <div className="flex justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-600"></div>
-          </div>
-        ) : (
-          <div className="h-full animate-in fade-in duration-300">
-            {viewMode === 'board' ? (
-              <TaskKanbanBoard
-                tasks={filteredAndSortedTasks}
-                projects={projects}
-                goals={goals}
-                onStatusChange={handleStatusChange}
-                onTaskClick={handleTaskClick}
-              />
+          {/* Task List or Kanban Board */}
+          <div className="flex-1 overflow-auto p-6">
+            {isLoading ? (
+              <div className="flex justify-center py-12">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[--exec-accent]"></div>
+              </div>
+            ) : filteredAndSortedTasks.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16">
+                <div className="w-16 h-16 bg-stone-700/50 rounded-2xl flex items-center justify-center mb-4">
+                  <svg className="w-8 h-8 text-[--exec-text-muted]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-semibold text-[--exec-text] mb-2">
+                  {searchQuery || filter !== 'all' || projectFilter !== 'all'
+                    ? 'No tasks match your filters'
+                    : 'No tasks yet'}
+                </h3>
+                <p className="text-[--exec-text-muted] mb-4">
+                  {searchQuery || filter !== 'all' || projectFilter !== 'all'
+                    ? 'Try adjusting your search or filter criteria.'
+                    : 'Create your first task to get started.'}
+                </p>
+                {!searchQuery && filter === 'all' && projectFilter === 'all' && (
+                  <button
+                    onClick={() => setIsModalOpen(true)}
+                    className="px-4 py-2 bg-[--exec-accent] text-white rounded-xl hover:bg-[--exec-accent-dark] transition-colors"
+                  >
+                    Create Task
+                  </button>
+                )}
+              </div>
             ) : (
-              <TaskList
-                tasks={filteredAndSortedTasks}
-                onStatusChange={handleStatusChange}
-                onTaskClick={handleTaskClick}
-                onDelete={(id) => deleteMutation.mutate(id)}
-                isUpdating={updateStatusMutation.isPending}
-                searchQuery={searchQuery}
-                selectedTaskIds={isEditMode ? selectedTaskIds : undefined}
-                onToggleSelect={isEditMode ? handleToggleSelect : undefined}
-                goals={goals}
-              />
+              <div className="h-full animate-in fade-in duration-300">
+                {viewMode === 'board' ? (
+                  <TaskKanbanBoard
+                    tasks={filteredAndSortedTasks}
+                    projects={projects}
+                    goals={goals}
+                    onStatusChange={handleStatusChange}
+                    onTaskClick={handleTaskClick}
+                  />
+                ) : (
+                  <TaskList
+                    tasks={filteredAndSortedTasks}
+                    onStatusChange={handleStatusChange}
+                    onTaskClick={handleTaskClick}
+                    onDelete={(id) => setTaskToDelete(id)}
+                    isUpdating={updateStatusMutation.isPending}
+                    searchQuery={searchQuery}
+                    selectedTaskIds={isEditMode ? selectedTaskIds : undefined}
+                    onToggleSelect={isEditMode ? handleToggleSelect : undefined}
+                    goals={goals}
+                  />
+                )}
+              </div>
             )}
           </div>
-        )}
+        </div>
       </div>
 
       {/* Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
-          <div className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm transition-opacity" onClick={() => setIsModalOpen(false)} />
-          <div className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl ring-1 ring-gray-900/5 flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-              <h2 className="text-lg font-bold text-gray-900">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity" onClick={() => setIsModalOpen(false)} />
+          <div className="relative w-full max-w-lg bg-[--exec-surface] rounded-2xl shadow-2xl ring-1 ring-[--exec-border] flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-[--exec-border]">
+              <h2 className="text-lg font-bold text-[--exec-text]" style={{ fontFamily: 'var(--font-display)' }}>
                 {editingTask ? 'Edit Task' : 'New Task'}
               </h2>
               <button
                 onClick={handleCloseModal}
-                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl transition-all"
+                className="p-2 text-[--exec-text-muted] hover:text-[--exec-text] hover:bg-stone-700 rounded-xl transition-all"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -750,35 +816,35 @@ export default function Tasks() {
 
             <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-5">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  Title <span className="text-rose-500">*</span>
+                <label className="block text-sm font-medium text-[--exec-text-secondary] mb-1.5">
+                  Title <span className="text-[--exec-danger]">*</span>
                 </label>
                 <input
                   type="text"
                   name="title"
                   defaultValue={editingTask?.title}
                   required
-                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                  className="w-full px-4 py-2.5 bg-stone-800 border border-stone-700 rounded-xl text-[--exec-text] placeholder:text-stone-500 focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent] transition-all"
                   placeholder="What needs to be done?"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                <label className="block text-sm font-medium text-[--exec-text-secondary] mb-1.5">
                   Description
                 </label>
                 <textarea
                   name="description"
                   defaultValue={editingTask?.description}
                   rows={3}
-                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all resize-none"
+                  className="w-full px-4 py-2.5 bg-stone-800 border border-stone-700 rounded-xl text-[--exec-text] placeholder:text-stone-500 focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent] transition-all resize-none"
                   placeholder="Add details..."
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  <label className="block text-sm font-medium text-[--exec-text-secondary] mb-1.5">
                     {isRecurring ? 'Start Date' : 'Due Date'}
                   </label>
                   <input
@@ -786,32 +852,32 @@ export default function Tasks() {
                     name="due_date"
                     value={dueDate}
                     onChange={(e) => setDueDate(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                    className="w-full px-4 py-2.5 bg-stone-800 border border-stone-700 rounded-xl text-[--exec-text] focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent] transition-all"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  <label className="block text-sm font-medium text-[--exec-text-secondary] mb-1.5">
                     Due Time
                   </label>
                   <input
                     type="time"
                     name="due_time"
                     defaultValue={editingTask?.due_time}
-                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                    className="w-full px-4 py-2.5 bg-stone-800 border border-stone-700 rounded-xl text-[--exec-text] focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent] transition-all"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  <label className="block text-sm font-medium text-[--exec-text-secondary] mb-1.5">
                     Priority
                   </label>
                   <select
                     name="priority"
                     defaultValue={editingTask?.priority || TaskPriority.MEDIUM}
-                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all appearance-none"
+                    className="w-full px-4 py-2.5 bg-stone-800 border border-stone-700 rounded-xl text-[--exec-text] focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent] transition-all appearance-none"
                   >
                     <option value={TaskPriority.LOW}>Low</option>
                     <option value={TaskPriority.MEDIUM}>Medium</option>
@@ -821,13 +887,13 @@ export default function Tasks() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  <label className="block text-sm font-medium text-[--exec-text-secondary] mb-1.5">
                     Status
                   </label>
                   <select
                     name="status"
                     defaultValue={editingTask?.status || TaskStatus.PENDING}
-                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all appearance-none"
+                    className="w-full px-4 py-2.5 bg-stone-800 border border-stone-700 rounded-xl text-[--exec-text] focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent] transition-all appearance-none"
                   >
                     <option value={TaskStatus.PENDING}>Pending</option>
                     <option value={TaskStatus.IN_PROGRESS}>In Progress</option>
@@ -838,20 +904,20 @@ export default function Tasks() {
               </div>
 
               {/* Recurrence Section */}
-              <div className="border-t border-gray-100 pt-5">
+              <div className="border-t border-[--exec-border] pt-5">
                 <div className="flex items-center gap-3 mb-4">
-                  <Repeat className="w-4 h-4 text-gray-400" />
+                  <Repeat className="w-4 h-4 text-[--exec-text-muted]" />
                   <select
                     value={getRecurrenceValue()}
                     onChange={(e) => handleRecurrenceChange(e.target.value)}
-                    className="flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm"
+                    className="flex-1 px-3 py-2 bg-stone-800 border border-stone-700 rounded-lg text-[--exec-text] focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent] text-sm"
                   >
                     <option value="none">Does not repeat</option>
                     <option value="daily">Daily</option>
                     <option value="weekly">Weekly on {currentDayLong}</option>
                     <option value="monthly">Monthly on the {currentMonthDay}{
-                      currentMonthDay === 1 ? 'st' : 
-                      currentMonthDay === 2 ? 'nd' : 
+                      currentMonthDay === 1 ? 'st' :
+                      currentMonthDay === 2 ? 'nd' :
                       currentMonthDay === 3 ? 'rd' : 'th'
                     }</option>
                     <option value="yearly">Annually on {currentMonthLong} {currentMonthDay}</option>
@@ -862,8 +928,8 @@ export default function Tasks() {
 
                 {/* Recurrence Summary & Preview */}
                 {isRecurring && (
-                  <div className="mt-3 p-3 bg-blue-50 border border-blue-100 rounded-lg text-sm">
-                    <p className="text-blue-800 font-medium mb-2">
+                  <div className="mt-3 p-3 bg-[--exec-accent-bg] border border-[--exec-accent]/30 rounded-lg text-sm">
+                    <p className="text-[--exec-accent] font-medium mb-2">
                       {getRecurrenceText(
                         recurrenceType,
                         recurrenceInterval,
@@ -873,7 +939,7 @@ export default function Tasks() {
                         recurrenceCount
                       )}
                     </p>
-                    <div className="text-blue-600 text-xs">
+                    <div className="text-[--exec-accent-light] text-xs">
                       <span className="font-semibold block mb-1">Upcoming occurrences:</span>
                       <ul className="list-disc list-inside space-y-0.5">
                         {getNextOccurrences(
@@ -886,11 +952,11 @@ export default function Tasks() {
                           recurrenceCount
                         ).map((dateStr) => (
                           <li key={dateStr}>
-                            {new Date(dateStr).toLocaleDateString(undefined, { 
-                              weekday: 'short', 
-                              year: 'numeric', 
-                              month: 'short', 
-                              day: 'numeric' 
+                            {new Date(dateStr).toLocaleDateString(undefined, {
+                              weekday: 'short',
+                              year: 'numeric',
+                              month: 'short',
+                              day: 'numeric'
                             })}
                           </li>
                         ))}
@@ -925,13 +991,13 @@ export default function Tasks() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  <label className="block text-sm font-medium text-[--exec-text-secondary] mb-1.5">
                     Project (Optional)
                   </label>
                   <select
                     name="project_id"
                     defaultValue={editingTask?.project_id || ''}
-                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all appearance-none"
+                    className="w-full px-4 py-2.5 bg-stone-800 border border-stone-700 rounded-xl text-[--exec-text] focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent] transition-all appearance-none"
                   >
                     <option value="">No Project</option>
                     {projects.map((project) => (
@@ -943,13 +1009,13 @@ export default function Tasks() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  <label className="block text-sm font-medium text-[--exec-text-secondary] mb-1.5">
                     Goal (Optional)
                   </label>
                   <select
                     name="goal_id"
                     defaultValue={editingTask?.goal_id || ''}
-                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all appearance-none"
+                    className="w-full px-4 py-2.5 bg-stone-800 border border-stone-700 rounded-xl text-[--exec-text] focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent] transition-all appearance-none"
                   >
                     <option value="">No Goal</option>
                     {goals.map((goal) => (
@@ -963,32 +1029,44 @@ export default function Tasks() {
 
               {/* Apply to all recurring tasks option */}
               {editingTask && (editingTask.is_recurring || editingTask.parent_task_id) && (
-                <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-100 rounded-lg">
+                <div className="p-3 bg-[--exec-accent-bg] border border-[--exec-accent]/30 rounded-lg space-y-3">
+                  <div className="flex items-center gap-2">
                   <input
                     type="checkbox"
                     id="applyToAllRecurring"
                     checked={applyToAllRecurring}
                     onChange={(e) => setApplyToAllRecurring(e.target.checked)}
-                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    className="w-4 h-4 text-[--exec-accent] bg-stone-700 border-stone-600 rounded focus:ring-[--exec-accent]/50"
                   />
-                  <label htmlFor="applyToAllRecurring" className="text-sm text-blue-800">
+                  <label htmlFor="applyToAllRecurring" className="text-sm text-[--exec-accent]">
                     Apply changes to all related recurring tasks
                   </label>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowDeleteAllRecurringConfirm(true)}
+                    className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-[--exec-danger] bg-[--exec-danger-bg] border border-[--exec-danger]/30 rounded-lg hover:bg-[--exec-danger]/20 transition-colors"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                    Delete All Recurring Tasks
+                  </button>
                 </div>
               )}
 
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-100 mt-6">
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-[--exec-border] mt-6">
                 <button
                   type="button"
                   onClick={handleCloseModal}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-xl transition-colors"
+                  className="px-4 py-2 text-sm font-medium text-[--exec-text-secondary] hover:bg-stone-700 rounded-xl transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={createMutation.isPending || updateMutation.isPending || updateAllRecurringMutation.isPending}
-                  className="px-6 py-2 bg-blue-600 text-white text-sm font-medium rounded-xl hover:bg-blue-700 shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:shadow-none"
+                  className="px-6 py-2 bg-[--exec-accent] text-white text-sm font-medium rounded-xl hover:bg-[--exec-accent-dark] shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:shadow-none"
                 >
                   {createMutation.isPending || updateMutation.isPending || updateAllRecurringMutation.isPending
                     ? 'Saving...'
@@ -1002,7 +1080,7 @@ export default function Tasks() {
         </div>
       )}
 
-      {/* Delete Confirmation Dialog */}
+      {/* Bulk Delete Confirmation Dialog */}
       <ConfirmModal
         isOpen={showDeleteConfirm}
         onClose={() => setShowDeleteConfirm(false)}
@@ -1013,40 +1091,71 @@ export default function Tasks() {
         variant="danger"
       />
 
+      {/* Single Task Delete Confirmation Dialog */}
+      <ConfirmModal
+        isOpen={taskToDelete !== null}
+        onClose={() => setTaskToDelete(null)}
+        onConfirm={() => {
+          if (taskToDelete !== null) {
+            deleteMutation.mutate(taskToDelete);
+            setTaskToDelete(null);
+          }
+        }}
+        title="Delete Task?"
+        message="This action cannot be undone. Are you sure you want to delete this task?"
+        confirmText={deleteMutation.isPending ? 'Deleting...' : 'Delete'}
+        variant="danger"
+      />
+
+      {/* Delete All Recurring Confirmation Dialog */}
+      <ConfirmModal
+        isOpen={showDeleteAllRecurringConfirm}
+        onClose={() => setShowDeleteAllRecurringConfirm(false)}
+        onConfirm={() => {
+          if (editingTask) {
+            deleteAllRecurringMutation.mutate(editingTask.id);
+          }
+        }}
+        title="Delete All Recurring Tasks?"
+        message="This will delete this task and ALL related recurring tasks. This action cannot be undone."
+        confirmText={deleteAllRecurringMutation.isPending ? 'Deleting...' : 'Delete All'}
+        variant="danger"
+      />
+
       {/* Bulk Status Change Dialog */}
       {showBulkStatusChange && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-2xl w-full max-w-md mx-4 p-6">
-            <h3 className="text-lg font-bold text-gray-900 mb-4">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-[--exec-surface] rounded-2xl shadow-2xl w-full max-w-md mx-4 p-6 ring-1 ring-[--exec-border]">
+            <h3 className="text-lg font-bold text-[--exec-text] mb-4" style={{ fontFamily: 'var(--font-display)' }}>
               Change Status for {selectedTaskIds.size} Task{selectedTaskIds.size !== 1 ? 's' : ''}
             </h3>
             <div className="space-y-2 mb-6">
               <button
                 onClick={() => handleBulkStatusChange(TaskStatus.PENDING)}
                 disabled={bulkStatusUpdateMutation.isPending}
-                className="w-full px-4 py-3 text-left border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+                className="w-full px-4 py-3 text-left border border-stone-700 rounded-xl bg-stone-800 hover:bg-stone-700 transition-colors disabled:opacity-50"
               >
-                <span className="font-medium">Pending</span>
+                <span className="font-medium text-[--exec-text-muted]">Pending</span>
               </button>
               <button
                 onClick={() => handleBulkStatusChange(TaskStatus.IN_PROGRESS)}
                 disabled={bulkStatusUpdateMutation.isPending}
-                className="w-full px-4 py-3 text-left border border-gray-300 rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-50"
+                className="w-full px-4 py-3 text-left border border-stone-700 rounded-xl bg-stone-800 hover:bg-[--exec-info-bg] transition-colors disabled:opacity-50"
               >
-                <span className="font-medium text-slate-600">In Progress</span>
+                <span className="font-medium text-[--exec-info]">In Progress</span>
               </button>
               <button
                 onClick={() => handleBulkStatusChange(TaskStatus.COMPLETED)}
                 disabled={bulkStatusUpdateMutation.isPending}
-                className="w-full px-4 py-3 text-left border border-gray-300 rounded-lg hover:bg-emerald-50 transition-colors disabled:opacity-50"
+                className="w-full px-4 py-3 text-left border border-stone-700 rounded-xl bg-stone-800 hover:bg-[--exec-sage-bg] transition-colors disabled:opacity-50"
               >
-                <span className="font-medium text-emerald-600">Completed</span>
+                <span className="font-medium text-[--exec-sage]">Completed</span>
               </button>
             </div>
             <button
               onClick={() => setShowBulkStatusChange(false)}
               disabled={bulkStatusUpdateMutation.isPending}
-              className="w-full px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+              className="w-full px-4 py-2 border border-stone-700 text-[--exec-text-secondary] rounded-xl bg-stone-800 hover:bg-stone-700 transition-colors disabled:opacity-50"
             >
               Cancel
             </button>

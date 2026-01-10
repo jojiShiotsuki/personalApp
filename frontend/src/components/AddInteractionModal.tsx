@@ -89,6 +89,7 @@ export default function AddInteractionModal({
             >
               <option value={InteractionType.MEETING}>Meeting</option>
               <option value={InteractionType.EMAIL}>Email</option>
+              <option value={InteractionType.FOLLOW_UP_EMAIL}>Follow up email</option>
               <option value={InteractionType.CALL}>Call</option>
               <option value={InteractionType.NOTE}>Note</option>
               <option value={InteractionType.SOCIAL_MEDIA}>Social Media</option>

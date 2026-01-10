@@ -247,7 +247,7 @@ export const goalApi = {
   },
 
   create: async (goal: GoalCreate): Promise<Goal> => {
-    const response = await api.post('/api/goals', goal);
+    const response = await api.post('/api/goals/', goal);
     return response.data;
   },
 

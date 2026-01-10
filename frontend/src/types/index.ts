@@ -138,6 +138,7 @@ export enum InteractionType {
   CALL = "call",
   NOTE = "note",
   SOCIAL_MEDIA = "social_media",
+  FOLLOW_UP_EMAIL = "follow_up_email",
 }
 
 export enum BillingFrequency {
@@ -568,4 +569,27 @@ export interface CheckInsightRequest {
   entity_type: string;
   entity_id?: number;
   metadata?: Record<string, any>;
+}
+
+// Outreach Types
+export interface OutreachNiche {
+  id: number;
+  name: string;
+  created_at?: string;
+}
+
+export interface OutreachSituation {
+  id: number;
+  name: string;
+  created_at?: string;
+}
+
+export interface OutreachTemplate {
+  id: number;
+  niche_id: number;
+  situation_id: number;
+  dm_number: number;
+  content: string;
+  created_at?: string;
+  updated_at?: string;
 }

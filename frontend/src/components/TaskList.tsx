@@ -23,21 +23,21 @@ export default function TaskList({ tasks, onStatusChange, onTaskClick, onDelete,
         {/* Icon with gradient background */}
         <div className={cn(
           'w-24 h-24 mb-6',
-          'rounded-full',
-          'bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20',
+          'rounded-2xl',
+          'bg-gradient-to-br from-[--exec-accent-bg] to-[--exec-accent]/20',
           'flex items-center justify-center',
           'shadow-inner'
         )}>
-          <CheckSquare className="w-12 h-12 text-blue-400 dark:text-blue-500" />
+          <CheckSquare className="w-12 h-12 text-[--exec-accent]" />
         </div>
 
         {/* Heading */}
-        <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+        <h3 className="text-xl font-semibold text-[--exec-text] mb-2">
           {searchQuery ? 'No matching tasks' : 'No tasks yet'}
         </h3>
 
         {/* Description */}
-        <p className="text-gray-500 dark:text-gray-400 text-center max-w-md mb-6 leading-relaxed">
+        <p className="text-[--exec-text-muted] text-center max-w-md mb-6 leading-relaxed">
           {searchQuery
             ? `No tasks match "${searchQuery}". Try a different search term.`
             : 'Create your first task to get started on your productivity journey.'}
@@ -47,7 +47,7 @@ export default function TaskList({ tasks, onStatusChange, onTaskClick, onDelete,
   }
 
   return (
-    <div className="space-y-3">
+    <div className="divide-y divide-stone-600/60">
       {tasks.map((task) => (
         <TaskItem
           key={task.id}
