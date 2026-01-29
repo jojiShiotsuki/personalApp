@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Trash2, Instagram, Youtube, Facebook, Twitter, Linkedin, Video, Film, LayoutGrid, FileText, Check, Clock, Pencil } from 'lucide-react';
+import { X, Trash2, Instagram, Youtube, Facebook, Twitter, Linkedin, Video, Film, LayoutGrid, FileText, Check } from 'lucide-react';
 import RichTextEditor from '../RichTextEditor';
 import ConfirmModal from '../ConfirmModal';
 import type { SocialContent, SocialContentCreate, SocialContentUpdate, ContentType, ContentStatus, EditingStyle, ReelType, RepurposeFormatStatus, RepurposeFormat } from '@/types';
