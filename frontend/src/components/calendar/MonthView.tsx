@@ -1,5 +1,5 @@
-import { getDayName, formatDateForApi, isToday, isPast } from '@/lib/dateUtils';
-import { SocialContent, RepurposeFormatStatus } from '@/types';
+import { formatDateForApi, isToday, isPast } from '@/lib/dateUtils';
+import { SocialContent } from '@/types';
 import { Plus, Film, LayoutGrid, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 

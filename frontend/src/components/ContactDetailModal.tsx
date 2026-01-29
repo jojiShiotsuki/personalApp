@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { Contact } from '@/types';
-import { InteractionType } from '@/types';
+import { InteractionType, ContactStatus } from '@/types';
 import { interactionApi } from '@/lib/api';
 import { X, Mail, Phone, Building2, User, Calendar, Phone as PhoneIcon, FileText, Edit, Share2, Trash2 } from 'lucide-react';
 import { formatDistanceToNow, format, isToday, isYesterday, parseISO } from 'date-fns';
@@ -119,11 +119,11 @@ export default function ContactDetailModal({
                 <span
                   className={cn(
                     "inline-block px-2 py-1 text-xs rounded mt-2",
-                    contact.status === 'CLIENT'
+                    contact.status === ContactStatus.CLIENT
                       ? 'bg-emerald-500/20 text-emerald-400'
-                      : contact.status === 'PROSPECT'
+                      : contact.status === ContactStatus.PROSPECT
                       ? 'bg-sky-500/20 text-sky-400'
-                      : contact.status === 'LEAD'
+                      : contact.status === ContactStatus.LEAD
                       ? 'bg-amber-500/20 text-amber-400'
                       : 'bg-stone-600/50 text-stone-400'
                   )}

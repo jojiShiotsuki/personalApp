@@ -31,15 +31,6 @@ const REPURPOSE_FORMATS: { id: RepurposeFormat; label: string; icon: typeof Film
   { id: 'long_caption', label: 'Long Caption', icon: FileText, description: 'Post with detailed caption' },
 ];
 
-const REPURPOSE_STATUSES: { value: ContentStatus; label: string; icon: typeof Clock }[] = [
-  { value: 'not_started', label: 'Not Started', icon: Clock },
-  { value: 'scripted', label: 'Scripted', icon: Pencil },
-  { value: 'filmed', label: 'Filmed', icon: Film },
-  { value: 'editing', label: 'Editing', icon: Pencil },
-  { value: 'scheduled', label: 'Scheduled', icon: Clock },
-  { value: 'posted', label: 'Posted', icon: Check },
-];
-
 const REEL_TYPES: { value: ReelType; label: string }[] = [
   { value: 'educational', label: 'Educational' },
   { value: 'before_after', label: 'Before/After' },

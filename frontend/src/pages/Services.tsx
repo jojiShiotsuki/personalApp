@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { dealApi, contactApi } from '@/lib/api';
 import type { Deal, Contact } from '@/types';
 import { BillingFrequency, ServiceStatus } from '@/types';
-import { RefreshCw, DollarSign, Calendar, AlertCircle, CheckCircle, PauseCircle, Clock, X, Edit2, TrendingUp, ArrowRight } from 'lucide-react';
+import { RefreshCw, DollarSign, AlertCircle, CheckCircle, PauseCircle, Clock, X, Edit2, TrendingUp } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 

@@ -6,7 +6,6 @@ import { ProjectCreate } from '@/types';
 import ProjectCard from '@/components/ProjectCard';
 import ProjectModal from '@/components/ProjectModal';
 import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
 
 export default function Projects() {
   const [isModalOpen, setIsModalOpen] = useState(false);

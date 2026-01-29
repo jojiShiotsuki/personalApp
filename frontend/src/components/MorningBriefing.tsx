@@ -216,7 +216,7 @@ export default function MorningBriefing() {
             </div>
           ) : (
             <div className="divide-y divide-[--exec-border]/30">
-              {briefing.priority_items.map((item, index) => {
+              {briefing.priority_items.map((item) => {
                 const isHighPriority = item.priority_score >= 90;
                 const isMediumPriority = item.priority_score >= 70 && item.priority_score < 90;
                 const isOverdue = item.why_priority.toLowerCase().includes('overdue');

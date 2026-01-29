@@ -6,7 +6,6 @@ import { useTimer, formatElapsedTime } from '@/contexts/TimerContext';
 import { Clock, Play, Plus, Trash2, DollarSign, Calendar, Timer, X, Hourglass } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
 
 export default function Time() {
   const queryClient = useQueryClient();

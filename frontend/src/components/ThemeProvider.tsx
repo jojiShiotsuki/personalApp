@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState } from "react"
 
-type Theme = "dark" | "light"
+type Theme = "dark" | "light" | "system"
 
 type ThemeProviderProps = {
   children: React.ReactNode
@@ -30,7 +30,7 @@ export function ThemeProvider({
   const [theme, setTheme] = useState<Theme>(() => {
     // Check localStorage first
     const stored = localStorage.getItem(storageKey)
-    if (stored === "light" || stored === "dark") {
+    if (stored === "light" || stored === "dark" || stored === "system") {
       return stored
     }
     return defaultTheme
@@ -40,7 +40,13 @@ export function ThemeProvider({
     const root = window.document.documentElement
 
     root.classList.remove("light", "dark")
-    root.classList.add(theme)
+
+    // Resolve "system" to actual theme
+    const resolvedTheme = theme === "system"
+      ? (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")
+      : theme
+
+    root.classList.add(resolvedTheme)
 
     // Persist to localStorage
     localStorage.setItem(storageKey, theme)
