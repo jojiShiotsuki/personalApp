@@ -34,9 +34,9 @@ import {
   Quarter,
 } from '../types/index';
 
-// In production, API is served from same domain. In dev, use localhost:8002
+// Production API URL - hardcoded for reliability
 const API_URL = import.meta.env.VITE_API_URL ||
-  (import.meta.env.PROD ? '' : 'http://localhost:8002');
+  (import.meta.env.PROD ? 'https://vertex-api-smg3.onrender.com' : 'http://localhost:8000');
 
 const api = axios.create({
   baseURL: API_URL,
