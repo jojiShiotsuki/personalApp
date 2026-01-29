@@ -3,9 +3,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { timeApi, taskApi, projectApi, dealApi } from '@/lib/api';
 import type { TimeEntry, TimeEntryCreate, Task, Project, Deal } from '@/types';
 import { useTimer, formatElapsedTime } from '@/contexts/TimerContext';
-import { Clock, Play, Plus, Trash2, DollarSign, Calendar, Timer } from 'lucide-react';
+import { Clock, Play, Plus, Trash2, DollarSign, Calendar, Timer, X, Hourglass } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 
 export default function Time() {
   const queryClient = useQueryClient();
@@ -69,37 +70,53 @@ export default function Time() {
   };
 
   return (
-    <div className="h-full flex flex-col bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
-      {/* Header */}
-      <div className="bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm border-b border-gray-200/60 dark:border-gray-700 px-8 py-6 sticky top-0 z-10 transition-colors duration-200">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold text-gray-900 dark:text-white tracking-tight">
-              Time Tracking
-            </h1>
-            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              Track your time for billing and productivity insights
-            </p>
-          </div>
-          <button
-            onClick={() => setIsManualEntryOpen(true)}
-            className="flex items-center px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-all shadow-sm hover:shadow-md font-medium text-sm"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Manual Entry
-          </button>
-        </div>
-      </div>
+    <div className="min-h-full bg-[--exec-bg] grain">
+      {/* Hero Header */}
+      <header className="relative overflow-hidden">
+        {/* Gradient background */}
+        <div className="absolute inset-0 bg-gradient-to-br from-[--exec-surface] via-[--exec-surface] to-[--exec-accent-bg-subtle]" />
 
-      <div className="flex-1 overflow-auto p-8">
+        {/* Decorative elements */}
+        <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-bl from-[--exec-accent]/5 to-transparent rounded-full blur-3xl" />
+        <div className="absolute bottom-0 left-1/3 w-64 h-64 bg-gradient-to-t from-[--exec-sage]/5 to-transparent rounded-full blur-2xl" />
+
+        <div className="relative px-8 pt-8 pb-6">
+          {/* Breadcrumb chip */}
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-[--exec-surface-alt] rounded-full mb-4 animate-fade-slide-up">
+            <Hourglass className="w-3.5 h-3.5 text-[--exec-accent]" />
+            <span className="text-xs font-medium text-[--exec-text-secondary]">Productivity</span>
+          </div>
+
+          <div className="flex items-end justify-between">
+            <div>
+              <h1 className="text-4xl font-bold text-[--exec-text] tracking-tight animate-fade-slide-up delay-1" style={{ fontFamily: 'var(--font-display)' }}>
+                Time <span className="text-[--exec-accent]">Tracking</span>
+              </h1>
+              <p className="text-[--exec-text-secondary] mt-2 text-lg animate-fade-slide-up delay-2">
+                Track your time for billing and productivity insights
+              </p>
+            </div>
+            <button
+              onClick={() => setIsManualEntryOpen(true)}
+              className="flex items-center gap-2 px-4 py-2.5 bg-[--exec-surface] border border-[--exec-border] text-[--exec-text-secondary] rounded-2xl hover:bg-[--exec-surface-alt] hover:border-[--exec-accent] hover:text-[--exec-accent] transition-all duration-200 font-medium text-sm animate-fade-slide-up delay-3"
+            >
+              <Plus className="w-4 h-4" />
+              Manual Entry
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <div className="px-8 py-6">
         {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-6">
           <SummaryCard
             title="Today"
             hours={summary?.today.total_hours ?? 0}
             billable={summary?.today.total_billable ?? 0}
             entries={summary?.today.entry_count ?? 0}
             isLoading={summaryLoading}
+            delay={4}
           />
           <SummaryCard
             title="This Week"
@@ -107,6 +124,7 @@ export default function Time() {
             billable={summary?.this_week.total_billable ?? 0}
             entries={summary?.this_week.entry_count ?? 0}
             isLoading={summaryLoading}
+            delay={5}
           />
           <SummaryCard
             title="This Month"
@@ -114,14 +132,17 @@ export default function Time() {
             billable={summary?.this_month.total_billable ?? 0}
             entries={summary?.this_month.entry_count ?? 0}
             isLoading={summaryLoading}
+            delay={6}
           />
         </div>
 
         {/* Start Timer Section */}
         {!currentTimer && (
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200/60 dark:border-gray-700 p-6 mb-8">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-              <Play className="w-5 h-5 text-green-500" />
+          <div className="bento-card-static p-6 mb-6 animate-fade-slide-up delay-7">
+            <h2 className="text-lg font-bold text-[--exec-text] mb-4 flex items-center gap-3" style={{ fontFamily: 'var(--font-display)' }}>
+              <div className="w-9 h-9 rounded-xl bg-[--exec-success-bg] flex items-center justify-center">
+                <Play className="w-4 h-4 text-[--exec-success]" />
+              </div>
               Start Timer
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -130,12 +151,12 @@ export default function Time() {
                 value={startDescription}
                 onChange={(e) => setStartDescription(e.target.value)}
                 placeholder="What are you working on?"
-                className="col-span-1 md:col-span-2 px-4 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm text-gray-900 dark:text-white"
+                className="col-span-1 md:col-span-2 px-4 py-3 bg-[--exec-surface-alt] border border-[--exec-border] rounded-xl focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent] transition-all text-sm text-[--exec-text] placeholder-[--exec-text-muted]"
               />
               <select
                 value={startTaskId ?? ''}
                 onChange={(e) => setStartTaskId(e.target.value ? Number(e.target.value) : undefined)}
-                className="px-4 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm text-gray-900 dark:text-white"
+                className="px-4 py-3 bg-[--exec-surface-alt] border border-[--exec-border] rounded-xl focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent] transition-all text-sm text-[--exec-text] cursor-pointer"
               >
                 <option value="">Select Task (optional)</option>
                 {tasks.filter(t => t.status !== 'completed').map(task => (
@@ -145,7 +166,7 @@ export default function Time() {
               <select
                 value={startProjectId ?? ''}
                 onChange={(e) => setStartProjectId(e.target.value ? Number(e.target.value) : undefined)}
-                className="px-4 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm text-gray-900 dark:text-white"
+                className="px-4 py-3 bg-[--exec-surface-alt] border border-[--exec-border] rounded-xl focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent] transition-all text-sm text-[--exec-text] cursor-pointer"
               >
                 <option value="">Select Project (optional)</option>
                 {projects.map(project => (
@@ -157,7 +178,7 @@ export default function Time() {
               <select
                 value={startDealId ?? ''}
                 onChange={(e) => setStartDealId(e.target.value ? Number(e.target.value) : undefined)}
-                className="px-4 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm text-gray-900 dark:text-white"
+                className="px-4 py-3 bg-[--exec-surface-alt] border border-[--exec-border] rounded-xl focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent] transition-all text-sm text-[--exec-text] cursor-pointer"
               >
                 <option value="">Select Deal (optional)</option>
                 {deals.filter(d => !['closed_won', 'closed_lost'].includes(d.stage)).map(deal => (
@@ -167,9 +188,9 @@ export default function Time() {
               <div className="col-span-1 md:col-span-3 flex justify-end">
                 <button
                   onClick={handleStartTimer}
-                  className="flex items-center px-6 py-2 bg-green-500 hover:bg-green-600 text-white rounded-xl transition-all shadow-sm hover:shadow-md font-medium text-sm"
+                  className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-[--exec-sage] to-[--exec-sage-light] text-white rounded-xl hover:shadow-lg hover:shadow-[--exec-sage]/25 hover:-translate-y-0.5 transition-all duration-200 font-semibold text-sm"
                 >
-                  <Play className="w-4 h-4 mr-2" />
+                  <Play className="w-4 h-4" />
                   Start Timer
                 </button>
               </div>
@@ -179,18 +200,18 @@ export default function Time() {
 
         {/* Current Timer Display */}
         {currentTimer && (
-          <div className="bg-green-50 dark:bg-green-900/20 rounded-2xl shadow-sm border border-green-200 dark:border-green-800 p-6 mb-8">
+          <div className="bg-[--exec-success-bg] rounded-2xl border border-[--exec-success]/20 p-6 mb-6 animate-fade-slide-up">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-lg font-semibold text-green-800 dark:text-green-200 flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                <h2 className="text-lg font-bold text-[--exec-success] flex items-center gap-2" style={{ fontFamily: 'var(--font-display)' }}>
+                  <div className="w-3 h-3 rounded-full bg-[--exec-success] animate-pulse" />
                   Timer Running
                 </h2>
-                <p className="text-sm text-green-600 dark:text-green-300 mt-1">
+                <p className="text-sm text-[--exec-text-secondary] mt-1">
                   {currentTimer.task_title || currentTimer.project_name || currentTimer.deal_title || currentTimer.description || 'No description'}
                 </p>
               </div>
-              <div className="text-3xl font-mono font-bold text-green-700 dark:text-green-300">
+              <div className="text-4xl font-mono font-bold text-[--exec-success]" style={{ fontFamily: 'var(--font-display)' }}>
                 {formatElapsedTime(elapsedSeconds)}
               </div>
             </div>
@@ -198,24 +219,29 @@ export default function Time() {
         )}
 
         {/* Recent Entries */}
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200/60 dark:border-gray-700 overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-200/60 dark:border-gray-700">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-              <Clock className="w-5 h-5 text-blue-500" />
+        <div className="bento-card-static overflow-hidden animate-fade-slide-up delay-8">
+          <div className="px-6 py-5 border-b border-[--exec-border-subtle]">
+            <h2 className="text-lg font-bold text-[--exec-text] flex items-center gap-3" style={{ fontFamily: 'var(--font-display)' }}>
+              <div className="w-9 h-9 rounded-xl bg-[--exec-accent-bg] flex items-center justify-center">
+                <Clock className="w-4 h-4 text-[--exec-accent]" />
+              </div>
               Recent Time Entries
             </h2>
           </div>
           {entriesLoading ? (
             <div className="flex items-center justify-center h-32">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600" />
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[--exec-accent]" />
             </div>
           ) : entries.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-32 text-gray-500 dark:text-gray-400">
-              <Timer className="w-8 h-8 mb-2 opacity-50" />
-              <p>No time entries yet. Start tracking!</p>
+            <div className="flex flex-col items-center justify-center py-16 text-[--exec-text-muted]">
+              <div className="w-16 h-16 rounded-2xl bg-[--exec-surface-alt] flex items-center justify-center mb-4">
+                <Timer className="w-8 h-8" />
+              </div>
+              <p className="font-medium">No time entries yet</p>
+              <p className="text-sm mt-1">Start tracking to see your entries here</p>
             </div>
           ) : (
-            <div className="divide-y divide-gray-100 dark:divide-gray-700">
+            <div className="divide-y divide-[--exec-border-subtle]">
               {entries.map((entry) => (
                 <TimeEntryRow
                   key={entry.id}
@@ -248,36 +274,41 @@ function SummaryCard({
   billable,
   entries,
   isLoading,
+  delay = 0,
 }: {
   title: string;
   hours: number;
   billable: number;
   entries: number;
   isLoading: boolean;
+  delay?: number;
 }) {
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200/60 dark:border-gray-700 p-6">
-      <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+    <div
+      className="bento-card p-6 animate-fade-slide-up"
+      style={{ animationDelay: `${delay * 50}ms` }}
+    >
+      <h3 className="text-xs font-bold text-[--exec-text-muted] uppercase tracking-wider">
         {title}
       </h3>
       {isLoading ? (
-        <div className="animate-pulse mt-2">
-          <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-20" />
+        <div className="animate-pulse mt-3">
+          <div className="h-10 bg-[--exec-surface-alt] rounded-lg w-24" />
         </div>
       ) : (
         <>
-          <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-3xl font-bold text-gray-900 dark:text-white">
+          <div className="mt-3 flex items-baseline gap-2">
+            <span className="text-4xl font-bold text-[--exec-text]" style={{ fontFamily: 'var(--font-display)' }}>
               {hours.toFixed(1)}h
             </span>
-            <span className="text-sm text-gray-500 dark:text-gray-400">
+            <span className="text-sm text-[--exec-text-muted]">
               ({entries} {entries === 1 ? 'entry' : 'entries'})
             </span>
           </div>
           {billable > 0 && (
-            <div className="mt-2 flex items-center gap-1 text-green-600 dark:text-green-400">
+            <div className="mt-3 flex items-center gap-1.5 text-[--exec-success]">
               <DollarSign className="w-4 h-4" />
-              <span className="font-medium">
+              <span className="font-bold">
                 {new Intl.NumberFormat('en-US', {
                   style: 'currency',
                   currency: 'USD',
@@ -325,13 +356,13 @@ function TimeEntryRow({
   };
 
   return (
-    <div className="px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+    <div className="px-6 py-4 flex items-center justify-between hover:bg-[--exec-surface-alt] transition-colors group">
       <div className="flex-1 min-w-0">
-        <p className="font-medium text-gray-900 dark:text-white truncate">
+        <p className="font-semibold text-[--exec-text] truncate">
           {getLabel()}
         </p>
-        <div className="flex items-center gap-3 mt-1 text-sm text-gray-500 dark:text-gray-400">
-          <span className="flex items-center gap-1">
+        <div className="flex items-center gap-3 mt-1.5 text-sm text-[--exec-text-muted]">
+          <span className="flex items-center gap-1.5">
             <Calendar className="w-3 h-3" />
             {format(new Date(entry.start_time), 'MMM d, yyyy')}
           </span>
@@ -339,21 +370,21 @@ function TimeEntryRow({
             {format(new Date(entry.start_time), 'h:mm a')}
             {entry.end_time && ` - ${format(new Date(entry.end_time), 'h:mm a')}`}
           </span>
-          {getContext() && <span className="text-gray-400">• {getContext()}</span>}
+          {getContext() && <span className="text-[--exec-text-muted]">• {getContext()}</span>}
         </div>
       </div>
       <div className="flex items-center gap-4">
-        <span className="font-mono font-semibold text-gray-900 dark:text-white">
+        <span className="font-mono font-bold text-[--exec-text]" style={{ fontFamily: 'var(--font-display)' }}>
           {formatDuration(entry.duration_seconds)}
         </span>
         {entry.billable_amount && (
-          <span className="text-green-600 dark:text-green-400 font-medium">
+          <span className="text-[--exec-success] font-bold">
             ${entry.billable_amount.toFixed(2)}
           </span>
         )}
         <button
           onClick={onDelete}
-          className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+          className="p-2 text-[--exec-text-muted] hover:text-[--exec-danger] hover:bg-[--exec-danger-bg] rounded-lg transition-colors opacity-0 group-hover:opacity-100"
         >
           <Trash2 className="w-4 h-4" />
         </button>
@@ -411,16 +442,22 @@ function ManualEntryModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-lg mx-4 overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-[--exec-surface] rounded-2xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden border border-[--exec-border-subtle]">
+        <div className="flex items-center justify-between px-6 py-5 border-b border-[--exec-border-subtle]">
+          <h2 className="text-xl font-bold text-[--exec-text]" style={{ fontFamily: 'var(--font-display)' }}>
             Add Manual Time Entry
           </h2>
+          <button
+            onClick={onClose}
+            className="p-2 text-[--exec-text-muted] hover:text-[--exec-text] hover:bg-[--exec-surface-alt] rounded-lg transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
         </div>
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="p-6 space-y-5">
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label className="block text-sm font-semibold text-[--exec-text] mb-2">
               Description
             </label>
             <input
@@ -428,12 +465,12 @@ function ManualEntryModal({
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="What did you work on?"
-              className="w-full px-4 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm text-gray-900 dark:text-white"
+              className="w-full px-4 py-3 bg-[--exec-surface-alt] border border-[--exec-border] rounded-xl focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent] transition-all text-sm text-[--exec-text] placeholder-[--exec-text-muted]"
             />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-sm font-semibold text-[--exec-text] mb-2">
                 Start Time
               </label>
               <input
@@ -441,11 +478,11 @@ function ManualEntryModal({
                 value={startTime}
                 onChange={(e) => setStartTime(e.target.value)}
                 required
-                className="w-full px-4 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm text-gray-900 dark:text-white"
+                className="w-full px-4 py-3 bg-[--exec-surface-alt] border border-[--exec-border] rounded-xl focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent] transition-all text-sm text-[--exec-text]"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-sm font-semibold text-[--exec-text] mb-2">
                 End Time
               </label>
               <input
@@ -453,19 +490,19 @@ function ManualEntryModal({
                 value={endTime}
                 onChange={(e) => setEndTime(e.target.value)}
                 required
-                className="w-full px-4 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm text-gray-900 dark:text-white"
+                className="w-full px-4 py-3 bg-[--exec-surface-alt] border border-[--exec-border] rounded-xl focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent] transition-all text-sm text-[--exec-text]"
               />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-sm font-semibold text-[--exec-text] mb-2">
                 Task (optional)
               </label>
               <select
                 value={taskId ?? ''}
                 onChange={(e) => setTaskId(e.target.value ? Number(e.target.value) : undefined)}
-                className="w-full px-4 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm text-gray-900 dark:text-white"
+                className="w-full px-4 py-3 bg-[--exec-surface-alt] border border-[--exec-border] rounded-xl focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent] transition-all text-sm text-[--exec-text] cursor-pointer"
               >
                 <option value="">None</option>
                 {tasks.map(task => (
@@ -474,13 +511,13 @@ function ManualEntryModal({
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-sm font-semibold text-[--exec-text] mb-2">
                 Project (optional)
               </label>
               <select
                 value={projectId ?? ''}
                 onChange={(e) => setProjectId(e.target.value ? Number(e.target.value) : undefined)}
-                className="w-full px-4 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm text-gray-900 dark:text-white"
+                className="w-full px-4 py-3 bg-[--exec-surface-alt] border border-[--exec-border] rounded-xl focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent] transition-all text-sm text-[--exec-text] cursor-pointer"
               >
                 <option value="">None</option>
                 {projects.map(project => (
@@ -491,13 +528,13 @@ function ManualEntryModal({
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-sm font-semibold text-[--exec-text] mb-2">
                 Deal (optional)
               </label>
               <select
                 value={dealId ?? ''}
                 onChange={(e) => setDealId(e.target.value ? Number(e.target.value) : undefined)}
-                className="w-full px-4 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm text-gray-900 dark:text-white"
+                className="w-full px-4 py-3 bg-[--exec-surface-alt] border border-[--exec-border] rounded-xl focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent] transition-all text-sm text-[--exec-text] cursor-pointer"
               >
                 <option value="">None</option>
                 {deals.map(deal => (
@@ -506,7 +543,7 @@ function ManualEntryModal({
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-sm font-semibold text-[--exec-text] mb-2">
                 Hourly Rate (optional)
               </label>
               <input
@@ -516,22 +553,22 @@ function ManualEntryModal({
                 placeholder="0.00"
                 min="0"
                 step="0.01"
-                className="w-full px-4 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm text-gray-900 dark:text-white"
+                className="w-full px-4 py-3 bg-[--exec-surface-alt] border border-[--exec-border] rounded-xl focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent] transition-all text-sm text-[--exec-text] placeholder-[--exec-text-muted]"
               />
             </div>
           </div>
-          <div className="flex justify-end gap-3 pt-4">
+          <div className="flex gap-3 pt-4 border-t border-[--exec-border-subtle]">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors"
+              className="flex-1 px-4 py-3 text-sm font-medium text-[--exec-text-secondary] border border-[--exec-border] hover:bg-[--exec-surface-alt] rounded-xl transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={createMutation.isPending}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition-colors text-sm font-medium disabled:opacity-50"
+              className="flex-1 px-4 py-3 bg-gradient-to-r from-[--exec-accent] to-[--exec-accent-dark] hover:shadow-lg hover:shadow-[--exec-accent]/25 text-white rounded-xl transition-all text-sm font-semibold disabled:opacity-50"
             >
               {createMutation.isPending ? 'Creating...' : 'Create Entry'}
             </button>

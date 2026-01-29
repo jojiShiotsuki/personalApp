@@ -249,3 +249,49 @@ def update_all_recurring_tasks(
         "updated_count": updated_count,
         "message": f"Successfully updated {updated_count} recurring task(s)"
     }
+
+
+@router.delete("/{task_id}/delete-all-recurring", response_model=dict)
+def delete_all_recurring_tasks(
+    task_id: int,
+    db: Session = Depends(get_db)
+):
+    """Delete a recurring task and all its related tasks (parent and children)"""
+    db_task = db.query(Task).filter(Task.id == task_id).first()
+    if not db_task:
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    # Find all related recurring tasks
+    related_task_ids = []
+
+    # If this task has a parent, get the parent and all siblings
+    if db_task.parent_task_id:
+        parent_id = db_task.parent_task_id
+        # Get parent task
+        related_task_ids.append(parent_id)
+        # Get all sibling tasks (tasks with same parent)
+        siblings = db.query(Task).filter(Task.parent_task_id == parent_id).all()
+        related_task_ids.extend([s.id for s in siblings])
+    else:
+        # This is the parent task, get all children
+        related_task_ids.append(db_task.id)
+        children = db.query(Task).filter(Task.parent_task_id == db_task.id).all()
+        related_task_ids.extend([c.id for c in children])
+
+    # Remove duplicates
+    related_task_ids = list(set(related_task_ids))
+
+    # Delete all related tasks
+    deleted_count = 0
+    for tid in related_task_ids:
+        task = db.query(Task).filter(Task.id == tid).first()
+        if task:
+            db.delete(task)
+            deleted_count += 1
+
+    db.commit()
+
+    return {
+        "deleted_count": deleted_count,
+        "message": f"Successfully deleted {deleted_count} recurring task(s)"
+    }

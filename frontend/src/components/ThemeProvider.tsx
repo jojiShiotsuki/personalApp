@@ -11,23 +11,28 @@ type ThemeProviderProps = {
 type ThemeProviderState = {
   theme: Theme
   setTheme: (theme: Theme) => void
+  toggleTheme: () => void
 }
 
 const initialState: ThemeProviderState = {
-  theme: "light",
+  theme: "dark",
   setTheme: () => null,
+  toggleTheme: () => null,
 }
 
 const ThemeProviderContext = createContext<ThemeProviderState>(initialState)
 
 export function ThemeProvider({
   children,
-  defaultTheme = "light",
-  storageKey = "vite-ui-theme",
+  defaultTheme = "dark",
+  storageKey = "vertex-theme",
 }: ThemeProviderProps) {
   const [theme, setTheme] = useState<Theme>(() => {
+    // Check localStorage first
     const stored = localStorage.getItem(storageKey)
-    if (stored === 'dark' || stored === 'light') return stored
+    if (stored === "light" || stored === "dark") {
+      return stored
+    }
     return defaultTheme
   })
 
@@ -35,20 +40,20 @@ export function ThemeProvider({
     const root = window.document.documentElement
 
     root.classList.remove("light", "dark")
+    root.classList.add(theme)
 
-    if (theme === "dark") {
-      root.classList.add("dark")
-    } else {
-      root.classList.add("light")
-    }
-  }, [theme])
+    // Persist to localStorage
+    localStorage.setItem(storageKey, theme)
+  }, [theme, storageKey])
+
+  const toggleTheme = () => {
+    setTheme(prev => prev === "dark" ? "light" : "dark")
+  }
 
   const value = {
     theme,
-    setTheme: (theme: Theme) => {
-      localStorage.setItem(storageKey, theme)
-      setTheme(theme)
-    },
+    setTheme,
+    toggleTheme,
   }
 
   return (

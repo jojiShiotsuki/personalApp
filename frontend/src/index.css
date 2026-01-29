@@ -1,27 +1,160 @@
 @import "tailwindcss";
 
+/* Google Fonts - Characterful typography */
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400&display=swap');
+
 /* Force class-based dark mode for Tailwind v4 */
 @variant dark (&:where(.dark, .dark *));
 
+:root {
+  /* Indie Command Center Typography */
+  --font-sans: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-display: 'Fraunces', Georgia, serif;
+
+  /* Sidebar */
+  --sidebar-width: 76px;
+  --sidebar-expanded: 280px;
+
+  /* Warm Indie Palette - Light Mode */
+  --exec-bg: #FAF8F5;
+  --exec-surface: #FFFFFF;
+  --exec-surface-alt: #F5F2ED;
+  --exec-surface-warm: #FBF9F6;
+  --exec-border: rgba(120, 100, 80, 0.12);
+  --exec-border-subtle: rgba(120, 100, 80, 0.06);
+
+  /* Text - Warm grays */
+  --exec-text: #1C1917;
+  --exec-text-secondary: #57534E;
+  --exec-text-muted: #A8A29E;
+
+  /* Terracotta/Coral Accent */
+  --exec-accent: #E07A5F;
+  --exec-accent-light: #F2A391;
+  --exec-accent-dark: #C65D42;
+  --exec-accent-bg: #FEF1ED;
+  --exec-accent-bg-subtle: #FFF7F5;
+
+  /* Sage Green Secondary */
+  --exec-sage: #81A88D;
+  --exec-sage-light: #A8C5B0;
+  --exec-sage-bg: #EEF4F0;
+
+  /* Status Colors - Warmer versions */
+  --exec-success: #6B9B76;
+  --exec-success-bg: #EDF5EF;
+  --exec-warning: #D4915D;
+  --exec-warning-bg: #FDF4ED;
+  --exec-danger: #C9544B;
+  --exec-danger-bg: #FDF0EF;
+  --exec-info: #5B8FA8;
+  --exec-info-bg: #EDF4F7;
+
+  /* Rich Dark Sidebar */
+  --sidebar-bg: #1C1917;
+  --sidebar-bg-hover: #3D3835;
+  --sidebar-text: #A8A29E;
+  --sidebar-text-active: #FAFAF9;
+  --sidebar-accent: #E07A5F;
+  --sidebar-border: #292524;
+  --sidebar-glow: rgba(224, 122, 95, 0.15);
+}
+
+/* Dark Mode - Cozy Night */
+.dark {
+  --exec-bg: #1C1917;
+  --exec-surface: #292524;
+  --exec-surface-alt: #292524;
+  --exec-surface-warm: #1C1917;
+  --exec-border: rgba(168, 162, 158, 0.1);
+  --exec-border-subtle: rgba(168, 162, 158, 0.05);
+
+  --exec-text: #FAFAF9;
+  --exec-text-secondary: #D6D3D1;
+  --exec-text-muted: #78716C;
+
+  --exec-accent-bg: rgba(224, 122, 95, 0.12);
+  --exec-accent-bg-subtle: rgba(224, 122, 95, 0.06);
+
+  --exec-sage-bg: rgba(129, 168, 141, 0.1);
+
+  --exec-success-bg: rgba(107, 155, 118, 0.12);
+  --exec-warning-bg: rgba(212, 145, 93, 0.12);
+  --exec-danger-bg: rgba(201, 84, 75, 0.12);
+  --exec-info-bg: rgba(91, 143, 168, 0.12);
+
+  --sidebar-bg: #0C0A09;
+  --sidebar-bg-hover: #3D3835;
+  --sidebar-border: #292524;
+}
+
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background: var(--exec-bg);
+  color: var(--exec-text);
 }
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+/* Sidebar transitions */
+.sidebar-collapsed {
+  width: var(--sidebar-width);
 }
 
-/* Custom animations for dashboard */
-@keyframes fadeInUp {
+.sidebar-expanded {
+  width: var(--sidebar-expanded);
+}
+
+.transition-sidebar {
+  transition: width 250ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Warm Shadows */
+.shadow-exec {
+  box-shadow:
+    0 1px 3px rgba(28, 25, 23, 0.05),
+    0 4px 12px rgba(28, 25, 23, 0.04);
+}
+
+.shadow-exec-lg {
+  box-shadow:
+    0 4px 6px rgba(28, 25, 23, 0.05),
+    0 12px 28px rgba(28, 25, 23, 0.08);
+}
+
+.shadow-exec-hover {
+  box-shadow:
+    0 10px 20px rgba(28, 25, 23, 0.1),
+    0 24px 48px rgba(28, 25, 23, 0.06);
+}
+
+/* Terracotta glow for accent elements */
+.glow-accent {
+  box-shadow: 0 0 24px var(--sidebar-glow);
+}
+
+/* Sidebar pill indicator */
+.sidebar-indicator {
+  position: absolute;
+  left: 0;
+  width: 3px;
+  height: 24px;
+  background: linear-gradient(180deg, var(--exec-accent), var(--exec-accent-light));
+  border-radius: 0 4px 4px 0;
+  transition: all 0.2s ease;
+}
+
+/* Sidebar nav item active state */
+.nav-item-active {
+  background: linear-gradient(90deg, var(--sidebar-bg-hover) 0%, transparent 100%);
+}
+
+/* Animations */
+@keyframes fadeSlideUp {
   from {
     opacity: 0;
-    transform: translateY(20px);
+    transform: translateY(12px);
   }
   to {
     opacity: 1;
@@ -29,39 +162,228 @@ code {
   }
 }
 
-.hover\:scale-102:hover {
-  transform: scale(1.02);
-}
-
-.animate-in {
-  animation-duration: 0.3s;
-  animation-fill-mode: both;
-}
-
-.fade-in {
-  animation-name: fadeIn;
-}
-
 @keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
-/* CMDK Styles */
-[cmdk-root] {
-  max-width: 640px;
-  width: 100%;
-  background: white;
-  border-radius: 12px;
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.animate-fade-slide-up {
+  animation: fadeSlideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  opacity: 0;
+}
+
+.animate-fade {
+  animation: fadeIn 0.3s ease forwards;
+  opacity: 0;
+}
+
+/* Stagger delays */
+.delay-1 { animation-delay: 50ms; }
+.delay-2 { animation-delay: 100ms; }
+.delay-3 { animation-delay: 150ms; }
+.delay-4 { animation-delay: 200ms; }
+.delay-5 { animation-delay: 250ms; }
+.delay-6 { animation-delay: 300ms; }
+.delay-7 { animation-delay: 350ms; }
+.delay-8 { animation-delay: 400ms; }
+
+/* Executive Button */
+.btn-exec {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-exec:hover {
+  transform: translateY(-1px);
+}
+
+.btn-exec:active {
+  transform: translateY(0);
+}
+
+/* Bento Card - Warm & Tactile */
+.bento-card {
+  background: var(--exec-surface);
+  border-radius: 24px;
+  border: 1px solid var(--exec-border-subtle);
+  box-shadow:
+    0 1px 2px rgba(28, 25, 23, 0.04),
+    0 4px 12px rgba(28, 25, 23, 0.02),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
   overflow: hidden;
-  padding: 8px 0;
+}
+
+.dark .bento-card {
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.2),
+    0 4px 12px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+.bento-card:hover {
+  border-color: var(--exec-accent);
+  box-shadow:
+    0 4px 16px rgba(28, 25, 23, 0.08),
+    0 0 0 2px var(--exec-accent-bg),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+.dark .bento-card:hover {
+  border-color: var(--exec-accent);
+  box-shadow:
+    0 4px 16px rgba(0, 0, 0, 0.3),
+    0 0 20px var(--sidebar-glow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+/* Static bento card - no hover effects */
+.bento-card-static {
+  background: var(--exec-surface);
+  border-radius: 24px;
+  border: 1px solid var(--exec-border-subtle);
+  box-shadow:
+    0 1px 2px rgba(28, 25, 23, 0.04),
+    0 4px 12px rgba(28, 25, 23, 0.02),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  position: relative;
+  overflow: hidden;
+}
+
+.dark .bento-card-static {
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.2),
+    0 4px 12px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+/* Subtle grain texture overlay */
+.grain::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  opacity: 0.015;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.dark .grain::before {
+  opacity: 0.03;
+}
+
+/* Accent card with glow */
+.card-glow {
+  position: relative;
+}
+
+.card-glow::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  background: linear-gradient(135deg, var(--exec-accent) 0%, var(--exec-accent-light) 100%);
+  border-radius: inherit;
+  z-index: -1;
+  opacity: 0;
+  filter: blur(12px);
+  transition: opacity 0.3s ease;
+}
+
+.card-glow:hover::after {
+  opacity: 0.3;
+}
+
+/* Interactive list items */
+.hover-lift {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.hover-lift:hover {
+  transform: translateX(4px);
+  background: var(--exec-accent-bg-subtle);
+}
+
+/* Progress bar - Organic style */
+.progress-exec {
+  height: 8px;
+  background: var(--exec-surface-alt);
+  border-radius: 999px;
+  overflow: hidden;
+  position: relative;
+}
+
+.progress-exec::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--exec-border-subtle);
+  border-radius: inherit;
+}
+
+.progress-exec-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--exec-sage), var(--exec-sage-light));
+  border-radius: 999px;
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  z-index: 1;
+}
+
+/* Accent version */
+.progress-accent .progress-exec-fill {
+  background: linear-gradient(90deg, var(--exec-accent), var(--exec-accent-light));
+}
+
+/* Metric card accent line */
+.metric-accent {
+  position: relative;
+}
+
+.metric-accent::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: linear-gradient(180deg, var(--exec-accent), var(--exec-accent-light));
+  border-radius: 0 3px 3px 0;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--exec-text-muted);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--exec-text-secondary);
+}
+
+/* CMDK Styles - Executive Theme */
+[cmdk-root] {
+  max-width: 560px;
+  width: 100%;
+  background: var(--exec-surface);
+  border-radius: 16px;
+  overflow: hidden;
+  padding: 0;
   font-family: var(--font-sans);
-  box-shadow: 0 16px 70px rgb(0 0 0 / 20%);
-  border: 1px solid rgb(229 231 235);
+  box-shadow: 0 24px 64px rgba(15, 23, 42, 0.2), 0 0 0 1px var(--exec-border);
   position: fixed;
   top: 20%;
   left: 50%;
@@ -72,8 +394,8 @@ code {
 [cmdk-overlay] {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.2);
-  backdrop-filter: blur(2px);
+  background: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(4px);
   z-index: 9998;
 }
 
@@ -81,70 +403,71 @@ code {
   font-family: var(--font-sans);
   border: none;
   width: 100%;
-  font-size: 17px;
-  padding: 12px 16px;
+  font-size: 16px;
+  padding: 16px 20px;
   outline: none;
   background: transparent;
-  color: rgb(23 23 23);
-  border-bottom: 1px solid rgb(229 231 235);
-  margin-bottom: 8px;
+  color: var(--exec-text);
+  border-bottom: 1px solid var(--exec-border);
 }
 
 [cmdk-input]::placeholder {
-  color: rgb(163 163 163);
+  color: var(--exec-text-muted);
 }
 
 [cmdk-group-heading] {
   user-select: none;
-  font-size: 12px;
-  color: rgb(115 115 115);
-  padding: 0 8px;
-  margin-bottom: 8px;
-  margin-top: 8px;
-  font-weight: 500;
+  font-size: 11px;
+  color: var(--exec-text-muted);
+  padding: 12px 16px 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
 }
 
 [cmdk-item] {
   content-visibility: auto;
   cursor: pointer;
-  height: 44px;
-  border-radius: 8px;
+  height: 48px;
+  border-radius: 10px;
   font-size: 14px;
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 0 12px;
-  color: rgb(64 64 64);
+  padding: 0 16px;
+  color: var(--exec-text-secondary);
   user-select: none;
   will-change: background, color;
   transition: all 150ms ease;
-  margin: 0 8px;
-  position: relative; /* Added for better click handling */
+  margin: 4px 8px;
 }
 
 [cmdk-item][data-selected="true"] {
-  background: rgb(243 244 246);
-  color: rgb(23 23 23);
+  background: var(--exec-accent-bg-subtle);
+  color: var(--exec-accent);
 }
 
 [cmdk-item][data-disabled="true"] {
-  color: rgb(163 163 163);
+  color: var(--exec-text-muted);
   cursor: not-allowed;
 }
 
 [cmdk-empty] {
   font-size: 14px;
-  margin: 40px;
+  padding: 40px;
   text-align: center;
-  color: rgb(115 115 115);
+  color: var(--exec-text-muted);
 }
 
 [cmdk-list] {
-  min-height: 300px;
+  min-height: 200px;
   height: var(--cmdk-list-height);
-  max-height: 400px;
+  max-height: 360px;
   overflow: auto;
   overscroll-behavior: contain;
-  transition: 100ms ease;
-  transition-property: height;
+  padding: 8px 0;
+}
+
+code {
+  font-family: 'SF Mono', Consolas, monospace;
 }

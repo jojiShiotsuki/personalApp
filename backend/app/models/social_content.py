@@ -25,6 +25,12 @@ class ContentStatus(str, enum.Enum):
     POSTED = "posted"
 
 
+class RepurposeFormat(str, enum.Enum):
+    REEL = "reel"
+    CAROUSEL = "carousel"
+    LONG_CAPTION = "long_caption"
+
+
 class EditingStyle(str, enum.Enum):
     FAST_PACED = "fast_paced"
     CINEMATIC = "cinematic"
@@ -34,6 +40,13 @@ class EditingStyle(str, enum.Enum):
     TUTORIAL = "tutorial"
     INTERVIEW = "interview"
     CUSTOM = "custom"
+
+
+class ReelType(str, enum.Enum):
+    EDUCATIONAL = "educational"
+    BEFORE_AFTER = "before_after"
+    BTS = "bts"
+    SOCIAL_PROOF = "social_proof"
 
 
 class SocialContent(Base):
@@ -47,8 +60,12 @@ class SocialContent(Base):
     content_type = Column(Enum(ContentType), nullable=False)
     status = Column(Enum(ContentStatus), default=ContentStatus.NOT_STARTED)
 
-    # Script/Caption - main content
+    # Title and Script/Caption
+    title = Column(String(255), nullable=True)
     script = Column(Text, nullable=True)
+
+    # Reel type classification
+    reel_type = Column(Enum(ReelType), nullable=True)
 
     # Editing details
     editing_style = Column(Enum(EditingStyle), nullable=True)
@@ -56,6 +73,10 @@ class SocialContent(Base):
 
     # Platform targeting (stored as JSON array)
     platforms = Column(JSON, nullable=True)
+
+    # Repurpose tracking - track status for each format variant
+    # Structure: [{"format": "reel", "status": "posted", "posted_date": "2024-01-15"}, ...]
+    repurpose_formats = Column(JSON, nullable=True)
 
     # Optional metadata
     hashtags = Column(Text, nullable=True)

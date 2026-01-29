@@ -173,9 +173,9 @@ export default function KanbanBoard({
     <DragDropContext onDragEnd={handleDragEnd}>
       <div className="relative h-full">
         {/* Scroll hint for mobile */}
-        <div className="sm:hidden absolute top-0 right-0 bg-gradient-to-l from-gray-100 dark:from-gray-900 to-transparent w-8 h-full pointer-events-none z-10" />
+        <div className="sm:hidden absolute top-0 right-0 bg-gradient-to-l from-[--exec-bg] to-transparent w-8 h-full pointer-events-none z-10" />
 
-        <div className="flex gap-4 overflow-x-auto h-full pb-4 pt-2 px-2 [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-300 dark:[&::-webkit-scrollbar-thumb]:bg-gray-600 [&::-webkit-scrollbar-track]:bg-transparent">
+        <div className="flex gap-4 overflow-x-auto h-full pb-4 pt-2 px-2 [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-stone-600 [&::-webkit-scrollbar-track]:bg-transparent">
         {STAGE_ORDER.map((stage) => (
           <KanbanColumn
             key={stage}

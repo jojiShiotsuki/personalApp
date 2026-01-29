@@ -2,7 +2,24 @@
 from sqlalchemy.orm import Session
 from typing import Optional, Any
 from datetime import datetime
+from decimal import Decimal
+from enum import Enum
 from app.models.activity_log import ActivityLog
+
+
+def sanitize_for_json(data: Any) -> Any:
+    """Convert non-JSON-serializable types to serializable equivalents."""
+    if isinstance(data, dict):
+        return {k: sanitize_for_json(v) for k, v in data.items()}
+    elif isinstance(data, list):
+        return [sanitize_for_json(item) for item in data]
+    elif isinstance(data, Decimal):
+        return float(data)
+    elif isinstance(data, Enum):
+        return data.value
+    elif isinstance(data, datetime):
+        return data.isoformat()
+    return data
 
 
 def log_activity(
@@ -13,11 +30,14 @@ def log_activity(
     meta_data: Optional[dict[str, Any]] = None
 ) -> ActivityLog:
     """Log a user activity to the database."""
+    # Sanitize metadata to ensure JSON serializable
+    sanitized_meta = sanitize_for_json(meta_data) if meta_data else {}
+
     activity = ActivityLog(
         action=action,
         entity_type=entity_type,
         entity_id=entity_id,
-        meta_data=meta_data or {},
+        meta_data=sanitized_meta,
         created_at=datetime.utcnow()
     )
     db.add(activity)

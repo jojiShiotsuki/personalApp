@@ -362,12 +362,28 @@ export type EditingStyle =
   | 'interview'
   | 'custom';
 
+export type ReelType =
+  | 'educational'
+  | 'before_after'
+  | 'bts'
+  | 'social_proof';
+
+export type RepurposeFormat = 'reel' | 'carousel' | 'long_caption';
+
+export interface RepurposeFormatStatus {
+  format: RepurposeFormat;
+  status: ContentStatus;
+  posted_date?: string;
+}
+
 export interface SocialContent {
   id: number;
   content_date: string; // ISO date string
   content_type: ContentType;
   status: ContentStatus;
+  title?: string;
   script?: string;
+  reel_type?: ReelType;
   editing_style?: EditingStyle;
   editing_notes?: string;
   platforms?: string[]; // ['instagram', 'tiktok', etc.]
@@ -376,6 +392,7 @@ export interface SocialContent {
   thumbnail_reference?: string;
   notes?: string;
   project_id?: number;
+  repurpose_formats?: RepurposeFormatStatus[];
   created_at: string;
   updated_at: string;
 }
@@ -384,7 +401,9 @@ export interface SocialContentCreate {
   content_date: string;
   content_type: ContentType;
   status?: ContentStatus;
+  title?: string;
   script?: string;
+  reel_type?: ReelType;
   editing_style?: EditingStyle;
   editing_notes?: string;
   platforms?: string[];
@@ -393,13 +412,16 @@ export interface SocialContentCreate {
   thumbnail_reference?: string;
   notes?: string;
   project_id?: number;
+  repurpose_formats?: RepurposeFormatStatus[];
 }
 
 export interface SocialContentUpdate {
   content_date?: string;
   content_type?: ContentType;
   status?: ContentStatus;
+  title?: string;
   script?: string;
+  reel_type?: ReelType;
   editing_style?: EditingStyle;
   editing_notes?: string;
   platforms?: string[];
@@ -408,6 +430,7 @@ export interface SocialContentUpdate {
   thumbnail_reference?: string;
   notes?: string;
   project_id?: number;
+  repurpose_formats?: RepurposeFormatStatus[];
 }
 
 export interface MonthSummary {
@@ -536,39 +559,6 @@ export interface TimeSummaryResponse {
   today: TimeSummary;
   this_week: TimeSummary;
   this_month: TimeSummary;
-}
-
-// Coach Types
-export type InsightType = 'action' | 'time' | 'pattern';
-export type InsightPriority = 'low' | 'medium' | 'high';
-
-export interface CoachInsight {
-  id: number;
-  type: InsightType;
-  priority: InsightPriority;
-  message: string;
-  suggested_action?: string;
-  action_params?: Record<string, any>;
-  entity_type?: string;
-  entity_id?: number;
-  seen: boolean;
-  dismissed: boolean;
-  created_at: string;
-  expires_at?: string;
-}
-
-export interface CoachSettings {
-  coach_level: 1 | 2 | 3;
-  coach_enabled: boolean;
-  stale_lead_days: number;
-  stuck_deal_days: number;
-}
-
-export interface CheckInsightRequest {
-  action: string;
-  entity_type: string;
-  entity_id?: number;
-  metadata?: Record<string, any>;
 }
 
 // Outreach Types

@@ -14,6 +14,30 @@ from app.schemas.social_content import (
 router = APIRouter(prefix="/api/social-content", tags=["social-content"])
 
 
+def content_to_dict(content):
+    """Convert SQLAlchemy content model to dict for proper serialization"""
+    return {
+        "id": content.id,
+        "content_date": content.content_date.isoformat() if content.content_date else None,
+        "content_type": content.content_type.value if content.content_type else None,
+        "status": content.status.value if content.status else None,
+        "title": content.title,
+        "script": content.script,
+        "reel_type": content.reel_type.value if content.reel_type else None,
+        "editing_style": content.editing_style.value if content.editing_style else None,
+        "editing_notes": content.editing_notes,
+        "platforms": content.platforms,
+        "hashtags": content.hashtags,
+        "music_audio": content.music_audio,
+        "thumbnail_reference": content.thumbnail_reference,
+        "notes": content.notes,
+        "project_id": content.project_id,
+        "repurpose_formats": content.repurpose_formats,
+        "created_at": content.created_at.isoformat() if content.created_at else None,
+        "updated_at": content.updated_at.isoformat() if content.updated_at else None,
+    }
+
+
 def get_iso_week_dates(year: int, week: int):
     """Get start and end date for an ISO week"""
     # January 4th is always in week 1
@@ -24,7 +48,7 @@ def get_iso_week_dates(year: int, week: int):
     return target_monday, target_sunday
 
 
-@router.get("/", response_model=List[SocialContent])
+@router.get("/")
 def list_content(
     skip: int = 0,
     limit: int = 100,
@@ -39,7 +63,6 @@ def list_content(
     """List all social content with optional filters"""
     query = db.query(SocialContentModel)
 
-    # Apply filters
     if status:
         statuses = status.split(",")
         query = query.filter(SocialContentModel.status.in_(statuses))
@@ -57,17 +80,15 @@ def list_content(
     if end_date:
         query = query.filter(SocialContentModel.content_date <= end_date)
 
-    # Platform filter requires JSON query
     if platform:
-        query = query.filter(
-            SocialContentModel.platforms.contains([platform])
-        )
+        query = query.filter(SocialContentModel.platforms.contains([platform]))
 
     query = query.order_by(SocialContentModel.content_date)
-    return query.offset(skip).limit(limit).all()
+    results = query.offset(skip).limit(limit).all()
+    return [content_to_dict(c) for c in results]
 
 
-@router.get("/{content_id}", response_model=SocialContent)
+@router.get("/{content_id}")
 def get_content(content_id: int, db: Session = Depends(get_db)):
     """Get a single content item by ID"""
     content = db.query(SocialContentModel).filter(
@@ -80,10 +101,10 @@ def get_content(content_id: int, db: Session = Depends(get_db)):
             detail=f"Content with id {content_id} not found",
         )
 
-    return content
+    return content_to_dict(content)
 
 
-@router.post("/", response_model=SocialContent, status_code=status.HTTP_201_CREATED)
+@router.post("/", status_code=status.HTTP_201_CREATED)
 def create_content(
     content: SocialContentCreate,
     db: Session = Depends(get_db),
@@ -93,10 +114,10 @@ def create_content(
     db.add(db_content)
     db.commit()
     db.refresh(db_content)
-    return db_content
+    return content_to_dict(db_content)
 
 
-@router.put("/{content_id}", response_model=SocialContent)
+@router.put("/{content_id}")
 def update_content(
     content_id: int,
     content: SocialContentUpdate,
@@ -113,14 +134,27 @@ def update_content(
             detail=f"Content with id {content_id} not found",
         )
 
-    # Update only provided fields
     update_data = content.model_dump(exclude_unset=True)
+
+    # Handle repurpose_formats - process if present (even if empty array)
+    if 'repurpose_formats' in update_data:
+        if update_data['repurpose_formats']:
+            update_data['repurpose_formats'] = [
+                {'format': rf['format'].value if hasattr(rf['format'], 'value') else rf['format'],
+                 'status': rf['status'].value if hasattr(rf['status'], 'value') else rf['status'],
+                 'posted_date': rf.get('posted_date')}
+                for rf in update_data['repurpose_formats']
+            ]
+        else:
+            # Explicitly set to empty list when clearing all formats
+            update_data['repurpose_formats'] = []
+
     for field, value in update_data.items():
         setattr(db_content, field, value)
 
     db.commit()
     db.refresh(db_content)
-    return db_content
+    return content_to_dict(db_content)
 
 
 @router.delete("/{content_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -141,36 +175,34 @@ def delete_content(content_id: int, db: Session = Depends(get_db)):
     return None
 
 
-@router.get("/by-date/{year}/{month}", response_model=List[SocialContent])
+@router.get("/by-date/{year}/{month}")
 def get_month_content(year: int, month: int, db: Session = Depends(get_db)):
     """Get all content for a specific month"""
     start_date = date(year, month, 1)
-
-    # Calculate last day of month
     if month == 12:
         end_date = date(year + 1, 1, 1) - timedelta(days=1)
     else:
         end_date = date(year, month + 1, 1) - timedelta(days=1)
 
-    content = db.query(SocialContentModel).filter(
+    results = db.query(SocialContentModel).filter(
         SocialContentModel.content_date >= start_date,
         SocialContentModel.content_date <= end_date,
     ).order_by(SocialContentModel.content_date).all()
 
-    return content
+    return [content_to_dict(c) for c in results]
 
 
-@router.get("/by-date/{year}/{month}/{week}", response_model=List[SocialContent])
+@router.get("/by-date/{year}/{month}/{week}")
 def get_week_content(year: int, month: int, week: int, db: Session = Depends(get_db)):
     """Get all content for a specific ISO week"""
     start_date, end_date = get_iso_week_dates(year, week)
 
-    content = db.query(SocialContentModel).filter(
+    results = db.query(SocialContentModel).filter(
         SocialContentModel.content_date >= start_date,
         SocialContentModel.content_date <= end_date,
     ).order_by(SocialContentModel.content_date).all()
 
-    return content
+    return [content_to_dict(c) for c in results]
 
 
 @router.get("/calendar-summary/{year}")

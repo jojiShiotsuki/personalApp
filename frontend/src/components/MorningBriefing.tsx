@@ -1,11 +1,10 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { AlertCircle, MessageSquare, Loader2, RefreshCw } from 'lucide-react';
+import { AlertCircle, Loader2, RefreshCw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { dashboardApi } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import { useChat } from '@/contexts/ChatContext';
 
 interface PriorityItem {
   id: number;
@@ -28,7 +27,6 @@ interface BriefingData {
 export default function MorningBriefing() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const { openChat } = useChat();
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
 
   const { data: briefing, isLoading, error, refetch, isFetching } = useQuery<BriefingData>({
@@ -127,10 +125,6 @@ export default function MorningBriefing() {
     }
   };
 
-  const handleAskAI = (item: PriorityItem) => {
-    openChat(`Tell me more about: ${item.context_for_chat}`);
-  };
-
   const getActionLabel = (action: string): string => {
     const labels: Record<string, string> = {
       complete: 'Complete',
@@ -146,12 +140,12 @@ export default function MorningBriefing() {
 
   if (error) {
     return (
-      <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-2xl p-6 mb-8">
-        <div className="flex items-center gap-2 text-red-600 dark:text-red-400">
+      <div className="bento-card bg-[--exec-danger-bg] border-[--exec-danger]/20 p-6">
+        <div className="flex items-center gap-2 text-[--exec-danger]">
           <AlertCircle className="w-5 h-5" />
           <p className="font-medium">Failed to load briefing</p>
         </div>
-        <p className="text-sm text-red-500 dark:text-red-400 mt-1 ml-7">
+        <p className="text-sm text-[--exec-danger]/70 mt-1 ml-7">
           {(error as Error).message || "Unknown error"}
         </p>
       </div>
@@ -160,12 +154,12 @@ export default function MorningBriefing() {
 
   if (isLoading) {
     return (
-      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-6 mb-8 shadow-sm animate-pulse">
-        <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-1/3 mb-4"></div>
-        <div className="h-4 bg-gray-100 dark:bg-gray-700 rounded w-2/3 mb-6"></div>
+      <div className="bento-card p-6 animate-pulse">
+        <div className="h-7 bg-[--exec-surface-alt] rounded w-1/3 mb-4"></div>
+        <div className="h-4 bg-[--exec-surface-alt] rounded w-2/3 mb-6"></div>
         <div className="space-y-4">
-          <div className="h-24 bg-gray-50 dark:bg-gray-700/50 rounded-xl"></div>
-          <div className="h-24 bg-gray-50 dark:bg-gray-700/50 rounded-xl"></div>
+          <div className="h-20 bg-[--exec-surface-alt] rounded-xl"></div>
+          <div className="h-20 bg-[--exec-surface-alt] rounded-xl"></div>
         </div>
       </div>
     );
@@ -173,30 +167,30 @@ export default function MorningBriefing() {
 
   if (!briefing) {
     return (
-      <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-2xl p-6 mb-8">
-        <p className="text-yellow-700 dark:text-yellow-400">No briefing data available.</p>
+      <div className="bento-card bg-[--exec-warning-bg] border-[--exec-warning]/20 p-6">
+        <p className="text-[--exec-warning]">No briefing data available.</p>
       </div>
     );
   }
 
   return (
-    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-6 mb-8 shadow-sm">
+    <div className="bento-card p-6">
       {/* Header */}
       <div className="mb-6">
         <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">
+          <h2 className="text-xl font-bold text-[--exec-text]">
             {briefing.greeting}
           </h2>
           <button
             onClick={() => refetch()}
             disabled={isFetching}
-            className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors disabled:opacity-50"
+            className="p-2 text-[--exec-text-muted] hover:text-[--exec-accent] hover:bg-[--exec-surface-alt] rounded-lg transition-colors disabled:opacity-50"
             title="Refresh briefing"
           >
             <RefreshCw className={cn("w-5 h-5", isFetching && "animate-spin")} />
           </button>
         </div>
-        <p className="text-gray-600 dark:text-gray-400 mt-1">
+        <p className="text-[--exec-text-secondary] mt-1">
           {briefing.summary}
         </p>
       </div>
@@ -204,114 +198,126 @@ export default function MorningBriefing() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Priority Items */}
         <div className="lg:col-span-2 space-y-4">
-          <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+          <h3 className="text-xs font-semibold text-[--exec-text-muted] uppercase tracking-wider">
             Today's Priorities
           </h3>
 
           {!briefing.priority_items || briefing.priority_items.length === 0 ? (
-            <div className="p-6 bg-gray-50 dark:bg-gray-700/30 rounded-xl text-center">
-              <p className="text-gray-600 dark:text-gray-400 font-medium">
+            <div className="p-8 bg-[--exec-sage-bg] rounded-2xl text-center">
+              <div className="w-12 h-12 bg-[--exec-sage]/20 rounded-xl flex items-center justify-center mx-auto mb-3">
+                <AlertCircle className="w-6 h-6 text-[--exec-sage]" />
+              </div>
+              <p className="text-[--exec-text] font-semibold">
                 You're all caught up!
               </p>
-              <p className="text-sm text-gray-500 dark:text-gray-500 mt-1">
+              <p className="text-sm text-[--exec-text-muted] mt-1">
                 No urgent items need your attention today.
               </p>
             </div>
           ) : (
-            briefing.priority_items.map((item) => (
-              <div
-                key={`${item.type}-${item.id}`}
-                className="bg-gray-50 dark:bg-gray-700/30 border border-gray-100 dark:border-gray-700 rounded-xl p-4 hover:bg-white dark:hover:bg-gray-700/50 transition-colors"
-              >
-                {/* Item Header */}
-                <div className="flex items-start justify-between mb-2">
-                  <div className="flex-1 min-w-0">
-                    <button
-                      onClick={() => navigate(item.type === 'task' ? '/tasks' : '/deals')}
-                      className="font-medium text-gray-900 dark:text-white truncate text-left hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-                    >
-                      {item.title}
-                    </button>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                      {item.why_priority}
-                    </p>
-                  </div>
-                  <span className={cn(
-                    "ml-3 px-2 py-0.5 text-xs font-medium rounded-full flex-shrink-0",
-                    item.priority_score >= 90
-                      ? "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400"
-                      : item.priority_score >= 70
-                      ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
-                      : "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
-                  )}>
-                    {item.type === 'task' ? 'Task' : 'Deal'}
-                  </span>
-                </div>
+            <div className="divide-y divide-[--exec-border]/30">
+              {briefing.priority_items.map((item, index) => {
+                const isHighPriority = item.priority_score >= 90;
+                const isMediumPriority = item.priority_score >= 70 && item.priority_score < 90;
+                const isOverdue = item.why_priority.toLowerCase().includes('overdue');
 
-                {/* AI Insight */}
-                {item.insight && (
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-3 italic">
-                    {item.insight}
-                  </p>
-                )}
-
-                {/* Action Buttons */}
-                <div className="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t border-gray-100 dark:border-gray-600">
-                  {(item.suggested_actions || []).slice(0, 3).map((action) => {
-                    const actionKey = `${item.type}-${item.id}-${action}`;
-                    const isLoading = loadingAction === actionKey;
-
-                    return (
-                      <button
-                        key={action}
-                        onClick={() => handleAction(item, action)}
-                        disabled={isLoading || loadingAction !== null}
-                        className={cn(
-                          "px-3 py-1.5 text-sm font-medium rounded-lg transition-all",
-                          "bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600",
-                          "text-gray-700 dark:text-gray-300",
-                          "hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-300 dark:hover:border-gray-500",
-                          "disabled:opacity-50 disabled:cursor-not-allowed",
-                          isLoading && "bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800"
-                        )}
-                      >
-                        {isLoading ? (
-                          <Loader2 className="w-3 h-3 animate-spin inline mr-1" />
-                        ) : null}
-                        {getActionLabel(action)}
-                      </button>
-                    );
-                  })}
-
-                  {/* Ask AI Button */}
-                  <button
-                    onClick={() => handleAskAI(item)}
-                    className="px-3 py-1.5 text-sm font-medium rounded-lg transition-all bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30"
+                return (
+                  <div
+                    key={`${item.type}-${item.id}`}
+                    className="relative py-4 first:pt-0 last:pb-0 transition-all duration-200 group"
                   >
-                    <MessageSquare className="w-3 h-3 inline mr-1" />
-                    Ask AI
-                  </button>
-                </div>
-              </div>
-            ))
+                    {/* Item Header */}
+                    <div className="flex items-start gap-3">
+                      {/* Priority dot indicator */}
+                      <div className="flex flex-col items-center pt-1.5">
+                        <div className={cn(
+                          "w-2.5 h-2.5 rounded-full shrink-0",
+                          isOverdue || isHighPriority
+                            ? "bg-[--exec-danger]"
+                            : isMediumPriority
+                            ? "bg-[--exec-warning]"
+                            : "bg-[--exec-sage]"
+                        )} />
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex-1 min-w-0">
+                            <button
+                              onClick={() => navigate(item.type === 'task' ? '/tasks' : '/deals')}
+                              className="font-medium text-[--exec-text] text-left transition-colors block hover:text-[--exec-accent]"
+                            >
+                              {item.title}
+                            </button>
+                            <p className="text-sm text-[--exec-text-muted] mt-0.5">
+                              {item.why_priority}
+                            </p>
+                          </div>
+                          <span className="text-[10px] font-medium text-[--exec-text-muted] uppercase tracking-wider flex-shrink-0">
+                            {item.type}
+                          </span>
+                        </div>
+
+                        {/* AI Insight */}
+                        {item.insight && (
+                          <p className="text-sm text-[--exec-text-muted] mt-2 italic leading-relaxed">
+                            {item.insight}
+                          </p>
+                        )}
+
+                        {/* Action Buttons */}
+                        <div className="flex flex-wrap items-center gap-2 mt-3">
+                          {(item.suggested_actions || []).slice(0, 2).map((action) => {
+                            const actionKey = `${item.type}-${item.id}-${action}`;
+                            const isActionLoading = loadingAction === actionKey;
+
+                            return (
+                              <button
+                                key={action}
+                                onClick={() => handleAction(item, action)}
+                                disabled={isActionLoading || loadingAction !== null}
+                                className={cn(
+                                  "px-3 py-1.5 text-xs font-medium rounded-lg transition-all duration-200",
+                                  "bg-stone-700 text-stone-300",
+                                  "border border-stone-600",
+                                  "hover:bg-stone-600 hover:text-white hover:border-stone-500 hover:scale-105",
+                                  "disabled:opacity-50 disabled:cursor-not-allowed",
+                                  isActionLoading && "bg-[--exec-accent-bg] text-[--exec-accent] border-[--exec-accent]/30"
+                                )}
+                              >
+                                {isActionLoading ? (
+                                  <Loader2 className="w-3 h-3 animate-spin inline mr-1" />
+                                ) : null}
+                                {getActionLabel(action)}
+                              </button>
+                            );
+                          })}
+
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           )}
         </div>
 
         {/* AI Observations */}
         <div>
-          <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">
+          <h3 className="text-xs font-semibold text-[--exec-text-muted] uppercase tracking-wider mb-4">
             Insights
           </h3>
-          <div className="bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-800 rounded-xl p-4">
+          <div className="bg-[--exec-accent-bg-subtle] rounded-2xl p-4">
             {!briefing.ai_observations || briefing.ai_observations.length === 0 ? (
-              <p className="text-sm text-blue-600 dark:text-blue-400">
+              <p className="text-sm text-[--exec-accent]">
                 No patterns detected yet. Keep tracking your work to get personalized insights.
               </p>
             ) : (
               <ul className="space-y-3">
                 {briefing.ai_observations.map((observation, index) => (
-                  <li key={index} className="flex gap-2 text-sm text-blue-800 dark:text-blue-300">
-                    <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-blue-400 dark:bg-blue-500 flex-shrink-0" />
+                  <li key={index} className="flex gap-2 text-sm text-[--exec-text-secondary]">
+                    <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-[--exec-accent] flex-shrink-0" />
                     {observation}
                   </li>
                 ))}

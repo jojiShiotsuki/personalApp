@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { outreachApi } from '@/lib/api';
+import type { OutreachNiche, OutreachSituation, OutreachTemplate } from '@/types';
 import { X, Plus, Trash2, Save } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -22,17 +23,17 @@ export default function ManageTemplatesModal({ isOpen, onClose }: ManageTemplate
   const [templateContent, setTemplateContent] = useState('');
   const queryClient = useQueryClient();
 
-  const { data: niches = [] } = useQuery({
+  const { data: niches = [] } = useQuery<OutreachNiche[]>({
     queryKey: ['outreach-niches'],
     queryFn: outreachApi.getNiches,
   });
 
-  const { data: situations = [] } = useQuery({
+  const { data: situations = [] } = useQuery<OutreachSituation[]>({
     queryKey: ['outreach-situations'],
     queryFn: outreachApi.getSituations,
   });
 
-  const { data: templates = [] } = useQuery({
+  const { data: templates = [] } = useQuery<OutreachTemplate[]>({
     queryKey: ['outreach-templates'],
     queryFn: () => outreachApi.getTemplates(),
   });

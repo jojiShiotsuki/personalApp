@@ -6,6 +6,7 @@ import { interactionApi } from '@/lib/api';
 import { X, Mail, Phone, Building2, User, Calendar, Phone as PhoneIcon, FileText, Edit, Share2, Trash2 } from 'lucide-react';
 import { formatDistanceToNow, format, isToday, isYesterday, parseISO } from 'date-fns';
 import ConfirmModal from './ConfirmModal';
+import { cn } from '@/lib/utils';
 
 interface ContactDetailModalProps {
   contact: Contact;
@@ -18,28 +19,33 @@ interface ContactDetailModalProps {
 const interactionIcons = {
   [InteractionType.MEETING]: {
     icon: Calendar,
-    color: 'text-blue-600 dark:text-blue-400',
-    bg: 'bg-blue-100 dark:bg-blue-900/30'
+    color: 'text-blue-400',
+    bg: 'bg-blue-500/20'
   },
   [InteractionType.EMAIL]: {
     icon: Mail,
-    color: 'text-green-600 dark:text-green-400',
-    bg: 'bg-green-100 dark:bg-green-900/30'
+    color: 'text-green-400',
+    bg: 'bg-green-500/20'
   },
   [InteractionType.CALL]: {
     icon: PhoneIcon,
-    color: 'text-orange-600 dark:text-orange-400',
-    bg: 'bg-orange-100 dark:bg-orange-900/30'
+    color: 'text-orange-400',
+    bg: 'bg-orange-500/20'
   },
   [InteractionType.NOTE]: {
     icon: FileText,
-    color: 'text-gray-600 dark:text-gray-400',
-    bg: 'bg-gray-100 dark:bg-gray-700/50'
+    color: 'text-stone-400',
+    bg: 'bg-stone-500/20'
   },
   [InteractionType.SOCIAL_MEDIA]: {
     icon: Share2,
-    color: 'text-purple-600 dark:text-purple-400',
-    bg: 'bg-purple-100 dark:bg-purple-900/30'
+    color: 'text-purple-400',
+    bg: 'bg-purple-500/20'
+  },
+  [InteractionType.FOLLOW_UP_EMAIL]: {
+    icon: Mail,
+    color: 'text-cyan-400',
+    bg: 'bg-cyan-500/20'
   },
 };
 
@@ -58,7 +64,7 @@ export default function ContactDetailModal({
   onEditContact,
 }: ContactDetailModalProps) {
   const queryClient = useQueryClient();
-  
+
   const { data: interactions = [], isLoading } = useQuery({
     queryKey: ['interactions', contact.id],
     queryFn: () => interactionApi.getAll(contact.id),
@@ -84,14 +90,14 @@ export default function ContactDetailModal({
   );
 
   return (
-    <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 animate-in fade-in duration-200">
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-4xl mx-4 max-h-[90vh] flex flex-col border border-gray-100 dark:border-gray-700 transform transition-all animate-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 animate-in fade-in duration-200">
+      <div className="bg-[--exec-surface] rounded-2xl shadow-2xl w-full max-w-4xl mx-4 max-h-[90vh] flex flex-col border border-stone-600/40 transform transition-all animate-in zoom-in-95 duration-200">
         {/* Modal Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-700">
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white">Contact Details</h2>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-stone-700/30">
+          <h2 className="text-xl font-bold text-[--exec-text]">Contact Details</h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+            className="text-[--exec-text-muted] hover:text-[--exec-text] p-1.5 hover:bg-stone-700/50 rounded-lg transition-colors"
           >
             <X className="w-6 h-6" />
           </button>
@@ -100,26 +106,27 @@ export default function ContactDetailModal({
         {/* Modal Body - Two Column Layout */}
         <div className="flex flex-1 overflow-hidden">
           {/* Left Column - Contact Info */}
-          <div className="w-80 border-r border-gray-200 dark:border-gray-700 p-6 overflow-y-auto">
+          <div className="w-80 border-r border-stone-700/30 p-6 overflow-y-auto">
             {/* Contact Summary Card */}
             <div className="flex items-start mb-6">
-              <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center flex-shrink-0">
-                <User className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+              <div className="w-16 h-16 bg-blue-500/20 rounded-full flex items-center justify-center flex-shrink-0">
+                <User className="w-8 h-8 text-blue-400" />
               </div>
               <div className="ml-4 flex-1">
-                <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
+                <h3 className="text-xl font-semibold text-[--exec-text]">
                   {contact.name}
                 </h3>
                 <span
-                  className={`inline-block px-2 py-1 text-xs rounded mt-2 ${
-                    contact.status === 'client'
-                      ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                      : contact.status === 'prospect'
-                      ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
-                      : contact.status === 'lead'
-                      ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
-                      : 'bg-gray-100 text-gray-700 dark:bg-gray-700/50 dark:text-gray-300'
-                  }`}
+                  className={cn(
+                    "inline-block px-2 py-1 text-xs rounded mt-2",
+                    contact.status === 'CLIENT'
+                      ? 'bg-emerald-500/20 text-emerald-400'
+                      : contact.status === 'PROSPECT'
+                      ? 'bg-sky-500/20 text-sky-400'
+                      : contact.status === 'LEAD'
+                      ? 'bg-amber-500/20 text-amber-400'
+                      : 'bg-stone-600/50 text-stone-400'
+                  )}
                 >
                   {contact.status}
                 </span>
@@ -130,12 +137,12 @@ export default function ContactDetailModal({
             <div className="space-y-4 mb-6">
               {contact.email && (
                 <div className="flex items-start">
-                  <Mail className="w-5 h-5 text-gray-400 dark:text-gray-500 mr-3 mt-0.5 flex-shrink-0" />
+                  <Mail className="w-5 h-5 text-[--exec-text-muted] mr-3 mt-0.5 flex-shrink-0" />
                   <div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Email</p>
+                    <p className="text-xs text-[--exec-text-muted] mb-1">Email</p>
                     <a
                       href={`mailto:${contact.email}`}
-                      className="text-sm text-blue-600 dark:text-blue-400 hover:underline break-all"
+                      className="text-sm text-[--exec-accent] hover:underline break-all"
                     >
                       {contact.email}
                     </a>
@@ -145,12 +152,12 @@ export default function ContactDetailModal({
 
               {contact.phone && (
                 <div className="flex items-start">
-                  <Phone className="w-5 h-5 text-gray-400 dark:text-gray-500 mr-3 mt-0.5 flex-shrink-0" />
+                  <Phone className="w-5 h-5 text-[--exec-text-muted] mr-3 mt-0.5 flex-shrink-0" />
                   <div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Phone</p>
+                    <p className="text-xs text-[--exec-text-muted] mb-1">Phone</p>
                     <a
                       href={`tel:${contact.phone}`}
-                      className="text-sm text-gray-900 dark:text-white hover:underline"
+                      className="text-sm text-[--exec-text] hover:underline"
                     >
                       {contact.phone}
                     </a>
@@ -160,20 +167,20 @@ export default function ContactDetailModal({
 
               {contact.company && (
                 <div className="flex items-start">
-                  <Building2 className="w-5 h-5 text-gray-400 dark:text-gray-500 mr-3 mt-0.5 flex-shrink-0" />
+                  <Building2 className="w-5 h-5 text-[--exec-text-muted] mr-3 mt-0.5 flex-shrink-0" />
                   <div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Company</p>
-                    <p className="text-sm text-gray-900 dark:text-white">{contact.company}</p>
+                    <p className="text-xs text-[--exec-text-muted] mb-1">Company</p>
+                    <p className="text-sm text-[--exec-text]">{contact.company}</p>
                   </div>
                 </div>
               )}
 
               {contact.source && (
                 <div className="flex items-start">
-                  <FileText className="w-5 h-5 text-gray-400 dark:text-gray-500 mr-3 mt-0.5 flex-shrink-0" />
+                  <FileText className="w-5 h-5 text-[--exec-text-muted] mr-3 mt-0.5 flex-shrink-0" />
                   <div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Source</p>
-                    <p className="text-sm text-gray-900 dark:text-white">{contact.source}</p>
+                    <p className="text-xs text-[--exec-text-muted] mb-1">Source</p>
+                    <p className="text-sm text-[--exec-text]">{contact.source}</p>
                   </div>
                 </div>
               )}
@@ -182,8 +189,8 @@ export default function ContactDetailModal({
             {/* Notes Section */}
             {contact.notes && (
               <div className="mb-6">
-                <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Notes</h4>
-                <p className="text-sm text-gray-600 dark:text-gray-400 whitespace-pre-wrap">
+                <h4 className="text-sm font-semibold text-[--exec-text-secondary] mb-2">Notes</h4>
+                <p className="text-sm text-[--exec-text-muted] whitespace-pre-wrap">
                   {contact.notes}
                 </p>
               </div>
@@ -192,7 +199,7 @@ export default function ContactDetailModal({
             {/* Edit Contact Button */}
             <button
               onClick={onEditContact}
-              className="w-full flex items-center justify-center px-4 py-2 bg-gray-100 dark:bg-gray-700/50 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+              className="w-full flex items-center justify-center px-4 py-2 bg-stone-700/50 text-[--exec-text-secondary] rounded-lg hover:bg-stone-600/50 transition-colors"
             >
               <Edit className="w-4 h-4 mr-2" />
               Edit Contact
@@ -202,13 +209,13 @@ export default function ContactDetailModal({
           {/* Right Column - Interaction Timeline */}
           <div className="flex-1 flex flex-col overflow-hidden">
             {/* Timeline Header */}
-            <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+            <div className="px-6 py-4 border-b border-stone-700/30 flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-[--exec-text]">
                 Interaction History
               </h3>
               <button
                 onClick={onAddInteraction}
-                className="px-4 py-2 bg-blue-600 dark:bg-blue-500 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors"
+                className="px-4 py-2 bg-[--exec-accent] text-white rounded-lg hover:bg-[--exec-accent-dark] transition-colors text-sm font-medium"
               >
                 Add Interaction
               </button>
@@ -218,12 +225,12 @@ export default function ContactDetailModal({
             <div className="flex-1 overflow-y-auto px-6 py-4">
               {isLoading ? (
                 <div className="flex justify-center py-12">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 dark:border-blue-400"></div>
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[--exec-accent]"></div>
                 </div>
               ) : sortedInteractions.length > 0 ? (
                 <div className="space-y-4">
                   {sortedInteractions.map((interaction, index) => {
-                    const iconConfig = interactionIcons[interaction.type];
+                    const iconConfig = interactionIcons[interaction.type] || interactionIcons[InteractionType.NOTE];
                     const IconComponent = iconConfig.icon;
 
                     return (
@@ -236,19 +243,19 @@ export default function ContactDetailModal({
                             <IconComponent className={`w-5 h-5 ${iconConfig.color}`} />
                           </div>
                           {index < sortedInteractions.length - 1 && (
-                            <div className="w-0.5 bg-gray-200 dark:bg-gray-700 flex-1 min-h-[40px]"></div>
+                            <div className="w-0.5 bg-stone-700/50 flex-1 min-h-[40px]"></div>
                           )}
                         </div>
 
                         {/* Interaction Content */}
                         <div className="flex-1 pb-6">
-                          <div className="bg-gray-50 dark:bg-gray-700/30 rounded-lg p-4">
+                          <div className="bg-stone-800/40 border border-stone-600/40 rounded-lg p-4">
                             <div className="flex items-start justify-between mb-2">
                               <div className="flex-1">
-                                <h4 className="font-semibold text-gray-900 dark:text-white">
+                                <h4 className="font-semibold text-[--exec-text]">
                                   {interaction.subject || `${interaction.type.charAt(0).toUpperCase() + interaction.type.slice(1)}`}
                                 </h4>
-                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                <p className="text-xs text-[--exec-text-muted] mt-1">
                                   {formatInteractionDate(interaction.interaction_date)}
                                 </p>
                               </div>
@@ -260,7 +267,7 @@ export default function ContactDetailModal({
                                 </span>
                                 <button
                                   onClick={() => handleDelete(interaction.id, interaction.subject || "Interaction")}
-                                  className="p-1 text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded transition-colors"
+                                  className="p-1 text-[--exec-text-muted] hover:text-red-400 hover:bg-red-500/10 rounded transition-colors"
                                   title="Delete interaction"
                                 >
                                   <Trash2 className="w-4 h-4" />
@@ -268,7 +275,7 @@ export default function ContactDetailModal({
                               </div>
                             </div>
                             {interaction.notes && (
-                              <p className="text-sm text-gray-600 dark:text-gray-400 mt-2 whitespace-pre-wrap">
+                              <p className="text-sm text-[--exec-text-secondary] mt-2 whitespace-pre-wrap">
                                 {interaction.notes}
                               </p>
                             )}
@@ -280,9 +287,9 @@ export default function ContactDetailModal({
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center py-12 text-center">
-                  <FileText className="w-16 h-16 text-gray-400 dark:text-gray-500 mb-4" />
-                  <p className="text-gray-500 dark:text-gray-400 font-medium">No interactions yet</p>
-                  <p className="text-sm text-gray-400 dark:text-gray-500 mt-2">
+                  <FileText className="w-16 h-16 text-[--exec-text-muted] mb-4" />
+                  <p className="text-[--exec-text-secondary] font-medium">No interactions yet</p>
+                  <p className="text-sm text-[--exec-text-muted] mt-2">
                     Add your first interaction to track this relationship.
                   </p>
                 </div>

@@ -4,6 +4,7 @@ import { interactionApi } from '@/lib/api';
 import type { InteractionCreate } from '@/types';
 import { InteractionType } from '@/types';
 import { X } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface AddInteractionModalProps {
   contactId: number;
@@ -57,14 +58,22 @@ export default function AddInteractionModal({
     return `${year}-${month}-${day}T${hours}:${minutes}`;
   };
 
+  const inputClasses = cn(
+    "w-full px-4 py-2.5 rounded-lg",
+    "bg-stone-800/50 border border-stone-600/40",
+    "text-[--exec-text] placeholder:text-[--exec-text-muted]",
+    "focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]/50",
+    "transition-all text-sm"
+  );
+
   return (
-    <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-[60] animate-in fade-in duration-200">
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-md mx-4 border border-gray-100 dark:border-gray-700 transform transition-all animate-in zoom-in-95 duration-200">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-700">
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white">Add Interaction</h2>
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[60] animate-in fade-in duration-200">
+      <div className="bg-[--exec-surface] rounded-2xl shadow-2xl w-full max-w-md mx-4 border border-stone-600/40 transform transition-all animate-in zoom-in-95 duration-200">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-stone-700/30">
+          <h2 className="text-xl font-bold text-[--exec-text]">Add Interaction</h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+            className="text-[--exec-text-muted] hover:text-[--exec-text] p-1.5 hover:bg-stone-700/50 rounded-lg transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
@@ -72,20 +81,20 @@ export default function AddInteractionModal({
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           {error && (
-            <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 px-4 py-3 rounded">
+            <div className="bg-red-500/20 border border-red-500/40 text-red-400 px-4 py-3 rounded-lg text-sm">
               {error}
             </div>
           )}
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-              Type <span className="text-rose-500">*</span>
+            <label className="block text-sm font-medium text-[--exec-text-secondary] mb-1.5">
+              Type <span className="text-red-400">*</span>
             </label>
             <select
               name="type"
               required
               defaultValue={InteractionType.MEETING}
-              className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-blue-500/40 focus:border-blue-500 dark:focus:border-blue-400 transition-all text-sm bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
+              className={inputClasses}
             >
               <option value={InteractionType.MEETING}>Meeting</option>
               <option value={InteractionType.EMAIL}>Email</option>
@@ -97,54 +106,54 @@ export default function AddInteractionModal({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+            <label className="block text-sm font-medium text-[--exec-text-secondary] mb-1.5">
               Subject
             </label>
             <input
               type="text"
               name="subject"
               placeholder="e.g., Q1 Planning Call"
-              className="w-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-blue-500/40 focus:border-blue-500 dark:focus:border-blue-400 transition-all text-sm placeholder:text-gray-400 dark:placeholder:text-gray-500"
+              className={inputClasses}
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-              Date & Time <span className="text-rose-500">*</span>
+            <label className="block text-sm font-medium text-[--exec-text-secondary] mb-1.5">
+              Date & Time <span className="text-red-400">*</span>
             </label>
             <input
               type="datetime-local"
               name="interaction_date"
               required
               defaultValue={getCurrentDateTime()}
-              className="w-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-blue-500/40 focus:border-blue-500 dark:focus:border-blue-400 transition-all text-sm"
+              className={inputClasses}
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+            <label className="block text-sm font-medium text-[--exec-text-secondary] mb-1.5">
               Notes
             </label>
             <textarea
               name="notes"
               rows={5}
               placeholder="Discussion points, outcomes, follow-ups..."
-              className="w-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-blue-500/40 focus:border-blue-500 dark:focus:border-blue-400 transition-all text-sm placeholder:text-gray-400 dark:placeholder:text-gray-500 resize-none"
+              className={cn(inputClasses, "resize-none")}
             />
           </div>
 
-          <div className="flex gap-3 justify-end pt-4 border-t border-gray-50 dark:border-gray-700 mt-6">
+          <div className="flex gap-3 justify-end pt-4 border-t border-stone-700/30 mt-6">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-all"
+              className="px-4 py-2 text-sm font-medium text-[--exec-text-secondary] bg-stone-700/50 rounded-lg hover:bg-stone-600/50 transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={createMutation.isPending}
-              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 dark:bg-blue-500 rounded-xl hover:bg-blue-700 dark:hover:bg-blue-600 shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 text-sm font-medium text-white bg-[--exec-accent] rounded-lg hover:bg-[--exec-accent-dark] shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {createMutation.isPending ? 'Creating...' : 'Create'}
             </button>

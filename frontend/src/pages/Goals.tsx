@@ -4,7 +4,7 @@ import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea
 import { goalApi } from '@/lib/api';
 import type { Goal, GoalCreate, GoalUpdate, KeyResult } from '@/types';
 import { Quarter, Month, GoalPriority } from '@/types';
-import { ChevronDown, ChevronRight, Plus, Target, Trash2, Edit, Calendar, CheckCircle2 } from 'lucide-react';
+import { ChevronDown, ChevronRight, Plus, Target, Trash2, Edit, Calendar, CheckCircle2, Crosshair, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import QuickAddGoalModal from '@/components/QuickAddGoalModal';
 import ConfirmModal from '@/components/ConfirmModal';
@@ -20,15 +20,15 @@ const QUARTER_MONTHS: Record<Quarter, Month[]> = {
 
 const priorityConfig = {
   [GoalPriority.HIGH]: {
-    badge: 'bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-800',
+    badge: 'bg-[--exec-danger-bg] text-[--exec-danger] border-[--exec-danger]/20',
     label: 'High'
   },
   [GoalPriority.MEDIUM]: {
-    badge: 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800',
+    badge: 'bg-[--exec-info-bg] text-[--exec-info] border-[--exec-info]/20',
     label: 'Medium'
   },
   [GoalPriority.LOW]: {
-    badge: 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700',
+    badge: 'bg-[--exec-surface-alt] text-[--exec-text-muted] border-[--exec-border]',
     label: 'Low'
   }
 };
@@ -99,6 +99,10 @@ export default function Goals() {
     mutationFn: goalApi.delete,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['goals'] });
+      toast.success('Goal deleted');
+    },
+    onError: () => {
+      toast.error('Failed to delete goal. Please try again.');
     },
   });
 
@@ -248,91 +252,117 @@ export default function Goals() {
   }, []);
 
   return (
-    <div className="h-full flex flex-col bg-gray-50 dark:bg-gray-900 transition-colors duration-200 overflow-hidden">
-      {/* Header */}
-      <div className="bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm border-b border-gray-200/60 dark:border-gray-700 px-8 py-6 sticky top-0 z-10 transition-colors duration-200">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold text-gray-900 dark:text-white tracking-tight">Goals</h1>
-            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Track quarterly and monthly objectives</p>
+    <div className="min-h-full bg-[--exec-bg] grain">
+      {/* Hero Header */}
+      <header className="relative overflow-hidden">
+        {/* Gradient background */}
+        <div className="absolute inset-0 bg-gradient-to-br from-[--exec-surface] via-[--exec-surface] to-[--exec-accent-bg-subtle]" />
+
+        {/* Decorative elements */}
+        <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-bl from-[--exec-accent]/5 to-transparent rounded-full blur-3xl" />
+        <div className="absolute bottom-0 left-1/3 w-64 h-64 bg-gradient-to-t from-[--exec-sage]/5 to-transparent rounded-full blur-2xl" />
+
+        <div className="relative px-8 pt-8 pb-6">
+          {/* Breadcrumb chip */}
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-[--exec-surface-alt] rounded-full mb-4 animate-fade-slide-up">
+            <Crosshair className="w-3.5 h-3.5 text-[--exec-accent]" />
+            <span className="text-xs font-medium text-[--exec-text-secondary]">Planning</span>
           </div>
 
-          {/* Year selector and Quick Add */}
-          <div className="flex items-center gap-4">
-            <select
-              value={selectedYear}
-              onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-              className="px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 text-sm font-medium text-gray-900 dark:text-white"
-            >
-              {[currentYear - 1, currentYear, currentYear + 1].map(year => (
-                <option key={year} value={year}>{year}</option>
-              ))}
-            </select>
+          <div className="flex items-end justify-between">
+            <div>
+              <h1 className="text-4xl font-bold text-[--exec-text] tracking-tight animate-fade-slide-up delay-1" style={{ fontFamily: 'var(--font-display)' }}>
+                Your <span className="text-[--exec-accent]">Goals</span>
+              </h1>
+              <p className="text-[--exec-text-secondary] mt-2 text-lg animate-fade-slide-up delay-2">
+                Track quarterly and monthly objectives
+              </p>
+            </div>
 
-            <button
-              onClick={handleQuickAdd}
-              className="flex items-center px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-200 shadow-sm hover:shadow-md text-sm font-medium"
-              title="Quick Add (Ctrl+G)"
-            >
-              <Target className="w-4 h-4 mr-2 text-blue-600 dark:text-blue-400" />
-              Quick Add
-            </button>
+            {/* Year selector and Quick Add */}
+            <div className="flex items-center gap-3 animate-fade-slide-up delay-3">
+              <select
+                value={selectedYear}
+                onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+                className="px-4 py-2.5 bg-[--exec-surface] border border-[--exec-border] rounded-xl focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent] transition-all duration-200 text-sm font-medium text-[--exec-text] cursor-pointer"
+              >
+                {[currentYear - 1, currentYear, currentYear + 1].map(year => (
+                  <option key={year} value={year}>{year}</option>
+                ))}
+              </select>
 
-            <button
-              onClick={() => {
-                setEditingGoal(null);
-                resetForm();
-                setIsModalOpen(true);
-              }}
-              className="group flex items-center px-4 py-2 bg-blue-600 dark:bg-blue-500 text-white rounded-xl hover:bg-blue-700 dark:hover:bg-blue-600 transition-all duration-200 shadow-sm hover:shadow-md text-sm font-medium"
-            >
-              <Plus className="w-5 h-5 mr-2 transition-transform duration-200 group-hover:rotate-90" />
-              New Goal
-            </button>
+              <button
+                onClick={handleQuickAdd}
+                className="flex items-center px-4 py-2.5 bg-[--exec-surface] border border-[--exec-border] text-[--exec-text-secondary] rounded-xl hover:bg-[--exec-surface-alt] hover:border-[--exec-accent] hover:text-[--exec-accent] transition-all duration-200 text-sm font-medium"
+                title="Quick Add (Ctrl+G)"
+              >
+                <Target className="w-4 h-4 mr-2 text-[--exec-accent]" />
+                Quick Add
+              </button>
+
+              <button
+                onClick={() => {
+                  setEditingGoal(null);
+                  resetForm();
+                  setIsModalOpen(true);
+                }}
+                className="group flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[--exec-accent] to-[--exec-accent-dark] text-white rounded-2xl hover:shadow-lg hover:shadow-[--exec-accent]/25 hover:-translate-y-0.5 transition-all duration-200 font-semibold"
+              >
+                <Plus className="w-5 h-5 transition-transform duration-200 group-hover:rotate-90" />
+                New Goal
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      </header>
 
       {/* Content */}
-      <div className="flex-1 overflow-auto p-8">
+      <div className="px-8 py-6">
       {isLoading ? (
         <div className="flex justify-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[--exec-accent]"></div>
         </div>
       ) : (
         <DragDropContext onDragEnd={handleDragEnd}>
-          <div className="space-y-6 animate-in fade-in duration-500">
+          <div className="space-y-6">
             {/* Quarters */}
-            {Object.values(Quarter).map((quarter) => {
+            {Object.values(Quarter).map((quarter, qIdx) => {
               const isExpanded = expandedQuarters.has(quarter);
               const quarterGoals = goals.filter(g => g.quarter === quarter);
 
               return (
-                <div key={quarter} className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200/60 dark:border-gray-700 overflow-hidden transition-all duration-200">
+                <div
+                  key={quarter}
+                  className="bento-card-static overflow-hidden animate-fade-slide-up"
+                  style={{ animationDelay: `${(qIdx + 4) * 50}ms` }}
+                >
                   {/* Quarter Header */}
                   <button
                     onClick={() => toggleQuarter(quarter)}
-                    className="w-full flex items-center justify-between p-6 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                    className="w-full flex items-center justify-between p-6 hover:bg-[--exec-surface-alt] transition-colors"
                   >
                     <div className="flex items-center gap-3">
                       {isExpanded ? (
-                        <ChevronDown className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+                        <ChevronDown className="w-5 h-5 text-[--exec-text-muted]" />
                       ) : (
-                        <ChevronRight className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+                        <ChevronRight className="w-5 h-5 text-[--exec-text-muted]" />
                       )}
-                      <div className="w-10 h-10 rounded-lg bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-blue-600 dark:text-blue-400">
+                      <div className="w-10 h-10 rounded-xl bg-[--exec-accent-bg] flex items-center justify-center text-[--exec-accent]">
                         <Target className="w-5 h-5" />
                       </div>
                       <div className="text-left">
-                        <h2 className="text-lg font-bold text-gray-900 dark:text-white">{quarter}</h2>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">{quarterGoals.length} goals</p>
+                        <h2 className="text-lg font-bold text-[--exec-text]" style={{ fontFamily: 'var(--font-display)' }}>{quarter}</h2>
+                        <p className="text-sm text-[--exec-text-muted]">{quarterGoals.length} goals</p>
                       </div>
                     </div>
+                    <span className="text-xs font-bold bg-[--exec-surface-alt] text-[--exec-text-secondary] px-3 py-1.5 rounded-full">
+                      {quarterGoals.length} {quarterGoals.length === 1 ? 'goal' : 'goals'}
+                    </span>
                   </button>
 
                   {/* Quarter Content - Months */}
                   {isExpanded && (
-                    <div className="border-t border-gray-200/60 dark:border-gray-700 p-6 bg-gray-50/30 dark:bg-gray-900/30">
+                    <div className="border-t border-[--exec-border-subtle] p-6 bg-[--exec-surface-alt]/30">
                       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                       {QUARTER_MONTHS[quarter].map((month) => {
                         const monthGoals = goals.filter(
@@ -345,15 +375,15 @@ export default function Goals() {
                             {/* Month Header */}
                             <div className="flex items-center justify-between mb-4 px-1">
                               <div className="flex items-center gap-2">
-                                <Calendar className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-                                <h3 className="font-bold text-gray-900 dark:text-white">{month}</h3>
-                                <span className="text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-2 py-0.5 rounded-full">
+                                <Calendar className="w-4 h-4 text-[--exec-text-muted]" />
+                                <h3 className="font-bold text-[--exec-text]">{month}</h3>
+                                <span className="text-xs font-bold bg-[--exec-surface-alt] text-[--exec-text-muted] px-2 py-0.5 rounded-full">
                                   {monthGoals.length}
                                 </span>
                               </div>
                               <button
                                 onClick={() => handleNewGoal(quarter, month)}
-                                className="p-1 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors"
+                                className="p-1.5 text-[--exec-text-muted] hover:text-[--exec-accent] hover:bg-[--exec-accent-bg] rounded-lg transition-colors"
                                 title="Add Goal"
                               >
                                 <Plus className="w-4 h-4" />
@@ -368,15 +398,15 @@ export default function Goals() {
                                   {...provided.droppableProps}
                                   className={cn(
                                     'flex-1 min-h-[150px] space-y-3 rounded-xl transition-colors',
-                                    snapshot.isDraggingOver ? 'bg-blue-50/50 dark:bg-blue-900/20 ring-2 ring-blue-200 dark:ring-blue-800 ring-inset' : ''
+                                    snapshot.isDraggingOver ? 'bg-[--exec-accent-bg]/50 ring-2 ring-[--exec-accent]/30 ring-inset' : ''
                                   )}
                                 >
                                   {monthGoals.length === 0 ? (
-                                    <div className="flex flex-col items-center justify-center h-32 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-xl text-center p-4">
-                                      <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">No goals set</p>
+                                    <div className="flex flex-col items-center justify-center h-32 border-2 border-dashed border-[--exec-border] rounded-xl text-center p-4">
+                                      <p className="text-sm text-[--exec-text-muted] mb-2">No goals set</p>
                                       <button
                                         onClick={() => handleNewGoal(quarter, month)}
-                                        className="text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:underline"
+                                        className="text-xs font-medium text-[--exec-text-muted] hover:text-[--exec-accent] hover:underline"
                                       >
                                         Add one now
                                       </button>
@@ -394,14 +424,14 @@ export default function Goals() {
                                             {...provided.draggableProps}
                                             {...provided.dragHandleProps}
                                             className={cn(
-                                              'bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm group',
-                                              'hover:shadow-md hover:border-gray-300 dark:hover:border-gray-600 transition-all duration-200',
-                                              snapshot.isDragging && 'shadow-xl rotate-2 scale-105 z-50 ring-2 ring-blue-500 ring-opacity-50'
+                                              'bg-[--exec-surface] p-4 rounded-xl border border-[--exec-border-subtle] group',
+                                              'hover:shadow-md hover:border-[--exec-accent]/30 transition-all duration-200',
+                                              snapshot.isDragging && 'shadow-xl rotate-2 scale-105 z-50 ring-2 ring-[--exec-accent] ring-opacity-50'
                                             )}
                                           >
                                             {/* Goal Header */}
                                             <div className="flex items-start justify-between mb-3">
-                                              <h4 className="font-bold text-gray-900 dark:text-white text-sm leading-snug flex-1 pr-2">
+                                              <h4 className="font-bold text-[--exec-text] text-sm leading-snug flex-1 pr-2">
                                                 {goal.title}
                                               </h4>
                                               <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -410,7 +440,7 @@ export default function Goals() {
                                                     e.stopPropagation();
                                                     handleEditGoal(goal);
                                                   }}
-                                                  className="p-1.5 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors"
+                                                  className="p-1.5 text-[--exec-text-muted] hover:text-[--exec-accent] hover:bg-[--exec-accent-bg] rounded-md transition-colors"
                                                 >
                                                   <Edit className="w-3.5 h-3.5" />
                                                 </button>
@@ -419,7 +449,7 @@ export default function Goals() {
                                                     e.stopPropagation();
                                                     handleDelete(goal.id);
                                                   }}
-                                                  className="p-1.5 text-gray-400 hover:text-rose-600 dark:text-gray-500 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-md transition-colors"
+                                                  className="p-1.5 text-[--exec-text-muted] hover:text-[--exec-danger] hover:bg-[--exec-danger-bg] rounded-md transition-colors"
                                                 >
                                                   <Trash2 className="w-3.5 h-3.5" />
                                                 </button>
@@ -427,7 +457,7 @@ export default function Goals() {
                                             </div>
 
                                             {goal.description && (
-                                              <p className="text-xs text-gray-500 dark:text-gray-400 mb-4 line-clamp-2">{goal.description}</p>
+                                              <p className="text-xs text-[--exec-text-muted] mb-4 line-clamp-2">{goal.description}</p>
                                             )}
 
                                             {/* Goal Details */}
@@ -442,7 +472,7 @@ export default function Goals() {
 
                                               {/* Target Date */}
                                               {goal.target_date && (
-                                                <span className="text-[10px] font-medium text-gray-500 dark:text-gray-400 flex items-center gap-1 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-full border border-gray-200 dark:border-gray-600">
+                                                <span className="text-[10px] font-medium text-[--exec-text-muted] flex items-center gap-1 bg-[--exec-surface-alt] px-2 py-0.5 rounded-full border border-[--exec-border]">
                                                   <Calendar className="w-3 h-3" />
                                                   {new Date(goal.target_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                                                 </span>
@@ -451,18 +481,18 @@ export default function Goals() {
 
                                             {/* Key Results */}
                                             {goal.key_results && goal.key_results.length > 0 && (
-                                              <div className="pt-3 border-t border-gray-100 dark:border-gray-700 space-y-2">
+                                              <div className="pt-3 border-t border-[--exec-border-subtle] space-y-2">
                                                 {goal.key_results.map((kr) => (
                                                   <div key={kr.id} className="flex items-start gap-2 text-xs group/kr">
                                                     <div className={cn(
                                                       "w-4 h-4 rounded border flex items-center justify-center mt-0.5 flex-shrink-0 transition-colors",
-                                                      kr.completed ? "bg-emerald-50 border-emerald-200 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800" : "border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800"
+                                                      kr.completed ? "bg-[--exec-success-bg] border-[--exec-success]/30 text-[--exec-success]" : "border-[--exec-border] bg-[--exec-surface]"
                                                     )}>
                                                       {kr.completed && <CheckCircle2 className="w-3 h-3" />}
                                                     </div>
                                                     <span className={cn(
-                                                      'text-gray-600 dark:text-gray-300 leading-tight transition-colors',
-                                                      kr.completed && 'line-through text-gray-400 dark:text-gray-500'
+                                                      'text-[--exec-text-secondary] leading-tight transition-colors',
+                                                      kr.completed && 'line-through text-[--exec-text-muted]'
                                                     )}>
                                                       {kr.title}
                                                     </span>
@@ -495,46 +525,55 @@ export default function Goals() {
 
       {/* Goal Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-[--exec-surface] rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-[--exec-border-subtle]">
+            <div className="flex items-center justify-between p-6 border-b border-[--exec-border-subtle]">
+              <h2 className="text-2xl font-bold text-[--exec-text]" style={{ fontFamily: 'var(--font-display)' }}>
                 {editingGoal ? 'Edit Goal' : 'New Goal'}
               </h2>
+              <button
+                onClick={() => {
+                  setIsModalOpen(false);
+                  resetForm();
+                }}
+                className="p-2 text-[--exec-text-muted] hover:text-[--exec-text] hover:bg-[--exec-surface-alt] rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
             </div>
 
             <form onSubmit={handleSubmit} className="p-6 space-y-6">
               {/* Title */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-semibold text-[--exec-text] mb-2">
                   Title *
                 </label>
                 <input
                   type="text"
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  className="w-full px-4 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-white"
+                  className="w-full px-4 py-3 bg-[--exec-surface-alt] border border-[--exec-border] rounded-xl focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent] text-[--exec-text] transition-all duration-200"
                   required
                 />
               </div>
 
               {/* Description */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-semibold text-[--exec-text] mb-2">
                   Description
                 </label>
                 <textarea
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   rows={3}
-                  className="w-full px-4 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-white"
+                  className="w-full px-4 py-3 bg-[--exec-surface-alt] border border-[--exec-border] rounded-xl focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent] text-[--exec-text] transition-all duration-200 resize-none"
                 />
               </div>
 
               {/* Quarter and Month */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label className="block text-sm font-semibold text-[--exec-text] mb-2">
                     Quarter *
                   </label>
                   <select
@@ -547,7 +586,7 @@ export default function Goals() {
                         month: QUARTER_MONTHS[newQuarter][0],
                       });
                     }}
-                    className="w-full px-4 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-white"
+                    className="w-full px-4 py-3 bg-[--exec-surface-alt] border border-[--exec-border] rounded-xl focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent] text-[--exec-text] transition-all duration-200 cursor-pointer"
                   >
                     {Object.values(Quarter).map(q => (
                       <option key={q} value={q}>{q}</option>
@@ -555,13 +594,13 @@ export default function Goals() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label className="block text-sm font-semibold text-[--exec-text] mb-2">
                     Month *
                   </label>
                   <select
                     value={formData.month}
                     onChange={(e) => setFormData({ ...formData, month: e.target.value as Month })}
-                    className="w-full px-4 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-white"
+                    className="w-full px-4 py-3 bg-[--exec-surface-alt] border border-[--exec-border] rounded-xl focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent] text-[--exec-text] transition-all duration-200 cursor-pointer"
                   >
                     {QUARTER_MONTHS[formData.quarter].map(m => (
                       <option key={m} value={m}>{m}</option>
@@ -573,24 +612,24 @@ export default function Goals() {
               {/* Target Date and Priority */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label className="block text-sm font-semibold text-[--exec-text] mb-2">
                     Target Date
                   </label>
                   <input
                     type="date"
                     value={formData.target_date}
                     onChange={(e) => setFormData({ ...formData, target_date: e.target.value })}
-                    className="w-full px-4 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-white"
+                    className="w-full px-4 py-3 bg-[--exec-surface-alt] border border-[--exec-border] rounded-xl focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent] text-[--exec-text] transition-all duration-200"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label className="block text-sm font-semibold text-[--exec-text] mb-2">
                     Priority
                   </label>
                   <select
                     value={formData.priority}
                     onChange={(e) => setFormData({ ...formData, priority: e.target.value as GoalPriority })}
-                    className="w-full px-4 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-white"
+                    className="w-full px-4 py-3 bg-[--exec-surface-alt] border border-[--exec-border] rounded-xl focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent] text-[--exec-text] transition-all duration-200 cursor-pointer"
                   >
                     {Object.values(GoalPriority).map(p => (
                       <option key={p} value={p}>{priorityConfig[p].label}</option>
@@ -601,53 +640,56 @@ export default function Goals() {
 
               {/* Progress */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Progress: {formData.progress}%
-                </label>
+                <div className="flex justify-between items-center mb-2">
+                  <label className="block text-sm font-semibold text-[--exec-text]">
+                    Progress
+                  </label>
+                  <span className="text-sm font-bold text-[--exec-accent]" style={{ fontFamily: 'var(--font-display)' }}>{formData.progress}%</span>
+                </div>
                 <input
                   type="range"
                   min="0"
                   max="100"
                   value={formData.progress}
                   onChange={(e) => setFormData({ ...formData, progress: parseInt(e.target.value) })}
-                  className="w-full accent-blue-600 dark:accent-blue-500"
+                  className="w-full accent-[--exec-accent]"
                 />
               </div>
 
               {/* Key Results */}
               <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                <div className="flex items-center justify-between mb-3">
+                  <label className="block text-sm font-semibold text-[--exec-text]">
                     Key Results
                   </label>
                   <button
                     type="button"
                     onClick={addKeyResult}
-                    className="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                    className="text-sm font-medium text-[--exec-accent] hover:text-[--exec-accent-dark]"
                   >
                     + Add Key Result
                   </button>
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-3">
                   {formData.key_results?.map((kr) => (
-                    <div key={kr.id} className="flex items-center gap-2">
+                    <div key={kr.id} className="flex items-center gap-3">
                       <input
                         type="checkbox"
                         checked={kr.completed}
                         onChange={(e) => updateKeyResult(kr.id, 'completed', e.target.checked)}
-                        className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500"
+                        className="w-5 h-5 rounded border-[--exec-border] text-[--exec-accent] focus:ring-[--exec-accent]/20"
                       />
                       <input
                         type="text"
                         value={kr.title}
                         onChange={(e) => updateKeyResult(kr.id, 'title', e.target.value)}
                         placeholder="Key result title"
-                        className="flex-1 px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-white"
+                        className="flex-1 px-4 py-2.5 bg-[--exec-surface-alt] border border-[--exec-border] rounded-xl focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent] text-[--exec-text] transition-all duration-200"
                       />
                       <button
                         type="button"
                         onClick={() => removeKeyResult(kr.id)}
-                        className="p-2 text-gray-400 hover:text-rose-600 dark:text-gray-500 dark:hover:text-rose-400"
+                        className="p-2 text-[--exec-text-muted] hover:text-[--exec-danger] hover:bg-[--exec-danger-bg] rounded-lg transition-colors"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -657,21 +699,21 @@ export default function Goals() {
               </div>
 
               {/* Actions */}
-              <div className="flex gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+              <div className="flex gap-3 pt-4 border-t border-[--exec-border-subtle]">
                 <button
                   type="button"
                   onClick={() => {
                     setIsModalOpen(false);
                     resetForm();
                   }}
-                  className="flex-1 px-4 py-2 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                  className="flex-1 px-4 py-3 border border-[--exec-border] text-[--exec-text-secondary] rounded-xl hover:bg-[--exec-surface-alt] transition-all duration-200 font-medium"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={createMutation.isPending || updateMutation.isPending}
-                  className="flex-1 px-4 py-2 bg-blue-600 dark:bg-blue-500 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 disabled:opacity-50 transition-colors"
+                  className="flex-1 px-4 py-3 bg-gradient-to-r from-[--exec-accent] to-[--exec-accent-dark] text-white rounded-xl hover:shadow-lg hover:shadow-[--exec-accent]/25 disabled:opacity-50 transition-all duration-200 font-semibold"
                 >
                   {editingGoal ? 'Update Goal' : 'Create Goal'}
                 </button>
@@ -684,11 +726,11 @@ export default function Goals() {
       {/* Floating Action Button */}
       <button
         onClick={handleQuickAdd}
-        className="fixed bottom-8 right-8 w-16 h-16 bg-blue-600 dark:bg-blue-500 text-white rounded-full shadow-2xl hover:bg-blue-700 dark:hover:bg-blue-600 transition-all duration-200 flex items-center justify-center z-40 group"
+        className="fixed bottom-8 right-8 w-16 h-16 bg-gradient-to-r from-[--exec-accent] to-[--exec-accent-dark] text-white rounded-full shadow-2xl hover:shadow-[--exec-accent]/40 hover:-translate-y-1 transition-all duration-200 flex items-center justify-center z-40 group"
         title="Quick Add Goal (Ctrl+G)"
       >
-        <Plus className="w-8 h-8" />
-        <span className="absolute -top-12 right-0 bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-xs px-3 py-2 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap shadow-lg">
+        <Plus className="w-8 h-8 group-hover:rotate-90 transition-transform duration-200" />
+        <span className="absolute -top-12 right-0 bg-[--exec-surface] text-[--exec-text] text-xs px-3 py-2 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap shadow-lg border border-[--exec-border-subtle]">
           Quick Add Goal (Ctrl+G)
         </span>
       </button>

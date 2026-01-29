@@ -76,12 +76,12 @@ export default function DealCard({ deal, index, contacts, onEdit, onDelete, onAd
           {...provided.draggableProps}
           {...provided.dragHandleProps}
           className={cn(
-            'bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 group',
+            'bg-stone-800/60 rounded-xl shadow-sm border border-stone-600/40 p-4 group',
             // Only apply transitions when NOT dragging to avoid interfering with dnd transforms
-            !snapshot.isDragging && 'transition-all duration-200 hover:shadow-md hover:border-gray-300 dark:hover:border-gray-600 hover:-translate-y-0.5',
+            !snapshot.isDragging && 'transition-all duration-200 hover:shadow-md hover:border-stone-500/50 hover:-translate-y-0.5',
             snapshot.isDragging && 'shadow-2xl rotate-2 scale-105 z-50 cursor-grabbing',
             // Selection styles
-            isEditMode && isSelected && 'ring-2 ring-blue-500 border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+            isEditMode && isSelected && 'ring-2 ring-[--exec-accent] border-[--exec-accent] bg-[--exec-accent]/10'
           )}
           onClick={isEditMode && onToggleSelect ? (e) => {
             e.stopPropagation();
@@ -97,15 +97,15 @@ export default function DealCard({ deal, index, contacts, onEdit, onDelete, onAd
                   checked={isSelected}
                   onClick={(e) => e.stopPropagation()}
                   onChange={() => onToggleSelect?.(deal.id)}
-                  className="mt-0.5 w-4 h-4 text-blue-600 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 rounded focus:ring-blue-500 dark:focus:ring-blue-400 cursor-pointer"
+                  className="mt-0.5 w-4 h-4 text-[--exec-accent] bg-stone-800/50 border-stone-600/40 rounded focus:ring-[--exec-accent]/20 cursor-pointer"
                 />
               )}
               <div>
-                <h3 className="font-bold text-gray-900 dark:text-white text-sm leading-snug line-clamp-2">
+                <h3 className="font-bold text-[--exec-text] text-sm leading-snug line-clamp-2">
                   {deal.title}
                 </h3>
               {isTimerRunningForThis && (
-                <span className="inline-flex items-center mt-1 text-xs font-mono font-semibold text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 px-2 py-0.5 rounded animate-pulse">
+                <span className="inline-flex items-center mt-1 text-xs font-mono font-semibold text-green-400 bg-green-900/20 px-2 py-0.5 rounded animate-pulse">
                   {formatElapsedTime(elapsedSeconds)}
                 </span>
               )}
@@ -121,8 +121,8 @@ export default function DealCard({ deal, index, contacts, onEdit, onDelete, onAd
                 className={cn(
                   "p-1.5 rounded-md transition-colors",
                   isTimerRunningForThis
-                    ? "text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30"
-                    : "text-green-500 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-900/30"
+                    ? "text-red-400 hover:text-red-300 hover:bg-red-900/30"
+                    : "text-green-400 hover:text-green-300 hover:bg-green-900/30"
                 )}
                 title={isTimerRunningForThis ? "Stop timer" : "Start timer"}
               >
@@ -133,7 +133,7 @@ export default function DealCard({ deal, index, contacts, onEdit, onDelete, onAd
                   e.stopPropagation();
                   onEdit(deal);
                 }}
-                className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 rounded-md transition-colors"
+                className="p-1.5 hover:bg-stone-700/50 text-[--exec-text-muted] hover:text-[--exec-text] rounded-md transition-colors"
                 title="Edit deal"
               >
                 <Edit className="w-3.5 h-3.5" />
@@ -143,7 +143,7 @@ export default function DealCard({ deal, index, contacts, onEdit, onDelete, onAd
                   e.stopPropagation();
                   setShowDeleteConfirm(true);
                 }}
-                className="p-1.5 hover:bg-red-50 dark:hover:bg-red-900/30 text-slate-400 dark:text-slate-500 hover:text-red-600 dark:hover:text-red-400 rounded-md transition-colors"
+                className="p-1.5 hover:bg-red-900/30 text-[--exec-text-muted] hover:text-red-400 rounded-md transition-colors"
                 title="Delete deal"
               >
                 <Trash2 className="w-3.5 h-3.5" />
@@ -154,15 +154,15 @@ export default function DealCard({ deal, index, contacts, onEdit, onDelete, onAd
           {(() => {
             const contact = contacts.find(c => c.id === deal.contact_id);
             return contact && (
-              <div className="flex items-center gap-2 mb-3 text-xs text-gray-500 dark:text-gray-400">
-                <div className="w-5 h-5 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-[10px] font-bold text-slate-600 dark:text-slate-300">
+              <div className="flex items-center gap-2 mb-3 text-xs text-[--exec-text-muted]">
+                <div className="w-5 h-5 rounded-full bg-stone-700/50 flex items-center justify-center text-[10px] font-bold text-[--exec-text-secondary]">
                   {contact.name.charAt(0)}
                 </div>
                 <span className="truncate font-medium">{contact.name}</span>
                 {contact.company && (
                   <>
-                    <span className="text-gray-300">•</span>
-                    <span className="truncate text-gray-400">{contact.company}</span>
+                    <span className="text-stone-600">•</span>
+                    <span className="truncate text-[--exec-text-muted]">{contact.company}</span>
                   </>
                 )}
               </div>
@@ -170,16 +170,16 @@ export default function DealCard({ deal, index, contacts, onEdit, onDelete, onAd
           })()}
 
           <div className="flex items-end justify-between">
-            <span className="text-lg font-bold text-gray-900 dark:text-white">
+            <span className="text-lg font-bold text-[--exec-text]">
               {formatCurrency(deal.value || 0)}
             </span>
-            <span className="text-xs text-gray-500 dark:text-gray-400">
+            <span className="text-xs text-[--exec-text-muted]">
               {daysInStage} day{daysInStage !== 1 ? 's' : ''}
             </span>
           </div>
 
           {/* Follow-up badges with actions */}
-          <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+          <div className="mt-3 pt-3 border-t border-stone-600/30">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
                 <FollowUpBadge count={deal.followup_count} />
@@ -193,7 +193,7 @@ export default function DealCard({ deal, index, contacts, onEdit, onDelete, onAd
                     e.stopPropagation();
                     onAddInteraction(deal.contact_id);
                   }}
-                  className="flex-1 px-2 py-1 text-xs bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded flex items-center justify-center gap-1 transition-colors"
+                  className="flex-1 px-2 py-1 text-xs bg-stone-700/50 text-[--exec-text-secondary] hover:bg-stone-600/50 rounded flex items-center justify-center gap-1 transition-colors"
                   title="Add follow-up interaction"
                 >
                   <Plus className="w-3 h-3" />
@@ -206,7 +206,7 @@ export default function DealCard({ deal, index, contacts, onEdit, onDelete, onAd
                   unsnoozeMutation.mutate(deal.id);
                 }}
                 disabled={unsnoozeMutation.isPending}
-                className="flex-1 px-2 py-1 text-xs bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/50 rounded flex items-center justify-center gap-1 transition-colors disabled:opacity-50"
+                className="flex-1 px-2 py-1 text-xs bg-amber-900/30 text-amber-400 hover:bg-amber-900/50 rounded flex items-center justify-center gap-1 transition-colors disabled:opacity-50"
                 title="Move closer by 3 days"
               >
                 <Timer className="w-3 h-3" />
@@ -218,7 +218,7 @@ export default function DealCard({ deal, index, contacts, onEdit, onDelete, onAd
                   snoozeMutation.mutate(deal.id);
                 }}
                 disabled={snoozeMutation.isPending}
-                className="flex-1 px-2 py-1 text-xs bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded flex items-center justify-center gap-1 transition-colors disabled:opacity-50"
+                className="flex-1 px-2 py-1 text-xs bg-stone-700/50 text-[--exec-text-muted] hover:bg-stone-600/50 rounded flex items-center justify-center gap-1 transition-colors disabled:opacity-50"
                 title="Snooze 3 days"
               >
                 <Timer className="w-3 h-3" />

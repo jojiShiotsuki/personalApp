@@ -93,8 +93,8 @@ export default function KanbanColumn({
               ref={provided.innerRef}
               {...provided.droppableProps}
               className={cn(
-                'flex-1 px-3 pb-3 overflow-y-auto transition-colors duration-200 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-300 dark:[&::-webkit-scrollbar-thumb]:bg-gray-600 [&::-webkit-scrollbar-track]:bg-transparent',
-                snapshot.isDraggingOver ? 'bg-blue-50/50 dark:bg-blue-900/10 rounded-lg' : ''
+                'flex-1 px-3 pb-3 overflow-y-auto transition-colors duration-200 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-stone-600 [&::-webkit-scrollbar-track]:bg-transparent',
+                snapshot.isDraggingOver ? 'bg-[--exec-accent]/10 rounded-lg' : ''
               )}
               style={{ scrollbarWidth: 'thin' }}
             >

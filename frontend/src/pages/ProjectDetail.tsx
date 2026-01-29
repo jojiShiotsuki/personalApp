@@ -407,34 +407,34 @@ function ListTab({ projectId }: { projectId: number }) {
             className="space-y-4"
           >
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Title
               </label>
               <input
                 name="title"
                 required
-                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
                 placeholder="What needs to be done?"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Description
               </label>
               <textarea
                 name="description"
                 rows={3}
-                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
                 placeholder="Add details..."
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Priority
               </label>
               <select
                 name="priority"
-                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
               >
                 <option value={TaskPriority.LOW}>Low</option>
                 <option value={TaskPriority.MEDIUM}>Medium</option>
@@ -445,7 +445,7 @@ function ListTab({ projectId }: { projectId: number }) {
               <button
                 type="button"
                 onClick={() => setShowAddTask(false)}
-                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg font-medium transition-colors"
+                className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg font-medium transition-colors"
               >
                 Cancel
               </button>
@@ -578,25 +578,25 @@ function BoardTab({ projectId }: { projectId: number }) {
                                   className={cn(
                                     'text-xs font-medium px-2 py-0.5 rounded-full',
                                     task.priority === TaskPriority.HIGH
-                                      ? 'bg-rose-50 text-rose-700'
+                                      ? 'bg-rose-50 dark:bg-rose-900/30 text-rose-700 dark:text-rose-400'
                                       : task.priority === TaskPriority.MEDIUM
-                                      ? 'bg-amber-50 text-amber-700'
-                                      : 'bg-blue-50 text-blue-700'
+                                      ? 'bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400'
+                                      : 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400'
                                   )}
                                 >
                                   {task.priority}
                                 </span>
                               </div>
-                              <h4 className="font-medium text-gray-900 mb-1 group-hover:text-blue-600 transition-colors">
+                              <h4 className="font-medium text-gray-900 dark:text-white mb-1 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                                 {task.title}
                               </h4>
                               {task.description && (
-                                <p className="text-sm text-gray-500 line-clamp-2 mb-3">
+                                <p className="text-sm text-gray-500 dark:text-gray-400 line-clamp-2 mb-3">
                                   {task.description}
                                 </p>
                               )}
                               {task.due_date && (
-                                <div className="flex items-center text-xs text-gray-400 mt-2 pt-2 border-t border-gray-50">
+                                <div className="flex items-center text-xs text-gray-400 dark:text-gray-500 mt-2 pt-2 border-t border-gray-100 dark:border-gray-700">
                                   <Clock className="w-3 h-3 mr-1" />
                                   {format(new Date(task.due_date), 'MMM d')}
                                 </div>

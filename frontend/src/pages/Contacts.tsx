@@ -10,7 +10,6 @@ import ContactDetailModal from '@/components/ContactDetailModal';
 import ContactModal from '@/components/ContactModal';
 import AddInteractionModal from '@/components/AddInteractionModal';
 import ConfirmModal from '@/components/ConfirmModal';
-import AIChatPanel from '@/components/AIChatPanel';
 import { cn } from '@/lib/utils';
 
 export default function Contacts() {
@@ -134,155 +133,182 @@ export default function Contacts() {
   
 
   return (
-    <div className="flex h-full bg-gray-50 dark:bg-slate-900">
-      <div className="flex-1 h-full flex flex-col">
-      {/* Header */}
-      <div className="bg-white dark:bg-slate-900 border-b border-gray-200/60 dark:border-slate-700/60 px-8 py-6">
+    <div className="flex h-full bg-[--exec-bg]">
+      <div className="flex-1 h-full flex flex-col overflow-hidden">
+      {/* Page Header */}
+      <div className="px-8 pt-6 pb-4">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">Contacts</h1>
-            <p className="mt-1 text-sm text-gray-500 dark:text-slate-400">
+            <h1 className="text-2xl font-bold text-[--exec-text] tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>Contacts</h1>
+            <p className="mt-1 text-sm text-[--exec-text-muted]">
               Manage your contacts and relationships
             </p>
           </div>
           <button
             onClick={handleNewContact}
-            className="group flex items-center px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all duration-200 shadow-sm hover:shadow-md"
+            className={cn(
+              'group flex items-center',
+              'px-4 py-2',
+              'bg-[--exec-accent] text-white',
+              'rounded-xl',
+              'hover:bg-[--exec-accent-dark]',
+              'transition-all duration-200',
+              'shadow-sm hover:shadow-md',
+              'text-sm font-medium'
+            )}
           >
             <Plus className="w-5 h-5 mr-2 transition-transform duration-200 group-hover:rotate-90" />
             New Contact
           </button>
         </div>
-
-        {/* Search */}
-        <div className="mt-6 relative max-w-md">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-slate-500" />
-          <input
-            type="text"
-            placeholder="Search contacts by name, email, or company..."
-            aria-label="Search contacts"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 dark:text-white dark:placeholder-slate-500"
-          />
-        </div>
       </div>
 
-      {/* Contact List */}
-      <div className="flex-1 overflow-auto px-8 py-6">
-        {isLoading ? (
-          <div className="flex justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-600"></div>
+      {/* Main Content Card */}
+      <div className="flex-1 overflow-hidden px-8 pb-6">
+        <div className="bento-card-static h-full flex flex-col overflow-hidden">
+          {/* Search Row */}
+          <div className="px-6 py-4 border-b border-[--exec-border]/30">
+            <div className="relative max-w-md">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[--exec-text-muted]" />
+              <input
+                type="text"
+                placeholder="Search contacts by name, email, or company..."
+                aria-label="Search contacts"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className={cn(
+                  'w-full px-4 py-2 pl-10',
+                  'bg-[--exec-surface-alt] border-0 rounded-lg',
+                  'focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20',
+                  'transition-all duration-200',
+                  'text-sm text-[--exec-text] placeholder-[--exec-text-muted]'
+                )}
+              />
+            </div>
           </div>
-        ) : contacts.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 animate-in fade-in duration-500">
-            {contacts.map((contact) => {
-              return (
-              <div
-                key={contact.id}
-                className="group bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-gray-200/60 dark:border-slate-700/60 p-5 hover:shadow-xl hover:shadow-gray-200/50 dark:hover:shadow-slate-900/50 hover:border-gray-300 dark:hover:border-slate-600 transition-all duration-300 hover:-translate-y-1"
-              >
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className={cn(
-                      "w-12 h-12 rounded-xl flex items-center justify-center text-sm font-bold shadow-sm",
-                      getRandomColor(contact.name)
-                    )}>
-                      {getInitials(contact.name)}
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-gray-900 dark:text-white line-clamp-1">
-                        {contact.name}
-                      </h3>
-                      <span
-                        className={cn(
-                          "inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-medium uppercase tracking-wide mt-1",
-                          contact.status === ContactStatus.CLIENT
-                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                            : contact.status === ContactStatus.PROSPECT
-                            ? 'bg-sky-50 text-sky-700 border border-sky-200'
-                            : 'bg-gray-100 text-gray-600 border border-gray-200'
-                        )}
+
+          {/* Contact Grid */}
+          <div className="flex-1 overflow-auto p-6">
+            {isLoading ? (
+              <div className="flex justify-center py-12">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[--exec-text-muted]"></div>
+              </div>
+            ) : contacts.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 animate-in fade-in duration-500">
+                {contacts.map((contact) => {
+                  return (
+                  <div
+                    key={contact.id}
+                    className={cn(
+                      "group rounded-xl p-4",
+                      "bg-stone-800/40 border border-stone-600/40",
+                      "hover:bg-stone-800/60 hover:border-stone-600/60",
+                      "transition-all duration-300"
+                    )}
+                  >
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center gap-3">
+                        <div className={cn(
+                          "w-10 h-10 rounded-lg flex items-center justify-center text-sm font-bold",
+                          getRandomColor(contact.name)
+                        )}>
+                          {getInitials(contact.name)}
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-[--exec-text] line-clamp-1 text-sm">
+                            {contact.name}
+                          </h3>
+                          <span
+                            className={cn(
+                              "inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium uppercase tracking-wide mt-1",
+                              contact.status === ContactStatus.CLIENT
+                                ? 'bg-emerald-500/20 text-emerald-400'
+                                : contact.status === ContactStatus.PROSPECT
+                                ? 'bg-sky-500/20 text-sky-400'
+                                : 'bg-stone-600/50 text-stone-400'
+                            )}
+                          >
+                            {contact.status}
+                          </span>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => setSelectedContact(contact)}
+                        className="text-[--exec-text-muted] hover:text-[--exec-text] p-1.5 rounded-lg hover:bg-stone-700/50 transition-colors"
                       >
-                        {contact.status}
-                      </span>
+                        <MoreHorizontal className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    <div className="space-y-2 mb-4">
+                      {contact.company && (
+                        <div className="flex items-center text-sm text-[--exec-text-secondary]">
+                          <Building2 className="w-3.5 h-3.5 mr-2 text-[--exec-text-muted]" />
+                          <span className="truncate">{contact.company}</span>
+                        </div>
+                      )}
+                      {contact.email && (
+                        <div className="flex items-center text-sm text-[--exec-text-secondary]">
+                          <Mail className="w-3.5 h-3.5 mr-2 text-[--exec-text-muted]" />
+                          <span className="truncate">{contact.email}</span>
+                        </div>
+                      )}
+                      {contact.phone && (
+                        <div className="flex items-center text-sm text-[--exec-text-secondary]">
+                          <Phone className="w-3.5 h-3.5 mr-2 text-[--exec-text-muted]" />
+                          <span className="truncate">{contact.phone}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="pt-3 border-t border-stone-700/30 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                      <button
+                        onClick={() => setSelectedContact(contact)}
+                        className="flex-1 flex items-center justify-center px-3 py-1.5 text-xs font-medium text-[--exec-text-secondary] bg-stone-700/50 hover:bg-stone-600/50 rounded-lg transition-colors"
+                      >
+                        <ExternalLink className="w-3 h-3 mr-1.5" />
+                        View
+                      </button>
+                      <button
+                        onClick={() => handleEdit(contact)}
+                        className="flex items-center justify-center p-1.5 text-[--exec-text-muted] hover:text-[--exec-accent] hover:bg-[--exec-accent]/10 rounded-lg transition-colors"
+                        title="Edit"
+                      >
+                        <Edit2 className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => setContactToDelete(contact.id)}
+                        className="flex items-center justify-center p-1.5 text-[--exec-text-muted] hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                        title="Delete"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
                     </div>
                   </div>
-                  <button
-                    onClick={() => setSelectedContact(contact)}
-                    className="text-gray-400 hover:text-gray-600 p-1.5 rounded-lg hover:bg-gray-50 transition-colors"
-                  >
-                    <MoreHorizontal className="w-5 h-5" />
-                  </button>
-                </div>
-
-                <div className="space-y-2.5 mb-5">
-                  {contact.company && (
-                    <div className="flex items-center text-sm text-gray-600 dark:text-slate-300">
-                      <Building2 className="w-4 h-4 mr-2.5 text-gray-400 dark:text-slate-500" />
-                      <span className="truncate">{contact.company}</span>
-                    </div>
-                  )}
-                  {contact.email && (
-                    <div className="flex items-center text-sm text-gray-600 dark:text-slate-300">
-                      <Mail className="w-4 h-4 mr-2.5 text-gray-400 dark:text-slate-500" />
-                      <span className="truncate">{contact.email}</span>
-                    </div>
-                  )}
-                  {contact.phone && (
-                    <div className="flex items-center text-sm text-gray-600 dark:text-slate-300">
-                      <Phone className="w-4 h-4 mr-2.5 text-gray-400 dark:text-slate-500" />
-                      <span className="truncate">{contact.phone}</span>
-                    </div>
-                  )}
-                </div>
-
-                <div className="pt-4 border-t border-gray-100 dark:border-slate-700 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                  <button
-                    onClick={() => setSelectedContact(contact)}
-                    className="flex-1 flex items-center justify-center px-3 py-2 text-xs font-medium text-gray-700 dark:text-slate-300 bg-gray-50 dark:bg-slate-700 hover:bg-gray-100 dark:hover:bg-slate-600 rounded-lg border border-gray-200 dark:border-slate-600 transition-colors"
-                  >
-                    <ExternalLink className="w-3.5 h-3.5 mr-1.5" />
-                    View
-                  </button>
-                  <button
-                    onClick={() => handleEdit(contact)}
-                    className="flex items-center justify-center p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg border border-transparent hover:border-blue-100 transition-colors"
-                    title="Edit"
-                  >
-                    <Edit2 className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => setContactToDelete(contact.id)}
-                    className="flex items-center justify-center p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg border border-transparent hover:border-red-100 transition-colors"
-                    title="Delete"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
+                  );
+                })}
               </div>
-              );
-            })}
-          </div>
-        ) : (
-          <div className="flex flex-col items-center justify-center py-16 text-center">
-            <div className="w-20 h-20 bg-gray-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-4">
-              <User className="w-10 h-10 text-gray-400 dark:text-slate-500" />
-            </div>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">No contacts found</h3>
-            <p className="text-gray-500 dark:text-slate-400 max-w-sm mx-auto">
-              {searchTerm ? `No contacts match "${searchTerm}"` : "Get started by adding your first contact to manage your relationships."}
-            </p>
-            {!searchTerm && (
-              <button
-                onClick={handleNewContact}
-                className="mt-6 px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors shadow-sm"
-              >
-                Add Contact
-              </button>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <div className="w-16 h-16 bg-stone-700/50 rounded-full flex items-center justify-center mb-4">
+                  <User className="w-8 h-8 text-[--exec-text-muted]" />
+                </div>
+                <h3 className="text-lg font-semibold text-[--exec-text] mb-1">No contacts found</h3>
+                <p className="text-[--exec-text-muted] text-sm max-w-sm mx-auto">
+                  {searchTerm ? `No contacts match "${searchTerm}"` : "Get started by adding your first contact to manage your relationships."}
+                </p>
+                {!searchTerm && (
+                  <button
+                    onClick={handleNewContact}
+                    className="mt-6 px-4 py-2 bg-[--exec-accent] text-white rounded-lg hover:bg-[--exec-accent-dark] transition-colors shadow-sm text-sm font-medium"
+                  >
+                    Add Contact
+                  </button>
+                )}
+              </div>
             )}
           </div>
-        )}
+        </div>
       </div>
 
       {/* Modal */}
@@ -333,7 +359,6 @@ export default function Contacts() {
         confirmText="Delete"
         variant="danger"
       />
-      <AIChatPanel />
     </div>
   );
 }

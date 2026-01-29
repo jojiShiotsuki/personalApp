@@ -27,9 +27,6 @@ import type {
   TimeEntryUpdate,
   TimeSummary,
   TimeSummaryResponse,
-  CoachInsight,
-  CoachSettings,
-  CheckInsightRequest,
 } from '../types/index';
 import {
   TaskStatus,
@@ -37,9 +34,9 @@ import {
   Quarter,
 } from '../types/index';
 
-// In production, API is served from same domain. In dev, use localhost:8000
+// In production, API is served from same domain. In dev, use localhost:8002
 const API_URL = import.meta.env.VITE_API_URL ||
-  (import.meta.env.PROD ? '' : 'http://localhost:8000');
+  (import.meta.env.PROD ? '' : 'http://localhost:8002');
 
 const api = axios.create({
   baseURL: API_URL,
@@ -91,6 +88,11 @@ export const taskApi = {
 
   updateAllRecurring: async (id: number, task: TaskUpdate): Promise<{ updated_count: number; message: string }> => {
     const response = await api.put(`/api/tasks/${id}/update-all-recurring`, task);
+    return response.data;
+  },
+
+  deleteAllRecurring: async (id: number): Promise<{ deleted_count: number; message: string }> => {
+    const response = await api.delete(`/api/tasks/${id}/delete-all-recurring`);
     return response.data;
   },
 
@@ -536,36 +538,3 @@ export const outreachApi = {
   },
 };
 
-// Coach API
-export const coachApi = {
-  checkAction: async (
-    request: CheckInsightRequest,
-    settings: CoachSettings
-  ): Promise<CoachInsight | null> => {
-    const params = new URLSearchParams({
-      coach_level: settings.coach_level.toString(),
-    });
-    const response = await api.post(`/api/coach/check?${params}`, request);
-    return response.data;
-  },
-
-  getInsights: async (settings: CoachSettings): Promise<CoachInsight[]> => {
-    const params = new URLSearchParams({
-      coach_level: settings.coach_level.toString(),
-      stale_lead_days: settings.stale_lead_days.toString(),
-      stuck_deal_days: settings.stuck_deal_days.toString(),
-    });
-    const response = await api.get(`/api/coach/insights?${params}`);
-    return response.data;
-  },
-
-  markSeen: async (insightId: number): Promise<{ success: boolean }> => {
-    const response = await api.post(`/api/coach/insights/${insightId}/seen`);
-    return response.data;
-  },
-
-  dismissInsight: async (insightId: number): Promise<{ success: boolean }> => {
-    const response = await api.post(`/api/coach/insights/${insightId}/dismiss`);
-    return response.data;
-  },
-};
