@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Command } from 'cmdk';
 import { useNavigate } from 'react-router-dom';
-import { useTheme } from './ThemeProvider';
 import {
   LayoutDashboard,
   CheckSquare,
@@ -13,8 +12,6 @@ import {
   Calendar,
   Plus,
   Search,
-  Sun,
-  Moon
 } from 'lucide-react';
 
 interface CommandPaletteProps {
@@ -25,7 +22,6 @@ interface CommandPaletteProps {
 
 export default function CommandPalette({ open, onOpenChange, onQuickAdd }: CommandPaletteProps) {
   const navigate = useNavigate();
-  const { setTheme } = useTheme();
   const [search, setSearch] = useState('');
 
   // Toggle with Ctrl+K is handled in App.tsx, but we can also close with Esc here automatically by Dialog
@@ -96,17 +92,6 @@ export default function CommandPalette({ open, onOpenChange, onQuickAdd }: Comma
           <Command.Item value="export data backup" onSelect={() => runCommand(() => navigate('/export'))}>
             <Download className="w-4 h-4 mr-2" />
             Export Data
-          </Command.Item>
-        </Command.Group>
-
-        <Command.Group heading="Theme">
-          <Command.Item value="theme light mode" onSelect={() => runCommand(() => setTheme('light'))}>
-            <Sun className="w-4 h-4 mr-2" />
-            Light Mode
-          </Command.Item>
-          <Command.Item value="theme dark mode" onSelect={() => runCommand(() => setTheme('dark'))}>
-            <Moon className="w-4 h-4 mr-2" />
-            Dark Mode
           </Command.Item>
         </Command.Group>
       </Command.List>

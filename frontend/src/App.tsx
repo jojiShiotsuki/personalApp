@@ -45,7 +45,7 @@ function App() {
   };
 
   return (
-    <ThemeProvider defaultTheme="light" storageKey="vite-ui-theme">
+    <ThemeProvider>
       <BrowserRouter>
         <TimerProvider>
             <Layout>
