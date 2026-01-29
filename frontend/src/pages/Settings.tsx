@@ -1,10 +1,6 @@
-import { Settings as SettingsIcon } from 'lucide-react';
-import { useTheme } from '../components/ThemeProvider';
-import { cn } from '../lib/utils';
+import { Settings as SettingsIcon, Moon } from 'lucide-react';
 
 export default function Settings() {
-  const { theme, setTheme } = useTheme();
-
   return (
     <div className="flex flex-col h-full bg-[--exec-bg]">
       {/* Header */}
@@ -33,33 +29,12 @@ export default function Settings() {
               </h2>
             </div>
 
-            {/* Theme Selector */}
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-[--exec-text-secondary] mb-3">
-                Theme
-              </label>
-              <div className="flex gap-2">
-                {[
-                  { value: 'light', label: 'Light' },
-                  { value: 'dark', label: 'Dark' },
-                  { value: 'system', label: 'System' },
-                ].map((option) => (
-                  <button
-                    key={option.value}
-                    onClick={() => setTheme(option.value as 'light' | 'dark' | 'system')}
-                    className={cn(
-                      'flex-1 px-4 py-3 rounded-lg border transition-all duration-200',
-                      'text-center',
-                      theme === option.value
-                        ? 'bg-[--exec-accent]/10 border-[--exec-accent] text-[--exec-accent]'
-                        : 'bg-stone-800/50 border-stone-600/40 text-[--exec-text-secondary] hover:border-stone-500'
-                    )}
-                  >
-                    <div className="text-sm font-medium">
-                      {option.label}
-                    </div>
-                  </button>
-                ))}
+            {/* Theme Info */}
+            <div className="flex items-center gap-3 p-4 rounded-lg bg-stone-800/50 border border-stone-600/40">
+              <Moon className="w-5 h-5 text-[--exec-accent]" />
+              <div>
+                <div className="text-sm font-medium text-[--exec-text]">Dark Mode</div>
+                <div className="text-xs text-[--exec-text-muted]">Default theme for optimal viewing</div>
               </div>
             </div>
           </div>

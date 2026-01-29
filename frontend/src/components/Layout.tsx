@@ -16,11 +16,8 @@ import {
   ChevronLeft,
   ChevronRight,
   ArrowUpRight,
-  Sun,
-  Moon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useTheme } from './ThemeProvider';
 
 import FloatingTimer from './FloatingTimer';
 
@@ -64,7 +61,6 @@ const bottomNav = [
 export default function Layout({ children }: LayoutProps) {
   const location = useLocation();
   const [isExpanded, setIsExpanded] = useState(true);
-  const { theme, toggleTheme } = useTheme();
 
   const toggleSidebar = () => {
     setIsExpanded(!isExpanded);
@@ -229,23 +225,6 @@ export default function Layout({ children }: LayoutProps) {
               "flex items-center gap-1.5 mt-3",
               isExpanded ? "justify-start" : "justify-center flex-col"
             )}>
-              {/* Theme Toggle */}
-              <button
-                onClick={toggleTheme}
-                className={cn(
-                  "p-2 rounded-lg transition-all duration-200",
-                  "text-[--sidebar-text]",
-                  "hover:text-white hover:bg-stone-600"
-                )}
-                title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-              >
-                {theme === 'dark' ? (
-                  <Sun className="w-4 h-4" />
-                ) : (
-                  <Moon className="w-4 h-4" />
-                )}
-              </button>
-
               {/* Collapse Sidebar */}
               <button
                 onClick={toggleSidebar}
