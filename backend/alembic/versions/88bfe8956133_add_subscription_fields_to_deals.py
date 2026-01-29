@@ -20,7 +20,7 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     # Add subscription/recurring service fields to crm_deals
-    op.add_column('crm_deals', sa.Column('is_recurring', sa.Boolean(), nullable=True, server_default='0'))
+    op.add_column('crm_deals', sa.Column('is_recurring', sa.Boolean(), nullable=True, server_default='false'))
     op.add_column('crm_deals', sa.Column('billing_frequency', sa.String(length=20), nullable=True))
     op.add_column('crm_deals', sa.Column('recurring_amount', sa.Numeric(precision=12, scale=2), nullable=True))
     op.add_column('crm_deals', sa.Column('next_billing_date', sa.Date(), nullable=True))

@@ -20,13 +20,13 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     # Add is_billable column with default True for existing entries
-    op.add_column('time_entries', sa.Column('is_billable', sa.Boolean(), nullable=True, server_default='1'))
+    op.add_column('time_entries', sa.Column('is_billable', sa.Boolean(), nullable=True, server_default='true'))
 
     # Add category column
     op.add_column('time_entries', sa.Column('category', sa.String(length=20), nullable=True))
 
     # Update existing rows to have is_billable = True
-    op.execute("UPDATE time_entries SET is_billable = 1 WHERE is_billable IS NULL")
+    op.execute("UPDATE time_entries SET is_billable = TRUE WHERE is_billable IS NULL")
 
 
 def downgrade() -> None:
