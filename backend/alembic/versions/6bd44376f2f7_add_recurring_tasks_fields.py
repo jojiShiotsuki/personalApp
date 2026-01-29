@@ -39,7 +39,7 @@ def upgrade() -> None:
 
     # Add recurring task fields
     op.add_column('tasks', sa.Column('is_recurring', sa.Boolean(), nullable=False, server_default='0'))
-    op.add_column('tasks', sa.Column('recurrence_type', sa.Enum('DAILY', 'WEEKLY', 'MONTHLY', 'YEARLY', name='recurrencetype'), nullable=True))
+    op.add_column('tasks', sa.Column('recurrence_type', sa.String(20), nullable=True))
     op.add_column('tasks', sa.Column('recurrence_interval', sa.Integer(), nullable=True))
     op.add_column('tasks', sa.Column('recurrence_end_date', sa.Date(), nullable=True))
     op.add_column('tasks', sa.Column('recurrence_count', sa.Integer(), nullable=True))

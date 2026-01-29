@@ -19,7 +19,7 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    op.add_column('social_content', sa.Column('reel_type', sa.Enum('EDUCATIONAL', 'BEFORE_AFTER', 'BTS', 'SOCIAL_PROOF', name='reeltype'), nullable=True))
+    op.add_column('social_content', sa.Column('reel_type', sa.String(50), nullable=True))
 
 
 def downgrade() -> None:
