@@ -366,7 +366,12 @@ export type ReelType =
   | 'educational'
   | 'before_after'
   | 'bts'
-  | 'social_proof';
+  | 'social_proof'
+  | 'mini_audit'
+  | 'seo_education'
+  | 'client_results'
+  | 'direct_cta'
+  | 'full_redesign';
 
 export type RepurposeFormat = 'reel' | 'carousel' | 'long_caption';
 

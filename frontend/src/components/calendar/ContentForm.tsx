@@ -36,6 +36,11 @@ const REEL_TYPES: { value: ReelType; label: string }[] = [
   { value: 'before_after', label: 'Before/After' },
   { value: 'bts', label: 'BTS (Behind the Scenes)' },
   { value: 'social_proof', label: 'Social Proof' },
+  { value: 'mini_audit', label: 'Mini-Audit' },
+  { value: 'seo_education', label: 'SEO Education' },
+  { value: 'client_results', label: 'Client Results' },
+  { value: 'direct_cta', label: 'Direct CTA' },
+  { value: 'full_redesign', label: 'Full Redesign' },
 ];
 
 export default function ContentForm({

@@ -47,6 +47,11 @@ class ReelType(str, enum.Enum):
     BEFORE_AFTER = "before_after"
     BTS = "bts"
     SOCIAL_PROOF = "social_proof"
+    MINI_AUDIT = "mini_audit"
+    SEO_EDUCATION = "seo_education"
+    CLIENT_RESULTS = "client_results"
+    DIRECT_CTA = "direct_cta"
+    FULL_REDESIGN = "full_redesign"
 
 
 class SocialContent(Base):
