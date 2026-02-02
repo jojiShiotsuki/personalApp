@@ -594,12 +594,21 @@ export default function ColdOutreach() {
               </button>
 
               <button
-                onClick={() => setIsImportOpen(true)}
+                onClick={() => {
+                  if (!selectedCampaignId) {
+                    toast.error('Please select a campaign first');
+                    return;
+                  }
+                  setIsImportOpen(true);
+                }}
+                disabled={!selectedCampaignId}
                 className={cn(
                   'flex items-center gap-2 px-4 py-2.5 rounded-xl',
                   'bg-slate-600/50 text-slate-300 border border-slate-500/30',
-                  'hover:bg-slate-500 hover:text-white hover:border-slate-400 hover:scale-105',
-                  'active:scale-95 transition-all duration-200 font-medium text-sm'
+                  'transition-all duration-200 font-medium text-sm',
+                  selectedCampaignId
+                    ? 'hover:bg-slate-500 hover:text-white hover:border-slate-400 hover:scale-105 active:scale-95'
+                    : 'opacity-50 cursor-not-allowed'
                 )}
               >
                 <Upload className="w-4 h-4" />
@@ -607,12 +616,21 @@ export default function ColdOutreach() {
               </button>
 
               <button
-                onClick={() => setIsTemplatesOpen(true)}
+                onClick={() => {
+                  if (!selectedCampaignId) {
+                    toast.error('Please select a campaign first');
+                    return;
+                  }
+                  setIsTemplatesOpen(true);
+                }}
+                disabled={!selectedCampaignId}
                 className={cn(
                   'flex items-center gap-2 px-4 py-2.5 rounded-xl',
                   'bg-slate-600/50 text-slate-300 border border-slate-500/30',
-                  'hover:bg-slate-500 hover:text-white hover:border-slate-400 hover:scale-105',
-                  'active:scale-95 transition-all duration-200 font-medium text-sm'
+                  'transition-all duration-200 font-medium text-sm',
+                  selectedCampaignId
+                    ? 'hover:bg-slate-500 hover:text-white hover:border-slate-400 hover:scale-105 active:scale-95'
+                    : 'opacity-50 cursor-not-allowed'
                 )}
               >
                 <FileText className="w-4 h-4" />
