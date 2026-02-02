@@ -588,3 +588,144 @@ export interface OutreachTemplate {
   created_at?: string;
   updated_at?: string;
 }
+
+// Cold Outreach Types
+export enum ProspectStatus {
+  QUEUED = "queued",
+  IN_SEQUENCE = "in_sequence",
+  REPLIED = "replied",
+  NOT_INTERESTED = "not_interested",
+  CONVERTED = "converted",
+}
+
+export enum ResponseType {
+  INTERESTED = "interested",
+  NOT_INTERESTED = "not_interested",
+  OTHER = "other",
+}
+
+export enum CampaignStatus {
+  ACTIVE = "active",
+  ARCHIVED = "archived",
+}
+
+export interface OutreachCampaign {
+  id: number;
+  name: string;
+  status: CampaignStatus;
+  step_1_delay: number;
+  step_2_delay: number;
+  step_3_delay: number;
+  step_4_delay: number;
+  step_5_delay: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CampaignStats {
+  total_prospects: number;
+  queued: number;
+  in_sequence: number;
+  replied: number;
+  not_interested: number;
+  converted: number;
+  to_contact_today: number;
+  response_rate: number;
+  total_pipeline_value: number;
+}
+
+export interface CampaignWithStats extends OutreachCampaign {
+  stats: CampaignStats;
+}
+
+export interface CampaignCreate {
+  name: string;
+  step_1_delay?: number;
+  step_2_delay?: number;
+  step_3_delay?: number;
+  step_4_delay?: number;
+  step_5_delay?: number;
+}
+
+export interface OutreachProspect {
+  id: number;
+  campaign_id: number;
+  agency_name: string;
+  contact_name?: string;
+  email: string;
+  website?: string;
+  niche?: string;
+  custom_fields?: Record<string, any>;
+  status: ProspectStatus;
+  current_step: number;
+  next_action_date?: string;
+  last_contacted_at?: string;
+  response_type?: ResponseType;
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProspectCreate {
+  agency_name: string;
+  contact_name?: string;
+  email: string;
+  website?: string;
+  niche?: string;
+  custom_fields?: Record<string, any>;
+}
+
+export interface CsvColumnMapping {
+  agency_name: string;
+  contact_name?: string;
+  email: string;
+  website?: string;
+  niche?: string;
+}
+
+export interface CsvImportRequest {
+  column_mapping: CsvColumnMapping;
+  data: Record<string, any>[];
+}
+
+export interface CsvImportResponse {
+  imported_count: number;
+  skipped_count: number;
+  errors: string[];
+}
+
+export interface MarkRepliedRequest {
+  response_type: ResponseType;
+  notes?: string;
+}
+
+export interface MarkRepliedResponse {
+  prospect: OutreachProspect;
+  contact_id?: number;
+  deal_id?: number;
+  message: string;
+}
+
+export interface OutreachEmailTemplate {
+  id: number;
+  campaign_id: number;
+  step_number: number;
+  subject: string;
+  body: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EmailTemplateCreate {
+  step_number: number;
+  subject: string;
+  body: string;
+}
+
+export interface RenderedEmail {
+  to_email: string;
+  subject: string;
+  body: string;
+  prospect_id: number;
+  step_number: number;
+}
