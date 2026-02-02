@@ -591,22 +591,22 @@ export interface OutreachTemplate {
 
 // Cold Outreach Types
 export enum ProspectStatus {
-  QUEUED = "queued",
-  IN_SEQUENCE = "in_sequence",
-  REPLIED = "replied",
-  NOT_INTERESTED = "not_interested",
-  CONVERTED = "converted",
+  QUEUED = "QUEUED",
+  IN_SEQUENCE = "IN_SEQUENCE",
+  REPLIED = "REPLIED",
+  NOT_INTERESTED = "NOT_INTERESTED",
+  CONVERTED = "CONVERTED",
 }
 
 export enum ResponseType {
-  INTERESTED = "interested",
-  NOT_INTERESTED = "not_interested",
-  OTHER = "other",
+  INTERESTED = "INTERESTED",
+  NOT_INTERESTED = "NOT_INTERESTED",
+  OTHER = "OTHER",
 }
 
 export enum CampaignStatus {
-  ACTIVE = "active",
-  ARCHIVED = "archived",
+  ACTIVE = "ACTIVE",
+  ARCHIVED = "ARCHIVED",
 }
 
 export interface OutreachCampaign {

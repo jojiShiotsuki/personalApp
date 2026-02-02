@@ -80,22 +80,22 @@ class AddToPipelineResponse(BaseModel):
 
 # Enums for Cold Outreach schemas
 class ProspectStatus(str, Enum):
-    QUEUED = "queued"
-    IN_SEQUENCE = "in_sequence"
-    REPLIED = "replied"
-    NOT_INTERESTED = "not_interested"
-    CONVERTED = "converted"
+    QUEUED = "QUEUED"
+    IN_SEQUENCE = "IN_SEQUENCE"
+    REPLIED = "REPLIED"
+    NOT_INTERESTED = "NOT_INTERESTED"
+    CONVERTED = "CONVERTED"
 
 
 class ResponseType(str, Enum):
-    INTERESTED = "interested"
-    NOT_INTERESTED = "not_interested"
-    OTHER = "other"
+    INTERESTED = "INTERESTED"
+    NOT_INTERESTED = "NOT_INTERESTED"
+    OTHER = "OTHER"
 
 
 class CampaignStatus(str, Enum):
-    ACTIVE = "active"
-    ARCHIVED = "archived"
+    ACTIVE = "ACTIVE"
+    ARCHIVED = "ARCHIVED"
 
 
 # Campaign Schemas
