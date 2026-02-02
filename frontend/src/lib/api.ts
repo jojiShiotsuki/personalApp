@@ -27,6 +27,18 @@ import type {
   TimeEntryUpdate,
   TimeSummary,
   TimeSummaryResponse,
+  OutreachCampaign,
+  CampaignWithStats,
+  CampaignCreate,
+  OutreachProspect,
+  ProspectCreate,
+  CsvImportRequest,
+  CsvImportResponse,
+  MarkRepliedRequest,
+  MarkRepliedResponse,
+  OutreachEmailTemplate,
+  EmailTemplateCreate,
+  RenderedEmail,
 } from '../types/index';
 import {
   TaskStatus,
@@ -534,6 +546,95 @@ export const outreachApi = {
   // Quick Actions
   addToPipeline: async (data: { name: string; niche: string; situation: string }) => {
     const response = await api.post('/api/outreach/add-to-pipeline', data);
+    return response.data;
+  },
+};
+
+// Cold Outreach API
+export const coldOutreachApi = {
+  // Campaigns
+  getCampaigns: async (): Promise<OutreachCampaign[]> => {
+    const response = await api.get('/api/outreach/campaigns');
+    return response.data;
+  },
+
+  getCampaign: async (id: number): Promise<CampaignWithStats> => {
+    const response = await api.get(`/api/outreach/campaigns/${id}`);
+    return response.data;
+  },
+
+  createCampaign: async (data: CampaignCreate): Promise<OutreachCampaign> => {
+    const response = await api.post('/api/outreach/campaigns', data);
+    return response.data;
+  },
+
+  updateCampaign: async (id: number, data: Partial<CampaignCreate>): Promise<OutreachCampaign> => {
+    const response = await api.put(`/api/outreach/campaigns/${id}`, data);
+    return response.data;
+  },
+
+  deleteCampaign: async (id: number): Promise<void> => {
+    await api.delete(`/api/outreach/campaigns/${id}`);
+  },
+
+  // Prospects
+  getProspects: async (campaignId: number): Promise<OutreachProspect[]> => {
+    const response = await api.get(`/api/outreach/campaigns/${campaignId}/prospects`);
+    return response.data;
+  },
+
+  getTodayQueue: async (campaignId: number): Promise<OutreachProspect[]> => {
+    const response = await api.get(`/api/outreach/campaigns/${campaignId}/prospects/today`);
+    return response.data;
+  },
+
+  createProspect: async (campaignId: number, data: ProspectCreate): Promise<OutreachProspect> => {
+    const response = await api.post(`/api/outreach/campaigns/${campaignId}/prospects`, data);
+    return response.data;
+  },
+
+  importProspects: async (campaignId: number, data: CsvImportRequest): Promise<CsvImportResponse> => {
+    const response = await api.post(`/api/outreach/campaigns/${campaignId}/prospects/import`, data);
+    return response.data;
+  },
+
+  updateProspect: async (prospectId: number, data: Partial<OutreachProspect>): Promise<OutreachProspect> => {
+    const response = await api.put(`/api/outreach/campaigns/prospects/${prospectId}`, data);
+    return response.data;
+  },
+
+  deleteProspect: async (prospectId: number): Promise<void> => {
+    await api.delete(`/api/outreach/campaigns/prospects/${prospectId}`);
+  },
+
+  markSent: async (prospectId: number): Promise<{ prospect: OutreachProspect; next_action_date?: string; message: string }> => {
+    const response = await api.post(`/api/outreach/campaigns/prospects/${prospectId}/mark-sent`);
+    return response.data;
+  },
+
+  markReplied: async (prospectId: number, data: MarkRepliedRequest): Promise<MarkRepliedResponse> => {
+    const response = await api.post(`/api/outreach/campaigns/prospects/${prospectId}/mark-replied`, data);
+    return response.data;
+  },
+
+  // Email Templates
+  getTemplates: async (campaignId: number): Promise<OutreachEmailTemplate[]> => {
+    const response = await api.get(`/api/outreach/campaigns/${campaignId}/templates`);
+    return response.data;
+  },
+
+  createTemplate: async (campaignId: number, data: EmailTemplateCreate): Promise<OutreachEmailTemplate> => {
+    const response = await api.post(`/api/outreach/campaigns/${campaignId}/templates`, data);
+    return response.data;
+  },
+
+  deleteTemplate: async (templateId: number): Promise<void> => {
+    await api.delete(`/api/outreach/campaigns/templates/${templateId}`);
+  },
+
+  // Render email for prospect
+  renderEmail: async (prospectId: number): Promise<RenderedEmail> => {
+    const response = await api.get(`/api/outreach/campaigns/prospects/${prospectId}/render-email`);
     return response.data;
   },
 };
