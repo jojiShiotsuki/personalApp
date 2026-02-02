@@ -17,11 +17,13 @@ import {
   Users,
   CheckCircle,
   Copy,
-  Check,
   ChevronDown,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import CsvImportModal from '@/components/CsvImportModal';
+import CopyEmailModal from '@/components/CopyEmailModal';
+import ResponseOutcomeModal from '@/components/ResponseOutcomeModal';
 
 type TabType = 'today' | 'all' | 'replied';
 
@@ -67,119 +69,112 @@ function StatusBadge({ status }: { status: ProspectStatus }) {
 // Prospect card component for the Today queue
 function ProspectCard({
   prospect,
-  onCopyEmail,
   onMarkSent,
-  onMarkReplied,
 }: {
   prospect: OutreachProspect;
-  onCopyEmail: () => void;
   onMarkSent: () => void;
-  onMarkReplied: () => void;
 }) {
-  const [copied, setCopied] = useState(false);
+  const [isCopyModalOpen, setIsCopyModalOpen] = useState(false);
+  const [isResponseModalOpen, setIsResponseModalOpen] = useState(false);
   const isFollowUp = prospect.current_step > 1;
 
-  const handleCopy = async () => {
-    onCopyEmail();
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
   return (
-    <div className="bento-card p-5 hover:shadow-lg transition-all duration-200">
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-2">
-            {/* Step indicator dot */}
-            <div
-              className={cn(
-                'w-2.5 h-2.5 rounded-full',
-                isFollowUp ? 'bg-blue-500' : 'bg-green-500'
-              )}
-            />
-            <h3 className="font-semibold text-[--exec-text] truncate">
-              {prospect.agency_name}
-            </h3>
-            <span className="text-xs text-[--exec-text-muted] px-2 py-0.5 bg-[--exec-surface-alt] rounded-full">
-              Step {prospect.current_step}
-            </span>
+    <>
+      <div className="bento-card p-5 hover:shadow-lg transition-all duration-200">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-2">
+              {/* Step indicator dot */}
+              <div
+                className={cn(
+                  'w-2.5 h-2.5 rounded-full',
+                  isFollowUp ? 'bg-blue-500' : 'bg-green-500'
+                )}
+              />
+              <h3 className="font-semibold text-[--exec-text] truncate">
+                {prospect.agency_name}
+              </h3>
+              <span className="text-xs text-[--exec-text-muted] px-2 py-0.5 bg-[--exec-surface-alt] rounded-full">
+                Step {prospect.current_step}
+              </span>
+            </div>
+
+            <p className="text-sm text-[--exec-text-secondary] truncate mb-1">
+              {prospect.email}
+            </p>
+
+            {prospect.niche && (
+              <p className="text-xs text-[--exec-text-muted]">
+                {prospect.niche}
+              </p>
+            )}
           </div>
 
-          <p className="text-sm text-[--exec-text-secondary] truncate mb-1">
-            {prospect.email}
-          </p>
-
-          {prospect.niche && (
-            <p className="text-xs text-[--exec-text-muted]">
-              {prospect.niche}
-            </p>
-          )}
+          <StatusBadge status={prospect.status} />
         </div>
 
-        <StatusBadge status={prospect.status} />
-      </div>
-
-      {/* Action buttons */}
-      <div className="flex items-center gap-2 mt-4 pt-4 border-t border-[--exec-border-subtle]">
-        <button
-          onClick={handleCopy}
-          className={cn(
-            'flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200',
-            'bg-[--exec-surface-alt] text-[--exec-text-secondary] hover:bg-[--exec-accent-bg] hover:text-[--exec-accent]'
-          )}
-        >
-          {copied ? (
-            <>
-              <Check className="w-4 h-4" />
-              Copied!
-            </>
-          ) : (
-            <>
-              <Copy className="w-4 h-4" />
-              Copy Email
-            </>
-          )}
-        </button>
-
-        <button
-          onClick={onMarkSent}
-          className={cn(
-            'flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200',
-            'bg-[--exec-accent] text-white hover:bg-[--exec-accent-dark]'
-          )}
-        >
-          <Send className="w-4 h-4" />
-          Mark Sent
-        </button>
-
-        {isFollowUp && (
+        {/* Action buttons */}
+        <div className="flex items-center gap-2 mt-4 pt-4 border-t border-[--exec-border-subtle]">
           <button
-            onClick={onMarkReplied}
+            onClick={() => setIsCopyModalOpen(true)}
             className={cn(
               'flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200',
-              'bg-[--exec-sage] text-white hover:bg-[--exec-sage-dark]'
+              'bg-[--exec-surface-alt] text-[--exec-text-secondary] hover:bg-[--exec-accent-bg] hover:text-[--exec-accent]'
             )}
           >
-            <MessageSquare className="w-4 h-4" />
-            They Replied
+            <Copy className="w-4 h-4" />
+            Copy Email
           </button>
-        )}
+
+          <button
+            onClick={onMarkSent}
+            className={cn(
+              'flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200',
+              'bg-[--exec-accent] text-white hover:bg-[--exec-accent-dark]'
+            )}
+          >
+            <Send className="w-4 h-4" />
+            Mark Sent
+          </button>
+
+          {isFollowUp && (
+            <button
+              onClick={() => setIsResponseModalOpen(true)}
+              className={cn(
+                'flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200',
+                'bg-[--exec-sage] text-white hover:bg-[--exec-sage-dark]'
+              )}
+            >
+              <MessageSquare className="w-4 h-4" />
+              They Replied
+            </button>
+          )}
+        </div>
       </div>
-    </div>
+
+      {/* Modals */}
+      <CopyEmailModal
+        isOpen={isCopyModalOpen}
+        onClose={() => setIsCopyModalOpen(false)}
+        prospect={prospect}
+      />
+
+      <ResponseOutcomeModal
+        isOpen={isResponseModalOpen}
+        onClose={() => setIsResponseModalOpen(false)}
+        prospect={prospect}
+      />
+    </>
   );
 }
 
 // Today Queue component
 function TodayQueue({
   prospects,
-  onCopyEmail,
   onMarkSent,
-  onMarkReplied,
 }: {
   prospects: OutreachProspect[];
-  onCopyEmail: (prospect: OutreachProspect) => void;
   onMarkSent: (prospectId: number) => void;
-  onMarkReplied: (prospectId: number) => void;
 }) {
   if (prospects.length === 0) {
     return (
@@ -201,9 +196,7 @@ function TodayQueue({
         <ProspectCard
           key={prospect.id}
           prospect={prospect}
-          onCopyEmail={() => onCopyEmail(prospect)}
           onMarkSent={() => onMarkSent(prospect.id)}
-          onMarkReplied={() => onMarkReplied(prospect.id)}
         />
       ))}
     </div>
@@ -409,25 +402,8 @@ export default function ColdOutreach() {
   });
 
   // Handlers
-  const handleCopyEmail = async (prospect: OutreachProspect) => {
-    try {
-      // In a real implementation, this would render the email template
-      // For now, just copy the email address
-      await navigator.clipboard.writeText(prospect.email);
-      toast.success('Email copied to clipboard');
-    } catch {
-      toast.error('Failed to copy email');
-    }
-  };
-
   const handleMarkSent = (prospectId: number) => {
     markSentMutation.mutate(prospectId);
-  };
-
-  const handleMarkReplied = (prospectId: number) => {
-    // This will be handled by a modal in a future task
-    toast.info('Mark replied feature coming soon');
-    console.log('Mark replied:', prospectId);
   };
 
   // Auto-select first campaign if none selected
@@ -637,9 +613,7 @@ export default function ColdOutreach() {
             {activeTab === 'today' && (
               <TodayQueue
                 prospects={todayQueue}
-                onCopyEmail={handleCopyEmail}
                 onMarkSent={handleMarkSent}
-                onMarkReplied={handleMarkReplied}
               />
             )}
             {activeTab === 'all' && (
@@ -692,23 +666,12 @@ export default function ColdOutreach() {
         </div>
       )}
 
-      {isImportOpen && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-[--exec-surface] rounded-2xl shadow-2xl p-6 max-w-md mx-4 border border-[--exec-border]">
-            <h2 className="text-lg font-semibold text-[--exec-text] mb-4">
-              Import CSV Modal
-            </h2>
-            <p className="text-[--exec-text-muted] mb-4">
-              This modal will be implemented in a later task.
-            </p>
-            <button
-              onClick={() => setIsImportOpen(false)}
-              className="px-4 py-2 bg-[--exec-accent] text-white rounded-xl"
-            >
-              Close
-            </button>
-          </div>
-        </div>
+      {selectedCampaignId && (
+        <CsvImportModal
+          isOpen={isImportOpen}
+          onClose={() => setIsImportOpen(false)}
+          campaignId={selectedCampaignId}
+        />
       )}
 
       {isTemplatesOpen && (
