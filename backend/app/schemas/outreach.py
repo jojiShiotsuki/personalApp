@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field
-from datetime import datetime
-from typing import Optional
+from datetime import datetime, date
+from typing import Optional, List
+from enum import Enum
 
 
 # Niche Schemas
@@ -75,3 +76,191 @@ class AddToPipelineResponse(BaseModel):
     contact_id: int
     deal_id: int
     message: str
+
+
+# Enums for Cold Outreach schemas
+class ProspectStatus(str, Enum):
+    QUEUED = "queued"
+    IN_SEQUENCE = "in_sequence"
+    REPLIED = "replied"
+    NOT_INTERESTED = "not_interested"
+    CONVERTED = "converted"
+
+
+class ResponseType(str, Enum):
+    INTERESTED = "interested"
+    NOT_INTERESTED = "not_interested"
+    OTHER = "other"
+
+
+class CampaignStatus(str, Enum):
+    ACTIVE = "active"
+    ARCHIVED = "archived"
+
+
+# Campaign Schemas
+class CampaignBase(BaseModel):
+    name: str = Field(..., min_length=1, max_length=255)
+    step_1_delay: int = Field(default=0, ge=0)
+    step_2_delay: int = Field(default=3, ge=0)
+    step_3_delay: int = Field(default=5, ge=0)
+    step_4_delay: int = Field(default=7, ge=0)
+    step_5_delay: int = Field(default=7, ge=0)
+
+
+class CampaignCreate(CampaignBase):
+    pass
+
+
+class CampaignUpdate(BaseModel):
+    name: Optional[str] = Field(None, min_length=1, max_length=255)
+    status: Optional[CampaignStatus] = None
+    step_1_delay: Optional[int] = Field(None, ge=0)
+    step_2_delay: Optional[int] = Field(None, ge=0)
+    step_3_delay: Optional[int] = Field(None, ge=0)
+    step_4_delay: Optional[int] = Field(None, ge=0)
+    step_5_delay: Optional[int] = Field(None, ge=0)
+
+
+class CampaignResponse(CampaignBase):
+    id: int
+    status: CampaignStatus
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class CampaignStats(BaseModel):
+    total_prospects: int
+    queued: int
+    in_sequence: int
+    replied: int
+    not_interested: int
+    converted: int
+    to_contact_today: int
+    response_rate: float
+    total_pipeline_value: float
+
+
+class CampaignWithStats(CampaignResponse):
+    stats: CampaignStats
+
+
+# Prospect Schemas
+class ProspectBase(BaseModel):
+    agency_name: str = Field(..., min_length=1, max_length=255)
+    contact_name: Optional[str] = Field(None, max_length=255)
+    email: str = Field(..., min_length=1, max_length=255)
+    website: Optional[str] = Field(None, max_length=500)
+    niche: Optional[str] = Field(None, max_length=100)
+    custom_fields: Optional[dict] = None
+
+
+class ProspectCreate(ProspectBase):
+    pass
+
+
+class ProspectUpdate(BaseModel):
+    agency_name: Optional[str] = Field(None, min_length=1, max_length=255)
+    contact_name: Optional[str] = Field(None, max_length=255)
+    email: Optional[str] = Field(None, min_length=1, max_length=255)
+    website: Optional[str] = Field(None, max_length=500)
+    niche: Optional[str] = Field(None, max_length=100)
+    custom_fields: Optional[dict] = None
+    status: Optional[ProspectStatus] = None
+    current_step: Optional[int] = Field(None, ge=1, le=5)
+    next_action_date: Optional[date] = None
+    notes: Optional[str] = None
+
+
+class ProspectResponse(ProspectBase):
+    id: int
+    campaign_id: int
+    status: ProspectStatus
+    current_step: int
+    next_action_date: Optional[date]
+    last_contacted_at: Optional[datetime]
+    response_type: Optional[ResponseType]
+    notes: Optional[str]
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+# CSV Import Schema
+class CsvColumnMapping(BaseModel):
+    agency_name: str
+    contact_name: Optional[str] = None
+    email: str
+    website: Optional[str] = None
+    niche: Optional[str] = None
+
+
+class CsvImportRequest(BaseModel):
+    column_mapping: CsvColumnMapping
+    data: List[dict]
+
+
+class CsvImportResponse(BaseModel):
+    imported_count: int
+    skipped_count: int
+    errors: List[str]
+
+
+# Mark Sent Schema
+class MarkSentResponse(BaseModel):
+    prospect: ProspectResponse
+    next_action_date: Optional[date]
+    message: str
+
+
+# Mark Replied Schema
+class MarkRepliedRequest(BaseModel):
+    response_type: ResponseType
+    notes: Optional[str] = None
+
+
+class MarkRepliedResponse(BaseModel):
+    prospect: ProspectResponse
+    contact_id: Optional[int] = None
+    deal_id: Optional[int] = None
+    message: str
+
+
+# Email Template Schemas
+class EmailTemplateBase(BaseModel):
+    step_number: int = Field(..., ge=1, le=5)
+    subject: str = Field(..., min_length=1, max_length=500)
+    body: str = Field(..., min_length=1)
+
+
+class EmailTemplateCreate(EmailTemplateBase):
+    pass
+
+
+class EmailTemplateUpdate(BaseModel):
+    subject: Optional[str] = Field(None, min_length=1, max_length=500)
+    body: Optional[str] = Field(None, min_length=1)
+
+
+class EmailTemplateResponse(EmailTemplateBase):
+    id: int
+    campaign_id: int
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+# Rendered Email Schema
+class RenderedEmail(BaseModel):
+    to_email: str
+    subject: str
+    body: str
+    prospect_id: int
+    step_number: int
