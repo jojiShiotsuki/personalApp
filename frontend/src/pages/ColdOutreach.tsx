@@ -123,7 +123,9 @@ function ProspectCard({
             onClick={() => setIsCopyModalOpen(true)}
             className={cn(
               'flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200',
-              'bg-[--exec-surface-alt] text-[--exec-text-secondary] hover:bg-[--exec-accent-bg] hover:text-[--exec-accent]'
+              'bg-slate-600/50 text-slate-300',
+              'hover:bg-slate-500 hover:text-white hover:scale-105',
+              'active:scale-95'
             )}
           >
             <Copy className="w-4 h-4" />
@@ -134,8 +136,11 @@ function ProspectCard({
             onClick={onMarkSent}
             className={cn(
               'flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200',
-              'bg-[--exec-accent] text-white hover:bg-[--exec-accent-dark]'
+              'text-white',
+              'hover:brightness-110 hover:scale-105 hover:shadow-lg',
+              'active:scale-95'
             )}
+            style={{ backgroundColor: 'var(--exec-accent)' }}
           >
             <Send className="w-4 h-4" />
             Mark Sent
@@ -146,7 +151,9 @@ function ProspectCard({
               onClick={() => setIsResponseModalOpen(true)}
               className={cn(
                 'flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200',
-                'bg-[--exec-sage] text-white hover:bg-[--exec-sage-dark]'
+                'bg-green-600 text-white',
+                'hover:bg-green-500 hover:scale-105 hover:shadow-lg',
+                'active:scale-95'
               )}
             >
               <MessageSquare className="w-4 h-4" />
@@ -294,7 +301,13 @@ function AllProspects({
                 {prospect.status === ProspectStatus.IN_SEQUENCE && (
                   <button
                     onClick={() => onMarkSent(prospect.id)}
-                    className="text-sm text-[--exec-accent] hover:text-[--exec-accent-dark] font-medium"
+                    className={cn(
+                      'px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200',
+                      'text-white',
+                      'hover:brightness-110 hover:scale-105',
+                      'active:scale-95'
+                    )}
+                    style={{ backgroundColor: 'var(--exec-accent)' }}
                   >
                     Mark Sent
                   </button>
@@ -570,9 +583,9 @@ export default function ColdOutreach() {
                 className={cn(
                   'flex items-center gap-2 px-4 py-2.5 rounded-xl',
                   'text-white',
-                  'hover:scale-105 active:scale-95',
-                  'transition-all duration-200',
-                  'shadow-sm hover:shadow-lg font-medium text-sm'
+                  'hover:brightness-110 hover:scale-105 hover:shadow-lg',
+                  'active:scale-95 transition-all duration-200',
+                  'shadow-sm font-medium text-sm'
                 )}
                 style={{ backgroundColor: 'var(--exec-accent)' }}
               >
@@ -584,10 +597,9 @@ export default function ColdOutreach() {
                 onClick={() => setIsImportOpen(true)}
                 className={cn(
                   'flex items-center gap-2 px-4 py-2.5 rounded-xl',
-                  'bg-[--exec-surface] border border-[--exec-border]',
-                  'text-[--exec-text-secondary]',
-                  'hover:bg-[--exec-surface-alt] hover:border-[--exec-accent] hover:text-[--exec-accent]',
-                  'transition-all duration-200 font-medium text-sm'
+                  'bg-slate-600/50 text-slate-300 border border-slate-500/30',
+                  'hover:bg-slate-500 hover:text-white hover:border-slate-400 hover:scale-105',
+                  'active:scale-95 transition-all duration-200 font-medium text-sm'
                 )}
               >
                 <Upload className="w-4 h-4" />
@@ -598,10 +610,9 @@ export default function ColdOutreach() {
                 onClick={() => setIsTemplatesOpen(true)}
                 className={cn(
                   'flex items-center gap-2 px-4 py-2.5 rounded-xl',
-                  'bg-[--exec-surface] border border-[--exec-border]',
-                  'text-[--exec-text-secondary]',
-                  'hover:bg-[--exec-surface-alt] hover:border-[--exec-accent] hover:text-[--exec-accent]',
-                  'transition-all duration-200 font-medium text-sm'
+                  'bg-slate-600/50 text-slate-300 border border-slate-500/30',
+                  'hover:bg-slate-500 hover:text-white hover:border-slate-400 hover:scale-105',
+                  'active:scale-95 transition-all duration-200 font-medium text-sm'
                 )}
               >
                 <FileText className="w-4 h-4" />
@@ -688,15 +699,11 @@ export default function ColdOutreach() {
                   onClick={() => setActiveTab(tab)}
                   className={cn(
                     'px-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200',
-                    'border',
                     activeTab === tab
-                      ? 'text-white shadow-md'
-                      : 'bg-[--exec-surface] text-[--exec-text-secondary] border-[--exec-border] hover:text-[--exec-text] hover:border-[--exec-accent] hover:bg-[--exec-surface-alt]'
+                      ? 'text-white shadow-lg scale-105'
+                      : 'bg-slate-700/50 text-slate-400 hover:bg-slate-600 hover:text-white hover:scale-105'
                   )}
-                  style={activeTab === tab ? {
-                    backgroundColor: 'var(--exec-accent)',
-                    borderColor: 'var(--exec-accent)'
-                  } : undefined}
+                  style={activeTab === tab ? { backgroundColor: 'var(--exec-accent)' } : undefined}
                 >
                   {tab === 'today' && 'Today'}
                   {tab === 'all' && 'All Prospects'}
@@ -734,10 +741,12 @@ export default function ColdOutreach() {
               onClick={() => setIsNewCampaignOpen(true)}
               className={cn(
                 'inline-flex items-center gap-2 px-4 py-2.5 rounded-xl',
-                'bg-[--exec-accent] text-white',
-                'hover:bg-[--exec-accent-dark] transition-all duration-200',
-                'shadow-sm hover:shadow-md font-medium text-sm'
+                'text-white',
+                'hover:brightness-110 hover:scale-105 hover:shadow-lg',
+                'active:scale-95 transition-all duration-200',
+                'shadow-sm font-medium text-sm'
               )}
+              style={{ backgroundColor: 'var(--exec-accent)' }}
             >
               <Plus className="w-4 h-4" />
               Create Campaign
