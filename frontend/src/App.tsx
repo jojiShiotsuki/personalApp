@@ -14,6 +14,7 @@ import Export from './pages/Export';
 import SocialCalendar from './pages/SocialCalendar';
 import Time from './pages/Time';
 import Outreach from './pages/Outreach';
+import ColdOutreach from './pages/ColdOutreach';
 import Services from './pages/Services';
 import Settings from './pages/Settings';
 import QuickAddModal from './components/QuickAddModal';
@@ -61,6 +62,7 @@ function App() {
               <Route path="/social-calendar" element={<SocialCalendar />} />
               <Route path="/time" element={<Time />} />
               <Route path="/outreach" element={<Outreach />} />
+              <Route path="/cold-outreach" element={<ColdOutreach />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="/services" element={<Services />} />
             </Routes>

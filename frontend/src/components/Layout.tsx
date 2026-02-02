@@ -11,6 +11,7 @@ import {
   Calendar,
   Clock,
   Send,
+  Mail,
   RefreshCw,
   Settings,
   ChevronLeft,
@@ -40,6 +41,7 @@ const navigationGroups = [
       { name: 'Deals', href: '/deals', icon: Briefcase },
       { name: 'Services', href: '/services', icon: RefreshCw },
       { name: 'Outreach', href: '/outreach', icon: Send },
+      { name: 'Cold Email', href: '/cold-outreach', icon: Mail },
     ],
   },
   {
