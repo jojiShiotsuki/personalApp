@@ -561,9 +561,10 @@ export default function CsvImportModal({ isOpen, onClose, campaignId }: CsvImpor
               <button
                 onClick={() => setStep(step === 'preview' ? 'map' : 'upload')}
                 className={cn(
-                  'flex items-center gap-2 px-4 py-2.5 rounded-xl',
-                  'text-[--exec-text-secondary]',
-                  'hover:bg-[--exec-surface-alt] transition-all duration-200',
+                  'flex items-center gap-2 px-5 py-2.5 rounded-xl',
+                  'bg-slate-600/50 text-slate-300',
+                  'hover:bg-slate-500 hover:text-white hover:scale-105',
+                  'active:scale-95 transition-all duration-200',
                   'font-medium text-sm'
                 )}
               >
@@ -577,9 +578,10 @@ export default function CsvImportModal({ isOpen, onClose, campaignId }: CsvImpor
             <button
               onClick={handleClose}
               className={cn(
-                'px-4 py-2.5 rounded-xl',
-                'text-[--exec-text-secondary]',
-                'hover:bg-[--exec-surface-alt] transition-all duration-200',
+                'px-5 py-2.5 rounded-xl',
+                'bg-slate-600/50 text-slate-300',
+                'hover:bg-slate-500 hover:text-white hover:scale-105',
+                'active:scale-95 transition-all duration-200',
                 'font-medium text-sm'
               )}
             >
@@ -591,10 +593,11 @@ export default function CsvImportModal({ isOpen, onClose, campaignId }: CsvImpor
                 onClick={() => setStep('preview')}
                 disabled={!canProceedToPreview}
                 className={cn(
-                  'flex items-center gap-2 px-4 py-2.5 rounded-xl',
+                  'flex items-center gap-2 px-5 py-2.5 rounded-xl',
                   'bg-[--exec-accent] text-white',
-                  'hover:bg-[--exec-accent-dark] transition-all duration-200',
-                  'disabled:opacity-50 disabled:cursor-not-allowed',
+                  'hover:brightness-110 hover:scale-105 hover:shadow-lg',
+                  'active:scale-95 transition-all duration-200',
+                  'disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100',
                   'font-medium text-sm'
                 )}
               >
@@ -608,10 +611,11 @@ export default function CsvImportModal({ isOpen, onClose, campaignId }: CsvImpor
                 onClick={handleImport}
                 disabled={importMutation.isPending}
                 className={cn(
-                  'flex items-center gap-2 px-4 py-2.5 rounded-xl',
-                  'bg-[--exec-accent] text-white',
-                  'hover:bg-[--exec-accent-dark] transition-all duration-200',
-                  'disabled:opacity-50 disabled:cursor-not-allowed',
+                  'flex items-center gap-2 px-5 py-2.5 rounded-xl',
+                  'bg-green-600 text-white',
+                  'hover:bg-green-500 hover:scale-105 hover:shadow-lg',
+                  'active:scale-95 transition-all duration-200',
+                  'disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100',
                   'font-medium text-sm'
                 )}
               >
