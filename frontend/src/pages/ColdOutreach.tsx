@@ -25,6 +25,7 @@ import CsvImportModal from '@/components/CsvImportModal';
 import CopyEmailModal from '@/components/CopyEmailModal';
 import ResponseOutcomeModal from '@/components/ResponseOutcomeModal';
 import NewCampaignModal from '@/components/NewCampaignModal';
+import EmailTemplatesModal from '@/components/EmailTemplatesModal';
 
 type TabType = 'today' | 'all' | 'replied';
 
@@ -662,23 +663,12 @@ export default function ColdOutreach() {
         />
       )}
 
-      {isTemplatesOpen && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-[--exec-surface] rounded-2xl shadow-2xl p-6 max-w-md mx-4 border border-[--exec-border]">
-            <h2 className="text-lg font-semibold text-[--exec-text] mb-4">
-              Email Templates Modal
-            </h2>
-            <p className="text-[--exec-text-muted] mb-4">
-              This modal will be implemented in a later task.
-            </p>
-            <button
-              onClick={() => setIsTemplatesOpen(false)}
-              className="px-4 py-2 bg-[--exec-accent] text-white rounded-xl"
-            >
-              Close
-            </button>
-          </div>
-        </div>
+      {selectedCampaignId && (
+        <EmailTemplatesModal
+          isOpen={isTemplatesOpen}
+          onClose={() => setIsTemplatesOpen(false)}
+          campaignId={selectedCampaignId}
+        />
       )}
     </div>
   );
