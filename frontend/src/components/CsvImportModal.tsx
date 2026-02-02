@@ -14,6 +14,12 @@ interface CsvImportModalProps {
 
 type Step = 'upload' | 'map' | 'preview';
 
+const STEP_CONFIG = [
+  { key: 'upload' as const, label: 'Upload', number: 1 },
+  { key: 'map' as const, label: 'Map Columns', number: 2 },
+  { key: 'preview' as const, label: 'Preview & Import', number: 3 },
+];
+
 // Parse a CSV line, handling quoted fields correctly
 function parseCSVLine(line: string): string[] {
   const result: string[] = [];
@@ -270,33 +276,46 @@ export default function CsvImportModal({ isOpen, onClose, campaignId }: CsvImpor
         </div>
 
         {/* Step indicators */}
-        <div className="flex items-center justify-center gap-2 px-6 py-4 border-b border-[--exec-border-subtle]">
-          {(['upload', 'map', 'preview'] as const).map((s, idx) => (
-            <div key={s} className="flex items-center">
-              <div
-                className={cn(
-                  'w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-all',
-                  step === s
-                    ? 'bg-[--exec-accent] text-white'
-                    : idx < ['upload', 'map', 'preview'].indexOf(step)
-                    ? 'bg-[--exec-success] text-white'
-                    : 'bg-[--exec-surface-alt] text-[--exec-text-muted]'
-                )}
-              >
-                {idx < ['upload', 'map', 'preview'].indexOf(step) ? <Check className="w-4 h-4" /> : idx + 1}
-              </div>
-              {idx < 2 && (
+        <div className="flex items-center justify-center gap-3 px-6 py-4 border-b border-[--exec-border-subtle]" style={{ backgroundColor: '#1C1917' }}>
+          {STEP_CONFIG.map((s, idx) => {
+            const currentIdx = STEP_CONFIG.findIndex((c) => c.key === step);
+            const isCompleted = idx < currentIdx;
+            const isCurrent = step === s.key;
+
+            return (
+              <div key={s.key} className="flex items-center">
                 <div
                   className={cn(
-                    'w-12 h-0.5 mx-2',
-                    idx < ['upload', 'map', 'preview'].indexOf(step)
-                      ? 'bg-[--exec-success]'
-                      : 'bg-[--exec-border]'
+                    'flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200',
+                    isCurrent
+                      ? 'text-white shadow-lg'
+                      : isCompleted
+                        ? 'bg-green-500/20 text-green-400'
+                        : 'bg-slate-700/50 text-slate-400'
                   )}
-                />
-              )}
-            </div>
-          ))}
+                  style={isCurrent ? { backgroundColor: 'var(--exec-accent)' } : undefined}
+                >
+                  <span
+                    className={cn(
+                      'w-6 h-6 rounded-full flex items-center justify-center text-xs',
+                      isCurrent ? 'bg-black/20' : isCompleted ? 'bg-green-500/30' : 'bg-black/20'
+                    )}
+                  >
+                    {isCompleted ? <Check className="w-3.5 h-3.5" /> : s.number}
+                  </span>
+                  <span>{s.label}</span>
+                </div>
+                {idx < STEP_CONFIG.length - 1 && (
+                  <div
+                    className={cn(
+                      'w-8 h-0.5 mx-2',
+                      isCompleted ? 'bg-green-500' : 'bg-slate-600'
+                    )}
+                  />
+                )}
+              </div>
+            );
+          })}
         </div>
 
         {/* Content */}
