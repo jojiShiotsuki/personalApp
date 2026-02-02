@@ -362,6 +362,7 @@ export default function ColdOutreach() {
   const [isNewCampaignOpen, setIsNewCampaignOpen] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [isTemplatesOpen, setIsTemplatesOpen] = useState(false);
+  const [isCampaignDropdownOpen, setIsCampaignDropdownOpen] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -449,40 +450,73 @@ export default function ColdOutreach() {
             </div>
 
             <div className="flex items-center gap-3 animate-fade-slide-up delay-3">
-              {/* Campaign selector */}
+              {/* Campaign selector - custom dropdown */}
               <div className="relative">
-                <select
-                  value={selectedCampaignId || ''}
-                  onChange={(e) =>
-                    setSelectedCampaignId(e.target.value ? Number(e.target.value) : null)
-                  }
+                <button
+                  onClick={() => setIsCampaignDropdownOpen(!isCampaignDropdownOpen)}
+                  onBlur={() => setTimeout(() => setIsCampaignDropdownOpen(false), 150)}
                   className={cn(
-                    'appearance-none pl-4 pr-10 py-2.5 rounded-xl',
-                    'bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700',
-                    'text-gray-900 dark:text-white text-sm font-medium',
-                    'focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500',
-                    'transition-all duration-200 cursor-pointer min-w-[180px]',
-                    '[&>option]:bg-white [&>option]:dark:bg-slate-800',
-                    '[&>option]:text-gray-900 [&>option]:dark:text-white'
+                    'flex items-center gap-2 pl-4 pr-3 py-2.5 rounded-xl min-w-[200px]',
+                    'bg-[--exec-surface] border border-[--exec-border]',
+                    'text-[--exec-text] text-sm font-medium',
+                    'hover:bg-[--exec-surface-alt] hover:border-[--exec-accent]',
+                    'focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]',
+                    'transition-all duration-200'
                   )}
                 >
-                  <option value="">Select Campaign</option>
-                  {campaigns.map((campaign) => (
-                    <option key={campaign.id} value={campaign.id}>
-                      {campaign.name}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-slate-500 pointer-events-none" />
+                  <Mail className="w-4 h-4 text-[--exec-text-muted]" />
+                  <span className="flex-1 text-left truncate">
+                    {selectedCampaignId
+                      ? campaigns.find((c) => c.id === selectedCampaignId)?.name || 'Select Campaign'
+                      : 'Select Campaign'}
+                  </span>
+                  <ChevronDown
+                    className={cn(
+                      'w-4 h-4 text-[--exec-text-muted] transition-transform duration-200',
+                      isCampaignDropdownOpen && 'rotate-180'
+                    )}
+                  />
+                </button>
+
+                {/* Dropdown menu */}
+                {isCampaignDropdownOpen && (
+                  <div className="absolute top-full left-0 mt-2 w-full min-w-[250px] py-2 rounded-xl bg-[--exec-surface] border border-[--exec-border] shadow-xl z-50">
+                    {campaigns.length === 0 ? (
+                      <div className="px-4 py-3 text-sm text-[--exec-text-muted]">
+                        No campaigns yet
+                      </div>
+                    ) : (
+                      campaigns.map((campaign) => (
+                        <button
+                          key={campaign.id}
+                          onClick={() => {
+                            setSelectedCampaignId(campaign.id);
+                            setIsCampaignDropdownOpen(false);
+                          }}
+                          className={cn(
+                            'w-full px-4 py-2.5 text-left text-sm',
+                            'hover:bg-[--exec-surface-alt] transition-colors',
+                            selectedCampaignId === campaign.id
+                              ? 'text-[--exec-accent] bg-[--exec-accent]/10'
+                              : 'text-[--exec-text]'
+                          )}
+                        >
+                          {campaign.name}
+                        </button>
+                      ))
+                    )}
+                  </div>
+                )}
               </div>
 
               <button
                 onClick={() => setIsNewCampaignOpen(true)}
                 className={cn(
                   'flex items-center gap-2 px-4 py-2.5 rounded-xl',
-                  'bg-[--exec-accent] text-white',
-                  'hover:bg-[--exec-accent-dark] transition-all duration-200',
-                  'shadow-sm hover:shadow-md font-medium text-sm'
+                  'bg-blue-600 text-white',
+                  'hover:bg-blue-700 hover:scale-105 active:scale-95',
+                  'transition-all duration-200',
+                  'shadow-sm hover:shadow-lg font-medium text-sm'
                 )}
               >
                 <Plus className="w-4 h-4" />
@@ -590,16 +624,17 @@ export default function ColdOutreach() {
         {/* Tabs */}
         {selectedCampaignId && (
           <div className="mb-6 animate-fade-slide-up delay-5">
-            <div className="flex items-center gap-2 bg-[--exec-surface] p-1 rounded-xl border border-[--exec-border] w-fit">
+            <div className="flex items-center gap-1">
               {(['today', 'all', 'replied'] as const).map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
                   className={cn(
-                    'px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200',
+                    'px-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200',
+                    'border',
                     activeTab === tab
-                      ? 'bg-[--exec-accent] text-white shadow-sm'
-                      : 'text-[--exec-text-secondary] hover:text-[--exec-text] hover:bg-[--exec-surface-alt]'
+                      ? 'bg-blue-600 text-white border-blue-600 shadow-md'
+                      : 'bg-[--exec-surface] text-[--exec-text-secondary] border-[--exec-border] hover:text-[--exec-text] hover:border-[--exec-accent] hover:bg-[--exec-surface-alt]'
                   )}
                 >
                   {tab === 'today' && 'Today'}
