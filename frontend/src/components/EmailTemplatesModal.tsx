@@ -115,43 +115,59 @@ export default function EmailTemplatesModal({
         </div>
 
         {/* Step Tabs */}
-        <div className="flex items-center gap-2 px-6 py-3 border-b border-[--exec-border-subtle] bg-[--exec-surface-alt]">
+        <div className="flex flex-wrap items-center gap-2 px-6 py-4 border-b border-[--exec-border-subtle]" style={{ backgroundColor: '#1C1917' }}>
           {[1, 2, 3, 4, 5].map((step) => (
             <button
               key={step}
               onClick={() => handleStepChange(step)}
               className={cn(
-                'relative flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200',
+                'relative flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200',
                 selectedStep === step
-                  ? 'bg-[--exec-accent] text-white shadow-sm'
-                  : 'text-[--exec-text-secondary] hover:text-[--exec-text] hover:bg-[--exec-surface]'
+                  ? 'text-white shadow-lg scale-105'
+                  : stepsWithTemplates.has(step)
+                    ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30 hover:scale-105'
+                    : 'bg-slate-700/50 text-slate-400 hover:bg-slate-600 hover:text-white hover:scale-105'
               )}
+              style={selectedStep === step ? { backgroundColor: 'var(--exec-accent)' } : undefined}
             >
-              <span>{step}</span>
-              {/* Dot indicator for steps with templates */}
+              <span className="w-5 h-5 rounded-full bg-black/20 flex items-center justify-center text-xs">
+                {step}
+              </span>
+              <span>{STEP_LABELS[step - 1]}</span>
+              {/* Check indicator for steps with templates */}
               {stepsWithTemplates.has(step) && (
-                <span
-                  className={cn(
-                    'w-2 h-2 rounded-full',
-                    selectedStep === step ? 'bg-white' : 'bg-green-500'
-                  )}
-                />
+                <Check className={cn(
+                  'w-4 h-4',
+                  selectedStep === step ? 'text-white' : 'text-green-400'
+                )} />
               )}
             </button>
           ))}
         </div>
 
-        {/* Step Label */}
-        <div className="px-6 pt-4">
-          <h3 className="text-base font-medium text-[--exec-text]">
-            {STEP_LABELS[selectedStep - 1]}
-            {currentTemplate && (
-              <span className="ml-2 text-xs text-green-500 font-normal">
-                <Check className="w-3 h-3 inline mr-1" />
-                Template exists
-              </span>
-            )}
-          </h3>
+        {/* Current Step Info */}
+        <div className="px-6 pt-4 flex items-center gap-3">
+          <div
+            className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold text-sm"
+            style={{ backgroundColor: 'var(--exec-accent)' }}
+          >
+            {selectedStep}
+          </div>
+          <div>
+            <h3 className="text-base font-semibold text-[--exec-text]">
+              {STEP_LABELS[selectedStep - 1]}
+            </h3>
+            <p className="text-xs text-[--exec-text-muted]">
+              {currentTemplate ? (
+                <span className="text-green-400 flex items-center gap-1">
+                  <Check className="w-3 h-3" />
+                  Template configured
+                </span>
+              ) : (
+                'No template yet - create one below'
+              )}
+            </p>
+          </div>
         </div>
 
         {/* Body */}
@@ -265,9 +281,10 @@ export default function EmailTemplatesModal({
             type="button"
             onClick={handleClose}
             className={cn(
-              'px-4 py-2 rounded-xl',
-              'text-[--exec-text-secondary]',
-              'hover:bg-[--exec-surface-alt] transition-colors'
+              'px-5 py-2.5 rounded-xl font-medium',
+              'bg-slate-600/50 text-slate-300',
+              'hover:bg-slate-500 hover:text-white hover:scale-105',
+              'active:scale-95 transition-all duration-200'
             )}
           >
             Close
@@ -277,10 +294,11 @@ export default function EmailTemplatesModal({
             onClick={handleSave}
             disabled={saveMutation.isPending || !subject.trim() || !body.trim()}
             className={cn(
-              'px-4 py-2 rounded-xl',
+              'px-5 py-2.5 rounded-xl font-medium',
               'bg-[--exec-accent] text-white',
-              'hover:bg-[--exec-accent-dark] transition-colors',
-              'disabled:opacity-50 disabled:cursor-not-allowed'
+              'hover:brightness-110 hover:scale-105 hover:shadow-lg',
+              'active:scale-95 transition-all duration-200',
+              'disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100'
             )}
           >
             {saveMutation.isPending ? 'Saving...' : 'Save Template'}

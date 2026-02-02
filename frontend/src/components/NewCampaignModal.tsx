@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { coldOutreachApi } from '@/lib/api';
+import type { OutreachCampaign } from '@/types';
 import { X } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -9,15 +10,27 @@ interface NewCampaignModalProps {
   isOpen: boolean;
   onClose: () => void;
   onCreated: (campaignId: number) => void;
+  editCampaign?: OutreachCampaign | null;
 }
 
 export default function NewCampaignModal({
   isOpen,
   onClose,
   onCreated,
+  editCampaign,
 }: NewCampaignModalProps) {
   const [name, setName] = useState('');
   const queryClient = useQueryClient();
+  const isEditing = !!editCampaign;
+
+  // Populate form when editing
+  useEffect(() => {
+    if (editCampaign) {
+      setName(editCampaign.name);
+    } else {
+      setName('');
+    }
+  }, [editCampaign]);
 
   const createMutation = useMutation({
     mutationFn: (data: { name: string }) => coldOutreachApi.createCampaign(data),
@@ -32,6 +45,20 @@ export default function NewCampaignModal({
     },
   });
 
+  const updateMutation = useMutation({
+    mutationFn: (data: { id: number; name: string }) =>
+      coldOutreachApi.updateCampaign(data.id, { name: data.name }),
+    onSuccess: (campaign) => {
+      queryClient.invalidateQueries({ queryKey: ['outreach-campaigns'] });
+      queryClient.invalidateQueries({ queryKey: ['outreach-campaign', campaign.id] });
+      toast.success(`Campaign "${campaign.name}" updated`);
+      handleClose();
+    },
+    onError: () => {
+      toast.error('Failed to update campaign');
+    },
+  });
+
   const handleClose = () => {
     setName('');
     onClose();
@@ -43,8 +70,14 @@ export default function NewCampaignModal({
       toast.error('Please enter a campaign name');
       return;
     }
-    createMutation.mutate({ name: name.trim() });
+    if (isEditing && editCampaign) {
+      updateMutation.mutate({ id: editCampaign.id, name: name.trim() });
+    } else {
+      createMutation.mutate({ name: name.trim() });
+    }
   };
+
+  const isPending = createMutation.isPending || updateMutation.isPending;
 
   if (!isOpen) return null;
 
@@ -54,7 +87,7 @@ export default function NewCampaignModal({
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-[--exec-border-subtle]">
           <h2 className="text-lg font-semibold text-[--exec-text]">
-            New Campaign
+            {isEditing ? 'Edit Campaign' : 'New Campaign'}
           </h2>
           <button
             onClick={handleClose}
@@ -89,7 +122,9 @@ export default function NewCampaignModal({
               )}
             />
             <p className="mt-2 text-xs text-[--exec-text-muted]">
-              You can configure follow-up delays in campaign settings later.
+              {isEditing
+                ? 'Update the campaign name.'
+                : 'You can configure follow-up delays in campaign settings later.'}
             </p>
           </div>
 
@@ -99,24 +134,32 @@ export default function NewCampaignModal({
               type="button"
               onClick={handleClose}
               className={cn(
-                'px-4 py-2 rounded-xl',
-                'text-[--exec-text-secondary]',
-                'hover:bg-[--exec-surface-alt] transition-colors'
+                'px-5 py-2.5 rounded-xl font-medium',
+                'bg-slate-600/50 text-slate-300',
+                'hover:bg-slate-500 hover:text-white hover:scale-105',
+                'active:scale-95 transition-all duration-200'
               )}
             >
               Cancel
             </button>
             <button
               type="submit"
-              disabled={createMutation.isPending || !name.trim()}
+              disabled={isPending || !name.trim()}
               className={cn(
-                'px-4 py-2 rounded-xl',
+                'px-5 py-2.5 rounded-xl font-medium',
                 'bg-[--exec-accent] text-white',
-                'hover:bg-[--exec-accent-dark] transition-colors',
-                'disabled:opacity-50 disabled:cursor-not-allowed'
+                'hover:brightness-110 hover:scale-105 hover:shadow-lg',
+                'active:scale-95 transition-all duration-200',
+                'disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100'
               )}
             >
-              {createMutation.isPending ? 'Creating...' : 'Create Campaign'}
+              {isPending
+                ? isEditing
+                  ? 'Saving...'
+                  : 'Creating...'
+                : isEditing
+                  ? 'Save Changes'
+                  : 'Create Campaign'}
             </button>
           </div>
         </form>

@@ -18,6 +18,8 @@ import {
   CheckCircle,
   Copy,
   ChevronDown,
+  Edit2,
+  Trash2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -363,6 +365,7 @@ export default function ColdOutreach() {
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [isTemplatesOpen, setIsTemplatesOpen] = useState(false);
   const [isCampaignDropdownOpen, setIsCampaignDropdownOpen] = useState(false);
+  const [editingCampaign, setEditingCampaign] = useState<OutreachCampaign | null>(null);
 
   const queryClient = useQueryClient();
 
@@ -404,9 +407,36 @@ export default function ColdOutreach() {
     },
   });
 
+  const deleteCampaignMutation = useMutation({
+    mutationFn: (campaignId: number) => coldOutreachApi.deleteCampaign(campaignId),
+    onSuccess: () => {
+      toast.success('Campaign deleted');
+      queryClient.invalidateQueries({ queryKey: ['outreach-campaigns'] });
+      if (selectedCampaignId === deleteCampaignMutation.variables) {
+        setSelectedCampaignId(null);
+      }
+    },
+    onError: () => {
+      toast.error('Failed to delete campaign');
+    },
+  });
+
   // Handlers
   const handleMarkSent = (prospectId: number) => {
     markSentMutation.mutate(prospectId);
+  };
+
+  const handleDeleteCampaign = (e: React.MouseEvent, campaignId: number) => {
+    e.stopPropagation();
+    if (confirm('Are you sure you want to delete this campaign? This will also delete all prospects in this campaign.')) {
+      deleteCampaignMutation.mutate(campaignId);
+    }
+  };
+
+  const handleEditCampaign = (e: React.MouseEvent, campaign: OutreachCampaign) => {
+    e.stopPropagation();
+    setEditingCampaign(campaign);
+    setIsCampaignDropdownOpen(false);
   };
 
   // Auto-select first campaign if none selected
@@ -419,7 +449,7 @@ export default function ColdOutreach() {
   return (
     <div className="min-h-full bg-[--exec-bg] grain">
       {/* Hero Header */}
-      <header className="relative overflow-hidden">
+      <header className="relative overflow-visible z-20">
         {/* Gradient background */}
         <div className="absolute inset-0 bg-gradient-to-br from-[--exec-surface] via-[--exec-surface] to-[--exec-accent-bg-subtle]" />
 
@@ -480,29 +510,55 @@ export default function ColdOutreach() {
 
                 {/* Dropdown menu */}
                 {isCampaignDropdownOpen && (
-                  <div className="absolute top-full left-0 mt-2 w-full min-w-[250px] py-2 rounded-xl bg-[--exec-surface] border border-[--exec-border] shadow-xl z-50">
+                  <div
+                    className="absolute top-full left-0 mt-2 w-full min-w-[280px] py-2 rounded-xl border border-[--exec-border] shadow-2xl z-[100]"
+                    style={{ backgroundColor: '#1C1917' }}
+                  >
                     {campaigns.length === 0 ? (
                       <div className="px-4 py-3 text-sm text-[--exec-text-muted]">
                         No campaigns yet
                       </div>
                     ) : (
                       campaigns.map((campaign) => (
-                        <button
+                        <div
                           key={campaign.id}
-                          onClick={() => {
-                            setSelectedCampaignId(campaign.id);
-                            setIsCampaignDropdownOpen(false);
-                          }}
                           className={cn(
-                            'w-full px-4 py-2.5 text-left text-sm',
+                            'flex items-center justify-between px-3 py-2 mx-2 rounded-lg',
                             'hover:bg-[--exec-surface-alt] transition-colors',
-                            selectedCampaignId === campaign.id
-                              ? 'text-[--exec-accent] bg-[--exec-accent]/10'
-                              : 'text-[--exec-text]'
+                            selectedCampaignId === campaign.id && 'bg-[--exec-accent]/15'
                           )}
                         >
-                          {campaign.name}
-                        </button>
+                          <button
+                            onClick={() => {
+                              setSelectedCampaignId(campaign.id);
+                              setIsCampaignDropdownOpen(false);
+                            }}
+                            className={cn(
+                              'flex-1 text-left text-sm',
+                              selectedCampaignId === campaign.id
+                                ? 'text-[--exec-accent] font-medium'
+                                : 'text-[--exec-text]'
+                            )}
+                          >
+                            {campaign.name}
+                          </button>
+                          <div className="flex items-center gap-1 ml-3">
+                            <button
+                              onClick={(e) => handleEditCampaign(e, campaign)}
+                              className="p-2 rounded-lg bg-blue-500/20 text-blue-400 hover:bg-blue-500 hover:text-white hover:scale-110 transition-all duration-200"
+                              title="Edit campaign"
+                            >
+                              <Edit2 className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={(e) => handleDeleteCampaign(e, campaign.id)}
+                              className="p-2 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white hover:scale-110 transition-all duration-200"
+                              title="Delete campaign"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
                       ))
                     )}
                   </div>
@@ -513,11 +569,12 @@ export default function ColdOutreach() {
                 onClick={() => setIsNewCampaignOpen(true)}
                 className={cn(
                   'flex items-center gap-2 px-4 py-2.5 rounded-xl',
-                  'bg-blue-600 text-white',
-                  'hover:bg-blue-700 hover:scale-105 active:scale-95',
+                  'text-white',
+                  'hover:scale-105 active:scale-95',
                   'transition-all duration-200',
                   'shadow-sm hover:shadow-lg font-medium text-sm'
                 )}
+                style={{ backgroundColor: 'var(--exec-accent)' }}
               >
                 <Plus className="w-4 h-4" />
                 New
@@ -556,7 +613,7 @@ export default function ColdOutreach() {
       </header>
 
       {/* Main Content */}
-      <div className="px-8 py-6">
+      <div className="px-8 py-6 relative z-10">
         {/* Stats Bar */}
         {selectedCampaignId && stats && (
           <div className="grid grid-cols-4 gap-4 mb-6 animate-fade-slide-up delay-4">
@@ -633,9 +690,13 @@ export default function ColdOutreach() {
                     'px-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200',
                     'border',
                     activeTab === tab
-                      ? 'bg-blue-600 text-white border-blue-600 shadow-md'
+                      ? 'text-white shadow-md'
                       : 'bg-[--exec-surface] text-[--exec-text-secondary] border-[--exec-border] hover:text-[--exec-text] hover:border-[--exec-accent] hover:bg-[--exec-surface-alt]'
                   )}
+                  style={activeTab === tab ? {
+                    backgroundColor: 'var(--exec-accent)',
+                    borderColor: 'var(--exec-accent)'
+                  } : undefined}
                 >
                   {tab === 'today' && 'Today'}
                   {tab === 'all' && 'All Prospects'}
@@ -685,11 +746,15 @@ export default function ColdOutreach() {
         )}
       </div>
 
-      {/* New Campaign Modal */}
+      {/* New/Edit Campaign Modal */}
       <NewCampaignModal
-        isOpen={isNewCampaignOpen}
-        onClose={() => setIsNewCampaignOpen(false)}
+        isOpen={isNewCampaignOpen || !!editingCampaign}
+        onClose={() => {
+          setIsNewCampaignOpen(false);
+          setEditingCampaign(null);
+        }}
         onCreated={(id) => setSelectedCampaignId(id)}
+        editCampaign={editingCampaign}
       />
 
       {selectedCampaignId && (
