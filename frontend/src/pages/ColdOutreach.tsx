@@ -458,10 +458,12 @@ export default function ColdOutreach() {
                   }
                   className={cn(
                     'appearance-none pl-4 pr-10 py-2.5 rounded-xl',
-                    'bg-[--exec-surface] border border-[--exec-border]',
-                    'text-[--exec-text] text-sm font-medium',
-                    'focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]',
-                    'transition-all duration-200 cursor-pointer min-w-[180px]'
+                    'bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700',
+                    'text-gray-900 dark:text-white text-sm font-medium',
+                    'focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500',
+                    'transition-all duration-200 cursor-pointer min-w-[180px]',
+                    '[&>option]:bg-white [&>option]:dark:bg-slate-800',
+                    '[&>option]:text-gray-900 [&>option]:dark:text-white'
                   )}
                 >
                   <option value="">Select Campaign</option>
@@ -471,7 +473,7 @@ export default function ColdOutreach() {
                     </option>
                   ))}
                 </select>
-                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[--exec-text-muted] pointer-events-none" />
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-slate-500 pointer-events-none" />
               </div>
 
               <button
