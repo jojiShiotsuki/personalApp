@@ -39,6 +39,10 @@ import type {
   OutreachEmailTemplate,
   EmailTemplateCreate,
   RenderedEmail,
+  LeadSearchRequest,
+  LeadSearchResponse,
+  LeadImportRequest,
+  LeadImportResponse,
 } from '../types/index';
 import {
   TaskStatus,
@@ -635,6 +639,19 @@ export const coldOutreachApi = {
   // Render email for prospect
   renderEmail: async (prospectId: number): Promise<RenderedEmail> => {
     const response = await api.get(`/api/outreach/campaigns/prospects/${prospectId}/render-email/`);
+    return response.data;
+  },
+};
+
+// Lead Discovery API
+export const leadDiscoveryApi = {
+  search: async (data: LeadSearchRequest): Promise<LeadSearchResponse> => {
+    const response = await api.post('/api/lead-discovery/search', data);
+    return response.data;
+  },
+
+  importLeads: async (data: LeadImportRequest): Promise<LeadImportResponse> => {
+    const response = await api.post('/api/lead-discovery/import', data);
     return response.data;
   },
 };
