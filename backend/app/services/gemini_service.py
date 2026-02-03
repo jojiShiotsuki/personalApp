@@ -2,11 +2,14 @@ import os
 import re
 import json
 import asyncio
+import logging
 from typing import Optional
 from urllib.parse import urljoin
 import httpx
 from google import genai
 from google.genai import types
+
+logger = logging.getLogger(__name__)
 
 
 # Initialize client lazily
@@ -264,6 +267,7 @@ Only include businesses where you found their actual website URL."""
             )
 
             search_text = search_response.text
+            logger.info(f"Search response length: {len(search_text) if search_text else 0}")
             if not search_text:
                 raise ValueError("No data received from search")
 
@@ -303,27 +307,45 @@ Return ONLY the JSON array, nothing else."""
 
             try:
                 data = json.loads(text)
+                logger.info(f"Parsed {len(data) if isinstance(data, list) else 0} leads from AI")
+
                 if isinstance(data, list):
-                    # Filter out leads without valid website URLs
+                    # Filter and clean leads
                     valid_leads = []
                     for lead in data:
-                        website = lead.get('website', '')
-                        # Check for real URL (not placeholder text)
-                        if website and (
-                            website.startswith('http://') or
-                            website.startswith('https://') or
-                            '.' in website  # Basic domain check
-                        ):
-                            # Filter out placeholder responses
-                            website_lower = website.lower()
-                            if 'not available' not in website_lower and 'information' not in website_lower:
-                                valid_leads.append(lead)
+                        website = lead.get('website', '') or ''
+                        agency_name = lead.get('agency_name', '') or ''
+
+                        # Skip if no agency name
+                        if not agency_name:
+                            continue
+
+                        # Check for placeholder text in website
+                        website_lower = website.lower()
+                        is_placeholder = any(phrase in website_lower for phrase in [
+                            'not available', 'information not', 'n/a', 'none', 'unknown'
+                        ])
+
+                        if is_placeholder or not website:
+                            # Try to construct a likely website from agency name
+                            clean_name = re.sub(r'[^a-zA-Z0-9]', '', agency_name.lower())
+                            lead['website'] = f"https://{clean_name}.com"
+                            logger.info(f"Generated website for {agency_name}: {lead['website']}")
+
+                        # Ensure website has protocol
+                        elif not website.startswith(('http://', 'https://')):
+                            lead['website'] = 'https://' + website
+
+                        valid_leads.append(lead)
+
+                    logger.info(f"Valid leads after filtering: {len(valid_leads)}")
 
                     # Step 3: Scrape websites for missing emails (skip known ones)
                     enriched_data = await enrich_leads_with_emails(valid_leads, known_emails)
                     return enriched_data
                 raise ValueError("Response is not a list")
             except json.JSONDecodeError as e:
+                logger.error(f"JSON parse error: {e}, text: {text[:500]}")
                 raise ValueError(f"Failed to parse AI response: {e}")
 
         except Exception as e:
