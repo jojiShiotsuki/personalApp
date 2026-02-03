@@ -62,6 +62,9 @@ async def find_businesses(
     """
     Search for businesses using Gemini with Google Search.
 
+    Uses two-step approach: Search first, then parse to JSON.
+    (Gemini doesn't support structured output with Search tool)
+
     Args:
         niche: Industry/service type to search for
         location: Geographic location
@@ -73,27 +76,56 @@ async def find_businesses(
     """
     client = get_client()
 
-    prompt = f"""Find {count} businesses matching "{niche}" in "{location}".
-IMPORTANT: If "{location}" is a country, you must search across its major states, provinces, or territories to ensure a broad and diverse list of results.
-Get their agency name, email, contact person, website, and niche.
-Return ONLY real businesses you can verify exist. Do not make up fake businesses."""
+    # Step 1: Search for businesses using Google Search
+    search_prompt = f"""Find {count} real businesses matching "{niche}" in "{location}".
+IMPORTANT: If "{location}" is a country, search across its major states, provinces, or territories.
+For each business, find: business name, email, contact person name, website URL, and their specific niche.
+Return ONLY real businesses you can verify exist through search. Do not make up fake businesses."""
 
     for attempt in range(max_retries):
         try:
-            response = await asyncio.to_thread(
+            # First call: Search with grounding
+            search_response = await asyncio.to_thread(
                 client.models.generate_content,
                 model="gemini-2.0-flash",
-                contents=prompt,
+                contents=search_prompt,
                 config=types.GenerateContentConfig(
                     tools=[types.Tool(google_search=types.GoogleSearch())],
+                ),
+            )
+
+            search_text = search_response.text
+            if not search_text:
+                raise ValueError("No data received from search")
+
+            # Step 2: Parse results into structured JSON (no Search tool)
+            parse_prompt = f"""Parse the following business information into JSON format.
+
+Business Information:
+{search_text}
+
+Return a JSON array where each business has these fields:
+- agency_name: The business name (required)
+- email: Email address if found, otherwise "Not Listed"
+- contact_name: Name of contact person if found, otherwise null
+- website: Website URL (required)
+- niche: Their specific industry/service niche
+
+Return ONLY the JSON array, no other text."""
+
+            parse_response = await asyncio.to_thread(
+                client.models.generate_content,
+                model="gemini-2.0-flash",
+                contents=parse_prompt,
+                config=types.GenerateContentConfig(
                     response_mime_type="application/json",
                     response_schema=LEAD_SCHEMA,
                 ),
             )
 
-            text = response.text
+            text = parse_response.text
             if not text:
-                raise ValueError("No data received from AI")
+                raise ValueError("No data received from parser")
 
             try:
                 data = json.loads(text)
