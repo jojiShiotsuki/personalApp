@@ -235,41 +235,37 @@ async def find_businesses(
     """
     client = get_client()
 
-    # Step 1: Search for businesses using Google Search
-    search_prompt = f"""Search Google to find {count} real {niche} businesses in {location}.
+    # Step 1: Get businesses from model knowledge (no Google Search - it doesn't provide URLs)
+    search_prompt = f"""List {count} real {niche} businesses in {location}.
 
-CRITICAL REQUIREMENTS:
-1. Each business MUST have an actual website URL (like https://example.com). Skip businesses without websites.
-2. Search for the business website directly if needed.
-3. Find the owner/founder/director name if possible.
-4. Find their contact email from their website's contact page if visible.
-5. If "{location}" is a country, search across different cities/states.
+REQUIREMENTS:
+1. Each business MUST have an actual website URL (like https://example.com or https://example.com.au)
+2. Only include businesses you are confident exist with these exact URLs
+3. If "{location}" is a country, include businesses from different cities/regions
+4. Provide contact email if you know it
 
-For each business, provide:
-- Business name
-- Website URL (REQUIRED - must be a real URL like https://...)
-- Contact person name (owner, founder, or director)
-- Email address if found
-- What specific services they offer
+For each business provide:
+- Business/Agency name
+- Website URL (REQUIRED - the actual URL)
+- Contact email (if known, otherwise say "Not Listed")
+- Contact person name (owner/founder if known)
+- Their specific services/niche
 
-Only include businesses where you found their actual website URL."""
+Only list businesses where you are confident about the website URL."""
 
     for attempt in range(max_retries):
         try:
-            # First call: Search with grounding
+            # Use model knowledge (Google Search grounding doesn't expose URLs)
             search_response = await asyncio.to_thread(
                 client.models.generate_content,
                 model="gemini-2.0-flash",
                 contents=search_prompt,
-                config=types.GenerateContentConfig(
-                    tools=[types.Tool(google_search=types.GoogleSearch())],
-                ),
             )
 
             search_text = search_response.text
             logger.info(f"Search response length: {len(search_text) if search_text else 0}")
             if not search_text:
-                raise ValueError("No data received from search")
+                raise ValueError("No data received from model")
 
             # Step 2: Parse results into structured JSON (no Search tool)
             parse_prompt = f"""Parse the following business information into a JSON array.
