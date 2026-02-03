@@ -565,9 +565,6 @@ export default function LeadDiscovery() {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
                       Niche
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
-                      Actions
-                    </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white dark:bg-slate-800 divide-y divide-gray-200 dark:divide-slate-700">
@@ -580,19 +577,36 @@ export default function LeadDiscovery() {
                       )}
                     >
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center gap-2 group/agency">
+                        <div className="flex items-center gap-2">
+                          {editingIndex === index ? (
+                            <div className="flex items-center gap-1">
+                              <button
+                                onClick={() => saveEditing(index)}
+                                className="p-1.5 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/30 rounded-lg transition-colors"
+                                title="Save"
+                              >
+                                <Check className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={cancelEditing}
+                                className="p-1.5 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                                title="Cancel"
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => startEditing(index, lead)}
+                              className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
+                              title="Edit lead"
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </button>
+                          )}
                           <div className="text-sm font-medium text-gray-900 dark:text-white">
                             {lead.agency_name}
                           </div>
-                          {editingIndex !== index && (
-                            <button
-                              onClick={() => startEditing(index, lead)}
-                              className="p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded opacity-0 group-hover/agency:opacity-100 transition-all"
-                              title="Edit lead"
-                            >
-                              <Pencil className="w-3.5 h-3.5" />
-                            </button>
-                          )}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -684,34 +698,6 @@ export default function LeadDiscovery() {
                           <span className="text-sm text-gray-600 dark:text-slate-300">
                             {lead.niche || '-'}
                           </span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {editingIndex === index ? (
-                          <div className="flex items-center gap-1">
-                            <button
-                              onClick={() => saveEditing(index)}
-                              className="p-1.5 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/30 rounded-lg transition-colors"
-                              title="Save"
-                            >
-                              <Check className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={cancelEditing}
-                              className="p-1.5 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-                              title="Cancel"
-                            >
-                              <X className="w-4 h-4" />
-                            </button>
-                          </div>
-                        ) : (
-                          <button
-                            onClick={() => startEditing(index, lead)}
-                            className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
-                            title="Edit lead"
-                          >
-                            <Pencil className="w-4 h-4" />
-                          </button>
                         )}
                       </td>
                     </tr>
