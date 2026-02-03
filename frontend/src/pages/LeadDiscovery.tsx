@@ -201,11 +201,21 @@ export default function LeadDiscovery() {
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // Editing state
+  // Editing state (for search results)
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editForm, setEditForm] = useState({
     email: '',
     contact_name: '',
+    website: '',
+    niche: '',
+  });
+
+  // Editing state (for saved leads)
+  const [editingSavedId, setEditingSavedId] = useState<number | null>(null);
+  const [savedEditForm, setSavedEditForm] = useState({
+    agency_name: '',
+    contact_name: '',
+    email: '',
     website: '',
     niche: '',
   });
@@ -254,6 +264,46 @@ export default function LeadDiscovery() {
       toast.error('Failed to delete lead');
     },
   });
+
+  // Update stored lead mutation
+  const updateStoredMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: { agency_name?: string; contact_name?: string; email?: string; website?: string; niche?: string } }) =>
+      leadDiscoveryApi.updateStoredLead(id, data),
+    onSuccess: () => {
+      toast.success('Lead updated');
+      setEditingSavedId(null);
+      queryClient.invalidateQueries({ queryKey: ['stored-leads'] });
+    },
+    onError: () => {
+      toast.error('Failed to update lead');
+    },
+  });
+
+  // Start editing a saved lead
+  const startEditingSaved = (lead: StoredLead) => {
+    setEditingSavedId(lead.id);
+    setSavedEditForm({
+      agency_name: lead.agency_name || '',
+      contact_name: lead.contact_name || '',
+      email: lead.email || '',
+      website: lead.website || '',
+      niche: lead.niche || '',
+    });
+  };
+
+  // Save edited saved lead
+  const saveEditingSaved = () => {
+    if (editingSavedId === null) return;
+    updateStoredMutation.mutate({
+      id: editingSavedId,
+      data: savedEditForm,
+    });
+  };
+
+  // Cancel editing saved lead
+  const cancelEditingSaved = () => {
+    setEditingSavedId(null);
+  };
 
   // Search mutation
   const searchMutation = useMutation({
@@ -842,70 +892,138 @@ export default function LeadDiscovery() {
                       <tr key={lead.id} className="hover:bg-gray-50 dark:hover:bg-slate-700/50">
                         <td className="px-3 py-3 whitespace-nowrap">
                           <div className="flex items-center gap-1">
-                            <button
-                              onClick={() => convertMutation.mutate(lead.id)}
-                              disabled={convertMutation.isPending || lead.is_duplicate}
-                              className={cn(
-                                'p-1.5 rounded-lg transition-colors',
-                                lead.is_duplicate
-                                  ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
-                                  : 'text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30'
-                              )}
-                              title={lead.is_duplicate ? 'Already in campaign' : 'Convert to Contact'}
-                            >
-                              <UserPlus className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => {
-                                if (confirm('Delete this lead?')) {
-                                  deleteMutation.mutate(lead.id);
-                                }
-                              }}
-                              className="p-1.5 text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"
-                              title="Delete lead"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
+                            {editingSavedId === lead.id ? (
+                              <>
+                                <button
+                                  onClick={saveEditingSaved}
+                                  disabled={updateStoredMutation.isPending}
+                                  className="p-1.5 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/30 rounded-lg transition-colors"
+                                  title="Save"
+                                >
+                                  <Check className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={cancelEditingSaved}
+                                  className="p-1.5 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                                  title="Cancel"
+                                >
+                                  <X className="w-4 h-4" />
+                                </button>
+                              </>
+                            ) : (
+                              <>
+                                <button
+                                  onClick={() => startEditingSaved(lead)}
+                                  className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
+                                  title="Edit lead"
+                                >
+                                  <Pencil className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => convertMutation.mutate(lead.id)}
+                                  disabled={convertMutation.isPending || lead.is_duplicate}
+                                  className={cn(
+                                    'p-1.5 rounded-lg transition-colors',
+                                    lead.is_duplicate
+                                      ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
+                                      : 'text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30'
+                                  )}
+                                  title={lead.is_duplicate ? 'Already in campaign' : 'Convert to Contact'}
+                                >
+                                  <UserPlus className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    if (confirm('Delete this lead?')) {
+                                      deleteMutation.mutate(lead.id);
+                                    }
+                                  }}
+                                  className="p-1.5 text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"
+                                  title="Delete lead"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </>
+                            )}
                           </div>
                         </td>
                         <td className="px-3 py-3 whitespace-nowrap">
-                          <div className="text-sm font-medium text-gray-900 dark:text-white">
-                            {lead.agency_name}
-                          </div>
-                          <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-slate-400">
-                            {lead.contact_name && <span>{lead.contact_name}</span>}
-                            {lead.created_at && (
-                              <span className="flex items-center gap-1">
-                                <Calendar className="w-3 h-3" />
-                                {new Date(lead.created_at).toLocaleDateString()}
+                          {editingSavedId === lead.id ? (
+                            <div className="space-y-1">
+                              <input
+                                type="text"
+                                value={savedEditForm.agency_name}
+                                onChange={(e) => setSavedEditForm({ ...savedEditForm, agency_name: e.target.value })}
+                                placeholder="Agency name"
+                                className="w-full px-2 py-1 text-sm bg-gray-50 dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                              />
+                              <input
+                                type="text"
+                                value={savedEditForm.contact_name}
+                                onChange={(e) => setSavedEditForm({ ...savedEditForm, contact_name: e.target.value })}
+                                placeholder="Contact name"
+                                className="w-full px-2 py-1 text-xs bg-gray-50 dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                              />
+                            </div>
+                          ) : (
+                            <>
+                              <div className="text-sm font-medium text-gray-900 dark:text-white">
+                                {lead.agency_name}
+                              </div>
+                              <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-slate-400">
+                                {lead.contact_name && <span>{lead.contact_name}</span>}
+                                {lead.created_at && (
+                                  <span className="flex items-center gap-1">
+                                    <Calendar className="w-3 h-3" />
+                                    {new Date(lead.created_at).toLocaleDateString()}
+                                  </span>
+                                )}
+                              </div>
+                            </>
+                          )}
+                        </td>
+                        <td className="px-3 py-3 whitespace-nowrap">
+                          {editingSavedId === lead.id ? (
+                            <input
+                              type="email"
+                              value={savedEditForm.email}
+                              onChange={(e) => setSavedEditForm({ ...savedEditForm, email: e.target.value })}
+                              placeholder="Email"
+                              className="w-full px-2 py-1 text-sm bg-gray-50 dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                            />
+                          ) : (
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm text-gray-600 dark:text-slate-300 max-w-[180px] truncate">
+                                {lead.email || '-'}
                               </span>
-                            )}
-                          </div>
+                              {lead.email && (
+                                lead.is_duplicate ? (
+                                  <span className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400">
+                                    <AlertCircle className="w-3 h-3" />
+                                  </span>
+                                ) : lead.is_valid_email ? (
+                                  <span className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">
+                                    <CheckCircle className="w-3 h-3" />
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium rounded-full bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400">
+                                    <XCircle className="w-3 h-3" />
+                                  </span>
+                                )
+                              )}
+                            </div>
+                          )}
                         </td>
                         <td className="px-3 py-3 whitespace-nowrap">
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm text-gray-600 dark:text-slate-300 max-w-[180px] truncate">
-                              {lead.email || '-'}
-                            </span>
-                            {lead.email && (
-                              lead.is_duplicate ? (
-                                <span className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400">
-                                  <AlertCircle className="w-3 h-3" />
-                                </span>
-                              ) : lead.is_valid_email ? (
-                                <span className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">
-                                  <CheckCircle className="w-3 h-3" />
-                                </span>
-                              ) : (
-                                <span className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium rounded-full bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400">
-                                  <XCircle className="w-3 h-3" />
-                                </span>
-                              )
-                            )}
-                          </div>
-                        </td>
-                        <td className="px-3 py-3 whitespace-nowrap">
-                          {lead.website ? (
+                          {editingSavedId === lead.id ? (
+                            <input
+                              type="text"
+                              value={savedEditForm.website}
+                              onChange={(e) => setSavedEditForm({ ...savedEditForm, website: e.target.value })}
+                              placeholder="Website"
+                              className="w-full px-2 py-1 text-sm bg-gray-50 dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                            />
+                          ) : lead.website ? (
                             <a
                               href={lead.website.startsWith('http') ? lead.website : `https://${lead.website}`}
                               target="_blank"
@@ -920,9 +1038,19 @@ export default function LeadDiscovery() {
                           )}
                         </td>
                         <td className="px-3 py-3 whitespace-nowrap">
-                          <span className="text-sm text-gray-600 dark:text-slate-300 max-w-[120px] truncate block">
-                            {lead.niche || '-'}
-                          </span>
+                          {editingSavedId === lead.id ? (
+                            <input
+                              type="text"
+                              value={savedEditForm.niche}
+                              onChange={(e) => setSavedEditForm({ ...savedEditForm, niche: e.target.value })}
+                              placeholder="Niche"
+                              className="w-full px-2 py-1 text-sm bg-gray-50 dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                            />
+                          ) : (
+                            <span className="text-sm text-gray-600 dark:text-slate-300 max-w-[120px] truncate block">
+                              {lead.niche || '-'}
+                            </span>
+                          )}
                         </td>
                       </tr>
                     ))}

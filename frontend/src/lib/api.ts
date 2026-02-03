@@ -691,5 +691,16 @@ export const leadDiscoveryApi = {
   deleteStoredLead: async (leadId: number): Promise<void> => {
     await api.delete(`/api/lead-discovery/stored/${leadId}`);
   },
+
+  updateStoredLead: async (leadId: number, data: { agency_name?: string; contact_name?: string; email?: string; website?: string; niche?: string }): Promise<StoredLead> => {
+    const params = new URLSearchParams();
+    if (data.agency_name) params.append('agency_name', data.agency_name);
+    if (data.contact_name) params.append('contact_name', data.contact_name);
+    if (data.email) params.append('email', data.email);
+    if (data.website) params.append('website', data.website);
+    if (data.niche) params.append('niche', data.niche);
+    const response = await api.put(`/api/lead-discovery/stored/${leadId}?${params}`);
+    return response.data;
+  },
 };
 
