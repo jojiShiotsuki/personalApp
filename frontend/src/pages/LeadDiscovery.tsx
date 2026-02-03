@@ -546,7 +546,7 @@ export default function LeadDiscovery() {
             </div>
 
             {/* Results Table */}
-            <div className="bento-card overflow-hidden">
+            <div className="bento-card overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200 dark:divide-slate-700">
                 <thead className="bg-gray-50 dark:bg-slate-700/50">
                   <tr>
