@@ -1,7 +1,10 @@
 import os
+import re
 import json
 import asyncio
 from typing import Optional
+from urllib.parse import urljoin
+import httpx
 from google import genai
 from google.genai import types
 
@@ -51,6 +54,121 @@ LEAD_SCHEMA = types.Schema(
         required=["agency_name", "website"],
     ),
 )
+
+
+# Email regex pattern
+EMAIL_PATTERN = re.compile(
+    r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}',
+    re.IGNORECASE
+)
+
+# Common non-business emails to filter out
+EXCLUDED_EMAIL_DOMAINS = {
+    'example.com', 'sentry.io', 'wixpress.com', 'w3.org',
+    'schema.org', 'googleapis.com', 'google.com', 'facebook.com',
+    'twitter.com', 'instagram.com', 'linkedin.com',
+}
+
+
+async def scrape_emails_from_url(url: str, timeout: float = 10.0) -> set[str]:
+    """
+    Fetch a URL and extract email addresses from the HTML.
+
+    Returns a set of unique email addresses found.
+    """
+    emails = set()
+
+    try:
+        async with httpx.AsyncClient(
+            timeout=timeout,
+            follow_redirects=True,
+            headers={
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            }
+        ) as client:
+            response = await client.get(url)
+            if response.status_code == 200:
+                # Extract emails from HTML
+                found = EMAIL_PATTERN.findall(response.text)
+                for email in found:
+                    email_lower = email.lower()
+                    domain = email_lower.split('@')[1] if '@' in email_lower else ''
+                    # Filter out non-business emails
+                    if domain and domain not in EXCLUDED_EMAIL_DOMAINS:
+                        # Skip image files and common non-emails
+                        if not any(email_lower.endswith(ext) for ext in ['.png', '.jpg', '.gif', '.svg']):
+                            emails.add(email_lower)
+    except Exception:
+        pass  # Silently fail - website might be down or blocked
+
+    return emails
+
+
+async def scrape_website_for_email(website: str) -> Optional[str]:
+    """
+    Scrape a business website to find email addresses.
+
+    Checks homepage and common contact pages.
+    Returns the first valid email found, or None.
+    """
+    if not website:
+        return None
+
+    # Normalize URL
+    if not website.startswith(('http://', 'https://')):
+        website = 'https://' + website
+
+    # Pages to check
+    pages_to_check = [
+        website,  # Homepage
+        urljoin(website, '/contact'),
+        urljoin(website, '/contact-us'),
+        urljoin(website, '/about'),
+        urljoin(website, '/about-us'),
+    ]
+
+    all_emails = set()
+
+    # Scrape pages concurrently
+    tasks = [scrape_emails_from_url(url) for url in pages_to_check]
+    results = await asyncio.gather(*tasks, return_exceptions=True)
+
+    for result in results:
+        if isinstance(result, set):
+            all_emails.update(result)
+
+    # Return first email (prefer info@, contact@, hello@ patterns)
+    if all_emails:
+        # Prioritize common business email patterns
+        for prefix in ['info@', 'contact@', 'hello@', 'sales@', 'enquir']:
+            for email in all_emails:
+                if email.startswith(prefix):
+                    return email
+        # Return any email if no preferred pattern found
+        return next(iter(all_emails))
+
+    return None
+
+
+async def enrich_leads_with_emails(leads: list[dict]) -> list[dict]:
+    """
+    For leads missing emails, attempt to scrape their websites.
+    """
+    async def enrich_single(lead: dict) -> dict:
+        email = lead.get('email', '')
+        # Check if email is missing or placeholder
+        if not email or email.lower() in ['not listed', 'n/a', 'none', '']:
+            website = lead.get('website', '')
+            if website:
+                scraped_email = await scrape_website_for_email(website)
+                if scraped_email:
+                    lead['email'] = scraped_email
+        return lead
+
+    # Enrich all leads concurrently
+    tasks = [enrich_single(lead) for lead in leads]
+    enriched = await asyncio.gather(*tasks)
+    return list(enriched)
 
 
 async def find_businesses(
@@ -130,7 +248,9 @@ Return ONLY the JSON array, no other text."""
             try:
                 data = json.loads(text)
                 if isinstance(data, list):
-                    return data
+                    # Step 3: Scrape websites for missing emails
+                    enriched_data = await enrich_leads_with_emails(data)
+                    return enriched_data
                 raise ValueError("Response is not a list")
             except json.JSONDecodeError as e:
                 raise ValueError(f"Failed to parse AI response: {e}")
