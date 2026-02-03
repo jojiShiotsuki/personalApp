@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { useQuery, useMutation } from '@tanstack/react-query';
-import { leadDiscoveryApi, coldOutreachApi } from '@/lib/api';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { leadDiscoveryApi, coldOutreachApi, StoredLead } from '@/lib/api';
 import type {
   DiscoveredLead,
   LeadSearchResponse,
@@ -23,6 +23,10 @@ import {
   X,
   Pencil,
   Check,
+  Database,
+  UserPlus,
+  Trash2,
+  Calendar,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -181,6 +185,11 @@ function CampaignSelectModal({
 }
 
 export default function LeadDiscovery() {
+  const queryClient = useQueryClient();
+
+  // Tab state
+  const [activeTab, setActiveTab] = useState<'search' | 'saved'>('search');
+
   // Form state
   const [niche, setNiche] = useState('');
   const [location, setLocation] = useState('');
@@ -206,6 +215,45 @@ export default function LeadDiscovery() {
   const { data: campaigns = [] } = useQuery<OutreachCampaign[]>({
     queryKey: ['outreach-campaigns'],
     queryFn: coldOutreachApi.getCampaigns,
+  });
+
+  // Fetch stored leads
+  const { data: storedLeadsData, isLoading: isLoadingStored } = useQuery({
+    queryKey: ['stored-leads'],
+    queryFn: () => leadDiscoveryApi.getStoredLeads({ limit: 200 }),
+    enabled: activeTab === 'saved',
+  });
+
+  // Fetch stats
+  const { data: stats } = useQuery({
+    queryKey: ['lead-discovery-stats'],
+    queryFn: leadDiscoveryApi.getStats,
+  });
+
+  // Convert to contact mutation
+  const convertMutation = useMutation({
+    mutationFn: leadDiscoveryApi.convertToContact,
+    onSuccess: (data) => {
+      toast.success(`Converted to contact: ${data.contact.name}`);
+      queryClient.invalidateQueries({ queryKey: ['stored-leads'] });
+      queryClient.invalidateQueries({ queryKey: ['contacts'] });
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.detail || 'Failed to convert lead');
+    },
+  });
+
+  // Delete stored lead mutation
+  const deleteMutation = useMutation({
+    mutationFn: leadDiscoveryApi.deleteStoredLead,
+    onSuccess: () => {
+      toast.success('Lead deleted');
+      queryClient.invalidateQueries({ queryKey: ['stored-leads'] });
+      queryClient.invalidateQueries({ queryKey: ['lead-discovery-stats'] });
+    },
+    onError: () => {
+      toast.error('Failed to delete lead');
+    },
   });
 
   // Search mutation
@@ -350,19 +398,57 @@ export default function LeadDiscovery() {
               </p>
             </div>
 
-            {/* Powered by badge */}
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-[--exec-surface-alt] rounded-full">
-              <Sparkles className="w-4 h-4 text-blue-500" />
-              <span className="text-xs font-medium text-[--exec-text-secondary]">
-                Powered by Gemini AI
-              </span>
-            </div>
+            {/* Stats badge */}
+            {stats && (
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-[--exec-surface-alt] rounded-full">
+                <Database className="w-4 h-4 text-blue-500" />
+                <span className="text-xs font-medium text-[--exec-text-secondary]">
+                  {stats.total_leads} saved leads ({stats.with_email} with email)
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Tab Navigation */}
+          <div className="flex gap-2 mt-6">
+            <button
+              onClick={() => setActiveTab('search')}
+              className={cn(
+                'flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-all duration-200',
+                activeTab === 'search'
+                  ? 'bg-blue-600 text-white shadow-sm'
+                  : 'bg-[--exec-surface-alt] text-[--exec-text-secondary] hover:bg-[--exec-surface-hover]'
+              )}
+            >
+              <Search className="w-4 h-4" />
+              Search New Leads
+            </button>
+            <button
+              onClick={() => setActiveTab('saved')}
+              className={cn(
+                'flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-all duration-200',
+                activeTab === 'saved'
+                  ? 'bg-blue-600 text-white shadow-sm'
+                  : 'bg-[--exec-surface-alt] text-[--exec-text-secondary] hover:bg-[--exec-surface-hover]'
+              )}
+            >
+              <Database className="w-4 h-4" />
+              Saved Leads
+              {stats && stats.total_leads > 0 && (
+                <span className="ml-1 px-2 py-0.5 text-xs rounded-full bg-white/20">
+                  {stats.total_leads}
+                </span>
+              )}
+            </button>
           </div>
         </div>
       </header>
 
       {/* Main Content */}
       <div className="px-8 py-6">
+        {/* Search Tab */}
+        {activeTab === 'search' && (
+          <>
         {/* Search Form */}
         <div className="bento-card p-6 mb-6">
           <form onSubmit={handleSearch}>
@@ -718,6 +804,169 @@ export default function LeadDiscovery() {
             <p className="text-[--exec-text-muted]">
               Enter a niche and location to discover potential prospects.
             </p>
+          </div>
+        )}
+          </>
+        )}
+
+        {/* Saved Leads Tab */}
+        {activeTab === 'saved' && (
+          <div className="bento-card overflow-hidden">
+            {isLoadingStored ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+              </div>
+            ) : storedLeadsData && storedLeadsData.leads.length > 0 ? (
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200 dark:divide-slate-700">
+                  <thead className="bg-gray-50 dark:bg-slate-700/50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
+                        Agency
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
+                        Contact
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
+                        Email
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
+                        Website
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
+                        Niche
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
+                        Discovered
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white dark:bg-slate-800 divide-y divide-gray-200 dark:divide-slate-700">
+                    {storedLeadsData.leads.map((lead: StoredLead) => (
+                      <tr key={lead.id} className="hover:bg-gray-50 dark:hover:bg-slate-700/50">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-gray-900 dark:text-white">
+                            {lead.agency_name}
+                          </div>
+                          {lead.location && (
+                            <div className="text-xs text-gray-500 dark:text-slate-400 flex items-center gap-1">
+                              <MapPin className="w-3 h-3" />
+                              {lead.location}
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900 dark:text-white">
+                            {lead.contact_name || '-'}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm text-gray-600 dark:text-slate-300">
+                              {lead.email || '-'}
+                            </span>
+                            {lead.email && (
+                              lead.is_duplicate ? (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400">
+                                  <AlertCircle className="w-3 h-3" />
+                                  In campaign
+                                </span>
+                              ) : lead.is_valid_email ? (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">
+                                  <CheckCircle className="w-3 h-3" />
+                                  Valid
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400">
+                                  <XCircle className="w-3 h-3" />
+                                  Invalid
+                                </span>
+                              )
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {lead.website ? (
+                            <a
+                              href={lead.website.startsWith('http') ? lead.website : `https://${lead.website}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                            >
+                              <Globe className="w-3 h-3" />
+                              Visit
+                              <ExternalLink className="w-3 h-3" />
+                            </a>
+                          ) : (
+                            <span className="text-sm text-gray-400">-</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className="text-sm text-gray-600 dark:text-slate-300">
+                            {lead.niche || '-'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-slate-400">
+                            <Calendar className="w-3 h-3" />
+                            {lead.created_at ? new Date(lead.created_at).toLocaleDateString() : '-'}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => convertMutation.mutate(lead.id)}
+                              disabled={convertMutation.isPending || lead.is_duplicate}
+                              className={cn(
+                                'inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg transition-colors',
+                                lead.is_duplicate
+                                  ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 cursor-not-allowed'
+                                  : 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50'
+                              )}
+                              title={lead.is_duplicate ? 'Already in a campaign' : 'Convert to CRM Contact'}
+                            >
+                              <UserPlus className="w-3.5 h-3.5" />
+                              Convert
+                            </button>
+                            <button
+                              onClick={() => {
+                                if (confirm('Delete this lead?')) {
+                                  deleteMutation.mutate(lead.id);
+                                }
+                              }}
+                              className="p-1.5 text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"
+                              title="Delete lead"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="p-12 text-center">
+                <Database className="w-12 h-12 text-[--exec-text-muted] mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-[--exec-text] mb-2">
+                  No saved leads yet
+                </h3>
+                <p className="text-[--exec-text-muted] mb-4">
+                  Search for leads and they'll be automatically saved here.
+                </p>
+                <button
+                  onClick={() => setActiveTab('search')}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors"
+                >
+                  <Search className="w-4 h-4" />
+                  Search for Leads
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>

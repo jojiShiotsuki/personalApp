@@ -644,6 +644,24 @@ export const coldOutreachApi = {
 };
 
 // Lead Discovery API
+export interface StoredLead {
+  id: number;
+  agency_name: string;
+  contact_name: string | null;
+  email: string | null;
+  website: string | null;
+  niche: string | null;
+  location: string | null;
+  created_at: string | null;
+  is_valid_email: boolean;
+  is_duplicate: boolean;
+}
+
+export interface StoredLeadsResponse {
+  total: number;
+  leads: StoredLead[];
+}
+
 export const leadDiscoveryApi = {
   search: async (data: LeadSearchRequest): Promise<LeadSearchResponse> => {
     const response = await api.post('/api/lead-discovery/search', data);
@@ -653,6 +671,25 @@ export const leadDiscoveryApi = {
   importLeads: async (data: LeadImportRequest): Promise<LeadImportResponse> => {
     const response = await api.post('/api/lead-discovery/import', data);
     return response.data;
+  },
+
+  getStoredLeads: async (params?: { skip?: number; limit?: number; niche?: string; location?: string }): Promise<StoredLeadsResponse> => {
+    const response = await api.get('/api/lead-discovery/stored', { params });
+    return response.data;
+  },
+
+  getStats: async (): Promise<{ total_leads: number; with_email: number; without_email: number }> => {
+    const response = await api.get('/api/lead-discovery/stored/stats');
+    return response.data;
+  },
+
+  convertToContact: async (leadId: number): Promise<{ message: string; contact: { id: number; name: string; email: string; company: string; status: string } }> => {
+    const response = await api.post(`/api/lead-discovery/convert-to-contact/${leadId}`);
+    return response.data;
+  },
+
+  deleteStoredLead: async (leadId: number): Promise<void> => {
+    await api.delete(`/api/lead-discovery/stored/${leadId}`);
   },
 };
 

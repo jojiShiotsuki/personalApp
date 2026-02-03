@@ -5,6 +5,7 @@ from urllib.parse import urlparse
 
 from app.database import get_db
 from app.models.outreach import OutreachProspect, OutreachCampaign, ProspectStatus, DiscoveredLead as DiscoveredLeadModel
+from app.models.crm import Contact, ContactStatus
 from app.schemas.lead_discovery import (
     LeadSearchRequest,
     LeadSearchResponse,
@@ -361,3 +362,49 @@ async def import_leads(request: LeadImportRequest, db: Session = Depends(get_db)
         imported=imported_count,
         campaign_name=campaign.name,
     )
+
+
+@router.post("/convert-to-contact/{lead_id}")
+async def convert_lead_to_contact(lead_id: int, db: Session = Depends(get_db)):
+    """
+    Convert a discovered lead to a CRM Contact.
+
+    Creates a new Contact with the lead's information.
+    """
+    lead = db.query(DiscoveredLeadModel).filter(DiscoveredLeadModel.id == lead_id).first()
+
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+
+    # Check if contact with same email already exists
+    if lead.email:
+        existing_contact = db.query(Contact).filter(Contact.email == lead.email).first()
+        if existing_contact:
+            raise HTTPException(
+                status_code=400,
+                detail=f"A contact with this email already exists: {existing_contact.name}"
+            )
+
+    # Create new contact
+    contact = Contact(
+        name=lead.contact_name or lead.agency_name,
+        email=lead.email,
+        company=lead.agency_name,
+        status=ContactStatus.LEAD,
+        source="Lead Discovery",
+        notes=f"Website: {lead.website}\nNiche: {lead.niche}\nLocation: {lead.location}",
+    )
+    db.add(contact)
+    db.commit()
+    db.refresh(contact)
+
+    return {
+        "message": "Lead converted to contact successfully",
+        "contact": {
+            "id": contact.id,
+            "name": contact.name,
+            "email": contact.email,
+            "company": contact.company,
+            "status": contact.status.value,
+        }
+    }
