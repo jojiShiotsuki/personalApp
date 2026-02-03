@@ -729,3 +729,36 @@ export interface RenderedEmail {
   prospect_id: number;
   step_number: number;
 }
+
+// Lead Discovery Types
+export interface DiscoveredLead {
+  agency_name: string;
+  email: string | null;
+  contact_name: string | null;
+  website: string | null;
+  niche: string | null;
+  is_duplicate: boolean;
+  is_valid_email: boolean;
+}
+
+export interface LeadSearchRequest {
+  niche: string;
+  location: string;
+  count: number;
+}
+
+export interface LeadSearchResponse {
+  leads: DiscoveredLead[];
+  duplicates_found: number;
+  valid_for_import: number;
+}
+
+export interface LeadImportRequest {
+  leads: DiscoveredLead[];
+  campaign_id: number;
+}
+
+export interface LeadImportResponse {
+  imported: number;
+  campaign_name: string;
+}

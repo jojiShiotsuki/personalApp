@@ -17,6 +17,7 @@ import {
   ChevronLeft,
   ChevronRight,
   ArrowUpRight,
+  Search,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -42,6 +43,7 @@ const navigationGroups = [
       { name: 'Services', href: '/services', icon: RefreshCw },
       { name: 'Outreach', href: '/outreach', icon: Send },
       { name: 'Cold Email', href: '/cold-outreach', icon: Mail },
+      { name: 'Lead Discovery', href: '/lead-discovery', icon: Search },
     ],
   },
   {
