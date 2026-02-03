@@ -21,6 +21,8 @@ import {
   Users,
   Sparkles,
   X,
+  Pencil,
+  Check,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -191,6 +193,15 @@ export default function LeadDiscovery() {
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  // Editing state
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [editForm, setEditForm] = useState({
+    email: '',
+    contact_name: '',
+    website: '',
+    niche: '',
+  });
+
   // Fetch campaigns for the modal
   const { data: campaigns = [] } = useQuery<OutreachCampaign[]>({
     queryKey: ['outreach-campaigns'],
@@ -259,6 +270,53 @@ export default function LeadDiscovery() {
 
   const handleClear = () => {
     setResults(null);
+    setEditingIndex(null);
+  };
+
+  const startEditing = (index: number, lead: DiscoveredLead) => {
+    setEditingIndex(index);
+    setEditForm({
+      email: lead.email || '',
+      contact_name: lead.contact_name || '',
+      website: lead.website || '',
+      niche: lead.niche || '',
+    });
+  };
+
+  const cancelEditing = () => {
+    setEditingIndex(null);
+  };
+
+  const saveEditing = (index: number) => {
+    if (!results) return;
+
+    // Update the lead in results
+    const updatedLeads = [...results.leads];
+    const lead = updatedLeads[index];
+
+    // Update fields
+    lead.email = editForm.email || undefined;
+    lead.contact_name = editForm.contact_name || undefined;
+    lead.website = editForm.website || undefined;
+    lead.niche = editForm.niche || undefined;
+
+    // Check if email is valid (simple check)
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    lead.is_valid_email = editForm.email ? emailRegex.test(editForm.email) : false;
+
+    // Recalculate valid_for_import
+    const validCount = updatedLeads.filter(
+      (l) => l.is_valid_email && !l.is_duplicate
+    ).length;
+
+    setResults({
+      ...results,
+      leads: updatedLeads,
+      valid_for_import: validCount,
+    });
+
+    setEditingIndex(null);
+    toast.success('Lead updated!');
   };
 
   const validForImport = results?.valid_for_import || 0;
@@ -507,6 +565,9 @@ export default function LeadDiscovery() {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
                       Niche
                     </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
+                      Actions
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white dark:bg-slate-800 divide-y divide-gray-200 dark:divide-slate-700">
@@ -524,27 +585,61 @@ export default function LeadDiscovery() {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm text-gray-600 dark:text-slate-300">
-                            {lead.email || '-'}
-                          </span>
-                          <EmailBadge lead={lead} />
-                        </div>
+                        {editingIndex === index ? (
+                          <input
+                            type="email"
+                            value={editForm.email}
+                            onChange={(e) =>
+                              setEditForm({ ...editForm, email: e.target.value })
+                            }
+                            placeholder="Enter email..."
+                            className="w-full px-2 py-1 text-sm bg-gray-50 dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                          />
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm text-gray-600 dark:text-slate-300">
+                              {lead.email || '-'}
+                            </span>
+                            <EmailBadge lead={lead} />
+                          </div>
+                        )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-slate-300">
-                          {lead.contact_name ? (
-                            <>
-                              <User className="w-4 h-4 text-gray-400" />
-                              {lead.contact_name}
-                            </>
-                          ) : (
-                            '-'
-                          )}
-                        </div>
+                        {editingIndex === index ? (
+                          <input
+                            type="text"
+                            value={editForm.contact_name}
+                            onChange={(e) =>
+                              setEditForm({ ...editForm, contact_name: e.target.value })
+                            }
+                            placeholder="Contact name..."
+                            className="w-full px-2 py-1 text-sm bg-gray-50 dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                          />
+                        ) : (
+                          <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-slate-300">
+                            {lead.contact_name ? (
+                              <>
+                                <User className="w-4 h-4 text-gray-400" />
+                                {lead.contact_name}
+                              </>
+                            ) : (
+                              '-'
+                            )}
+                          </div>
+                        )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        {lead.website ? (
+                        {editingIndex === index ? (
+                          <input
+                            type="text"
+                            value={editForm.website}
+                            onChange={(e) =>
+                              setEditForm({ ...editForm, website: e.target.value })
+                            }
+                            placeholder="Website URL..."
+                            className="w-full px-2 py-1 text-sm bg-gray-50 dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                          />
+                        ) : lead.website ? (
                           <a
                             href={
                               lead.website.startsWith('http')
@@ -564,9 +659,49 @@ export default function LeadDiscovery() {
                         )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="text-sm text-gray-600 dark:text-slate-300">
-                          {lead.niche || '-'}
-                        </span>
+                        {editingIndex === index ? (
+                          <input
+                            type="text"
+                            value={editForm.niche}
+                            onChange={(e) =>
+                              setEditForm({ ...editForm, niche: e.target.value })
+                            }
+                            placeholder="Niche..."
+                            className="w-full px-2 py-1 text-sm bg-gray-50 dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                          />
+                        ) : (
+                          <span className="text-sm text-gray-600 dark:text-slate-300">
+                            {lead.niche || '-'}
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {editingIndex === index ? (
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => saveEditing(index)}
+                              className="p-1.5 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/30 rounded-lg transition-colors"
+                              title="Save"
+                            >
+                              <Check className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={cancelEditing}
+                              className="p-1.5 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                              title="Cancel"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => startEditing(index, lead)}
+                            className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
+                            title="Edit lead"
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </button>
+                        )}
                       </td>
                     </tr>
                   ))}

@@ -248,6 +248,68 @@ async def get_stored_leads_stats(db: Session = Depends(get_db)):
     }
 
 
+@router.put("/stored/{lead_id}")
+async def update_stored_lead(
+    lead_id: int,
+    agency_name: str | None = None,
+    contact_name: str | None = None,
+    email: str | None = None,
+    website: str | None = None,
+    niche: str | None = None,
+    db: Session = Depends(get_db),
+):
+    """
+    Update a stored discovered lead.
+
+    Allows editing email, contact name, etc. after discovery.
+    """
+    lead = db.query(DiscoveredLeadModel).filter(DiscoveredLeadModel.id == lead_id).first()
+
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+
+    # Update fields if provided
+    if agency_name is not None:
+        lead.agency_name = agency_name
+    if contact_name is not None:
+        lead.contact_name = contact_name
+    if email is not None:
+        lead.email = email
+    if website is not None:
+        lead.website = website
+        lead.website_normalized = normalize_website(website)
+    if niche is not None:
+        lead.niche = niche
+
+    db.commit()
+    db.refresh(lead)
+
+    return {
+        "id": lead.id,
+        "agency_name": lead.agency_name,
+        "contact_name": lead.contact_name,
+        "email": lead.email,
+        "website": lead.website,
+        "niche": lead.niche,
+        "location": lead.location,
+        "updated_at": lead.updated_at.isoformat() if lead.updated_at else None,
+    }
+
+
+@router.delete("/stored/{lead_id}")
+async def delete_stored_lead(lead_id: int, db: Session = Depends(get_db)):
+    """Delete a stored discovered lead."""
+    lead = db.query(DiscoveredLeadModel).filter(DiscoveredLeadModel.id == lead_id).first()
+
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+
+    db.delete(lead)
+    db.commit()
+
+    return {"message": "Lead deleted"}
+
+
 @router.post("/import", response_model=LeadImportResponse)
 async def import_leads(request: LeadImportRequest, db: Session = Depends(get_db)):
     """
