@@ -295,10 +295,10 @@ export default function LeadDiscovery() {
     const lead = updatedLeads[index];
 
     // Update fields
-    lead.email = editForm.email || undefined;
-    lead.contact_name = editForm.contact_name || undefined;
-    lead.website = editForm.website || undefined;
-    lead.niche = editForm.niche || undefined;
+    lead.email = editForm.email || null;
+    lead.contact_name = editForm.contact_name || null;
+    lead.website = editForm.website || null;
+    lead.niche = editForm.niche || null;
 
     // Check if email is valid (simple check)
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
