@@ -233,10 +233,23 @@ async def find_businesses(
     client = get_client()
 
     # Step 1: Search for businesses using Google Search
-    search_prompt = f"""Find {count} real businesses matching "{niche}" in "{location}".
-IMPORTANT: If "{location}" is a country, search across its major states, provinces, or territories.
-For each business, find: business name, email, contact person name, website URL, and their specific niche.
-Return ONLY real businesses you can verify exist through search. Do not make up fake businesses."""
+    search_prompt = f"""Search Google to find {count} real {niche} businesses in {location}.
+
+CRITICAL REQUIREMENTS:
+1. Each business MUST have an actual website URL (like https://example.com). Skip businesses without websites.
+2. Search for the business website directly if needed.
+3. Find the owner/founder/director name if possible.
+4. Find their contact email from their website's contact page if visible.
+5. If "{location}" is a country, search across different cities/states.
+
+For each business, provide:
+- Business name
+- Website URL (REQUIRED - must be a real URL like https://...)
+- Contact person name (owner, founder, or director)
+- Email address if found
+- What specific services they offer
+
+Only include businesses where you found their actual website URL."""
 
     for attempt in range(max_retries):
         try:
@@ -255,19 +268,24 @@ Return ONLY real businesses you can verify exist through search. Do not make up 
                 raise ValueError("No data received from search")
 
             # Step 2: Parse results into structured JSON (no Search tool)
-            parse_prompt = f"""Parse the following business information into JSON format.
+            parse_prompt = f"""Parse the following business information into a JSON array.
 
 Business Information:
 {search_text}
 
-Return a JSON array where each business has these fields:
-- agency_name: The business name (required)
-- email: Email address if found, otherwise "Not Listed"
-- contact_name: Name of contact person if found, otherwise null
-- website: Website URL (required)
-- niche: Their specific industry/service niche
+RULES:
+1. ONLY include businesses that have an actual website URL starting with "http://" or "https://"
+2. SKIP any business without a real website URL
+3. Do NOT use placeholder text like "Information not available" - use "Not Listed" for missing emails only
 
-Return ONLY the JSON array, no other text."""
+JSON fields for each business:
+- agency_name: The business name (REQUIRED)
+- website: Must be a real URL starting with http:// or https:// (REQUIRED - skip business if not available)
+- email: Email address if found, otherwise exactly "Not Listed"
+- contact_name: Person's name if found, otherwise null
+- niche: Their specific services/specialty
+
+Return ONLY the JSON array, nothing else."""
 
             parse_response = await asyncio.to_thread(
                 client.models.generate_content,
@@ -286,8 +304,23 @@ Return ONLY the JSON array, no other text."""
             try:
                 data = json.loads(text)
                 if isinstance(data, list):
+                    # Filter out leads without valid website URLs
+                    valid_leads = []
+                    for lead in data:
+                        website = lead.get('website', '')
+                        # Check for real URL (not placeholder text)
+                        if website and (
+                            website.startswith('http://') or
+                            website.startswith('https://') or
+                            '.' in website  # Basic domain check
+                        ):
+                            # Filter out placeholder responses
+                            website_lower = website.lower()
+                            if 'not available' not in website_lower and 'information' not in website_lower:
+                                valid_leads.append(lead)
+
                     # Step 3: Scrape websites for missing emails (skip known ones)
-                    enriched_data = await enrich_leads_with_emails(data, known_emails)
+                    enriched_data = await enrich_leads_with_emails(valid_leads, known_emails)
                     return enriched_data
                 raise ValueError("Response is not a list")
             except json.JSONDecodeError as e:
