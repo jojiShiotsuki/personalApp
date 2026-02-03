@@ -137,3 +137,26 @@ class OutreachEmailTemplate(Base):
 
     def __repr__(self):
         return f"<OutreachEmailTemplate(id={self.id}, campaign_id={self.campaign_id}, step_number={self.step_number})>"
+
+
+class DiscoveredLead(Base):
+    """
+    Stores all leads discovered through AI search.
+    Used to prevent duplicate scraping and track lead history.
+    """
+    __tablename__ = "discovered_leads"
+
+    id = Column(Integer, primary_key=True, index=True)
+    agency_name = Column(String(255), nullable=False)
+    contact_name = Column(String(255), nullable=True)
+    email = Column(String(255), nullable=True)
+    website = Column(String(500), nullable=False)
+    website_normalized = Column(String(500), nullable=False, unique=True, index=True)
+    niche = Column(String(255), nullable=True)
+    location = Column(String(255), nullable=True)  # Search location used
+    search_query = Column(String(500), nullable=True)  # Original search niche
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def __repr__(self):
+        return f"<DiscoveredLead(id={self.id}, agency_name={self.agency_name}, website={self.website})>"

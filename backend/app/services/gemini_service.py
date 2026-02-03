@@ -150,15 +150,50 @@ async def scrape_website_for_email(website: str) -> Optional[str]:
     return None
 
 
-async def enrich_leads_with_emails(leads: list[dict]) -> list[dict]:
+def normalize_url_for_comparison(url: str) -> str:
+    """Normalize URL for comparison (lowercase, no protocol, no www, no trailing slash)."""
+    if not url:
+        return ""
+    url = url.lower().strip()
+    if url.startswith('https://'):
+        url = url[8:]
+    elif url.startswith('http://'):
+        url = url[7:]
+    if url.startswith('www.'):
+        url = url[4:]
+    return url.rstrip('/')
+
+
+async def enrich_leads_with_emails(
+    leads: list[dict],
+    known_emails: dict[str, str] | None = None
+) -> list[dict]:
     """
     For leads missing emails, attempt to scrape their websites.
+
+    Args:
+        leads: List of lead dictionaries
+        known_emails: Dict mapping normalized website URLs to known email addresses.
+                      If a website is in this dict with a valid email, skip scraping.
     """
+    known_emails = known_emails or {}
+
     async def enrich_single(lead: dict) -> dict:
         email = lead.get('email', '')
+        website = lead.get('website', '')
+
+        # Check if we already have this email in our known emails
+        if website:
+            normalized_site = normalize_url_for_comparison(website)
+            if normalized_site in known_emails:
+                known_email = known_emails[normalized_site]
+                if known_email and known_email.lower() not in ['not listed', 'n/a', 'none', '']:
+                    # Use known email, skip scraping
+                    lead['email'] = known_email
+                    return lead
+
         # Check if email is missing or placeholder
         if not email or email.lower() in ['not listed', 'n/a', 'none', '']:
-            website = lead.get('website', '')
             if website:
                 scraped_email = await scrape_website_for_email(website)
                 if scraped_email:
@@ -175,7 +210,8 @@ async def find_businesses(
     niche: str,
     location: str,
     count: int = 10,
-    max_retries: int = 3
+    max_retries: int = 3,
+    known_emails: dict[str, str] | None = None
 ) -> list[dict]:
     """
     Search for businesses using Gemini with Google Search.
@@ -188,6 +224,8 @@ async def find_businesses(
         location: Geographic location
         count: Number of leads to find (5-15)
         max_retries: Number of retry attempts
+        known_emails: Dict mapping normalized website URLs to known emails.
+                      Websites in this dict will skip scraping.
 
     Returns:
         List of business lead dictionaries
@@ -248,8 +286,8 @@ Return ONLY the JSON array, no other text."""
             try:
                 data = json.loads(text)
                 if isinstance(data, list):
-                    # Step 3: Scrape websites for missing emails
-                    enriched_data = await enrich_leads_with_emails(data)
+                    # Step 3: Scrape websites for missing emails (skip known ones)
+                    enriched_data = await enrich_leads_with_emails(data, known_emails)
                     return enriched_data
                 raise ValueError("Response is not a list")
             except json.JSONDecodeError as e:
