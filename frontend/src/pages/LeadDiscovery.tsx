@@ -820,115 +820,40 @@ export default function LeadDiscovery() {
                 <table className="min-w-full divide-y divide-gray-200 dark:divide-slate-700">
                   <thead className="bg-gray-50 dark:bg-slate-700/50">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
+                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider w-10">
+
+                      </th>
+                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
                         Agency
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
-                        Contact
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
+                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
                         Email
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
+                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
                         Website
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
+                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
                         Niche
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
-                        Discovered
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
-                        Actions
                       </th>
                     </tr>
                   </thead>
                   <tbody className="bg-white dark:bg-slate-800 divide-y divide-gray-200 dark:divide-slate-700">
                     {storedLeadsData.leads.map((lead: StoredLead) => (
                       <tr key={lead.id} className="hover:bg-gray-50 dark:hover:bg-slate-700/50">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium text-gray-900 dark:text-white">
-                            {lead.agency_name}
-                          </div>
-                          {lead.location && (
-                            <div className="text-xs text-gray-500 dark:text-slate-400 flex items-center gap-1">
-                              <MapPin className="w-3 h-3" />
-                              {lead.location}
-                            </div>
-                          )}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900 dark:text-white">
-                            {lead.contact_name || '-'}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm text-gray-600 dark:text-slate-300">
-                              {lead.email || '-'}
-                            </span>
-                            {lead.email && (
-                              lead.is_duplicate ? (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400">
-                                  <AlertCircle className="w-3 h-3" />
-                                  In campaign
-                                </span>
-                              ) : lead.is_valid_email ? (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">
-                                  <CheckCircle className="w-3 h-3" />
-                                  Valid
-                                </span>
-                              ) : (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400">
-                                  <XCircle className="w-3 h-3" />
-                                  Invalid
-                                </span>
-                              )
-                            )}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          {lead.website ? (
-                            <a
-                              href={lead.website.startsWith('http') ? lead.website : `https://${lead.website}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 text-sm text-blue-600 dark:text-blue-400 hover:underline"
-                            >
-                              <Globe className="w-3 h-3" />
-                              Visit
-                              <ExternalLink className="w-3 h-3" />
-                            </a>
-                          ) : (
-                            <span className="text-sm text-gray-400">-</span>
-                          )}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className="text-sm text-gray-600 dark:text-slate-300">
-                            {lead.niche || '-'}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-slate-400">
-                            <Calendar className="w-3 h-3" />
-                            {lead.created_at ? new Date(lead.created_at).toLocaleDateString() : '-'}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center gap-2">
+                        <td className="px-3 py-3 whitespace-nowrap">
+                          <div className="flex items-center gap-1">
                             <button
                               onClick={() => convertMutation.mutate(lead.id)}
                               disabled={convertMutation.isPending || lead.is_duplicate}
                               className={cn(
-                                'inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg transition-colors',
+                                'p-1.5 rounded-lg transition-colors',
                                 lead.is_duplicate
-                                  ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 cursor-not-allowed'
-                                  : 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50'
+                                  ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
+                                  : 'text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30'
                               )}
-                              title={lead.is_duplicate ? 'Already in a campaign' : 'Convert to CRM Contact'}
+                              title={lead.is_duplicate ? 'Already in campaign' : 'Convert to Contact'}
                             >
-                              <UserPlus className="w-3.5 h-3.5" />
-                              Convert
+                              <UserPlus className="w-4 h-4" />
                             </button>
                             <button
                               onClick={() => {
@@ -942,6 +867,62 @@ export default function LeadDiscovery() {
                               <Trash2 className="w-4 h-4" />
                             </button>
                           </div>
+                        </td>
+                        <td className="px-3 py-3 whitespace-nowrap">
+                          <div className="text-sm font-medium text-gray-900 dark:text-white">
+                            {lead.agency_name}
+                          </div>
+                          <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-slate-400">
+                            {lead.contact_name && <span>{lead.contact_name}</span>}
+                            {lead.created_at && (
+                              <span className="flex items-center gap-1">
+                                <Calendar className="w-3 h-3" />
+                                {new Date(lead.created_at).toLocaleDateString()}
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-3 py-3 whitespace-nowrap">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm text-gray-600 dark:text-slate-300 max-w-[180px] truncate">
+                              {lead.email || '-'}
+                            </span>
+                            {lead.email && (
+                              lead.is_duplicate ? (
+                                <span className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400">
+                                  <AlertCircle className="w-3 h-3" />
+                                </span>
+                              ) : lead.is_valid_email ? (
+                                <span className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">
+                                  <CheckCircle className="w-3 h-3" />
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium rounded-full bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400">
+                                  <XCircle className="w-3 h-3" />
+                                </span>
+                              )
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-3 py-3 whitespace-nowrap">
+                          {lead.website ? (
+                            <a
+                              href={lead.website.startsWith('http') ? lead.website : `https://${lead.website}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                            >
+                              <Globe className="w-3 h-3" />
+                              <ExternalLink className="w-3 h-3" />
+                            </a>
+                          ) : (
+                            <span className="text-sm text-gray-400">-</span>
+                          )}
+                        </td>
+                        <td className="px-3 py-3 whitespace-nowrap">
+                          <span className="text-sm text-gray-600 dark:text-slate-300 max-w-[120px] truncate block">
+                            {lead.niche || '-'}
+                          </span>
                         </td>
                       </tr>
                     ))}
