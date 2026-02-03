@@ -580,8 +580,19 @@ export default function LeadDiscovery() {
                       )}
                     >
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900 dark:text-white">
-                          {lead.agency_name}
+                        <div className="flex items-center gap-2 group/agency">
+                          <div className="text-sm font-medium text-gray-900 dark:text-white">
+                            {lead.agency_name}
+                          </div>
+                          {editingIndex !== index && (
+                            <button
+                              onClick={() => startEditing(index, lead)}
+                              className="p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded opacity-0 group-hover/agency:opacity-100 transition-all"
+                              title="Edit lead"
+                            >
+                              <Pencil className="w-3.5 h-3.5" />
+                            </button>
+                          )}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
