@@ -19,7 +19,6 @@ import {
   CheckCircle,
   XCircle,
   Users,
-  Sparkles,
   X,
   Pencil,
   Check,
