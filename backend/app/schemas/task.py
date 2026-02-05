@@ -1,6 +1,7 @@
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, model_validator, field_validator
 from datetime import datetime, date, time
-from typing import Optional, List
+from typing import Optional, List, Any
+import json
 from app.models.task import TaskPriority, TaskStatus, RecurrenceType
 
 class TaskBase(BaseModel):
@@ -53,6 +54,22 @@ class TaskResponse(TaskBase):
     # Additional recurrence tracking fields
     occurrences_created: int = 0
     parent_task_id: Optional[int] = None
+
+    @field_validator('recurrence_days', mode='before')
+    @classmethod
+    def parse_recurrence_days(cls, v: Any) -> Optional[List[str]]:
+        """Parse recurrence_days from JSON string if needed."""
+        if v is None:
+            return None
+        if isinstance(v, list):
+            return v
+        if isinstance(v, str):
+            try:
+                parsed = json.loads(v)
+                return parsed if isinstance(parsed, list) else None
+            except json.JSONDecodeError:
+                return None
+        return None
 
     class Config:
         from_attributes = True
