@@ -119,8 +119,8 @@ def upgrade() -> None:
                     VALUES (:title, :status, :priority, :sprint_day_id, :is_recurring, :created_at, :updated_at)
                 """), {
                     "title": title,
-                    "status": "pending",
-                    "priority": "medium",
+                    "status": "PENDING",
+                    "priority": "MEDIUM",
                     "sprint_day_id": sprint_day_id,
                     "is_recurring": False,
                     "created_at": now,
