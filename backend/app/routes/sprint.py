@@ -2,6 +2,10 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from pydantic import BaseModel
+import logging
+import traceback
+
+logger = logging.getLogger(__name__)
 
 from app.database import get_db
 from app.schemas.sprint import (
@@ -35,28 +39,38 @@ router = APIRouter(prefix="/api/sprint", tags=["sprint"])
 @router.get("", response_model=Optional[SprintResponse])
 def get_active_sprint(db: Session = Depends(get_db)):
     """Get the current active sprint."""
-    sprint = sprint_service.get_active_sprint(db)
-    if not sprint:
-        return None
-    return sprint_service.build_sprint_response(db, sprint)
+    try:
+        sprint = sprint_service.get_active_sprint(db)
+        if not sprint:
+            return None
+        return sprint_service.build_sprint_response(db, sprint)
+    except Exception as e:
+        logger.error(f"Error getting active sprint: {e}")
+        logger.error(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/all", response_model=List[SprintListResponse])
 def get_all_sprints(db: Session = Depends(get_db)):
     """Get all sprints."""
-    sprints = sprint_service.get_all_sprints(db)
-    return [
-        SprintListResponse(
-            id=s.id,
-            title=s.title,
-            start_date=s.start_date,
-            end_date=s.end_date,
-            status=s.status,
-            progress_percentage=s.progress_percentage,
-            created_at=s.created_at,
-        )
-        for s in sprints
-    ]
+    try:
+        sprints = sprint_service.get_all_sprints(db)
+        return [
+            SprintListResponse(
+                id=s.id,
+                title=s.title,
+                start_date=s.start_date,
+                end_date=s.end_date,
+                status=s.status,
+                progress_percentage=s.progress_percentage,
+                created_at=s.created_at,
+            )
+            for s in sprints
+        ]
+    except Exception as e:
+        logger.error(f"Error getting all sprints: {e}")
+        logger.error(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("", response_model=SprintResponse)
@@ -67,6 +81,10 @@ def create_sprint(data: SprintCreate, db: Session = Depends(get_db)):
         return sprint_service.build_sprint_response(db, sprint)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error creating sprint: {e}")
+        logger.error(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/{sprint_id}", response_model=SprintResponse)

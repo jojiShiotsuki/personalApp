@@ -14,7 +14,7 @@ from app.routes import tasks, crm, task_parser, export, goals, goal_parser, proj
 app = FastAPI(
     title="Personal Productivity App",
     description="Task management and CRM system with AI assistant",
-    version="1.0.0"
+    version="1.0.1"  # Sprint serialization fix
 )
 
 # CORS configuration - supports both development and production
