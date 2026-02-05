@@ -4,12 +4,13 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { contactApi } from '@/lib/api';
 import type { Contact, ContactCreate } from '@/types';
 import { ContactStatus } from '@/types';
-import { Plus, Search, User, Mail, Phone, Building2, MoreHorizontal, Trash2, Edit2, ExternalLink } from 'lucide-react';
+import { Plus, Search, User, Mail, Phone, Building2, MoreHorizontal, Trash2, Edit2, ExternalLink, MapPin, Wrench, Globe, MessageSquare } from 'lucide-react';
 import { toast } from 'sonner';
 import ContactDetailModal from '@/components/ContactDetailModal';
 import ContactModal from '@/components/ContactModal';
 import AddInteractionModal from '@/components/AddInteractionModal';
 import ConfirmModal from '@/components/ConfirmModal';
+import SendDMPanel, { type SendDMSource } from '@/components/outreach/SendDMPanel';
 import { cn } from '@/lib/utils';
 
 export default function Contacts() {
@@ -20,6 +21,8 @@ export default function Contacts() {
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [isAddInteractionOpen, setIsAddInteractionOpen] = useState(false);
   const [contactToDelete, setContactToDelete] = useState<number | null>(null);
+  const [isSendDMPanelOpen, setIsSendDMPanelOpen] = useState(false);
+  const [selectedContactForDM, setSelectedContactForDM] = useState<SendDMSource | null>(null);
   const queryClient = useQueryClient();
 
   const getInitials = (name: string) => {
@@ -130,7 +133,40 @@ export default function Contacts() {
     setIsModalOpen(true);
   };
 
-  
+  // Open Send DM panel for a contact
+  const openSendDMPanel = (contact: Contact) => {
+    // Parse website_issues if it exists (stored as JSON string or array)
+    let websiteIssues: string[] = [];
+    if (contact.website_issues) {
+      try {
+        if (typeof contact.website_issues === 'string') {
+          websiteIssues = JSON.parse(contact.website_issues);
+        } else if (Array.isArray(contact.website_issues)) {
+          websiteIssues = contact.website_issues;
+        }
+      } catch {
+        // If parsing fails, treat as single issue
+        websiteIssues = [String(contact.website_issues)];
+      }
+    }
+
+    setSelectedContactForDM({
+      type: 'contact',
+      id: contact.id,
+      name: contact.name,
+      company: contact.company || '',
+      city: contact.city || contact.suburb || undefined,
+      niche: contact.industry || undefined,
+      website: contact.website_url || undefined,
+      websiteIssues: websiteIssues.length > 0 ? websiteIssues : undefined,
+      email: contact.email || undefined,
+      emailStage: contact.email_stage || undefined,
+      linkedinStage: contact.linkedin_stage || undefined,
+    });
+    setIsSendDMPanelOpen(true);
+  };
+
+
 
   return (
     <div className="flex h-full bg-[--exec-bg]">
@@ -247,6 +283,20 @@ export default function Contacts() {
                           <span className="truncate">{contact.company}</span>
                         </div>
                       )}
+                      {contact.industry && (
+                        <div className="flex items-center text-sm text-[--exec-text-secondary]">
+                          <Wrench className="w-3.5 h-3.5 mr-2 text-[--exec-text-muted]" />
+                          <span className="truncate capitalize">{contact.industry}</span>
+                        </div>
+                      )}
+                      {(contact.suburb || contact.city) && (
+                        <div className="flex items-center text-sm text-[--exec-text-secondary]">
+                          <MapPin className="w-3.5 h-3.5 mr-2 text-[--exec-text-muted]" />
+                          <span className="truncate">
+                            {[contact.suburb, contact.city].filter(Boolean).join(', ')}
+                          </span>
+                        </div>
+                      )}
                       {contact.email && (
                         <div className="flex items-center text-sm text-[--exec-text-secondary]">
                           <Mail className="w-3.5 h-3.5 mr-2 text-[--exec-text-muted]" />
@@ -259,6 +309,20 @@ export default function Contacts() {
                           <span className="truncate">{contact.phone}</span>
                         </div>
                       )}
+                      {contact.website_url && (
+                        <div className="flex items-center text-sm text-[--exec-text-secondary]">
+                          <Globe className="w-3.5 h-3.5 mr-2 text-[--exec-text-muted]" />
+                          <a
+                            href={contact.website_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="truncate text-[--exec-accent] hover:underline"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {contact.website_url.replace(/^https?:\/\//, '')}
+                          </a>
+                        </div>
+                      )}
                     </div>
 
                     <div className="pt-3 border-t border-stone-700/30 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
@@ -268,6 +332,13 @@ export default function Contacts() {
                       >
                         <ExternalLink className="w-3 h-3 mr-1.5" />
                         View
+                      </button>
+                      <button
+                        onClick={() => openSendDMPanel(contact)}
+                        className="flex items-center justify-center p-1.5 text-[--exec-text-muted] hover:text-green-400 hover:bg-green-500/10 rounded-lg transition-colors"
+                        title="Send DM"
+                      >
+                        <MessageSquare className="w-3.5 h-3.5" />
                       </button>
                       <button
                         onClick={() => handleEdit(contact)}
@@ -358,6 +429,16 @@ export default function Contacts() {
         message="Are you sure you want to delete this contact? This action cannot be undone."
         confirmText="Delete"
         variant="danger"
+      />
+
+      {/* Send DM Panel */}
+      <SendDMPanel
+        isOpen={isSendDMPanelOpen}
+        onClose={() => setIsSendDMPanelOpen(false)}
+        source={selectedContactForDM}
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ['contacts'] });
+        }}
       />
     </div>
   );

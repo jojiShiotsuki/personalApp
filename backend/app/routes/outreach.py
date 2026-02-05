@@ -65,6 +65,21 @@ def create_situation(data: SituationCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="Situation already exists")
 
 
+@router.put("/situations/{situation_id}", response_model=SituationResponse)
+def update_situation(situation_id: int, data: SituationCreate, db: Session = Depends(get_db)):
+    situation = db.query(OutreachSituation).filter(OutreachSituation.id == situation_id).first()
+    if not situation:
+        raise HTTPException(status_code=404, detail="Situation not found")
+    situation.name = data.name.strip()
+    try:
+        db.commit()
+        db.refresh(situation)
+        return situation
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="Situation name already exists")
+
+
 @router.delete("/situations/{situation_id}", status_code=204)
 def delete_situation(situation_id: int, db: Session = Depends(get_db)):
     situation = db.query(OutreachSituation).filter(OutreachSituation.id == situation_id).first()

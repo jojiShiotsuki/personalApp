@@ -77,29 +77,37 @@ export default function RecurrenceCustomModal({
     );
   };
 
+  const inputClasses = cn(
+    "px-3 py-2 rounded-lg",
+    "bg-stone-800/50 border border-stone-600/40",
+    "text-[--exec-text] text-sm",
+    "focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]/50",
+    "transition-all"
+  );
+
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm transition-opacity" onClick={onClose} />
-      <div className="relative w-full max-w-sm bg-white dark:bg-gray-800 rounded-xl shadow-2xl ring-1 ring-gray-900/5 dark:ring-white/10 flex flex-col animate-in zoom-in-95 duration-200">
-        <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Custom recurrence</h3>
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity" onClick={onClose} />
+      <div className="relative w-full max-w-sm bg-[--exec-surface] rounded-2xl shadow-2xl border border-stone-600/40 flex flex-col animate-in zoom-in-95 duration-200">
+        <div className="px-6 py-4 border-b border-stone-700/30">
+          <h3 className="text-lg font-semibold text-[--exec-text]">Custom recurrence</h3>
         </div>
 
         <div className="p-6 space-y-6">
           {/* Repeat every */}
           <div className="flex items-center gap-3">
-            <span className="text-sm text-gray-700 dark:text-gray-300 font-medium">Repeat every</span>
+            <span className="text-sm text-[--exec-text-secondary] font-medium">Repeat every</span>
             <input
               type="number"
               min="1"
               value={interval}
               onChange={(e) => setInterval(parseInt(e.target.value) || 1)}
-              className="w-16 px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm text-center dark:text-white"
+              className={cn(inputClasses, "w-16 text-center")}
             />
             <select
               value={type}
               onChange={(e) => setType(e.target.value as RecurrenceType)}
-              className="flex-1 px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm dark:text-white"
+              className={cn(inputClasses, "flex-1")}
             >
               <option value={RecurrenceType.DAILY}>day{interval > 1 ? 's' : ''}</option>
               <option value={RecurrenceType.WEEKLY}>week{interval > 1 ? 's' : ''}</option>
@@ -111,7 +119,7 @@ export default function RecurrenceCustomModal({
           {/* Days selection (only for Weekly) */}
           {type === RecurrenceType.WEEKLY && (
             <div className="space-y-2">
-              <span className="text-sm text-gray-700 dark:text-gray-300 font-medium">Repeat on</span>
+              <span className="text-sm text-[--exec-text-secondary] font-medium">Repeat on</span>
               <div className="flex justify-between">
                 {DAYS.map((day) => (
                   <button
@@ -121,8 +129,8 @@ export default function RecurrenceCustomModal({
                     className={cn(
                       "w-8 h-8 rounded-full text-xs font-medium transition-all flex items-center justify-center",
                       days.includes(day.value)
-                        ? "bg-blue-600 dark:bg-blue-500 text-white shadow-sm"
-                        : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600"
+                        ? "bg-[--exec-accent] text-white shadow-sm"
+                        : "bg-stone-700/50 text-[--exec-text-muted] hover:bg-stone-600/50"
                     )}
                     title={day.value}
                   >
@@ -135,7 +143,7 @@ export default function RecurrenceCustomModal({
 
           {/* Ends */}
           <div className="space-y-3">
-            <span className="text-sm text-gray-700 dark:text-gray-300 font-medium">Ends</span>
+            <span className="text-sm text-[--exec-text-secondary] font-medium">Ends</span>
             <div className="space-y-2">
               <label className="flex items-center gap-3 cursor-pointer">
                 <input
@@ -144,9 +152,9 @@ export default function RecurrenceCustomModal({
                   value="never"
                   checked={endType === 'never'}
                   onChange={() => setEndType('never')}
-                  className="w-4 h-4 text-blue-600 dark:text-blue-500 border-gray-300 dark:border-gray-600 focus:ring-blue-500"
+                  className="w-4 h-4 text-[--exec-accent] border-stone-600 bg-stone-700 focus:ring-[--exec-accent]/20"
                 />
-                <span className="text-sm text-gray-700 dark:text-gray-300">Never</span>
+                <span className="text-sm text-[--exec-text-secondary]">Never</span>
               </label>
 
               <label className="flex items-center gap-3 cursor-pointer">
@@ -156,15 +164,15 @@ export default function RecurrenceCustomModal({
                   value="date"
                   checked={endType === 'date'}
                   onChange={() => setEndType('date')}
-                  className="w-4 h-4 text-blue-600 dark:text-blue-500 border-gray-300 dark:border-gray-600 focus:ring-blue-500"
+                  className="w-4 h-4 text-[--exec-accent] border-stone-600 bg-stone-700 focus:ring-[--exec-accent]/20"
                 />
-                <span className="text-sm text-gray-700 dark:text-gray-300 w-16">On</span>
+                <span className="text-sm text-[--exec-text-secondary] w-16">On</span>
                 <input
                   type="date"
                   disabled={endType !== 'date'}
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
-                  className="flex-1 px-3 py-1.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm disabled:opacity-50 disabled:cursor-not-allowed dark:text-white"
+                  className={cn(inputClasses, "flex-1 disabled:opacity-50 disabled:cursor-not-allowed")}
                 />
               </label>
 
@@ -175,9 +183,9 @@ export default function RecurrenceCustomModal({
                   value="count"
                   checked={endType === 'count'}
                   onChange={() => setEndType('count')}
-                  className="w-4 h-4 text-blue-600 dark:text-blue-500 border-gray-300 dark:border-gray-600 focus:ring-blue-500"
+                  className="w-4 h-4 text-[--exec-accent] border-stone-600 bg-stone-700 focus:ring-[--exec-accent]/20"
                 />
-                <span className="text-sm text-gray-700 dark:text-gray-300 w-16">After</span>
+                <span className="text-sm text-[--exec-text-secondary] w-16">After</span>
                 <div className="flex items-center gap-2 flex-1">
                   <input
                     type="number"
@@ -185,25 +193,25 @@ export default function RecurrenceCustomModal({
                     disabled={endType !== 'count'}
                     value={count}
                     onChange={(e) => setCount(parseInt(e.target.value) || 1)}
-                    className="w-20 px-3 py-1.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm disabled:opacity-50 disabled:cursor-not-allowed dark:text-white"
+                    className={cn(inputClasses, "w-20 disabled:opacity-50 disabled:cursor-not-allowed")}
                   />
-                  <span className="text-sm text-gray-500 dark:text-gray-400">occurrences</span>
+                  <span className="text-sm text-[--exec-text-muted]">occurrences</span>
                 </div>
               </label>
             </div>
           </div>
         </div>
 
-        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/50 rounded-b-xl">
+        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-stone-700/30">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+            className="px-4 py-2 text-sm font-medium text-[--exec-text-secondary] bg-stone-700/50 rounded-lg hover:bg-stone-600/50 transition-colors"
           >
             Cancel
           </button>
           <button
             onClick={handleSave}
-            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 dark:bg-blue-500 hover:bg-blue-700 dark:hover:bg-blue-600 rounded-lg shadow-sm transition-colors"
+            className="px-4 py-2 text-sm font-medium text-white bg-[--exec-accent] rounded-lg hover:bg-[--exec-accent-dark] shadow-sm transition-colors"
           >
             Done
           </button>

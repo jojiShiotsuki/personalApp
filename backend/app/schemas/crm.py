@@ -13,6 +13,21 @@ class ContactBase(BaseModel):
     status: ContactStatus = ContactStatus.LEAD
     source: Optional[str] = Field(None, max_length=100)
     notes: Optional[str] = None
+    # Tradie-specific fields
+    industry: Optional[str] = Field(None, max_length=50)  # Trade type (roofer, plumber, etc.)
+    suburb: Optional[str] = Field(None, max_length=100)
+    city: Optional[str] = Field(None, max_length=100)
+    website_url: Optional[str] = Field(None, max_length=500)
+    website_issues: Optional[str] = None  # JSON string of issues
+    website_speed_score: Optional[int] = Field(None, ge=0, le=100)
+    # Outreach tracking fields
+    email_stage: Optional[str] = Field(None, max_length=50)
+    email_last_sent: Optional[date] = None
+    linkedin_stage: Optional[str] = Field(None, max_length=50)
+    linkedin_last_action: Optional[date] = None
+    loom_audit_sent: Optional[bool] = False
+    loom_audit_url: Optional[str] = Field(None, max_length=500)
+    next_followup_date: Optional[date] = None
 
 class ContactCreate(ContactBase):
     pass
@@ -25,6 +40,21 @@ class ContactUpdate(BaseModel):
     status: Optional[ContactStatus] = None
     source: Optional[str] = Field(None, max_length=100)
     notes: Optional[str] = None
+    # Tradie-specific fields
+    industry: Optional[str] = Field(None, max_length=50)
+    suburb: Optional[str] = Field(None, max_length=100)
+    city: Optional[str] = Field(None, max_length=100)
+    website_url: Optional[str] = Field(None, max_length=500)
+    website_issues: Optional[str] = None
+    website_speed_score: Optional[int] = Field(None, ge=0, le=100)
+    # Outreach tracking fields
+    email_stage: Optional[str] = Field(None, max_length=50)
+    email_last_sent: Optional[date] = None
+    linkedin_stage: Optional[str] = Field(None, max_length=50)
+    linkedin_last_action: Optional[date] = None
+    loom_audit_sent: Optional[bool] = None
+    loom_audit_url: Optional[str] = Field(None, max_length=500)
+    next_followup_date: Optional[date] = None
 
 class ContactResponse(ContactBase):
     id: int

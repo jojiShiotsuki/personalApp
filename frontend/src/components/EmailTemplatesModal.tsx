@@ -227,11 +227,11 @@ export default function EmailTemplatesModal({
           </div>
 
           {/* Variables Help Box */}
-          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4">
+          <div className="bg-blue-500/20 border border-blue-500/40 rounded-xl p-4">
             <div className="flex items-start gap-3">
-              <Info className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
+              <Info className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
               <div>
-                <h4 className="text-sm font-medium text-blue-700 dark:text-blue-300 mb-2">
+                <h4 className="text-sm font-medium text-blue-400 mb-2">
                   Available Variables
                 </h4>
                 <div className="flex flex-wrap gap-2">
@@ -257,9 +257,9 @@ export default function EmailTemplatesModal({
                       }}
                       className={cn(
                         'px-2 py-1 rounded-lg text-xs font-mono',
-                        'bg-blue-100 dark:bg-blue-800/50',
-                        'text-blue-700 dark:text-blue-300',
-                        'hover:bg-blue-200 dark:hover:bg-blue-800',
+                        'bg-blue-500/30',
+                        'text-blue-300',
+                        'hover:bg-blue-500/40',
                         'transition-colors cursor-pointer'
                       )}
                     >
@@ -267,7 +267,7 @@ export default function EmailTemplatesModal({
                     </button>
                   ))}
                 </div>
-                <p className="mt-2 text-xs text-blue-600 dark:text-blue-400">
+                <p className="mt-2 text-xs text-blue-400/80">
                   Click a variable to insert it at cursor position in the body.
                 </p>
               </div>

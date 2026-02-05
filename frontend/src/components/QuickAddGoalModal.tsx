@@ -3,6 +3,7 @@ import { useMutation } from '@tanstack/react-query';
 import { goalApi } from '@/lib/api';
 import { X, Loader2, Check, Target, AlertTriangle } from 'lucide-react';
 import type { GoalParseError, Goal } from '@/types';
+import { cn } from '@/lib/utils';
 
 interface QuickAddGoalModalProps {
   isOpen: boolean;
@@ -97,24 +98,32 @@ export default function QuickAddGoalModal({ isOpen, onClose, onSuccess }: QuickA
 
   if (!isOpen) return null;
 
+  const inputClasses = cn(
+    "w-full px-4 py-3 rounded-xl",
+    "bg-stone-800/50 border border-stone-600/40",
+    "text-[--exec-text] text-base placeholder:text-[--exec-text-muted]",
+    "focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]/50",
+    "transition-all resize-none"
+  );
+
   return (
-    <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-start justify-center z-50 pt-32 animate-in fade-in duration-200">
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-2xl mx-4 border border-gray-100 dark:border-gray-700 transform transition-all animate-in slide-in-from-top-4 duration-200">
-        <div className="flex items-center px-6 py-5 border-b border-gray-100 dark:border-gray-700">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-start justify-center z-50 pt-32 animate-in fade-in duration-200">
+      <div className="bg-[--exec-surface] rounded-2xl shadow-2xl w-full max-w-2xl mx-4 border border-stone-600/40 transform transition-all animate-in slide-in-from-top-4 duration-200">
+        <div className="flex items-center px-6 py-5 border-b border-stone-700/30">
           <div className="flex-1">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-              <div className="p-1.5 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                <Target className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+            <h2 className="text-lg font-semibold text-[--exec-text] flex items-center gap-2">
+              <div className="p-1.5 bg-[--exec-accent]/20 rounded-lg">
+                <Target className="w-4 h-4 text-[--exec-accent]" />
               </div>
               Quick Add Goals
             </h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 ml-9">
+            <p className="text-sm text-[--exec-text-muted] mt-1 ml-9">
               Type naturally: "Launch website Q1 January", "Complete certification Q2 April high priority"
             </p>
           </div>
           <button
             onClick={handleClose}
-            className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+            className="text-[--exec-text-muted] hover:text-[--exec-text] p-1.5 hover:bg-stone-700/50 rounded-lg transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
@@ -129,26 +138,26 @@ export default function QuickAddGoalModal({ isOpen, onClose, onSuccess }: QuickA
               placeholder="e.g., Launch new product Q2 May high priority&#10;Complete annual review Q4 December&#10;Reach 50k followers Q3 August"
               disabled={parseMutation.isPending || showSuccess}
               rows={6}
-              className="w-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-base placeholder:text-gray-400 dark:placeholder:text-gray-500 resize-none"
+              className={inputClasses}
             />
             {showSuccess && (
-              <div className="absolute inset-0 flex items-center justify-center bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl">
+              <div className="absolute inset-0 flex items-center justify-center bg-[--exec-surface]/80 backdrop-blur-sm rounded-xl">
                 <div className="flex flex-col items-center animate-in zoom-in duration-300">
                   {parseErrors.length > 0 ? (
                     <>
-                      <div className="w-12 h-12 bg-amber-100 dark:bg-amber-900/20 rounded-full flex items-center justify-center mb-2">
-                        <AlertTriangle className="w-6 h-6 text-amber-600 dark:text-amber-400" />
+                      <div className="w-12 h-12 bg-amber-500/20 rounded-full flex items-center justify-center mb-2">
+                        <AlertTriangle className="w-6 h-6 text-amber-400" />
                       </div>
-                      <span className="font-semibold text-amber-600 dark:text-amber-400">
+                      <span className="font-semibold text-amber-400">
                         {parseMutation.data?.success_count} created, {parseErrors.length} failed
                       </span>
                     </>
                   ) : (
                     <>
-                      <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-900/20 rounded-full flex items-center justify-center mb-2">
-                        <Check className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
+                      <div className="w-12 h-12 bg-emerald-500/20 rounded-full flex items-center justify-center mb-2">
+                        <Check className="w-6 h-6 text-emerald-400" />
                       </div>
-                      <span className="font-semibold text-emerald-600 dark:text-emerald-400">Goals Added!</span>
+                      <span className="font-semibold text-emerald-400">Goals Added!</span>
                     </>
                   )}
                 </div>
@@ -157,11 +166,11 @@ export default function QuickAddGoalModal({ isOpen, onClose, onSuccess }: QuickA
           </div>
 
           <div className="flex items-center justify-between mt-4">
-            <div className="text-xs text-gray-500">
-              <kbd className="px-2 py-1 bg-gray-50 rounded border border-gray-200 font-mono text-gray-600">
+            <div className="text-xs text-[--exec-text-muted]">
+              <kbd className="px-2 py-1 bg-stone-800/80 rounded border border-stone-600/40 font-mono text-[--exec-text-secondary]">
                 Ctrl+G
               </kbd>{' '}
-              to open • <kbd className="px-2 py-1 bg-gray-50 rounded border border-gray-200 font-mono text-gray-600">
+              to open <kbd className="px-2 py-1 bg-stone-800/80 rounded border border-stone-600/40 font-mono text-[--exec-text-secondary]">
                 Esc
               </kbd>{' '}
               to close
@@ -171,14 +180,19 @@ export default function QuickAddGoalModal({ isOpen, onClose, onSuccess }: QuickA
               <button
                 type="button"
                 onClick={handleClose}
-                className="px-4 py-2.5 border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 hover:border-gray-300 transition-all text-sm font-medium"
+                className="px-4 py-2.5 text-sm font-medium text-[--exec-text-secondary] bg-stone-700/50 rounded-xl hover:bg-stone-600/50 transition-colors"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={!input.trim() || parseMutation.isPending || showSuccess}
-                className="px-6 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all shadow-sm hover:shadow-md text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none flex items-center"
+                className={cn(
+                  "px-6 py-2.5 text-sm font-medium text-white rounded-xl flex items-center",
+                  "bg-[--exec-accent] hover:bg-[--exec-accent-dark]",
+                  "shadow-sm hover:shadow-md transition-all",
+                  "disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
+                )}
               >
                 {parseMutation.isPending ? (
                   <>
@@ -198,27 +212,27 @@ export default function QuickAddGoalModal({ isOpen, onClose, onSuccess }: QuickA
           </div>
 
           {parseMutation.isError && (
-            <div className="mt-4 p-3 bg-rose-50 border border-rose-200 rounded-xl">
-              <p className="text-sm text-rose-700">
+            <div className="mt-4 p-3 bg-red-500/20 border border-red-500/40 rounded-xl">
+              <p className="text-sm text-red-400">
                 Failed to create goals. Please try again.
               </p>
             </div>
           )}
 
           {parseErrors.length > 0 && !showSuccess && (
-            <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-xl">
+            <div className="mt-4 p-3 bg-amber-500/20 border border-amber-500/40 rounded-xl">
               <div className="flex items-center gap-2 mb-2">
-                <AlertTriangle className="w-4 h-4 text-amber-600" />
-                <span className="text-sm font-medium text-amber-800">
+                <AlertTriangle className="w-4 h-4 text-amber-400" />
+                <span className="text-sm font-medium text-amber-400">
                   {parseErrors.length} line(s) could not be parsed:
                 </span>
               </div>
               <ul className="space-y-1.5 max-h-32 overflow-y-auto">
                 {parseErrors.map((err, idx) => (
-                  <li key={idx} className="text-xs text-amber-700">
+                  <li key={idx} className="text-xs text-amber-400/80">
                     <span className="font-medium">Line {err.line_number}:</span>{' '}
-                    <span className="text-amber-600">{err.text}</span>
-                    <span className="text-amber-500 block ml-4">({err.error})</span>
+                    <span className="text-amber-400/60">{err.text}</span>
+                    <span className="text-amber-400/50 block ml-4">({err.error})</span>
                   </li>
                 ))}
               </ul>
@@ -226,15 +240,15 @@ export default function QuickAddGoalModal({ isOpen, onClose, onSuccess }: QuickA
           )}
         </form>
 
-        <div className="bg-gray-50/50 px-6 py-4 border-t border-gray-100 rounded-b-2xl">
-          <h3 className="text-xs font-semibold text-gray-500 uppercase mb-2 tracking-wider">
+        <div className="bg-stone-900/50 px-6 py-4 border-t border-stone-700/30 rounded-b-2xl">
+          <h3 className="text-xs font-semibold text-[--exec-text-muted] uppercase mb-2 tracking-wider">
             Examples:
           </h3>
-          <div className="space-y-1.5 text-sm text-gray-600">
-            <p>• "Launch new website Q1 January"</p>
-            <p>• "Complete certification Q2 April high priority"</p>
-            <p>• "Reach 10k followers Q3 July urgent"</p>
-            <p>• "Q4 December: Year-end review - Complete annual goals assessment"</p>
+          <div className="space-y-1.5 text-sm text-[--exec-text-secondary]">
+            <p>"Launch new website Q1 January"</p>
+            <p>"Complete certification Q2 April high priority"</p>
+            <p>"Reach 10k followers Q3 July urgent"</p>
+            <p>"Q4 December: Year-end review - Complete annual goals assessment"</p>
           </div>
         </div>
       </div>

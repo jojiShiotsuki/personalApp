@@ -10,6 +10,32 @@ class ContactStatus(str, enum.Enum):
     CLIENT = "client"
     INACTIVE = "inactive"
 
+class TradeIndustry(str, enum.Enum):
+    ROOFER = "roofer"
+    PLUMBER = "plumber"
+    ELECTRICIAN = "electrician"
+    BUILDER = "builder"
+    HVAC = "hvac"
+    LANDSCAPER = "landscaper"
+    PAINTER = "painter"
+    CARPENTER = "carpenter"
+    TILER = "tiler"
+    CONCRETER = "concreter"
+    OTHER = "other"
+
+class LeadSource(str, enum.Enum):
+    HIPAGES = "hipages"
+    SERVICE_SEEKING = "serviceseeking"
+    YELLOW_PAGES = "yellowpages"
+    TRUE_LOCAL = "truelocal"
+    ONEFLARE = "oneflare"
+    GOOGLE_MAPS = "google_maps"
+    GOOGLE_SEARCH = "google_search"
+    LINKEDIN = "linkedin"
+    REFERRAL = "referral"
+    COLD_EMAIL = "cold_email"
+    OTHER = "other"
+
 class DealStage(str, enum.Enum):
     LEAD = "lead"
     PROSPECT = "prospect"
@@ -37,6 +63,11 @@ class InteractionType(str, enum.Enum):
     NOTE = "note"
     SOCIAL_MEDIA = "social_media"
     FOLLOW_UP_EMAIL = "follow_up_email"
+    # Daily outreach activity types
+    COLD_EMAIL = "cold_email"
+    LINKEDIN_ACTION = "linkedin_action"
+    FOLLOW_UP_CALL = "follow_up_call"
+    LOOM_AUDIT = "loom_audit"
 
 class Contact(Base):
     __tablename__ = "crm_contacts"
@@ -49,6 +80,24 @@ class Contact(Base):
     status = Column(Enum(ContactStatus), default=ContactStatus.LEAD)
     source = Column("lead_source", String(100), nullable=True)  # Where contact came from (TikTok, website, referral, etc.)
     notes = Column(Text, nullable=True)
+
+    # Tradie-specific fields for lead acquisition
+    industry = Column(String(50), nullable=True)  # Trade type (roofer, plumber, etc.)
+    suburb = Column(String(100), nullable=True)  # Service area/suburb
+    city = Column(String(100), nullable=True)  # City (Brisbane, Perth, Sydney, etc.)
+    website_url = Column(String(500), nullable=True)  # Business website
+    website_issues = Column(Text, nullable=True)  # JSON list of issues (slow, not mobile-friendly, etc.)
+    website_speed_score = Column(Integer, nullable=True)  # Website speed score (0-100)
+
+    # Outreach tracking fields
+    email_stage = Column(String(50), nullable=True)  # not_sent, email_1, follow_up, break_up, replied
+    email_last_sent = Column(Date, nullable=True)  # When last email was sent
+    linkedin_stage = Column(String(50), nullable=True)  # not_connected, requested, connected, message_1, message_2
+    linkedin_last_action = Column(Date, nullable=True)  # When last LinkedIn action was taken
+    loom_audit_sent = Column(Boolean, default=False)  # Has Loom video audit been sent?
+    loom_audit_url = Column(String(500), nullable=True)  # Link to the Loom video
+    next_followup_date = Column(Date, nullable=True)  # When to follow up next
+
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

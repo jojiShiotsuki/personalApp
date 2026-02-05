@@ -27,26 +27,26 @@ const outcomeConfig: Record<OutcomeType, {
   [ResponseType.INTERESTED]: {
     icon: ThumbsUp,
     label: 'Interested',
-    bgColor: 'bg-green-100 dark:bg-green-900/30',
-    textColor: 'text-green-600 dark:text-green-400',
-    hoverBg: 'hover:bg-green-200 dark:hover:bg-green-900/50',
-    selectedBg: 'bg-green-500 dark:bg-green-600 text-white',
+    bgColor: 'bg-green-500/20',
+    textColor: 'text-green-400',
+    hoverBg: 'hover:bg-green-500/30',
+    selectedBg: 'bg-green-500 text-white',
   },
   [ResponseType.NOT_INTERESTED]: {
     icon: ThumbsDown,
     label: 'Not Interested',
-    bgColor: 'bg-red-100 dark:bg-red-900/30',
-    textColor: 'text-red-600 dark:text-red-400',
-    hoverBg: 'hover:bg-red-200 dark:hover:bg-red-900/50',
-    selectedBg: 'bg-red-500 dark:bg-red-600 text-white',
+    bgColor: 'bg-red-500/20',
+    textColor: 'text-red-400',
+    hoverBg: 'hover:bg-red-500/30',
+    selectedBg: 'bg-red-500 text-white',
   },
   [ResponseType.OTHER]: {
     icon: MessageCircle,
     label: 'Other',
-    bgColor: 'bg-gray-100 dark:bg-gray-700/50',
-    textColor: 'text-gray-600 dark:text-gray-400',
-    hoverBg: 'hover:bg-gray-200 dark:hover:bg-gray-600/50',
-    selectedBg: 'bg-gray-500 dark:bg-gray-600 text-white',
+    bgColor: 'bg-stone-700/50',
+    textColor: 'text-stone-400',
+    hoverBg: 'hover:bg-stone-600/50',
+    selectedBg: 'bg-stone-500 text-white',
   },
 };
 
@@ -109,8 +109,8 @@ export default function ResponseOutcomeModal({
         <div className="bg-[--exec-surface] rounded-2xl shadow-2xl w-full max-w-md mx-4 border border-stone-600/40 transform transition-all animate-in zoom-in-95 duration-200">
           <div className="p-6 text-center">
             {/* Success Icon */}
-            <div className="w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mx-auto mb-4">
-              <CheckCircle className="w-8 h-8 text-green-500" />
+            <div className="w-16 h-16 rounded-full bg-green-500/20 flex items-center justify-center mx-auto mb-4">
+              <CheckCircle className="w-8 h-8 text-green-400" />
             </div>
 
             <h2 className="text-xl font-semibold text-[--exec-text] mb-2">

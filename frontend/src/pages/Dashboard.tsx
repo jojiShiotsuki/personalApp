@@ -28,6 +28,12 @@ import { useNavigate } from 'react-router-dom';
 import { formatDateForApi } from '@/lib/dateUtils';
 import { cn } from '@/lib/utils';
 import MorningBriefing from '@/components/MorningBriefing';
+import DailyOutreachTracker from '@/components/DailyOutreachTracker';
+import SprintTracker from '@/components/SprintTracker';
+import LoomAuditTracker from '@/components/LoomAuditTracker';
+import PipelineCalculator from '@/components/PipelineCalculator';
+import DiscoveryCallTracker from '@/components/DiscoveryCallTracker';
+import TodayScorecard from '@/components/dashboard/TodayScorecard';
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -183,8 +189,38 @@ export default function Dashboard() {
 
       {/* Main Content */}
       <div className="px-8 py-6">
+        {/* Today's Scorecard - Hero Widget */}
+        <TodayScorecard />
+
         {/* Morning Briefing */}
-        <MorningBriefing />
+        <div className="mt-6">
+          <MorningBriefing />
+        </div>
+
+        {/* Daily Outreach Tracker */}
+        <div className="mt-6">
+          <DailyOutreachTracker />
+        </div>
+
+        {/* Sprint Tracker */}
+        <div className="mt-6">
+          <SprintTracker />
+        </div>
+
+        {/* Loom Audit Tracker */}
+        <div className="mt-6">
+          <LoomAuditTracker />
+        </div>
+
+        {/* Pipeline Calculator */}
+        <div className="mt-6">
+          <PipelineCalculator />
+        </div>
+
+        {/* Discovery Call Tracker */}
+        <div className="mt-6">
+          <DiscoveryCallTracker />
+        </div>
 
         {/* Stats Grid - More visual impact */}
         <div className="grid grid-cols-4 gap-4 mt-6">
