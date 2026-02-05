@@ -56,31 +56,31 @@ def upgrade() -> None:
     conn = op.get_bind()
 
     # Check if sprint already exists
-    result = conn.execute(sa.text("SELECT id FROM sprints WHERE name = '30-Day Client Acquisition Sprint' LIMIT 1"))
+    result = conn.execute(sa.text("SELECT id FROM sprints WHERE title = '30-Day Client Acquisition Sprint' LIMIT 1"))
     existing = result.fetchone()
     if existing:
         return  # Sprint already seeded
 
     now = datetime.utcnow()
     start_date = now.date()
+    end_date = start_date + timedelta(days=29)
 
     # Create the sprint
     conn.execute(sa.text("""
-        INSERT INTO sprints (name, description, status, start_date, total_days, current_day, created_at, updated_at)
-        VALUES (:name, :description, :status, :start_date, :total_days, :current_day, :created_at, :updated_at)
+        INSERT INTO sprints (title, description, status, start_date, end_date, created_at, updated_at)
+        VALUES (:title, :description, :status, :start_date, :end_date, :created_at, :updated_at)
     """), {
-        "name": "30-Day Client Acquisition Sprint",
+        "title": "30-Day Client Acquisition Sprint",
         "description": "Intensive 30-day sprint to acquire new clients through cold outreach",
         "status": "active",
         "start_date": start_date,
-        "total_days": 30,
-        "current_day": 1,
+        "end_date": end_date,
         "created_at": now,
         "updated_at": now
     })
 
     # Get the sprint ID
-    result = conn.execute(sa.text("SELECT id FROM sprints WHERE name = '30-Day Client Acquisition Sprint'"))
+    result = conn.execute(sa.text("SELECT id FROM sprints WHERE title = '30-Day Client Acquisition Sprint'"))
     sprint_id = result.fetchone()[0]
 
     # Create 30 sprint days
@@ -132,7 +132,7 @@ def downgrade() -> None:
     conn = op.get_bind()
 
     # Get sprint ID
-    result = conn.execute(sa.text("SELECT id FROM sprints WHERE name = '30-Day Client Acquisition Sprint'"))
+    result = conn.execute(sa.text("SELECT id FROM sprints WHERE title = '30-Day Client Acquisition Sprint'"))
     row = result.fetchone()
     if not row:
         return
