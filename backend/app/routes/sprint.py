@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 from pydantic import BaseModel
 
 from app.database import get_db
@@ -32,7 +32,7 @@ class PlaybookSuggestionsResponse(BaseModel):
 router = APIRouter(prefix="/api/sprint", tags=["sprint"])
 
 
-@router.get("", response_model=SprintResponse)
+@router.get("", response_model=Optional[SprintResponse])
 def get_active_sprint(db: Session = Depends(get_db)):
     """Get the current active sprint."""
     sprint = sprint_service.get_active_sprint(db)
