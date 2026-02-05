@@ -6,13 +6,11 @@ import {
   Check,
   Play,
   Pause,
-  Calendar,
   Loader2,
   Rocket,
   ChevronDown,
   ChevronUp,
   Trophy,
-  AlertCircle,
   FileText,
   X,
   Plus,
@@ -22,18 +20,17 @@ import {
   SkipForward,
   SkipBack,
 } from 'lucide-react';
-import type { Sprint, SprintDay, SprintListItem, Task, TaskStatus, OutreachActivityType } from '@/types';
-import { TaskStatus as TaskStatusEnum } from '@/types';
+import type { Sprint, SprintDay, SprintListItem, Task, TaskStatus, OutreachActivityType, SprintWeekSummary } from '@/types';
+import { TaskStatus as TaskStatusEnum, TaskPriority } from '@/types';
 import { useState } from 'react';
 import { format, parseISO, isToday, isPast, isFuture } from 'date-fns';
 
 const WEEK_THEMES = ['Foundation', 'Volume', 'Momentum', 'Close'];
 const WEEK_ICONS = [Target, Rocket, Loader2, Trophy];
 
-// Export sprint data to downloadable files (AI Coach optimized)
+// Export sprint data for AI Coach analysis
 function exportSprintData(sprint: Sprint) {
   const now = new Date();
-  const timestamp = format(now, 'yyyy-MM-dd_HH-mm');
 
   // Calculate totals and metrics
   const totalOutreach = {
@@ -184,13 +181,13 @@ ${weakAreas.length > 0 ? `**Needs Improvement:** ${weakAreas.join(', ')}` : '**N
 ## WEEKLY BREAKDOWN
 
 ${sprint.weeks.map(week => {
-  const weekDays = sprint.days?.filter(d => d.week_number === week.week_number) || [];
-  const weekTasks = weekDays.reduce((sum, d) => sum + d.tasks.length, 0);
-  const weekCompletedTasks = weekDays.reduce((sum, d) => sum + d.tasks.filter(t => t.status === 'completed').length, 0);
-  const weekEmails = weekDays.reduce((sum, d) => sum + (d.outreach_stats?.cold_emails.current || 0), 0);
-  const weekLinkedIn = weekDays.reduce((sum, d) => sum + (d.outreach_stats?.linkedin.current || 0), 0);
-  const weekCalls = weekDays.reduce((sum, d) => sum + (d.outreach_stats?.calls.current || 0), 0);
-  const weekLooms = weekDays.reduce((sum, d) => sum + (d.outreach_stats?.looms.current || 0), 0);
+  const weekDays = sprint.days?.filter((d: SprintDay) => d.week_number === week.week_number) || [];
+  const weekTasks = weekDays.reduce((sum: number, d: SprintDay) => sum + d.tasks.length, 0);
+  const weekCompletedTasks = weekDays.reduce((sum: number, d: SprintDay) => sum + d.tasks.filter((t: Task) => t.status === 'completed').length, 0);
+  const weekEmails = weekDays.reduce((sum: number, d: SprintDay) => sum + (d.outreach_stats?.cold_emails.current || 0), 0);
+  const weekLinkedIn = weekDays.reduce((sum: number, d: SprintDay) => sum + (d.outreach_stats?.linkedin.current || 0), 0);
+  const weekCalls = weekDays.reduce((sum: number, d: SprintDay) => sum + (d.outreach_stats?.calls.current || 0), 0);
+  const weekLooms = weekDays.reduce((sum: number, d: SprintDay) => sum + (d.outreach_stats?.looms.current || 0), 0);
   const isCurrentWeek = sprint.current_week === week.week_number;
 
   return `### Week ${week.week_number}: ${WEEK_THEMES[week.week_number - 1]} ${isCurrentWeek ? '← CURRENT' : ''}
@@ -204,13 +201,13 @@ ${sprint.weeks.map(week => {
 
 ## DETAILED DAILY LOG
 
-${sprint.days?.map(day => {
+${sprint.days?.map((day: SprintDay) => {
   const dayDate = parseISO(day.log_date);
   const isElapsed = isPast(dayDate) || isToday(dayDate);
   const isCurrent = isToday(dayDate);
   const dayTasks = day.tasks;
-  const completed = dayTasks.filter(t => t.status === 'completed');
-  const pending = dayTasks.filter(t => t.status !== 'completed');
+  const completed = dayTasks.filter((t: Task) => t.status === 'completed');
+  const pending = dayTasks.filter((t: Task) => t.status !== 'completed');
 
   const dayOutreachCurrent = (day.outreach_stats?.cold_emails.current || 0) +
     (day.outreach_stats?.linkedin.current || 0) +
@@ -230,8 +227,8 @@ ${sprint.days?.map(day => {
 **Tasks:** ${completed.length}/${dayTasks.length} | **Outreach:** ${dayOutreachCurrent}/${dayOutreachTarget}
 
 ${dayTasks.length > 0 ? `Tasks:
-${completed.map(t => `- [x] ${t.title}`).join('\n')}
-${pending.map(t => `- [ ] ${t.title}`).join('\n')}` : 'No tasks assigned'}
+${completed.map((t: Task) => `- [x] ${t.title}`).join('\n')}
+${pending.map((t: Task) => `- [ ] ${t.title}`).join('\n')}` : 'No tasks assigned'}
 
 Outreach: ${day.outreach_stats?.cold_emails.current || 0} emails, ${day.outreach_stats?.linkedin.current || 0} LinkedIn, ${day.outreach_stats?.calls.current || 0} calls, ${day.outreach_stats?.looms.current || 0} looms
 ${day.notes ? `\nNotes: ${day.notes}` : ''}
@@ -316,7 +313,7 @@ function DayCard({ day, sprint, isExpanded, onToggle }: DayCardProps) {
       taskApi.create({
         title,
         status: TaskStatusEnum.PENDING,
-        priority: 'medium',
+        priority: TaskPriority.MEDIUM,
         sprint_day_id: day.id,
       }),
     onSuccess: () => {
@@ -382,7 +379,7 @@ function DayCard({ day, sprint, isExpanded, onToggle }: DayCardProps) {
   const isCurrentDay = isToday(dayDate);
   const isPastDay = isPast(dayDate) && !isCurrentDay;
   const isFutureDay = isFuture(dayDate);
-  const completedTasks = day.tasks.filter((t) => t.status === TaskStatusEnum.COMPLETED).length;
+  const completedTasks = day.tasks.filter((t: Task) => t.status === TaskStatusEnum.COMPLETED).length;
 
   return (
     <div
@@ -448,7 +445,7 @@ function DayCard({ day, sprint, isExpanded, onToggle }: DayCardProps) {
         <div className="px-4 pb-4 space-y-4">
           {/* Tasks */}
           <div className="space-y-2">
-            {day.tasks.map((task) => {
+            {day.tasks.map((task: Task) => {
               const isCompleted = task.status === TaskStatusEnum.COMPLETED;
               const isEditing = editingTaskId === task.id;
 
@@ -787,7 +784,7 @@ function WeekSection({ weekNumber, theme, sprint, days }: WeekSectionProps) {
   );
 
   const WeekIcon = WEEK_ICONS[weekNumber - 1] || Target;
-  const week = sprint.weeks.find((w) => w.week_number === weekNumber);
+  const week = sprint.weeks.find((w: SprintWeekSummary) => w.week_number === weekNumber);
   const isCurrentWeek = sprint.current_week === weekNumber;
 
   return (
@@ -1129,12 +1126,12 @@ export default function SprintPage() {
   const [showExportModal, setShowExportModal] = useState(false);
   const [exportContent, setExportContent] = useState('');
 
-  const { data: sprint, isLoading } = useQuery({
+  const { data: sprint, isLoading } = useQuery<Sprint | null>({
     queryKey: ['sprint-active'],
     queryFn: sprintApi.getActive,
   });
 
-  const { data: allSprints = [] } = useQuery({
+  const { data: allSprints = [] } = useQuery<SprintListItem[]>({
     queryKey: ['sprints-all'],
     queryFn: sprintApi.getAll,
   });
@@ -1165,14 +1162,6 @@ export default function SprintPage() {
 
   const completeMutation = useMutation({
     mutationFn: (id: number) => sprintApi.complete(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['sprint-active'] });
-      queryClient.invalidateQueries({ queryKey: ['sprints-all'] });
-    },
-  });
-
-  const abandonMutation = useMutation({
-    mutationFn: (id: number) => sprintApi.abandon(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sprint-active'] });
       queryClient.invalidateQueries({ queryKey: ['sprints-all'] });
@@ -1501,7 +1490,7 @@ export default function SprintPage() {
                   weekNumber={idx + 1}
                   theme={theme}
                   sprint={sprint}
-                  days={sprint.days?.filter(d => d.week_number === idx + 1) || []}
+                  days={sprint.days?.filter((d: SprintDay) => d.week_number === idx + 1) || []}
                 />
               ))}
             </div>
