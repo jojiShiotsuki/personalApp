@@ -76,7 +76,9 @@ def get_sprint_by_id(db: Session, sprint_id: int) -> Optional[Sprint]:
 
 def get_all_sprints(db: Session) -> List[Sprint]:
     """Get all sprints, ordered by creation date descending."""
-    return db.query(Sprint).order_by(desc(Sprint.created_at)).all()
+    return db.query(Sprint).options(
+        joinedload(Sprint.days)
+    ).order_by(desc(Sprint.created_at)).all()
 
 
 def pause_sprint(db: Session, sprint_id: int) -> Sprint:
