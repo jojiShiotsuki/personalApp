@@ -3,9 +3,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { Contact } from '@/types';
 import { InteractionType, ContactStatus } from '@/types';
 import { interactionApi } from '@/lib/api';
-import { X, Mail, Phone, Building2, User, Calendar, Phone as PhoneIcon, FileText, Edit, Share2, Trash2 } from 'lucide-react';
+import { X, Mail, Phone, Building2, User, Calendar, Phone as PhoneIcon, FileText, Edit, Share2, Trash2, Globe, MapPin, Gauge, Wrench, AlertTriangle, Linkedin, Video, CalendarClock, ExternalLink, MessageSquare } from 'lucide-react';
 import { formatDistanceToNow, format, isToday, isYesterday, parseISO } from 'date-fns';
 import ConfirmModal from './ConfirmModal';
+import SendDMPanel, { type SendDMSource } from '@/components/outreach/SendDMPanel';
 import { cn } from '@/lib/utils';
 
 interface ContactDetailModalProps {
@@ -79,9 +80,41 @@ export default function ContactDetailModal({
   });
 
   const [interactionToDelete, setInteractionToDelete] = useState<{id: number, subject: string} | null>(null);
+  const [isSendDMPanelOpen, setIsSendDMPanelOpen] = useState(false);
 
   const handleDelete = (interactionId: number, subject: string) => {
     setInteractionToDelete({ id: interactionId, subject });
+  };
+
+  // Convert contact to SendDMSource
+  const getContactAsDMSource = (): SendDMSource => {
+    // Parse website_issues if it exists
+    let websiteIssues: string[] = [];
+    if (contact.website_issues) {
+      try {
+        if (typeof contact.website_issues === 'string') {
+          websiteIssues = JSON.parse(contact.website_issues);
+        } else if (Array.isArray(contact.website_issues)) {
+          websiteIssues = contact.website_issues;
+        }
+      } catch {
+        // If parsing fails, ignore
+      }
+    }
+
+    return {
+      type: 'contact',
+      id: contact.id,
+      name: contact.name,
+      company: contact.company || '',
+      city: contact.city || contact.suburb || undefined,
+      niche: contact.industry || undefined,
+      website: contact.website_url || undefined,
+      websiteIssues: websiteIssues.length > 0 ? websiteIssues : undefined,
+      email: contact.email || undefined,
+      emailStage: contact.email_stage || undefined,
+      linkedinStage: contact.linkedin_stage || undefined,
+    };
   };
 
   // Sort interactions by date (newest first)
@@ -184,7 +217,215 @@ export default function ContactDetailModal({
                   </div>
                 </div>
               )}
+
+              {contact.industry && (
+                <div className="flex items-start">
+                  <Wrench className="w-5 h-5 text-[--exec-text-muted] mr-3 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="text-xs text-[--exec-text-muted] mb-1">Industry</p>
+                    <p className="text-sm text-[--exec-text] capitalize">{contact.industry}</p>
+                  </div>
+                </div>
+              )}
+
+              {(contact.suburb || contact.city) && (
+                <div className="flex items-start">
+                  <MapPin className="w-5 h-5 text-[--exec-text-muted] mr-3 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="text-xs text-[--exec-text-muted] mb-1">Location</p>
+                    <p className="text-sm text-[--exec-text]">
+                      {[contact.suburb, contact.city].filter(Boolean).join(', ')}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {contact.website_url && (
+                <div className="flex items-start">
+                  <Globe className="w-5 h-5 text-[--exec-text-muted] mr-3 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="text-xs text-[--exec-text-muted] mb-1">Website</p>
+                    <a
+                      href={contact.website_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-[--exec-accent] hover:underline break-all"
+                    >
+                      {contact.website_url.replace(/^https?:\/\//, '')}
+                    </a>
+                  </div>
+                </div>
+              )}
+
+              {contact.website_speed_score !== undefined && contact.website_speed_score !== null && (
+                <div className="flex items-start">
+                  <Gauge className="w-5 h-5 text-[--exec-text-muted] mr-3 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="text-xs text-[--exec-text-muted] mb-1">Speed Score</p>
+                    <p className={cn(
+                      "text-sm font-medium",
+                      contact.website_speed_score >= 90 ? "text-green-400" :
+                      contact.website_speed_score >= 50 ? "text-yellow-400" :
+                      "text-red-400"
+                    )}>
+                      {contact.website_speed_score}/100
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
+
+            {/* Website Issues Section */}
+            {contact.website_issues && (() => {
+              try {
+                const issues = JSON.parse(contact.website_issues);
+                if (issues.length > 0) {
+                  const issueLabels: Record<string, string> = {
+                    slow_loading: 'Slow Loading',
+                    not_mobile_friendly: 'Not Mobile Friendly',
+                    no_ssl: 'No SSL/HTTPS',
+                    outdated_design: 'Outdated Design',
+                    no_cta: 'No Clear CTA',
+                    hard_to_find_contact: 'Hard to Find Contact',
+                    no_reviews: 'No Reviews',
+                    stock_photos: 'Stock Photos',
+                    no_service_area: 'No Service Area',
+                  };
+                  return (
+                    <div className="mb-6">
+                      <h4 className="text-sm font-semibold text-[--exec-text-secondary] mb-2 flex items-center">
+                        <AlertTriangle className="w-4 h-4 mr-1.5 text-red-400" />
+                        Website Issues
+                      </h4>
+                      <div className="flex flex-wrap gap-1.5">
+                        {issues.map((issue: string) => (
+                          <span
+                            key={issue}
+                            className="px-2 py-0.5 text-xs bg-red-500/20 text-red-400 rounded"
+                          >
+                            {issueLabels[issue] || issue}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                }
+                return null;
+              } catch {
+                return null;
+              }
+            })()}
+
+            {/* Outreach Tracking Section */}
+            {(contact.email_stage || contact.linkedin_stage || contact.loom_audit_sent || contact.next_followup_date) && (
+              <div className="mb-6 pt-4 border-t border-stone-700/30">
+                <h4 className="text-sm font-semibold text-[--exec-text-secondary] mb-3 flex items-center">
+                  <Mail className="w-4 h-4 mr-1.5 text-[--exec-accent]" />
+                  Outreach Status
+                </h4>
+                <div className="space-y-2">
+                  {/* Email Stage */}
+                  {contact.email_stage && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-[--exec-text-muted] flex items-center">
+                        <Mail className="w-3.5 h-3.5 mr-1.5" />
+                        Email
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className={cn(
+                          "px-2 py-0.5 text-xs rounded",
+                          contact.email_stage === 'replied' ? "bg-green-500/20 text-green-400" :
+                          contact.email_stage === 'break_up' ? "bg-orange-500/20 text-orange-400" :
+                          "bg-blue-500/20 text-blue-400"
+                        )}>
+                          {contact.email_stage === 'email_1' ? 'Email 1' :
+                           contact.email_stage === 'follow_up' ? 'Follow-up' :
+                           contact.email_stage === 'break_up' ? 'Break-up' :
+                           contact.email_stage === 'replied' ? 'Replied' :
+                           contact.email_stage}
+                        </span>
+                        {contact.email_last_sent && (
+                          <span className="text-xs text-[--exec-text-muted]">
+                            {format(parseISO(contact.email_last_sent), 'MMM d')}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* LinkedIn Stage */}
+                  {contact.linkedin_stage && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-[--exec-text-muted] flex items-center">
+                        <Linkedin className="w-3.5 h-3.5 mr-1.5" />
+                        LinkedIn
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className={cn(
+                          "px-2 py-0.5 text-xs rounded",
+                          contact.linkedin_stage === 'replied' ? "bg-green-500/20 text-green-400" :
+                          contact.linkedin_stage === 'connected' ? "bg-blue-500/20 text-blue-400" :
+                          "bg-purple-500/20 text-purple-400"
+                        )}>
+                          {contact.linkedin_stage === 'requested' ? 'Requested' :
+                           contact.linkedin_stage === 'connected' ? 'Connected' :
+                           contact.linkedin_stage === 'message_1' ? 'Msg 1' :
+                           contact.linkedin_stage === 'message_2' ? 'Msg 2' :
+                           contact.linkedin_stage === 'replied' ? 'Replied' :
+                           contact.linkedin_stage}
+                        </span>
+                        {contact.linkedin_last_action && (
+                          <span className="text-xs text-[--exec-text-muted]">
+                            {format(parseISO(contact.linkedin_last_action), 'MMM d')}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Loom Audit */}
+                  {contact.loom_audit_sent && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-[--exec-text-muted] flex items-center">
+                        <Video className="w-3.5 h-3.5 mr-1.5" />
+                        Loom Audit
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="px-2 py-0.5 text-xs rounded bg-emerald-500/20 text-emerald-400">
+                          Sent
+                        </span>
+                        {contact.loom_audit_url && (
+                          <a
+                            href={contact.loom_audit_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[--exec-accent] hover:underline"
+                          >
+                            <ExternalLink className="w-3.5 h-3.5" />
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Next Follow-up */}
+                  {contact.next_followup_date && (
+                    <div className="flex items-center justify-between pt-2 border-t border-stone-700/20">
+                      <span className="text-xs text-[--exec-text-muted] flex items-center">
+                        <CalendarClock className="w-3.5 h-3.5 mr-1.5" />
+                        Next Follow-up
+                      </span>
+                      <span className={cn(
+                        "text-xs font-medium",
+                        new Date(contact.next_followup_date) <= new Date() ? "text-red-400" : "text-[--exec-text]"
+                      )}>
+                        {format(parseISO(contact.next_followup_date), 'MMM d, yyyy')}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Notes Section */}
             {contact.notes && (
@@ -196,14 +437,23 @@ export default function ContactDetailModal({
               </div>
             )}
 
-            {/* Edit Contact Button */}
-            <button
-              onClick={onEditContact}
-              className="w-full flex items-center justify-center px-4 py-2 bg-stone-700/50 text-[--exec-text-secondary] rounded-lg hover:bg-stone-600/50 transition-colors"
-            >
-              <Edit className="w-4 h-4 mr-2" />
-              Edit Contact
-            </button>
+            {/* Action Buttons */}
+            <div className="space-y-2">
+              <button
+                onClick={() => setIsSendDMPanelOpen(true)}
+                className="w-full flex items-center justify-center px-4 py-2 bg-[--exec-accent] text-white rounded-lg hover:bg-[--exec-accent-dark] transition-colors"
+              >
+                <MessageSquare className="w-4 h-4 mr-2" />
+                Send DM
+              </button>
+              <button
+                onClick={onEditContact}
+                className="w-full flex items-center justify-center px-4 py-2 bg-stone-700/50 text-[--exec-text-secondary] rounded-lg hover:bg-stone-600/50 transition-colors"
+              >
+                <Edit className="w-4 h-4 mr-2" />
+                Edit Contact
+              </button>
+            </div>
           </div>
 
           {/* Right Column - Interaction Timeline */}
@@ -312,6 +562,16 @@ export default function ContactDetailModal({
         message={`Are you sure you want to delete "${interactionToDelete?.subject || 'this interaction'}"? This action cannot be undone.`}
         confirmText="Delete"
         variant="danger"
+      />
+
+      {/* Send DM Panel */}
+      <SendDMPanel
+        isOpen={isSendDMPanelOpen}
+        onClose={() => setIsSendDMPanelOpen(false)}
+        source={isSendDMPanelOpen ? getContactAsDMSource() : null}
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ['contacts'] });
+        }}
       />
     </div>
   );
