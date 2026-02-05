@@ -57,7 +57,7 @@ def upgrade() -> None:
     # Insert default settings row
     op.execute("""
         INSERT INTO outreach_settings (daily_cold_email_target, daily_linkedin_target, daily_call_target, daily_loom_target, created_at, updated_at)
-        VALUES (10, 10, 5, 2, datetime('now'), datetime('now'))
+        VALUES (10, 10, 5, 2, NOW(), NOW())
     """)
 
 
