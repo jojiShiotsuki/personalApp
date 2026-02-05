@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { X, Copy, Check, Send, Mail, Linkedin, Phone, Video, MapPin, Globe, Building2, Briefcase, ChevronDown, Settings2 } from 'lucide-react';
+import { X, Copy, Check, Send, Mail, Linkedin, Phone, Video, MapPin, Globe, Briefcase, ChevronDown, Settings2 } from 'lucide-react';
 import { outreachApi, dailyOutreachApi, contactApi } from '@/lib/api';
 import type { OutreachNiche, OutreachSituation, OutreachTemplate } from '@/types';
 import { toast } from 'sonner';

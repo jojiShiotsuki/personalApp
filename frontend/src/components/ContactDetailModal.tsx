@@ -48,6 +48,26 @@ const interactionIcons = {
     color: 'text-cyan-400',
     bg: 'bg-cyan-500/20'
   },
+  [InteractionType.COLD_EMAIL]: {
+    icon: Mail,
+    color: 'text-indigo-400',
+    bg: 'bg-indigo-500/20'
+  },
+  [InteractionType.LINKEDIN_ACTION]: {
+    icon: Linkedin,
+    color: 'text-blue-400',
+    bg: 'bg-blue-500/20'
+  },
+  [InteractionType.FOLLOW_UP_CALL]: {
+    icon: PhoneIcon,
+    color: 'text-amber-400',
+    bg: 'bg-amber-500/20'
+  },
+  [InteractionType.LOOM_AUDIT]: {
+    icon: Video,
+    color: 'text-pink-400',
+    bg: 'bg-pink-500/20'
+  },
 };
 
 // Format interaction date with relative time

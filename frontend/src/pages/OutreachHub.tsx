@@ -7,7 +7,6 @@ import {
   Mail,
   Search,
   MessageCircle,
-  Users,
   Database,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
