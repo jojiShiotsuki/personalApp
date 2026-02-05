@@ -65,6 +65,7 @@ export type Task = {
   updated_at: string;
   completed_at?: string;
   project_id?: number;
+  sprint_day_id?: number;
 
   // Recurrence fields
   is_recurring: boolean;
@@ -86,6 +87,7 @@ export type TaskCreate = {
   status?: TaskStatus;
   project_id?: number;
   goal_id?: number;
+  sprint_day_id?: number;
 
   // Recurrence fields
   is_recurring?: boolean;
@@ -105,6 +107,7 @@ export type TaskUpdate = {
   status?: TaskStatus;
   project_id?: number;
   goal_id?: number;
+  sprint_day_id?: number;
 
   // Recurrence fields
   is_recurring?: boolean;
@@ -123,6 +126,34 @@ export enum ContactStatus {
   INACTIVE = "inactive",
 }
 
+export enum TradeIndustry {
+  ROOFER = "roofer",
+  PLUMBER = "plumber",
+  ELECTRICIAN = "electrician",
+  BUILDER = "builder",
+  HVAC = "hvac",
+  LANDSCAPER = "landscaper",
+  PAINTER = "painter",
+  CARPENTER = "carpenter",
+  TILER = "tiler",
+  CONCRETER = "concreter",
+  OTHER = "other",
+}
+
+export enum LeadSource {
+  HIPAGES = "hipages",
+  SERVICE_SEEKING = "serviceseeking",
+  YELLOW_PAGES = "yellowpages",
+  TRUE_LOCAL = "truelocal",
+  ONEFLARE = "oneflare",
+  GOOGLE_MAPS = "google_maps",
+  GOOGLE_SEARCH = "google_search",
+  LINKEDIN = "linkedin",
+  REFERRAL = "referral",
+  COLD_EMAIL = "cold_email",
+  OTHER = "other",
+}
+
 export enum DealStage {
   LEAD = "lead",
   PROSPECT = "prospect",
@@ -139,6 +170,11 @@ export enum InteractionType {
   NOTE = "note",
   SOCIAL_MEDIA = "social_media",
   FOLLOW_UP_EMAIL = "follow_up_email",
+  // Daily outreach activity types
+  COLD_EMAIL = "cold_email",
+  LINKEDIN_ACTION = "linkedin_action",
+  FOLLOW_UP_CALL = "follow_up_call",
+  LOOM_AUDIT = "loom_audit",
 }
 
 export enum BillingFrequency {
@@ -164,6 +200,21 @@ export type Contact = {
   status: ContactStatus;
   source?: string;
   notes?: string;
+  // Tradie-specific fields
+  industry?: string;
+  suburb?: string;
+  city?: string;
+  website_url?: string;
+  website_issues?: string; // JSON string of issues
+  website_speed_score?: number;
+  // Outreach tracking fields
+  email_stage?: string;
+  email_last_sent?: string;
+  linkedin_stage?: string;
+  linkedin_last_action?: string;
+  loom_audit_sent?: boolean;
+  loom_audit_url?: string;
+  next_followup_date?: string;
   created_at: string;
   updated_at: string;
 }
@@ -176,6 +227,21 @@ export type ContactCreate = {
   status?: ContactStatus;
   source?: string;
   notes?: string;
+  // Tradie-specific fields
+  industry?: string;
+  suburb?: string;
+  city?: string;
+  website_url?: string;
+  website_issues?: string;
+  website_speed_score?: number;
+  // Outreach tracking fields
+  email_stage?: string;
+  email_last_sent?: string;
+  linkedin_stage?: string;
+  linkedin_last_action?: string;
+  loom_audit_sent?: boolean;
+  loom_audit_url?: string;
+  next_followup_date?: string;
 }
 
 export type Deal = {
@@ -761,4 +827,423 @@ export interface LeadImportRequest {
 export interface LeadImportResponse {
   imported: number;
   campaign_name: string;
+}
+
+// Daily Outreach Tracking Types
+export interface ActivityMetric {
+  current: number;
+  target: number;
+  percentage: number;
+}
+
+export interface DailyOutreachStats {
+  date: string;
+  cold_emails: ActivityMetric;
+  linkedin: ActivityMetric;
+  calls: ActivityMetric;
+  looms: ActivityMetric;
+  all_targets_met: boolean;
+}
+
+export interface OutreachStreak {
+  current_streak: number;
+  best_streak: number;
+  last_completed_date?: string;
+}
+
+export interface DailySummaryItem {
+  date: string;
+  day_name: string;
+  cold_emails: number;
+  linkedin: number;
+  calls: number;
+  looms: number;
+  targets_met: boolean;
+}
+
+export interface WeeklySummary {
+  days: DailySummaryItem[];
+  total_cold_emails: number;
+  total_linkedin: number;
+  total_calls: number;
+  total_looms: number;
+  days_met_target: number;
+}
+
+export interface LogActivityRequest {
+  contact_id?: number;
+  notes?: string;
+}
+
+export interface LogActivityResponse {
+  message: string;
+  activity_type: string;
+  new_count: number;
+  target: number;
+  interaction_id?: number;
+}
+
+export interface OutreachSettings {
+  id: number;
+  daily_cold_email_target: number;
+  daily_linkedin_target: number;
+  daily_call_target: number;
+  daily_loom_target: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface OutreachSettingsUpdate {
+  daily_cold_email_target?: number;
+  daily_linkedin_target?: number;
+  daily_call_target?: number;
+  daily_loom_target?: number;
+}
+
+export type OutreachActivityType = 'cold_email' | 'linkedin' | 'call' | 'loom';
+
+// Sprint Types
+export enum SprintStatus {
+  ACTIVE = "active",
+  COMPLETED = "completed",
+  PAUSED = "paused",
+  ABANDONED = "abandoned",
+}
+
+export interface SprintDayTask {
+  title: string;
+  completed: boolean;
+}
+
+export interface SprintDay {
+  id: number;
+  sprint_id: number;
+  day_number: number;
+  week_number: number;
+  log_date: string;
+  tasks: Task[];  // Now uses real Task entities
+  is_complete: boolean;
+  notes?: string;
+  outreach_log_id?: number;
+  outreach_stats?: DailyOutreachStats;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PlaybookSuggestion {
+  title: string;
+  description?: string;
+}
+
+export interface PlaybookSuggestionsResponse {
+  day_number: number;
+  suggestions: PlaybookSuggestion[];
+}
+
+export interface SprintWeekSummary {
+  week_number: number;
+  theme: string;
+  days_completed: number;
+  total_days: number;
+  is_current_week: boolean;
+}
+
+export interface Sprint {
+  id: number;
+  title: string;
+  description?: string;
+  start_date: string;
+  end_date: string;
+  status: SprintStatus;
+  current_day: number;
+  current_week: number;
+  progress_percentage: number;
+  weeks: SprintWeekSummary[];
+  today?: SprintDay;
+  days: SprintDay[];  // All 30 days
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SprintListItem {
+  id: number;
+  title: string;
+  start_date: string;
+  end_date: string;
+  status: SprintStatus;
+  progress_percentage: number;
+  created_at: string;
+}
+
+export interface SprintCreate {
+  title?: string;
+  description?: string;
+  start_date?: string;
+}
+
+export interface ToggleTaskResponse {
+  day: SprintDay;
+  task_index: number;
+  completed: boolean;
+  message: string;
+}
+
+export interface UpdateNotesResponse {
+  day_number: number;
+  notes: string;
+  message: string;
+}
+
+// Loom Audit Types
+export enum LoomResponseType {
+  INTERESTED = "interested",
+  NOT_INTERESTED = "not_interested",
+  QUESTIONS = "questions",
+  BOOKED_CALL = "booked_call",
+  NO_RESPONSE = "no_response",
+}
+
+export interface LoomAudit {
+  id: number;
+  contact_id: number;
+  title: string;
+  loom_url: string;
+  thumbnail_url?: string;
+  sent_date: string;
+  sent_via?: string;
+  watched: boolean;
+  watched_date?: string;
+  watch_count: number;
+  response_received: boolean;
+  response_date?: string;
+  response_type?: LoomResponseType;
+  follow_up_date?: string;
+  follow_up_sent: boolean;
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+  days_since_sent: number;
+  needs_follow_up: boolean;
+  contact_name?: string;
+  contact_company?: string;
+}
+
+export interface LoomAuditCreate {
+  contact_id: number;
+  title: string;
+  loom_url: string;
+  thumbnail_url?: string;
+  sent_via?: string;
+  sent_date?: string;
+  notes?: string;
+}
+
+export interface LoomAuditUpdate {
+  title?: string;
+  loom_url?: string;
+  thumbnail_url?: string;
+  sent_via?: string;
+  notes?: string;
+  follow_up_date?: string;
+}
+
+export interface LoomAuditStats {
+  total_sent: number;
+  total_watched: number;
+  total_responded: number;
+  total_pending: number;
+  total_needs_follow_up: number;
+  watch_rate: number;
+  response_rate: number;
+  booked_calls: number;
+}
+
+export interface LoomAuditListResponse {
+  audits: LoomAudit[];
+  stats: LoomAuditStats;
+}
+
+export interface MarkWatchedRequest {
+  watched_date?: string;
+  watch_count?: number;
+}
+
+export interface MarkRespondedRequest {
+  response_type: LoomResponseType;
+  response_date?: string;
+  notes?: string;
+}
+
+// Pipeline Calculator Types
+export interface PipelineSettings {
+  id: number;
+  monthly_revenue_goal: number;
+  average_deal_value: number;
+  lead_to_qualified_rate: number;
+  qualified_to_proposal_rate: number;
+  proposal_to_close_rate: number;
+  cold_email_response_rate: number;
+  linkedin_connection_rate: number;
+  linkedin_to_conversation_rate: number;
+  call_to_meeting_rate: number;
+  loom_response_rate: number;
+  loom_to_call_rate: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PipelineSettingsUpdate {
+  monthly_revenue_goal?: number;
+  average_deal_value?: number;
+  lead_to_qualified_rate?: number;
+  qualified_to_proposal_rate?: number;
+  proposal_to_close_rate?: number;
+  cold_email_response_rate?: number;
+  linkedin_connection_rate?: number;
+  linkedin_to_conversation_rate?: number;
+  call_to_meeting_rate?: number;
+  loom_response_rate?: number;
+  loom_to_call_rate?: number;
+}
+
+export interface FunnelStage {
+  name: string;
+  count: number;
+  conversion_rate: number;
+  description: string;
+}
+
+export interface ActivityRequirement {
+  channel: string;
+  daily: number;
+  weekly: number;
+  monthly: number;
+  description: string;
+}
+
+export interface PipelineCalculation {
+  monthly_revenue_goal: number;
+  deals_needed: number;
+  average_deal_value: number;
+  funnel: FunnelStage[];
+  activities: ActivityRequirement[];
+  total_leads_needed: number;
+  overall_conversion_rate: number;
+  daily_outreach_target: number;
+  daily_cold_emails: number;
+  daily_linkedin: number;
+  daily_calls: number;
+  daily_looms: number;
+}
+
+// Discovery Call Types
+export enum CallOutcome {
+  SCHEDULED_FOLLOWUP = "scheduled_followup",
+  SENT_PROPOSAL = "sent_proposal",
+  NOT_A_FIT = "not_a_fit",
+  NEEDS_MORE_INFO = "needs_more_info",
+  CLOSED_DEAL = "closed_deal",
+  NO_SHOW = "no_show",
+  RESCHEDULED = "rescheduled",
+}
+
+export interface DiscoveryCall {
+  id: number;
+  contact_id: number;
+  deal_id?: number;
+  call_date: string;
+  call_duration_minutes?: number;
+  attendees?: string;
+  // SPIN Framework
+  situation?: string;
+  situation_questions?: string;
+  problem?: string;
+  problem_questions?: string;
+  implication?: string;
+  implication_questions?: string;
+  need_payoff?: string;
+  need_payoff_questions?: string;
+  // Additional fields
+  objections?: string;
+  next_steps?: string;
+  budget_discussed: boolean;
+  budget_range?: string;
+  timeline_discussed: boolean;
+  timeline?: string;
+  decision_maker_present: boolean;
+  // Outcome
+  outcome?: CallOutcome;
+  follow_up_date?: string;
+  // Computed/Display
+  spin_completion: number;
+  contact_name?: string;
+  contact_company?: string;
+  deal_title?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DiscoveryCallCreate {
+  contact_id: number;
+  deal_id?: number;
+  call_date?: string;
+  call_duration_minutes?: number;
+  attendees?: string;
+  situation?: string;
+  situation_questions?: string;
+  problem?: string;
+  problem_questions?: string;
+  implication?: string;
+  implication_questions?: string;
+  need_payoff?: string;
+  need_payoff_questions?: string;
+  objections?: string;
+  next_steps?: string;
+  budget_discussed?: boolean;
+  budget_range?: string;
+  timeline_discussed?: boolean;
+  timeline?: string;
+  decision_maker_present?: boolean;
+  outcome?: CallOutcome;
+  follow_up_date?: string;
+}
+
+export interface DiscoveryCallUpdate {
+  call_date?: string;
+  call_duration_minutes?: number;
+  attendees?: string;
+  situation?: string;
+  situation_questions?: string;
+  problem?: string;
+  problem_questions?: string;
+  implication?: string;
+  implication_questions?: string;
+  need_payoff?: string;
+  need_payoff_questions?: string;
+  objections?: string;
+  next_steps?: string;
+  budget_discussed?: boolean;
+  budget_range?: string;
+  timeline_discussed?: boolean;
+  timeline?: string;
+  decision_maker_present?: boolean;
+  outcome?: CallOutcome;
+  follow_up_date?: string;
+  deal_id?: number;
+}
+
+export interface DiscoveryCallStats {
+  total_calls: number;
+  calls_this_month: number;
+  avg_spin_completion: number;
+  outcome_breakdown: Record<string, number>;
+  avg_duration_minutes?: number;
+  follow_ups_scheduled: number;
+  proposals_sent: number;
+  deals_closed: number;
+}
+
+export interface DiscoveryCallListResponse {
+  calls: DiscoveryCall[];
+  stats: DiscoveryCallStats;
 }

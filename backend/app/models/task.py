@@ -40,6 +40,9 @@ class Task(Base):
     # Project relationship
     project_id = Column(Integer, ForeignKey("projects.id"), nullable=True, index=True)
 
+    # Sprint day relationship (for tasks within a sprint)
+    sprint_day_id = Column(Integer, ForeignKey("sprint_days.id", ondelete="SET NULL"), nullable=True, index=True)
+
     # Recurrence fields
     is_recurring = Column(Boolean, default=False, nullable=False)
     recurrence_type = Column(Enum(RecurrenceType), nullable=True)
@@ -54,6 +57,7 @@ class Task(Base):
     project = relationship("Project", back_populates="tasks")
     goal = relationship("Goal", back_populates="tasks")
     parent_task = relationship("Task", remote_side=[id], foreign_keys=[parent_task_id], backref="child_tasks")
+    sprint_day = relationship("SprintDay", back_populates="sprint_tasks")
 
     def __repr__(self):
         return f"<Task(id={self.id}, title='{self.title}', status={self.status})>"

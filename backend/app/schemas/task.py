@@ -12,6 +12,7 @@ class TaskBase(BaseModel):
     status: TaskStatus = TaskStatus.PENDING
     goal_id: Optional[int] = None
     project_id: Optional[int] = None
+    sprint_day_id: Optional[int] = None
 
     # Recurrence fields
     is_recurring: bool = False
@@ -33,6 +34,7 @@ class TaskUpdate(BaseModel):
     status: Optional[TaskStatus] = None
     goal_id: Optional[int] = None
     project_id: Optional[int] = None
+    sprint_day_id: Optional[int] = None
 
     # Recurrence fields
     is_recurring: Optional[bool] = None

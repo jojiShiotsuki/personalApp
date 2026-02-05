@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from app.database import init_db
-from app.routes import tasks, crm, task_parser, export, goals, goal_parser, projects, social_content, dashboard, time, outreach, cold_outreach, lead_discovery
+from app.routes import tasks, crm, task_parser, export, goals, goal_parser, projects, social_content, dashboard, time, outreach, cold_outreach, lead_discovery, daily_outreach, sprint, loom_audit, pipeline_calculator, discovery_call
 
 app = FastAPI(
     title="Personal Productivity App",
@@ -21,14 +21,16 @@ app = FastAPI(
 # In development, allow all localhost origins. In production, use specific origins.
 if os.getenv("ENVIRONMENT", "development") == "production":
     allowed_origins = os.getenv("CORS_ORIGINS", "").split(",")
+    allow_credentials = True
 else:
-    # Development: allow all localhost origins
+    # Development: allow all origins (credentials must be False with "*")
     allowed_origins = ["*"]
+    allow_credentials = False
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
-    allow_credentials=True,
+    allow_credentials=allow_credentials,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -49,6 +51,11 @@ app.include_router(time.router)
 app.include_router(outreach.router)
 app.include_router(cold_outreach.router)
 app.include_router(lead_discovery.router)
+app.include_router(daily_outreach.router)
+app.include_router(sprint.router)
+app.include_router(loom_audit.router)
+app.include_router(pipeline_calculator.router)
+app.include_router(discovery_call.router)
 
 @app.on_event("startup")
 async def startup_event():

@@ -13,11 +13,10 @@ import ProjectDetail from './pages/ProjectDetail';
 import Export from './pages/Export';
 import SocialCalendar from './pages/SocialCalendar';
 import Time from './pages/Time';
-import Outreach from './pages/Outreach';
-import ColdOutreach from './pages/ColdOutreach';
-import LeadDiscovery from './pages/LeadDiscovery';
+import OutreachHub from './pages/OutreachHub';
 import Services from './pages/Services';
 import Settings from './pages/Settings';
+import Sprint from './pages/Sprint';
 import QuickAddModal from './components/QuickAddModal';
 import CommandPalette from './components/CommandPalette';
 import { ThemeProvider } from './components/ThemeProvider';
@@ -62,11 +61,10 @@ function App() {
               <Route path="/export" element={<Export />} />
               <Route path="/social-calendar" element={<SocialCalendar />} />
               <Route path="/time" element={<Time />} />
-              <Route path="/outreach" element={<Outreach />} />
-              <Route path="/cold-outreach" element={<ColdOutreach />} />
-              <Route path="/lead-discovery" element={<LeadDiscovery />} />
+              <Route path="/outreach" element={<OutreachHub />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="/services" element={<Services />} />
+              <Route path="/sprint" element={<Sprint />} />
             </Routes>
           </Layout>
           <CommandPalette

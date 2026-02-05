@@ -43,6 +43,36 @@ import type {
   LeadSearchResponse,
   LeadImportRequest,
   LeadImportResponse,
+  DailyOutreachStats,
+  OutreachStreak,
+  WeeklySummary,
+  LogActivityRequest,
+  LogActivityResponse,
+  OutreachSettings,
+  OutreachSettingsUpdate,
+  OutreachActivityType,
+  Sprint,
+  SprintListItem,
+  SprintCreate,
+  SprintDay,
+  ToggleTaskResponse,
+  UpdateNotesResponse,
+  LoomAudit,
+  LoomAuditCreate,
+  LoomAuditUpdate,
+  LoomAuditStats,
+  LoomAuditListResponse,
+  MarkWatchedRequest,
+  MarkRespondedRequest,
+  PipelineSettings,
+  PipelineSettingsUpdate,
+  PipelineCalculation,
+  DiscoveryCall,
+  DiscoveryCallCreate,
+  DiscoveryCallUpdate,
+  DiscoveryCallStats,
+  DiscoveryCallListResponse,
+  CallOutcome,
 } from '../types/index';
 import {
   TaskStatus,
@@ -52,7 +82,7 @@ import {
 
 // Production API URL - hardcoded for reliability
 const API_URL = import.meta.env.VITE_API_URL ||
-  (import.meta.env.PROD ? 'https://vertex-api-smg3.onrender.com' : 'http://localhost:8000');
+  (import.meta.env.PROD ? 'https://vertex-api-smg3.onrender.com' : 'http://localhost:8001');
 
 const api = axios.create({
   baseURL: API_URL,
@@ -701,6 +731,301 @@ export const leadDiscoveryApi = {
     if (data.niche) params.append('niche', data.niche);
     const response = await api.put(`/api/lead-discovery/stored/${leadId}?${params}`);
     return response.data;
+  },
+};
+
+// Daily Outreach Tracking API
+export const dailyOutreachApi = {
+  getTodayStats: async (): Promise<DailyOutreachStats> => {
+    const response = await api.get('/api/daily-outreach/today');
+    return response.data;
+  },
+
+  getStreak: async (): Promise<OutreachStreak> => {
+    const response = await api.get('/api/daily-outreach/streak');
+    return response.data;
+  },
+
+  getWeeklySummary: async (): Promise<WeeklySummary> => {
+    const response = await api.get('/api/daily-outreach/weekly');
+    return response.data;
+  },
+
+  logActivity: async (
+    activityType: OutreachActivityType,
+    data?: LogActivityRequest
+  ): Promise<LogActivityResponse> => {
+    const response = await api.post(`/api/daily-outreach/log/${activityType}`, data || {});
+    return response.data;
+  },
+
+  deductActivity: async (
+    activityType: OutreachActivityType
+  ): Promise<LogActivityResponse> => {
+    const response = await api.delete(`/api/daily-outreach/deduct/${activityType}`);
+    return response.data;
+  },
+
+  getSettings: async (): Promise<OutreachSettings> => {
+    const response = await api.get('/api/daily-outreach/settings');
+    return response.data;
+  },
+
+  updateSettings: async (settings: OutreachSettingsUpdate): Promise<OutreachSettings> => {
+    const response = await api.put('/api/daily-outreach/settings', settings);
+    return response.data;
+  },
+};
+
+// Sprint API
+export const sprintApi = {
+  getActive: async (): Promise<Sprint | null> => {
+    const response = await api.get('/api/sprint');
+    return response.data;
+  },
+
+  getAll: async (): Promise<SprintListItem[]> => {
+    const response = await api.get('/api/sprint/all');
+    return response.data;
+  },
+
+  create: async (data?: SprintCreate): Promise<Sprint> => {
+    const response = await api.post('/api/sprint', data || {});
+    return response.data;
+  },
+
+  getById: async (id: number): Promise<Sprint> => {
+    const response = await api.get(`/api/sprint/${id}`);
+    return response.data;
+  },
+
+  pause: async (id: number): Promise<Sprint> => {
+    const response = await api.post(`/api/sprint/${id}/pause`);
+    return response.data;
+  },
+
+  resume: async (id: number): Promise<Sprint> => {
+    const response = await api.post(`/api/sprint/${id}/resume`);
+    return response.data;
+  },
+
+  abandon: async (id: number): Promise<Sprint> => {
+    const response = await api.post(`/api/sprint/${id}/abandon`);
+    return response.data;
+  },
+
+  complete: async (id: number): Promise<Sprint> => {
+    const response = await api.post(`/api/sprint/${id}/complete`);
+    return response.data;
+  },
+
+  advanceDay: async (id: number): Promise<Sprint> => {
+    const response = await api.post(`/api/sprint/${id}/advance-day`);
+    return response.data;
+  },
+
+  goBackDay: async (id: number): Promise<Sprint> => {
+    const response = await api.post(`/api/sprint/${id}/go-back-day`);
+    return response.data;
+  },
+
+  getDay: async (sprintId: number, dayNumber: number): Promise<SprintDay> => {
+    const response = await api.get(`/api/sprint/${sprintId}/day/${dayNumber}`);
+    return response.data;
+  },
+
+  toggleTask: async (
+    sprintId: number,
+    dayNumber: number,
+    taskIndex: number
+  ): Promise<ToggleTaskResponse> => {
+    const response = await api.post(
+      `/api/sprint/${sprintId}/day/${dayNumber}/task/${taskIndex}`
+    );
+    return response.data;
+  },
+
+  updateNotes: async (
+    sprintId: number,
+    dayNumber: number,
+    notes: string
+  ): Promise<UpdateNotesResponse> => {
+    const response = await api.put(
+      `/api/sprint/${sprintId}/day/${dayNumber}/notes`,
+      { notes }
+    );
+    return response.data;
+  },
+
+  update: async (id: number, data: { title?: string; description?: string }): Promise<SprintListItem> => {
+    const response = await api.put(`/api/sprint/${id}`, data);
+    return response.data;
+  },
+
+  delete: async (id: number): Promise<void> => {
+    await api.delete(`/api/sprint/${id}`);
+  },
+
+  getPlaybookSuggestions: async (dayNumber: number): Promise<{
+    day_number: number;
+    suggestions: Array<{ title: string; description?: string }>;
+  }> => {
+    const response = await api.get(`/api/sprint/playbook/${dayNumber}`);
+    return response.data;
+  },
+};
+
+// Loom Audit API
+export const loomAuditApi = {
+  getAll: async (params?: {
+    contact_id?: number;
+    pending_only?: boolean;
+    needs_follow_up?: boolean;
+    limit?: number;
+  }): Promise<LoomAuditListResponse> => {
+    const response = await api.get('/api/loom-audits', { params });
+    return response.data;
+  },
+
+  getStats: async (): Promise<LoomAuditStats> => {
+    const response = await api.get('/api/loom-audits/stats');
+    return response.data;
+  },
+
+  getPending: async (limit?: number): Promise<LoomAudit[]> => {
+    const response = await api.get('/api/loom-audits/pending', {
+      params: { limit },
+    });
+    return response.data;
+  },
+
+  getNeedsFollowUp: async (limit?: number): Promise<LoomAudit[]> => {
+    const response = await api.get('/api/loom-audits/needs-follow-up', {
+      params: { limit },
+    });
+    return response.data;
+  },
+
+  getById: async (id: number): Promise<LoomAudit> => {
+    const response = await api.get(`/api/loom-audits/${id}`);
+    return response.data;
+  },
+
+  getByContact: async (contactId: number, limit?: number): Promise<LoomAudit[]> => {
+    const response = await api.get(`/api/loom-audits/contact/${contactId}`, {
+      params: { limit },
+    });
+    return response.data;
+  },
+
+  create: async (data: LoomAuditCreate): Promise<LoomAudit> => {
+    const response = await api.post('/api/loom-audits', data);
+    return response.data;
+  },
+
+  update: async (id: number, data: LoomAuditUpdate): Promise<LoomAudit> => {
+    const response = await api.put(`/api/loom-audits/${id}`, data);
+    return response.data;
+  },
+
+  delete: async (id: number): Promise<void> => {
+    await api.delete(`/api/loom-audits/${id}`);
+  },
+
+  markWatched: async (id: number, data?: MarkWatchedRequest): Promise<LoomAudit> => {
+    const response = await api.post(`/api/loom-audits/${id}/watched`, data || {});
+    return response.data;
+  },
+
+  markResponded: async (id: number, data: MarkRespondedRequest): Promise<LoomAudit> => {
+    const response = await api.post(`/api/loom-audits/${id}/responded`, data);
+    return response.data;
+  },
+
+  markFollowUpSent: async (id: number, notes?: string): Promise<LoomAudit> => {
+    const response = await api.post(`/api/loom-audits/${id}/follow-up-sent`, { notes });
+    return response.data;
+  },
+};
+
+// Pipeline Calculator API
+export const pipelineApi = {
+  getSettings: async (): Promise<PipelineSettings> => {
+    const response = await api.get('/api/pipeline/settings');
+    return response.data;
+  },
+
+  updateSettings: async (data: PipelineSettingsUpdate): Promise<PipelineSettings> => {
+    const response = await api.put('/api/pipeline/settings', data);
+    return response.data;
+  },
+
+  calculate: async (): Promise<PipelineCalculation> => {
+    const response = await api.get('/api/pipeline/calculate');
+    return response.data;
+  },
+
+  calculateCustom: async (data: PipelineSettingsUpdate): Promise<PipelineCalculation> => {
+    const response = await api.post('/api/pipeline/calculate', data);
+    return response.data;
+  },
+};
+
+// Discovery Call API
+export const discoveryCallApi = {
+  getAll: async (params?: {
+    contact_id?: number;
+    deal_id?: number;
+    outcome?: CallOutcome;
+    limit?: number;
+  }): Promise<DiscoveryCallListResponse> => {
+    const response = await api.get('/api/discovery-calls', { params });
+    return response.data;
+  },
+
+  getStats: async (): Promise<DiscoveryCallStats> => {
+    const response = await api.get('/api/discovery-calls/stats');
+    return response.data;
+  },
+
+  getUpcomingFollowUps: async (days?: number): Promise<DiscoveryCall[]> => {
+    const response = await api.get('/api/discovery-calls/upcoming-follow-ups', {
+      params: { days },
+    });
+    return response.data;
+  },
+
+  getById: async (id: number): Promise<DiscoveryCall> => {
+    const response = await api.get(`/api/discovery-calls/${id}`);
+    return response.data;
+  },
+
+  getByContact: async (contactId: number, limit?: number): Promise<DiscoveryCall[]> => {
+    const response = await api.get(`/api/discovery-calls/contact/${contactId}`, {
+      params: { limit },
+    });
+    return response.data;
+  },
+
+  getByDeal: async (dealId: number, limit?: number): Promise<DiscoveryCall[]> => {
+    const response = await api.get(`/api/discovery-calls/deal/${dealId}`, {
+      params: { limit },
+    });
+    return response.data;
+  },
+
+  create: async (data: DiscoveryCallCreate): Promise<DiscoveryCall> => {
+    const response = await api.post('/api/discovery-calls', data);
+    return response.data;
+  },
+
+  update: async (id: number, data: DiscoveryCallUpdate): Promise<DiscoveryCall> => {
+    const response = await api.put(`/api/discovery-calls/${id}`, data);
+    return response.data;
+  },
+
+  delete: async (id: number): Promise<void> => {
+    await api.delete(`/api/discovery-calls/${id}`);
   },
 };
 
