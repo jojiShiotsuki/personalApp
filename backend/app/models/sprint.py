@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, Date, Enum, ForeignKey, Boolean
+from sqlalchemy import Column, Integer, String, Text, DateTime, Date, Enum as SQLEnum, ForeignKey, Boolean
 from sqlalchemy.orm import relationship
 from datetime import datetime, date, timedelta
 from app.database import Base
@@ -149,7 +149,10 @@ class Sprint(Base):
     start_date = Column(Date, nullable=False)
     end_date = Column(Date, nullable=False)  # start_date + 29 days
 
-    status = Column(Enum(SprintStatus), default=SprintStatus.ACTIVE)
+    status = Column(
+        SQLEnum(SprintStatus, values_callable=lambda e: [x.value for x in e]),
+        default=SprintStatus.ACTIVE
+    )
 
     # Weekly themes stored as JSON
     week_themes = Column(Text, default=json.dumps(WEEK_THEMES))
