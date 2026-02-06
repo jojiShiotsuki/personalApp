@@ -66,8 +66,8 @@
   --exec-surface: #292524;
   --exec-surface-alt: #292524;
   --exec-surface-warm: #1C1917;
-  --exec-border: rgba(168, 162, 158, 0.1);
-  --exec-border-subtle: rgba(168, 162, 158, 0.05);
+  --exec-border: rgba(168, 162, 158, 0.07);
+  --exec-border-subtle: rgba(168, 162, 158, 0.03);
 
   --exec-text: #FAFAF9;
   --exec-text-secondary: #D6D3D1;

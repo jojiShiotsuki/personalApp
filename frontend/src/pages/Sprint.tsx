@@ -391,7 +391,7 @@ function DayCard({ day, sprint, isExpanded, onToggle }: DayCardProps) {
             ? 'bg-[--exec-sage-bg] border-[--exec-sage]'
             : isPastDay && !day.is_complete
               ? 'bg-[--exec-warning-bg] border-[--exec-warning]'
-              : 'bg-[--exec-surface] border-[--exec-border-subtle]'
+              : 'bg-[--exec-surface] border-stone-500/10'
       )}
     >
       <button
@@ -467,7 +467,7 @@ function DayCard({ day, sprint, isExpanded, onToggle }: DayCardProps) {
                       'hover:scale-110 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed',
                       isCompleted
                         ? 'bg-[--exec-sage] border-[--exec-sage] text-white'
-                        : 'border-[--exec-border] hover:border-[--exec-accent] bg-transparent'
+                        : 'border-stone-500/15 hover:border-[--exec-accent] bg-transparent'
                     )}
                   >
                     {togglingTask === task.id ? (
@@ -492,7 +492,7 @@ function DayCard({ day, sprint, isExpanded, onToggle }: DayCardProps) {
                           }
                         }}
                         autoFocus
-                        className="flex-1 px-2 py-1 text-sm bg-[--exec-surface] border border-[--exec-border] rounded text-[--exec-text] focus:outline-none focus:ring-1 focus:ring-[--exec-accent]"
+                        className="flex-1 px-2 py-1 text-sm bg-[--exec-surface] border border-stone-500/15 rounded text-[--exec-text] focus:outline-none focus:ring-1 focus:ring-[--exec-accent]"
                       />
                       <button
                         onClick={() => updateTaskMutation.mutate({ taskId: task.id, title: editingTaskTitle.trim() })}
@@ -557,7 +557,7 @@ function DayCard({ day, sprint, isExpanded, onToggle }: DayCardProps) {
 
             {/* Add Task UI */}
             {isAddingTask ? (
-              <div className="flex items-center gap-2 p-3 bg-[--exec-surface-alt] rounded-lg border border-dashed border-[--exec-border]">
+              <div className="flex items-center gap-2 p-3 bg-[--exec-surface-alt] rounded-lg border border-dashed border-stone-500/15">
                 <input
                   type="text"
                   value={newTaskTitle}
@@ -572,7 +572,7 @@ function DayCard({ day, sprint, isExpanded, onToggle }: DayCardProps) {
                   }}
                   placeholder="Enter task title..."
                   autoFocus
-                  className="flex-1 px-2 py-1 text-sm bg-[--exec-surface] border border-[--exec-border] rounded text-[--exec-text] placeholder:text-[--exec-text-muted] focus:outline-none focus:ring-1 focus:ring-[--exec-accent]"
+                  className="flex-1 px-2 py-1 text-sm bg-[--exec-surface] border border-stone-500/15 rounded text-[--exec-text] placeholder:text-[--exec-text-muted] focus:outline-none focus:ring-1 focus:ring-[--exec-accent]"
                 />
                 <button
                   onClick={() => addTaskMutation.mutate(newTaskTitle.trim())}
@@ -598,7 +598,7 @@ function DayCard({ day, sprint, isExpanded, onToggle }: DayCardProps) {
             ) : (
               <button
                 onClick={() => setIsAddingTask(true)}
-                className="flex items-center gap-2 w-full p-3 text-sm text-[--exec-text-muted] hover:text-[--exec-accent] hover:bg-[--exec-accent]/5 rounded-lg border border-dashed border-[--exec-border-subtle] hover:border-[--exec-accent]/30 transition-all"
+                className="flex items-center gap-2 w-full p-3 text-sm text-[--exec-text-muted] hover:text-[--exec-accent] hover:bg-[--exec-accent]/5 rounded-lg border border-dashed border-stone-500/10 hover:border-[--exec-accent]/30 transition-all"
               >
                 <Plus className="w-4 h-4" />
                 Add task
@@ -725,7 +725,7 @@ function DayCard({ day, sprint, isExpanded, onToggle }: DayCardProps) {
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="Add notes for this day..."
-                  className="w-full px-3 py-2 bg-[--exec-surface-alt] border border-[--exec-border-subtle] rounded-lg text-sm text-[--exec-text] placeholder:text-[--exec-text-muted] resize-none focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]"
+                  className="w-full px-3 py-2 bg-[--exec-surface-alt] border border-stone-500/10 rounded-lg text-sm text-[--exec-text] placeholder:text-[--exec-text-muted] resize-none focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]"
                   rows={3}
                 />
                 <div className="flex gap-2">
@@ -793,7 +793,7 @@ function WeekSection({ weekNumber, theme, sprint, days }: WeekSectionProps) {
         'rounded-2xl border transition-all',
         isCurrentWeek
           ? 'border-[--exec-accent] bg-[--exec-accent-bg-subtle]'
-          : 'border-[--exec-border-subtle] bg-[--exec-surface]'
+          : 'border-stone-500/10 bg-[--exec-surface]'
       )}
     >
       <button
@@ -1035,7 +1035,7 @@ function ExportReportModal({ isOpen, onClose, reportContent }: ExportReportModal
         </div>
 
         <div className="flex-1 overflow-auto p-4">
-          <pre className="whitespace-pre-wrap text-sm text-[--exec-text] font-mono bg-[--exec-surface-alt] p-4 rounded-lg border border-[--exec-border-subtle]">
+          <pre className="whitespace-pre-wrap text-sm text-[--exec-text] font-mono bg-[--exec-surface-alt] p-4 rounded-lg border border-stone-500/10">
             {reportContent}
           </pre>
         </div>
@@ -1214,7 +1214,7 @@ export default function SprintPage() {
   return (
     <div className="min-h-full bg-[--exec-bg] grain">
       {/* Header */}
-      <header className="bg-[--exec-surface] border-b border-[--exec-border-subtle] px-8 py-6">
+      <header className="bg-[--exec-surface] border-b border-stone-500/10 px-8 py-6">
         <div className="flex items-center justify-between">
           <div>
             <h1
@@ -1247,7 +1247,7 @@ export default function SprintPage() {
                   setExportContent(report);
                   setShowExportModal(true);
                 }}
-                className="flex items-center gap-2 px-4 py-2.5 bg-[--exec-surface-alt] text-[--exec-text] border border-[--exec-border] rounded-xl font-medium text-sm transition-all duration-200 hover:bg-[--exec-surface] hover:border-[--exec-accent]/50 hover:-translate-y-0.5"
+                className="flex items-center gap-2 px-4 py-2.5 bg-[--exec-surface-alt] text-[--exec-text] border border-stone-500/15 rounded-xl font-medium text-sm transition-all duration-200 hover:bg-[--exec-surface] hover:border-[--exec-accent]/50 hover:-translate-y-0.5"
                 title="View sprint report"
               >
                 <FileText className="w-4 h-4" />
@@ -1362,7 +1362,7 @@ export default function SprintPage() {
                 return (
                   <div
                     key={theme}
-                    className="p-4 rounded-xl bg-[--exec-surface] border border-[--exec-border-subtle]"
+                    className="p-4 rounded-xl bg-[--exec-surface] border border-stone-500/10"
                   >
                     <WeekIcon className="w-6 h-6 text-[--exec-accent] mx-auto mb-2" />
                     <p className="font-semibold text-[--exec-text] text-sm">
@@ -1450,7 +1450,7 @@ export default function SprintPage() {
             {/* Today's card (prominent) */}
             {sprint.today && (
               <div className="bento-card overflow-hidden">
-                <div className="flex items-center justify-between px-6 py-5 border-b border-[--exec-border-subtle] bg-gradient-to-r from-[--exec-accent-bg] to-transparent">
+                <div className="flex items-center justify-between px-6 py-5 border-b border-stone-500/10 bg-gradient-to-r from-[--exec-accent-bg] to-transparent">
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 rounded-xl bg-[--exec-accent] flex items-center justify-center text-white font-bold text-xl">
                       {sprint.today.day_number}
