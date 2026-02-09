@@ -221,6 +221,9 @@ export default function LeadDiscoveryTab() {
     niche: '',
   });
 
+  // Bulk selection state (for saved leads)
+  const [selectedLeadIds, setSelectedLeadIds] = useState<Set<number>>(new Set());
+
   // Send DM panel state
   const [isSendDMPanelOpen, setIsSendDMPanelOpen] = useState(false);
   const [selectedLeadForDM, setSelectedLeadForDM] = useState<SendDMSource | null>(null);
@@ -267,6 +270,20 @@ export default function LeadDiscoveryTab() {
     },
     onError: () => {
       toast.error('Failed to delete lead');
+    },
+  });
+
+  // Bulk delete mutation
+  const bulkDeleteMutation = useMutation({
+    mutationFn: leadDiscoveryApi.bulkDeleteStoredLeads,
+    onSuccess: (data) => {
+      toast.success(`${data.deleted_count} leads deleted`);
+      setSelectedLeadIds(new Set());
+      queryClient.invalidateQueries({ queryKey: ['stored-leads'] });
+      queryClient.invalidateQueries({ queryKey: ['lead-discovery-stats'] });
+    },
+    onError: () => {
+      toast.error('Failed to delete leads');
     },
   });
 
@@ -323,6 +340,36 @@ export default function LeadDiscoveryTab() {
   // Cancel editing saved lead
   const cancelEditingSaved = () => {
     setEditingSavedId(null);
+  };
+
+  // Toggle single lead selection
+  const toggleLeadSelection = (leadId: number) => {
+    setSelectedLeadIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(leadId)) {
+        next.delete(leadId);
+      } else {
+        next.add(leadId);
+      }
+      return next;
+    });
+  };
+
+  // Toggle select all
+  const toggleSelectAll = () => {
+    if (!storedLeadsData) return;
+    if (selectedLeadIds.size === storedLeadsData.leads.length) {
+      setSelectedLeadIds(new Set());
+    } else {
+      setSelectedLeadIds(new Set(storedLeadsData.leads.map((l: StoredLead) => l.id)));
+    }
+  };
+
+  // Handle bulk delete
+  const handleBulkDelete = () => {
+    if (selectedLeadIds.size === 0) return;
+    if (!confirm(`Delete ${selectedLeadIds.size} selected leads?`)) return;
+    bulkDeleteMutation.mutate(Array.from(selectedLeadIds));
   };
 
   // Search mutation
@@ -845,6 +892,36 @@ export default function LeadDiscoveryTab() {
 
         {/* Saved Leads Tab */}
         {activeSubTab === 'saved' && (
+          <div>
+            {/* Bulk Action Bar */}
+            {selectedLeadIds.size > 0 && (
+              <div className="flex items-center justify-between px-4 py-3 mb-3 bg-red-900/20 border border-red-800/40 rounded-xl">
+                <span className="text-sm font-medium text-red-400">
+                  {selectedLeadIds.size} lead{selectedLeadIds.size !== 1 ? 's' : ''} selected
+                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setSelectedLeadIds(new Set())}
+                    className="px-3 py-1.5 text-sm text-[--exec-text-secondary] hover:bg-stone-700/50 rounded-lg transition-colors"
+                  >
+                    Clear
+                  </button>
+                  <button
+                    onClick={handleBulkDelete}
+                    disabled={bulkDeleteMutation.isPending}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
+                  >
+                    {bulkDeleteMutation.isPending ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Trash2 className="w-3.5 h-3.5" />
+                    )}
+                    Delete Selected
+                  </button>
+                </div>
+              </div>
+            )}
+
           <div className="bento-card overflow-hidden">
             {isLoadingStored ? (
               <div className="flex items-center justify-center py-12">
@@ -855,6 +932,14 @@ export default function LeadDiscoveryTab() {
                 <table className="min-w-full divide-y divide-[--exec-border]">
                   <thead className="bg-[--exec-surface-alt]">
                     <tr>
+                      <th className="px-3 py-3 w-10">
+                        <input
+                          type="checkbox"
+                          checked={storedLeadsData ? selectedLeadIds.size === storedLeadsData.leads.length && storedLeadsData.leads.length > 0 : false}
+                          onChange={toggleSelectAll}
+                          className="w-4 h-4 text-blue-600 bg-stone-700 border-stone-600 rounded focus:ring-blue-500"
+                        />
+                      </th>
                       <th className="px-3 py-3 text-left text-xs font-medium text-[--exec-text-muted] uppercase tracking-wider w-10">
                       </th>
                       <th className="px-3 py-3 text-left text-xs font-medium text-[--exec-text-muted] uppercase tracking-wider">
@@ -873,7 +958,18 @@ export default function LeadDiscoveryTab() {
                   </thead>
                   <tbody className="bg-[--exec-surface] divide-y divide-[--exec-border-subtle]">
                     {storedLeadsData.leads.map((lead: StoredLead) => (
-                      <tr key={lead.id} className="hover:bg-[--exec-surface-alt]">
+                      <tr key={lead.id} className={cn(
+                        'hover:bg-[--exec-surface-alt]',
+                        selectedLeadIds.has(lead.id) && 'bg-blue-900/10'
+                      )}>
+                        <td className="px-3 py-3 whitespace-nowrap">
+                          <input
+                            type="checkbox"
+                            checked={selectedLeadIds.has(lead.id)}
+                            onChange={() => toggleLeadSelection(lead.id)}
+                            className="w-4 h-4 text-blue-600 bg-stone-700 border-stone-600 rounded focus:ring-blue-500"
+                          />
+                        </td>
                         <td className="px-3 py-3 whitespace-nowrap">
                           <div className="flex items-center gap-1">
                             {editingSavedId === lead.id ? (
@@ -1066,6 +1162,7 @@ export default function LeadDiscoveryTab() {
                 </button>
               </div>
             )}
+          </div>
           </div>
         )}
       </div>

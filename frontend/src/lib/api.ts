@@ -722,6 +722,11 @@ export const leadDiscoveryApi = {
     await api.delete(`/api/lead-discovery/stored/${leadId}`);
   },
 
+  bulkDeleteStoredLeads: async (leadIds: number[]): Promise<{ message: string; deleted_count: number }> => {
+    const response = await api.post('/api/lead-discovery/stored/bulk-delete', leadIds);
+    return response.data;
+  },
+
   updateStoredLead: async (leadId: number, data: { agency_name?: string; contact_name?: string; email?: string; website?: string; niche?: string }): Promise<StoredLead> => {
     const params = new URLSearchParams();
     if (data.agency_name) params.append('agency_name', data.agency_name);

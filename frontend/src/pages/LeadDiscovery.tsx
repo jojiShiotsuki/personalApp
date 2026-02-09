@@ -220,6 +220,9 @@ export default function LeadDiscovery() {
     niche: '',
   });
 
+  // Bulk selection state (for saved leads)
+  const [selectedLeadIds, setSelectedLeadIds] = useState<Set<number>>(new Set());
+
   // Fetch campaigns for the modal
   const { data: campaigns = [] } = useQuery<OutreachCampaign[]>({
     queryKey: ['outreach-campaigns'],
@@ -265,6 +268,20 @@ export default function LeadDiscovery() {
     },
   });
 
+  // Bulk delete mutation
+  const bulkDeleteMutation = useMutation({
+    mutationFn: leadDiscoveryApi.bulkDeleteStoredLeads,
+    onSuccess: (data) => {
+      toast.success(`${data.deleted_count} leads deleted`);
+      setSelectedLeadIds(new Set());
+      queryClient.invalidateQueries({ queryKey: ['stored-leads'] });
+      queryClient.invalidateQueries({ queryKey: ['lead-discovery-stats'] });
+    },
+    onError: () => {
+      toast.error('Failed to delete leads');
+    },
+  });
+
   // Update stored lead mutation
   const updateStoredMutation = useMutation({
     mutationFn: ({ id, data }: { id: number; data: { agency_name?: string; contact_name?: string; email?: string; website?: string; niche?: string } }) =>
@@ -303,6 +320,36 @@ export default function LeadDiscovery() {
   // Cancel editing saved lead
   const cancelEditingSaved = () => {
     setEditingSavedId(null);
+  };
+
+  // Toggle single lead selection
+  const toggleLeadSelection = (leadId: number) => {
+    setSelectedLeadIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(leadId)) {
+        next.delete(leadId);
+      } else {
+        next.add(leadId);
+      }
+      return next;
+    });
+  };
+
+  // Toggle select all
+  const toggleSelectAll = () => {
+    if (!storedLeadsData) return;
+    if (selectedLeadIds.size === storedLeadsData.leads.length) {
+      setSelectedLeadIds(new Set());
+    } else {
+      setSelectedLeadIds(new Set(storedLeadsData.leads.map((l: StoredLead) => l.id)));
+    }
+  };
+
+  // Handle bulk delete
+  const handleBulkDelete = () => {
+    if (selectedLeadIds.size === 0) return;
+    if (!confirm(`Delete ${selectedLeadIds.size} selected leads?`)) return;
+    bulkDeleteMutation.mutate(Array.from(selectedLeadIds));
   };
 
   // Search mutation
@@ -860,6 +907,36 @@ export default function LeadDiscovery() {
 
         {/* Saved Leads Tab */}
         {activeTab === 'saved' && (
+          <div>
+            {/* Bulk Action Bar */}
+            {selectedLeadIds.size > 0 && (
+              <div className="flex items-center justify-between px-4 py-3 mb-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl">
+                <span className="text-sm font-medium text-red-700 dark:text-red-400">
+                  {selectedLeadIds.size} lead{selectedLeadIds.size !== 1 ? 's' : ''} selected
+                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setSelectedLeadIds(new Set())}
+                    className="px-3 py-1.5 text-sm text-gray-700 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+                  >
+                    Clear
+                  </button>
+                  <button
+                    onClick={handleBulkDelete}
+                    disabled={bulkDeleteMutation.isPending}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
+                  >
+                    {bulkDeleteMutation.isPending ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Trash2 className="w-3.5 h-3.5" />
+                    )}
+                    Delete Selected
+                  </button>
+                </div>
+              </div>
+            )}
+
           <div className="bento-card overflow-hidden">
             {isLoadingStored ? (
               <div className="flex items-center justify-center py-12">
@@ -870,6 +947,14 @@ export default function LeadDiscovery() {
                 <table className="min-w-full divide-y divide-gray-200 dark:divide-slate-700">
                   <thead className="bg-gray-50 dark:bg-slate-700/50">
                     <tr>
+                      <th className="px-3 py-3 w-10">
+                        <input
+                          type="checkbox"
+                          checked={storedLeadsData ? selectedLeadIds.size === storedLeadsData.leads.length && storedLeadsData.leads.length > 0 : false}
+                          onChange={toggleSelectAll}
+                          className="w-4 h-4 text-blue-600 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded focus:ring-blue-500 dark:focus:ring-blue-400"
+                        />
+                      </th>
                       <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider w-10">
 
                       </th>
@@ -889,7 +974,18 @@ export default function LeadDiscovery() {
                   </thead>
                   <tbody className="bg-white dark:bg-slate-800 divide-y divide-gray-200 dark:divide-slate-700">
                     {storedLeadsData.leads.map((lead: StoredLead) => (
-                      <tr key={lead.id} className="hover:bg-gray-50 dark:hover:bg-slate-700/50">
+                      <tr key={lead.id} className={cn(
+                        'hover:bg-gray-50 dark:hover:bg-slate-700/50',
+                        selectedLeadIds.has(lead.id) && 'bg-blue-50/50 dark:bg-blue-900/10'
+                      )}>
+                        <td className="px-3 py-3 whitespace-nowrap">
+                          <input
+                            type="checkbox"
+                            checked={selectedLeadIds.has(lead.id)}
+                            onChange={() => toggleLeadSelection(lead.id)}
+                            className="w-4 h-4 text-blue-600 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded focus:ring-blue-500 dark:focus:ring-blue-400"
+                          />
+                        </td>
                         <td className="px-3 py-3 whitespace-nowrap">
                           <div className="flex items-center gap-1">
                             {editingSavedId === lead.id ? (
@@ -1075,6 +1171,7 @@ export default function LeadDiscovery() {
                 </button>
               </div>
             )}
+          </div>
           </div>
         )}
       </div>

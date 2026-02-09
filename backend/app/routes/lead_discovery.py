@@ -311,6 +311,21 @@ async def delete_stored_lead(lead_id: int, db: Session = Depends(get_db)):
     return {"message": "Lead deleted"}
 
 
+@router.post("/stored/bulk-delete")
+async def bulk_delete_stored_leads(lead_ids: list[int], db: Session = Depends(get_db)):
+    """Delete multiple stored discovered leads at once."""
+    if not lead_ids:
+        raise HTTPException(status_code=400, detail="No lead IDs provided")
+
+    deleted = db.query(DiscoveredLeadModel).filter(
+        DiscoveredLeadModel.id.in_(lead_ids)
+    ).delete(synchronize_session='fetch')
+
+    db.commit()
+
+    return {"message": f"{deleted} leads deleted", "deleted_count": deleted}
+
+
 @router.post("/import", response_model=LeadImportResponse)
 async def import_leads(request: LeadImportRequest, db: Session = Depends(get_db)):
     """
