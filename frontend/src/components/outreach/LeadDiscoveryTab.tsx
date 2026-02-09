@@ -27,6 +27,11 @@ import {
   Trash2,
   Calendar,
   MessageSquare,
+  RefreshCw,
+  Linkedin,
+  Facebook,
+  Instagram,
+  Shield,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -35,9 +40,10 @@ import SendDMPanel, { type SendDMSource } from '@/components/outreach/SendDMPane
 // Loading messages that rotate
 const LOADING_MESSAGES = [
   { text: 'Searching Google for matches...', icon: Search },
+  { text: 'Cross-referencing multiple sources...', icon: Shield },
   { text: 'Scanning agency websites...', icon: Globe },
   { text: 'Extracting contact details...', icon: Mail },
-  { text: 'Formatting lead data...', icon: Users },
+  { text: 'Verifying websites & scoring confidence...', icon: CheckCircle },
 ];
 
 // Email validation badge
@@ -74,6 +80,71 @@ function EmailBadge({ lead }: { lead: DiscoveredLead }) {
       <XCircle className="w-3 h-3" />
       Invalid
     </span>
+  );
+}
+
+// Confidence badge
+function ConfidenceBadge({ confidence }: { confidence: 'high' | 'medium' | 'low' | null }) {
+  if (!confidence) return null;
+
+  const config = {
+    high: {
+      bg: 'bg-green-100 dark:bg-green-900/30',
+      text: 'text-green-700 dark:text-green-400',
+      border: 'border-green-200 dark:border-green-800',
+      dot: 'bg-green-500',
+    },
+    medium: {
+      bg: 'bg-yellow-100 dark:bg-yellow-900/30',
+      text: 'text-yellow-700 dark:text-yellow-400',
+      border: 'border-yellow-200 dark:border-yellow-800',
+      dot: 'bg-yellow-500',
+    },
+    low: {
+      bg: 'bg-red-100 dark:bg-red-900/30',
+      text: 'text-red-700 dark:text-red-400',
+      border: 'border-red-200 dark:border-red-800',
+      dot: 'bg-red-500',
+    },
+  };
+
+  const c = config[confidence];
+  return (
+    <span className={cn(
+      'inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full border',
+      c.bg, c.text, c.border
+    )}>
+      <div className={cn('w-1.5 h-1.5 rounded-full', c.dot)} />
+      {confidence.charAt(0).toUpperCase() + confidence.slice(1)}
+    </span>
+  );
+}
+
+// Social media links
+function SocialLinks({ lead }: { lead: { linkedin_url?: string | null; facebook_url?: string | null; instagram_url?: string | null } }) {
+  const links = [
+    { url: lead.linkedin_url, icon: Linkedin, label: 'LinkedIn' },
+    { url: lead.facebook_url, icon: Facebook, label: 'Facebook' },
+    { url: lead.instagram_url, icon: Instagram, label: 'Instagram' },
+  ].filter(l => l.url);
+
+  if (links.length === 0) return null;
+
+  return (
+    <div className="flex items-center gap-1">
+      {links.map(({ url, icon: Icon, label }) => (
+        <a
+          key={label}
+          href={url!}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="p-1 text-[--exec-text-muted] hover:text-blue-400 rounded transition-colors"
+          title={label}
+        >
+          <Icon className="w-3.5 h-3.5" />
+        </a>
+      ))}
+    </div>
   );
 }
 
@@ -287,6 +358,19 @@ export default function LeadDiscoveryTab() {
     },
   });
 
+  // Re-verify lead mutation
+  const reVerifyMutation = useMutation({
+    mutationFn: leadDiscoveryApi.reVerifyLead,
+    onSuccess: (data) => {
+      toast.success(`Lead re-verified (${data.confidence} confidence)`);
+      queryClient.invalidateQueries({ queryKey: ['stored-leads'] });
+      queryClient.invalidateQueries({ queryKey: ['lead-discovery-stats'] });
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.detail || 'Re-verification failed');
+    },
+  });
+
   // Update stored lead mutation
   const updateStoredMutation = useMutation({
     mutationFn: ({ id, data }: { id: number; data: { agency_name?: string; contact_name?: string; email?: string; website?: string; niche?: string } }) =>
@@ -333,6 +417,9 @@ export default function LeadDiscoveryTab() {
       niche: lead.niche || undefined,
       website: lead.website || undefined,
       email: lead.email || undefined,
+      linkedinUrl: lead.linkedin_url || undefined,
+      facebookUrl: lead.facebook_url || undefined,
+      instagramUrl: lead.instagram_url || undefined,
     });
     setIsSendDMPanelOpen(true);
   };
@@ -519,11 +606,17 @@ export default function LeadDiscoveryTab() {
 
         {/* Stats badge */}
         {stats && (
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-[--exec-surface-alt] rounded-full">
+          <div className="flex items-center gap-3 px-3 py-1.5 bg-[--exec-surface-alt] rounded-full">
             <Database className="w-4 h-4 text-blue-500" />
             <span className="text-xs font-medium text-[--exec-text-secondary]">
-              {stats.total_leads} saved leads ({stats.with_email} with email)
+              {stats.total_leads} saved
             </span>
+            {stats.high_confidence > 0 && (
+              <span className="text-xs text-green-400">{stats.high_confidence} high</span>
+            )}
+            {stats.with_email > 0 && (
+              <span className="text-xs text-blue-400">{stats.with_email} with email</span>
+            )}
           </div>
         )}
       </div>
@@ -732,6 +825,9 @@ export default function LeadDiscoveryTab() {
                         <th className="px-6 py-3 text-left text-xs font-medium text-[--exec-text-muted] uppercase tracking-wider">
                           Niche
                         </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-[--exec-text-muted] uppercase tracking-wider">
+                          Confidence
+                        </th>
                       </tr>
                     </thead>
                     <tbody className="bg-[--exec-surface] divide-y divide-[--exec-border-subtle]">
@@ -867,6 +963,12 @@ export default function LeadDiscoveryTab() {
                               </span>
                             )}
                           </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center gap-2">
+                              <ConfidenceBadge confidence={lead.confidence} />
+                              <SocialLinks lead={lead} />
+                            </div>
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -954,6 +1056,9 @@ export default function LeadDiscoveryTab() {
                       <th className="px-3 py-3 text-left text-xs font-medium text-[--exec-text-muted] uppercase tracking-wider">
                         Niche
                       </th>
+                      <th className="px-3 py-3 text-left text-xs font-medium text-[--exec-text-muted] uppercase tracking-wider">
+                        Confidence
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="bg-[--exec-surface] divide-y divide-[--exec-border-subtle]">
@@ -1005,6 +1110,18 @@ export default function LeadDiscoveryTab() {
                                   title="Send DM"
                                 >
                                   <MessageSquare className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => reVerifyMutation.mutate(lead.id)}
+                                  disabled={reVerifyMutation.isPending || !lead.website || lead.website.includes('google.com/maps')}
+                                  className={cn(
+                                    'p-1.5 rounded-lg transition-colors',
+                                    'text-[--exec-text-muted] hover:text-purple-400 hover:bg-purple-900/30',
+                                    'disabled:opacity-30 disabled:cursor-not-allowed'
+                                  )}
+                                  title="Re-verify: re-scrape website for email & social links"
+                                >
+                                  <RefreshCw className={cn('w-4 h-4', reVerifyMutation.isPending && 'animate-spin')} />
                                 </button>
                                 <button
                                   onClick={() => convertMutation.mutate(lead.id)}
@@ -1138,6 +1255,12 @@ export default function LeadDiscoveryTab() {
                               {lead.niche || '-'}
                             </span>
                           )}
+                        </td>
+                        <td className="px-3 py-3 whitespace-nowrap">
+                          <div className="flex items-center gap-2">
+                            <ConfidenceBadge confidence={lead.confidence} />
+                            <SocialLinks lead={lead} />
+                          </div>
                         </td>
                       </tr>
                     ))}

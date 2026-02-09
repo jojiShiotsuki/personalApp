@@ -685,6 +685,13 @@ export interface StoredLead {
   created_at: string | null;
   is_valid_email: boolean;
   is_duplicate: boolean;
+  confidence: 'high' | 'medium' | 'low' | null;
+  confidence_signals: Record<string, unknown> | null;
+  linkedin_url: string | null;
+  facebook_url: string | null;
+  instagram_url: string | null;
+  email_source: 'scraped' | 'ai_found' | 'manual' | null;
+  last_enriched_at: string | null;
 }
 
 export interface StoredLeadsResponse {
@@ -708,8 +715,22 @@ export const leadDiscoveryApi = {
     return response.data;
   },
 
-  getStats: async (): Promise<{ total_leads: number; with_email: number; without_email: number }> => {
+  getStats: async (): Promise<{ total_leads: number; with_email: number; without_email: number; high_confidence: number; medium_confidence: number }> => {
     const response = await api.get('/api/lead-discovery/stored/stats');
+    return response.data;
+  },
+
+  reVerifyLead: async (leadId: number): Promise<{
+    id: number;
+    email: string | null;
+    linkedin_url: string | null;
+    facebook_url: string | null;
+    instagram_url: string | null;
+    confidence: string;
+    confidence_signals: Record<string, unknown>;
+    last_enriched_at: string;
+  }> => {
+    const response = await api.post(`/api/lead-discovery/stored/${leadId}/re-verify`);
     return response.data;
   },
 

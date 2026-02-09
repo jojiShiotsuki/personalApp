@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from datetime import date
+from datetime import date, datetime
 from urllib.parse import urlparse
 
 from app.database import get_db
@@ -15,7 +15,7 @@ from app.schemas.lead_discovery import (
     clean_lead_data,
     is_valid_email,
 )
-from app.services.gemini_service import find_businesses
+from app.services.gemini_service import find_businesses, re_verify_lead
 
 router = APIRouter(prefix="/api/lead-discovery", tags=["lead-discovery"])
 
@@ -94,7 +94,19 @@ def store_discovered_lead(
         if new_email and new_email.lower() not in ['not listed', 'n/a', 'none', '']:
             if not existing.email or existing.email.lower() in ['not listed', 'n/a', 'none', '']:
                 existing.email = new_email
-                db.commit()
+                existing.email_source = lead_data.get('email_source')
+        # Update enrichment data
+        if lead_data.get('confidence'):
+            existing.confidence = lead_data['confidence']
+            existing.confidence_signals = lead_data.get('confidence_signals')
+        if lead_data.get('linkedin_url'):
+            existing.linkedin_url = lead_data['linkedin_url']
+        if lead_data.get('facebook_url'):
+            existing.facebook_url = lead_data['facebook_url']
+        if lead_data.get('instagram_url'):
+            existing.instagram_url = lead_data['instagram_url']
+        existing.last_enriched_at = datetime.utcnow()
+        db.commit()
         return existing
 
     # Create new record
@@ -107,6 +119,13 @@ def store_discovered_lead(
         niche=lead_data.get('niche') or niche,
         location=location,
         search_query=niche,
+        confidence=lead_data.get('confidence'),
+        confidence_signals=lead_data.get('confidence_signals'),
+        linkedin_url=lead_data.get('linkedin_url'),
+        facebook_url=lead_data.get('facebook_url'),
+        instagram_url=lead_data.get('instagram_url'),
+        email_source=lead_data.get('email_source'),
+        last_enriched_at=datetime.utcnow(),
     )
     db.add(new_lead)
     db.commit()
@@ -226,6 +245,13 @@ async def get_stored_leads(
                 "created_at": lead.created_at.isoformat() if lead.created_at else None,
                 "is_valid_email": is_valid_email(lead.email) if lead.email else False,
                 "is_duplicate": check_duplicate_email(lead.email, db) if lead.email else False,
+                "confidence": lead.confidence,
+                "confidence_signals": lead.confidence_signals,
+                "linkedin_url": lead.linkedin_url,
+                "facebook_url": lead.facebook_url,
+                "instagram_url": lead.instagram_url,
+                "email_source": lead.email_source,
+                "last_enriched_at": lead.last_enriched_at.isoformat() if lead.last_enriched_at else None,
             }
             for lead in leads
         ]
@@ -242,10 +268,19 @@ async def get_stored_leads_stats(db: Session = Depends(get_db)):
         DiscoveredLeadModel.email != 'Not Listed',
     ).count()
 
+    high_confidence = db.query(DiscoveredLeadModel).filter(
+        DiscoveredLeadModel.confidence == 'high'
+    ).count()
+    medium_confidence = db.query(DiscoveredLeadModel).filter(
+        DiscoveredLeadModel.confidence == 'medium'
+    ).count()
+
     return {
         "total_leads": total,
         "with_email": with_email,
         "without_email": total - with_email,
+        "high_confidence": high_confidence,
+        "medium_confidence": medium_confidence,
     }
 
 
@@ -324,6 +359,48 @@ async def bulk_delete_stored_leads(lead_ids: list[int], db: Session = Depends(ge
     db.commit()
 
     return {"message": f"{deleted} leads deleted", "deleted_count": deleted}
+
+
+@router.post("/stored/{lead_id}/re-verify")
+async def re_verify_stored_lead(lead_id: int, db: Session = Depends(get_db)):
+    """Re-scrape a lead's website for updated email and social links."""
+    lead = db.query(DiscoveredLeadModel).filter(DiscoveredLeadModel.id == lead_id).first()
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+
+    if not lead.website or 'google.com/maps' in lead.website:
+        raise HTTPException(status_code=400, detail="Cannot re-verify a Google Maps link")
+
+    result = await re_verify_lead(lead.website, lead.agency_name, lead.niche or '')
+
+    # Update lead with new data
+    if result["email"]:
+        lead.email = result["email"]
+        lead.email_source = "scraped"
+    if result["linkedin_url"]:
+        lead.linkedin_url = result["linkedin_url"]
+    if result["facebook_url"]:
+        lead.facebook_url = result["facebook_url"]
+    if result["instagram_url"]:
+        lead.instagram_url = result["instagram_url"]
+
+    lead.confidence = result["confidence"]
+    lead.confidence_signals = result["confidence_signals"]
+    lead.last_enriched_at = datetime.utcnow()
+
+    db.commit()
+    db.refresh(lead)
+
+    return {
+        "id": lead.id,
+        "email": lead.email,
+        "linkedin_url": lead.linkedin_url,
+        "facebook_url": lead.facebook_url,
+        "instagram_url": lead.instagram_url,
+        "confidence": lead.confidence,
+        "confidence_signals": lead.confidence_signals,
+        "last_enriched_at": lead.last_enriched_at.isoformat() if lead.last_enriched_at else None,
+    }
 
 
 @router.post("/import", response_model=LeadImportResponse)

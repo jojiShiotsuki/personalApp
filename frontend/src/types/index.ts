@@ -805,6 +805,12 @@ export interface DiscoveredLead {
   niche: string | null;
   is_duplicate: boolean;
   is_valid_email: boolean;
+  confidence: 'high' | 'medium' | 'low' | null;
+  confidence_signals: Record<string, unknown> | null;
+  linkedin_url: string | null;
+  facebook_url: string | null;
+  instagram_url: string | null;
+  email_source: 'scraped' | 'ai_found' | 'manual' | null;
 }
 
 export interface LeadSearchRequest {

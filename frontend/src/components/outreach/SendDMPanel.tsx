@@ -20,6 +20,9 @@ export interface SendDMSource {
   email?: string;
   emailStage?: string;
   linkedinStage?: string;
+  linkedinUrl?: string;
+  facebookUrl?: string;
+  instagramUrl?: string;
 }
 
 interface SendDMPanelProps {

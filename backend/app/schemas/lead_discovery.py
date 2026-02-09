@@ -35,6 +35,12 @@ class DiscoveredLead(BaseModel):
     niche: Optional[str] = None
     is_duplicate: bool = False
     is_valid_email: bool = False
+    confidence: Optional[str] = None
+    confidence_signals: Optional[dict] = None
+    linkedin_url: Optional[str] = None
+    facebook_url: Optional[str] = None
+    instagram_url: Optional[str] = None
+    email_source: Optional[str] = None
 
 
 class LeadSearchResponse(BaseModel):
@@ -94,4 +100,10 @@ def clean_lead_data(lead: dict) -> DiscoveredLead:
         niche=lead.get('niche', '').strip() if lead.get('niche') else None,
         is_duplicate=False,
         is_valid_email=email_valid,
+        confidence=lead.get('confidence'),
+        confidence_signals=lead.get('confidence_signals'),
+        linkedin_url=lead.get('linkedin_url'),
+        facebook_url=lead.get('facebook_url'),
+        instagram_url=lead.get('instagram_url'),
+        email_source=lead.get('email_source'),
     )
