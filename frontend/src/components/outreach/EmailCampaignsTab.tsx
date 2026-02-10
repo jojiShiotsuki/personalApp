@@ -26,7 +26,6 @@ import {
   Calendar,
   Clock,
   X,
-  Save,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -181,173 +180,143 @@ function EditProspectModal({
     });
   };
 
+  const inputClasses = cn(
+    'w-full px-4 py-2.5 rounded-xl',
+    'bg-[--exec-surface-alt] border border-[--exec-border]',
+    'text-[--exec-text] placeholder:text-[--exec-text-muted]',
+    'focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]',
+    'transition-all duration-200'
+  );
+
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={onClose}>
-      <div
-        className="bg-[--exec-surface] rounded-2xl shadow-2xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[--exec-border]">
-          <h2 className="text-lg font-bold text-[--exec-text]">Edit Prospect</h2>
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 animate-in fade-in duration-200">
+      <div className="bg-[--exec-surface] rounded-2xl shadow-2xl w-full max-w-lg mx-4 max-h-[85vh] flex flex-col border border-[--exec-border] animate-in zoom-in-95 duration-200">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[--exec-border-subtle]">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center">
+              <Edit2 className="w-5 h-5 text-blue-400" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-[--exec-text]">Edit Prospect</h2>
+              <p className="text-xs text-[--exec-text-muted]">{prospect.agency_name}</p>
+            </div>
+          </div>
           <button
             onClick={onClose}
-            className="text-[--exec-text-muted] hover:text-[--exec-text] p-1 hover:bg-[--exec-surface-alt] rounded-lg transition-colors"
+            className="text-[--exec-text-muted] hover:text-[--exec-text] p-1.5 hover:bg-stone-700/50 rounded-lg transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-[--exec-text-secondary] mb-1.5">Agency Name *</label>
-            <input
-              type="text"
-              required
-              value={form.agency_name}
-              onChange={(e) => setForm({ ...form, agency_name: e.target.value })}
-              className={cn(
-                'w-full px-4 py-2.5 rounded-xl',
-                'bg-[--exec-surface-alt] border border-[--exec-border]',
-                'text-[--exec-text] placeholder:text-[--exec-text-muted]',
-                'focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]',
-                'transition-all duration-200'
-              )}
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
+        {/* Body */}
+        <form onSubmit={handleSubmit} className="flex-1 overflow-auto">
+          <div className="p-6 space-y-5">
             <div>
-              <label className="block text-sm font-medium text-[--exec-text-secondary] mb-1.5">Contact Name</label>
+              <label className="block text-sm font-medium text-[--exec-text-secondary] mb-2">Agency Name</label>
               <input
                 type="text"
-                value={form.contact_name}
-                onChange={(e) => setForm({ ...form, contact_name: e.target.value })}
-                className={cn(
-                  'w-full px-4 py-2.5 rounded-xl',
-                  'bg-[--exec-surface-alt] border border-[--exec-border]',
-                  'text-[--exec-text] placeholder:text-[--exec-text-muted]',
-                  'focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]',
-                  'transition-all duration-200'
-                )}
-                placeholder="John Smith"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-[--exec-text-secondary] mb-1.5">Email *</label>
-              <input
-                type="email"
                 required
-                value={form.email}
-                onChange={(e) => setForm({ ...form, email: e.target.value })}
-                className={cn(
-                  'w-full px-4 py-2.5 rounded-xl',
-                  'bg-[--exec-surface-alt] border border-[--exec-border]',
-                  'text-[--exec-text] placeholder:text-[--exec-text-muted]',
-                  'focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]',
-                  'transition-all duration-200'
-                )}
+                value={form.agency_name}
+                onChange={(e) => setForm({ ...form, agency_name: e.target.value })}
+                className={inputClasses}
               />
             </div>
-          </div>
 
-          <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-[--exec-text-secondary] mb-2">Contact Name</label>
+                <input
+                  type="text"
+                  value={form.contact_name}
+                  onChange={(e) => setForm({ ...form, contact_name: e.target.value })}
+                  className={inputClasses}
+                  placeholder="John Smith"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-[--exec-text-secondary] mb-2">Email</label>
+                <input
+                  type="email"
+                  required
+                  value={form.email}
+                  onChange={(e) => setForm({ ...form, email: e.target.value })}
+                  className={inputClasses}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-[--exec-text-secondary] mb-2">Website</label>
+                <input
+                  type="url"
+                  value={form.website}
+                  onChange={(e) => setForm({ ...form, website: e.target.value })}
+                  className={inputClasses}
+                  placeholder="https://..."
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-[--exec-text-secondary] mb-2">Niche</label>
+                <input
+                  type="text"
+                  value={form.niche}
+                  onChange={(e) => setForm({ ...form, niche: e.target.value })}
+                  className={inputClasses}
+                  placeholder="Roofing, Plumbing, etc."
+                />
+              </div>
+            </div>
+
             <div>
-              <label className="block text-sm font-medium text-[--exec-text-secondary] mb-1.5">Website</label>
-              <input
-                type="url"
-                value={form.website}
-                onChange={(e) => setForm({ ...form, website: e.target.value })}
-                className={cn(
-                  'w-full px-4 py-2.5 rounded-xl',
-                  'bg-[--exec-surface-alt] border border-[--exec-border]',
-                  'text-[--exec-text] placeholder:text-[--exec-text-muted]',
-                  'focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]',
-                  'transition-all duration-200'
-                )}
-                placeholder="https://..."
-              />
+              <label className="block text-sm font-medium text-[--exec-text-secondary] mb-2">Social Links</label>
+              <div className="space-y-2">
+                <input
+                  type="url"
+                  value={form.linkedin_url}
+                  onChange={(e) => setForm({ ...form, linkedin_url: e.target.value })}
+                  className={cn(inputClasses, 'text-sm')}
+                  placeholder="LinkedIn URL"
+                />
+                <input
+                  type="url"
+                  value={form.facebook_url}
+                  onChange={(e) => setForm({ ...form, facebook_url: e.target.value })}
+                  className={cn(inputClasses, 'text-sm')}
+                  placeholder="Facebook URL"
+                />
+                <input
+                  type="url"
+                  value={form.instagram_url}
+                  onChange={(e) => setForm({ ...form, instagram_url: e.target.value })}
+                  className={cn(inputClasses, 'text-sm')}
+                  placeholder="Instagram URL"
+                />
+              </div>
             </div>
+
             <div>
-              <label className="block text-sm font-medium text-[--exec-text-secondary] mb-1.5">Niche</label>
-              <input
-                type="text"
-                value={form.niche}
-                onChange={(e) => setForm({ ...form, niche: e.target.value })}
+              <label className="block text-sm font-medium text-[--exec-text-secondary] mb-2">Notes</label>
+              <textarea
+                value={form.notes}
+                onChange={(e) => setForm({ ...form, notes: e.target.value })}
+                rows={3}
                 className={cn(
                   'w-full px-4 py-2.5 rounded-xl',
                   'bg-[--exec-surface-alt] border border-[--exec-border]',
                   'text-[--exec-text] placeholder:text-[--exec-text-muted]',
                   'focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]',
-                  'transition-all duration-200'
+                  'transition-all text-sm resize-none'
                 )}
-                placeholder="Roofing, Plumbing, etc."
+                placeholder="Add any relevant details about this prospect..."
               />
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-[--exec-text-secondary] mb-1.5">Social Links</label>
-            <div className="space-y-2">
-              <input
-                type="url"
-                value={form.linkedin_url}
-                onChange={(e) => setForm({ ...form, linkedin_url: e.target.value })}
-                className={cn(
-                  'w-full px-4 py-2 rounded-xl text-sm',
-                  'bg-[--exec-surface-alt] border border-[--exec-border]',
-                  'text-[--exec-text] placeholder:text-[--exec-text-muted]',
-                  'focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]',
-                  'transition-all duration-200'
-                )}
-                placeholder="LinkedIn URL"
-              />
-              <input
-                type="url"
-                value={form.facebook_url}
-                onChange={(e) => setForm({ ...form, facebook_url: e.target.value })}
-                className={cn(
-                  'w-full px-4 py-2 rounded-xl text-sm',
-                  'bg-[--exec-surface-alt] border border-[--exec-border]',
-                  'text-[--exec-text] placeholder:text-[--exec-text-muted]',
-                  'focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]',
-                  'transition-all duration-200'
-                )}
-                placeholder="Facebook URL"
-              />
-              <input
-                type="url"
-                value={form.instagram_url}
-                onChange={(e) => setForm({ ...form, instagram_url: e.target.value })}
-                className={cn(
-                  'w-full px-4 py-2 rounded-xl text-sm',
-                  'bg-[--exec-surface-alt] border border-[--exec-border]',
-                  'text-[--exec-text] placeholder:text-[--exec-text-muted]',
-                  'focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]',
-                  'transition-all duration-200'
-                )}
-                placeholder="Instagram URL"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-[--exec-text-secondary] mb-1.5">Notes</label>
-            <textarea
-              value={form.notes}
-              onChange={(e) => setForm({ ...form, notes: e.target.value })}
-              rows={3}
-              className={cn(
-                'w-full px-4 py-2.5 rounded-xl',
-                'bg-[--exec-surface-alt] border border-[--exec-border]',
-                'text-[--exec-text] placeholder:text-[--exec-text-muted]',
-                'focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]',
-                'transition-all duration-200 resize-none'
-              )}
-              placeholder="Notes about this prospect..."
-            />
-          </div>
-
-          <div className="flex items-center justify-between pt-2 border-t border-[--exec-border]">
+          {/* Footer */}
+          <div className="flex items-center justify-between px-6 py-4 border-t border-[--exec-border-subtle]">
             <button
               type="button"
               onClick={() => {
@@ -360,11 +329,16 @@ function EditProspectModal({
               <Trash2 className="w-4 h-4" />
               Delete
             </button>
-            <div className="flex items-center gap-3">
+            <div className="flex gap-3">
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 text-sm text-[--exec-text-secondary] hover:bg-[--exec-surface-alt] rounded-xl transition-colors"
+                className={cn(
+                  'px-5 py-2.5 rounded-xl font-medium',
+                  'bg-slate-600/50 text-slate-300',
+                  'hover:bg-slate-500 hover:text-white hover:scale-105',
+                  'active:scale-95 transition-all duration-200'
+                )}
               >
                 Cancel
               </button>
@@ -372,12 +346,13 @@ function EditProspectModal({
                 type="submit"
                 disabled={isSaving}
                 className={cn(
-                  'flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium text-white transition-all duration-200',
-                  'hover:brightness-110 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed'
+                  'px-5 py-2.5 rounded-xl font-medium',
+                  'bg-[--exec-accent] text-white',
+                  'hover:brightness-110 hover:scale-105 hover:shadow-lg',
+                  'active:scale-95 transition-all duration-200',
+                  'disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100'
                 )}
-                style={{ backgroundColor: 'var(--exec-accent)' }}
               >
-                <Save className="w-4 h-4" />
                 {isSaving ? 'Saving...' : 'Save Changes'}
               </button>
             </div>

@@ -272,37 +272,91 @@ className="bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emera
 
 ### Modals
 
+All modals in this app follow the same design pattern using CSS custom properties (`--exec-*` variables). **Always** use this pattern for consistency.
+
 ```tsx
-<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-  <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-lg mx-4 animate-in zoom-in-95 duration-200">
-    {/* Header */}
-    <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-slate-700">
-      <h2 className="text-xl font-bold text-gray-900 dark:text-white">Modal Title</h2>
-      <button className="text-gray-400 hover:text-gray-600 dark:hover:text-slate-300 p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
+// Backdrop: semi-transparent black with blur
+<div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 animate-in fade-in duration-200">
+  {/* Container: rounded card with border + zoom animation */}
+  <div className="bg-[--exec-surface] rounded-2xl shadow-2xl w-full max-w-md mx-4 border border-[--exec-border] animate-in zoom-in-95 duration-200">
+
+    {/* Header with icon, title, subtitle, and close button */}
+    <div className="flex items-center justify-between px-6 py-4 border-b border-[--exec-border-subtle]">
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center">
+          <IconName className="w-5 h-5 text-blue-400" />
+        </div>
+        <div>
+          <h2 className="text-lg font-semibold text-[--exec-text]">Modal Title</h2>
+          <p className="text-xs text-[--exec-text-muted]">Subtitle or context</p>
+        </div>
+      </div>
+      <button
+        onClick={onClose}
+        className="text-[--exec-text-muted] hover:text-[--exec-text] p-1.5 hover:bg-stone-700/50 rounded-lg transition-colors"
+      >
         <X className="w-5 h-5" />
       </button>
     </div>
 
     {/* Body */}
     <div className="p-6">
-      <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">
+      <label className="block text-sm font-medium text-[--exec-text-secondary] mb-2">
         Label
       </label>
-      {/* Form fields */}
+      <input
+        className={cn(
+          'w-full px-4 py-2.5 rounded-xl',
+          'bg-[--exec-surface-alt] border border-[--exec-border]',
+          'text-[--exec-text] placeholder:text-[--exec-text-muted]',
+          'focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]',
+          'transition-all duration-200'
+        )}
+      />
+      {/* Textarea uses same pattern but add: text-sm resize-none */}
     </div>
 
     {/* Footer */}
-    <div className="flex gap-3 justify-end px-6 py-4 border-t border-gray-100 dark:border-slate-700">
-      <button className="px-4 py-2 text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 rounded-xl transition-colors">
+    <div className="flex gap-3 justify-end px-6 py-4 border-t border-[--exec-border-subtle]">
+      {/* Cancel Button */}
+      <button
+        className={cn(
+          'px-5 py-2.5 rounded-xl font-medium',
+          'bg-slate-600/50 text-slate-300',
+          'hover:bg-slate-500 hover:text-white hover:scale-105',
+          'active:scale-95 transition-all duration-200'
+        )}
+      >
         Cancel
       </button>
-      <button className="px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors">
+      {/* Primary Action Button */}
+      <button
+        className={cn(
+          'px-5 py-2.5 rounded-xl font-medium',
+          'bg-[--exec-accent] text-white',
+          'hover:brightness-110 hover:scale-105 hover:shadow-lg',
+          'active:scale-95 transition-all duration-200',
+          'disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100'
+        )}
+      >
         Confirm
       </button>
     </div>
   </div>
 </div>
 ```
+
+**Key modal rules:**
+- Backdrop: `bg-black/50 backdrop-blur-sm` (NOT `bg-black/60` or `bg-opacity-50`)
+- Container border: `border border-[--exec-border]` (always include)
+- Entry animations: `animate-in zoom-in-95 duration-200` on container, `animate-in fade-in duration-200` on backdrop
+- Header title: `font-semibold` (NOT `font-bold`)
+- Labels: `text-sm font-medium text-[--exec-text-secondary] mb-2`
+- Footer border: `border-t border-[--exec-border-subtle]`
+- Cancel button: `bg-slate-600/50 text-slate-300` with hover scale
+- Primary button: `bg-[--exec-accent] text-white` with hover brightness + scale
+- For scrollable content: add `max-h-[85vh] flex flex-col` on container, `flex-1 overflow-auto` on body
+- For wider modals: use `max-w-lg` or `max-w-2xl` instead of `max-w-md`
 
 ### Empty States
 
