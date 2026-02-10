@@ -105,7 +105,7 @@ class OutreachProspect(Base):
     contact_name = Column(String(255), nullable=True)
     email = Column(String(255), nullable=False)
     website = Column(String(500), nullable=True)
-    niche = Column(String(100), nullable=True)
+    niche = Column(String(500), nullable=True)
     custom_fields = Column(JSON, nullable=True)
     status = Column(Enum(ProspectStatus), default=ProspectStatus.QUEUED)
     current_step = Column(Integer, default=1)
