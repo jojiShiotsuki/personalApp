@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { leadDiscoveryApi, coldOutreachApi, StoredLead } from '@/lib/api';
 import type {
@@ -168,9 +169,16 @@ function CampaignSelectModal({
     campaigns.length > 0 ? campaigns[0].id : null
   );
 
+  // Sync selectedId when campaigns load after initial render
+  useEffect(() => {
+    if (selectedId === null && campaigns.length > 0) {
+      setSelectedId(campaigns[0].id);
+    }
+  }, [campaigns, selectedId]);
+
   if (!isOpen) return null;
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
       <div className="bg-[--exec-surface] rounded-2xl shadow-2xl w-full max-w-md mx-4 border border-stone-600/40">
         {/* Header */}
@@ -251,7 +259,8 @@ function CampaignSelectModal({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -272,6 +281,7 @@ export default function LeadDiscoveryTab() {
 
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isBulkImportModalOpen, setIsBulkImportModalOpen] = useState(false);
 
   // Editing state (for search results)
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
@@ -355,6 +365,26 @@ export default function LeadDiscoveryTab() {
     },
     onError: () => {
       toast.error('Failed to delete leads');
+    },
+  });
+
+  // Bulk import to campaign mutation
+  const bulkImportMutation = useMutation({
+    mutationFn: leadDiscoveryApi.bulkImportToCampaign,
+    onSuccess: (data) => {
+      let msg = `${data.imported_count} leads imported to campaign`;
+      if (data.skipped_count > 0) {
+        msg += ` (${data.skipped_count} skipped)`;
+      }
+      toast.success(msg);
+      setSelectedLeadIds(new Set());
+      setIsBulkImportModalOpen(false);
+      queryClient.invalidateQueries({ queryKey: ['stored-leads'] });
+      queryClient.invalidateQueries({ queryKey: ['outreach-campaigns'] });
+      queryClient.invalidateQueries({ queryKey: ['outreach-prospects'] });
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.detail || 'Failed to import leads');
     },
   });
 
@@ -997,8 +1027,8 @@ export default function LeadDiscoveryTab() {
           <div>
             {/* Bulk Action Bar */}
             {selectedLeadIds.size > 0 && (
-              <div className="flex items-center justify-between px-4 py-3 mb-3 bg-red-900/20 border border-red-800/40 rounded-xl">
-                <span className="text-sm font-medium text-red-400">
+              <div className="flex items-center justify-between px-4 py-3 mb-3 bg-slate-800/50 border border-slate-600/40 rounded-xl">
+                <span className="text-sm font-medium text-blue-400">
                   {selectedLeadIds.size} lead{selectedLeadIds.size !== 1 ? 's' : ''} selected
                 </span>
                 <div className="flex items-center gap-2">
@@ -1007,6 +1037,18 @@ export default function LeadDiscoveryTab() {
                     className="px-3 py-1.5 text-sm text-[--exec-text-secondary] hover:bg-stone-700/50 rounded-lg transition-colors"
                   >
                     Clear
+                  </button>
+                  <button
+                    onClick={() => setIsBulkImportModalOpen(true)}
+                    disabled={bulkImportMutation.isPending}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+                  >
+                    {bulkImportMutation.isPending ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Mail className="w-3.5 h-3.5" />
+                    )}
+                    Add to Campaign
                   </button>
                   <button
                     onClick={handleBulkDelete}
@@ -1298,6 +1340,21 @@ export default function LeadDiscoveryTab() {
         validCount={validForImport}
         onSelect={handleImport}
         isImporting={importMutation.isPending}
+      />
+
+      {/* Bulk Import to Campaign Modal */}
+      <CampaignSelectModal
+        isOpen={isBulkImportModalOpen}
+        onClose={() => setIsBulkImportModalOpen(false)}
+        campaigns={campaigns}
+        validCount={selectedLeadIds.size}
+        onSelect={(campaignId) => {
+          bulkImportMutation.mutate({
+            lead_ids: Array.from(selectedLeadIds),
+            campaign_id: campaignId,
+          });
+        }}
+        isImporting={bulkImportMutation.isPending}
       />
 
       {/* Send DM Panel */}

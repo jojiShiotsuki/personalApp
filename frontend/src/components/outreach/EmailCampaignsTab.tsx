@@ -20,6 +20,11 @@ import {
   ChevronDown,
   Edit2,
   Trash2,
+  Globe,
+  MapPin,
+  Linkedin,
+  Calendar,
+  Clock,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -29,7 +34,7 @@ import ResponseOutcomeModal from '@/components/ResponseOutcomeModal';
 import NewCampaignModal from '@/components/NewCampaignModal';
 import EmailTemplatesModal from '@/components/EmailTemplatesModal';
 
-type TabType = 'today' | 'all' | 'replied';
+type TabType = 'today' | 'sent' | 'all' | 'replied';
 
 // Status badge component for prospects
 function StatusBadge({ status }: { status: ProspectStatus }) {
@@ -70,6 +75,65 @@ function StatusBadge({ status }: { status: ProspectStatus }) {
   );
 }
 
+// Shared icon links for prospects (website, GMB, social)
+function ProspectLinks({ prospect, size = 'sm' }: { prospect: OutreachProspect; size?: 'sm' | 'xs' }) {
+  const iconSize = size === 'sm' ? 'w-3.5 h-3.5' : 'w-3 h-3';
+  const btnClass = cn(
+    'inline-flex items-center justify-center rounded-md transition-colors',
+    size === 'sm' ? 'w-7 h-7' : 'w-6 h-6',
+    'text-[--exec-text-muted] hover:text-[--exec-text] hover:bg-[--exec-surface-alt]'
+  );
+
+  const gmbUrl = `https://www.google.com/maps/search/${encodeURIComponent(prospect.agency_name)}`;
+
+  const hasAnyLink = prospect.website || prospect.linkedin_url || prospect.facebook_url || prospect.instagram_url;
+
+  if (!hasAnyLink) {
+    return (
+      <div className="flex items-center gap-1">
+        <a href={gmbUrl} target="_blank" rel="noopener noreferrer" className={btnClass} title="Google Maps">
+          <MapPin className={iconSize} />
+        </a>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-1">
+      {prospect.website && (
+        <a href={prospect.website.startsWith('http') ? prospect.website : `https://${prospect.website}`} target="_blank" rel="noopener noreferrer" className={btnClass} title="Website">
+          <Globe className={iconSize} />
+        </a>
+      )}
+      <a href={gmbUrl} target="_blank" rel="noopener noreferrer" className={btnClass} title="Google Maps">
+        <MapPin className={iconSize} />
+      </a>
+      {prospect.linkedin_url && (
+        <a href={prospect.linkedin_url} target="_blank" rel="noopener noreferrer" className={cn(btnClass, 'hover:text-blue-400')} title="LinkedIn">
+          <Linkedin className={iconSize} />
+        </a>
+      )}
+      {prospect.facebook_url && (
+        <a href={prospect.facebook_url} target="_blank" rel="noopener noreferrer" className={cn(btnClass, 'hover:text-blue-500')} title="Facebook">
+          <svg className={iconSize} viewBox="0 0 24 24" fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+        </a>
+      )}
+      {prospect.instagram_url && (
+        <a href={prospect.instagram_url} target="_blank" rel="noopener noreferrer" className={cn(btnClass, 'hover:text-pink-400')} title="Instagram">
+          <svg className={iconSize} viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C16.67.014 16.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
+        </a>
+      )}
+    </div>
+  );
+}
+
+// Format a date string for display
+function formatShortDate(dateStr?: string | null): string | null {
+  if (!dateStr) return null;
+  const d = new Date(dateStr);
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
 // Prospect card component for the Today queue
 function ProspectCard({
   prospect,
@@ -87,29 +151,54 @@ function ProspectCard({
       <div className="bento-card p-5 hover:shadow-lg transition-all duration-200">
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-2">
+            <div className="flex items-center gap-2 mb-1">
               <div
                 className={cn(
-                  'w-2.5 h-2.5 rounded-full',
+                  'w-2.5 h-2.5 rounded-full flex-shrink-0',
                   isFollowUp ? 'bg-blue-500' : 'bg-green-500'
                 )}
               />
               <h3 className="font-semibold text-[--exec-text] truncate">
                 {prospect.agency_name}
               </h3>
-              <span className="text-xs text-[--exec-text-muted] px-2 py-0.5 bg-[--exec-surface-alt] rounded-full">
-                Step {prospect.current_step}
+              <span className="text-xs text-[--exec-text-muted] px-2 py-0.5 bg-[--exec-surface-alt] rounded-full flex-shrink-0">
+                Step {prospect.current_step}/5
               </span>
             </div>
+
+            {prospect.contact_name && (
+              <p className="text-xs text-[--exec-text-muted] ml-[18px] mb-1">
+                {prospect.contact_name}
+              </p>
+            )}
 
             <p className="text-sm text-[--exec-text-secondary] truncate mb-1">
               {prospect.email}
             </p>
 
             {prospect.niche && (
-              <p className="text-xs text-[--exec-text-muted]">
+              <p className="text-xs text-[--exec-text-muted] mb-2">
                 {prospect.niche}
               </p>
+            )}
+
+            <ProspectLinks prospect={prospect} size="sm" />
+
+            {(prospect.last_contacted_at || prospect.next_action_date) && (
+              <div className="flex items-center gap-3 mt-2 text-xs text-[--exec-text-muted]">
+                {prospect.last_contacted_at && (
+                  <span className="flex items-center gap-1">
+                    <Clock className="w-3 h-3" />
+                    Sent {formatShortDate(prospect.last_contacted_at)}
+                  </span>
+                )}
+                {prospect.next_action_date && (
+                  <span className="flex items-center gap-1">
+                    <Calendar className="w-3 h-3" />
+                    Next {formatShortDate(prospect.next_action_date)}
+                  </span>
+                )}
+              </div>
             )}
           </div>
 
@@ -211,6 +300,126 @@ function TodayQueue({
   );
 }
 
+// Single sent prospect card with its own modal state
+function SentProspectCard({ prospect }: { prospect: OutreachProspect }) {
+  const [isResponseModalOpen, setIsResponseModalOpen] = useState(false);
+
+  const daysUntilNext = prospect.next_action_date
+    ? Math.ceil((new Date(prospect.next_action_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+    : null;
+
+  return (
+    <>
+      <div className="bento-card p-5">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+              <div className="w-2.5 h-2.5 rounded-full bg-blue-500 flex-shrink-0" />
+              <h3 className="font-semibold text-[--exec-text] truncate">
+                {prospect.agency_name}
+              </h3>
+              <span className="text-xs text-[--exec-text-muted] px-2 py-0.5 bg-[--exec-surface-alt] rounded-full flex-shrink-0">
+                Step {prospect.current_step}/5
+              </span>
+            </div>
+
+            {prospect.contact_name && (
+              <p className="text-xs text-[--exec-text-muted] ml-[18px] mb-1">
+                {prospect.contact_name}
+              </p>
+            )}
+
+            <p className="text-sm text-[--exec-text-secondary] truncate mb-1">
+              {prospect.email}
+            </p>
+
+            {prospect.niche && (
+              <p className="text-xs text-[--exec-text-muted] mb-2">
+                {prospect.niche}
+              </p>
+            )}
+
+            <ProspectLinks prospect={prospect} size="sm" />
+
+            <div className="flex items-center gap-3 mt-2 text-xs text-[--exec-text-muted]">
+              {prospect.last_contacted_at && (
+                <span className="flex items-center gap-1">
+                  <Clock className="w-3 h-3" />
+                  Sent {formatShortDate(prospect.last_contacted_at)}
+                </span>
+              )}
+              {prospect.next_action_date && (
+                <span className={cn(
+                  'flex items-center gap-1',
+                  daysUntilNext !== null && daysUntilNext <= 0 && 'text-amber-400'
+                )}>
+                  <Calendar className="w-3 h-3" />
+                  {daysUntilNext !== null && daysUntilNext <= 0
+                    ? 'Follow-up due!'
+                    : `Follow-up in ${daysUntilNext} day${daysUntilNext === 1 ? '' : 's'}`
+                  }
+                </span>
+              )}
+            </div>
+          </div>
+
+          <StatusBadge status={prospect.status} />
+        </div>
+
+        <div className="flex items-center gap-2 mt-4 pt-4 border-t border-[--exec-border-subtle]">
+          <button
+            onClick={() => setIsResponseModalOpen(true)}
+            className={cn(
+              'flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200',
+              'bg-green-600 text-white',
+              'hover:bg-green-500 hover:scale-105 hover:shadow-lg',
+              'active:scale-95'
+            )}
+          >
+            <MessageSquare className="w-4 h-4" />
+            They Replied
+          </button>
+        </div>
+      </div>
+
+      <ResponseOutcomeModal
+        isOpen={isResponseModalOpen}
+        onClose={() => setIsResponseModalOpen(false)}
+        prospect={prospect}
+      />
+    </>
+  );
+}
+
+// Sent / Waiting Prospects component - shows IN_SEQUENCE prospects
+function SentProspects({ prospects }: { prospects: OutreachProspect[] }) {
+  const sentProspects = prospects.filter(
+    (p) => p.status === ProspectStatus.IN_SEQUENCE
+  );
+
+  if (sentProspects.length === 0) {
+    return (
+      <div className="bento-card p-12 text-center">
+        <Send className="w-12 h-12 text-[--exec-text-muted] mx-auto mb-4" />
+        <h3 className="text-lg font-medium text-[--exec-text] mb-2">
+          No emails sent yet
+        </h3>
+        <p className="text-[--exec-text-muted]">
+          Mark prospects as sent from the Today queue to see them here.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      {sentProspects.map((prospect) => (
+        <SentProspectCard key={prospect.id} prospect={prospect} />
+      ))}
+    </div>
+  );
+}
+
 // All Prospects table component
 function AllProspects({
   prospects,
@@ -264,17 +473,27 @@ function AllProspects({
         <tbody className="bg-[--exec-surface] divide-y divide-[--exec-border-subtle]">
           {prospects.map((prospect) => (
             <tr key={prospect.id} className="hover:bg-[--exec-surface-alt] transition-colors">
-              <td className="px-6 py-4 whitespace-nowrap">
+              <td className="px-6 py-4">
                 <div className="flex items-center gap-2">
                   <div
                     className={cn(
-                      'w-2 h-2 rounded-full',
+                      'w-2 h-2 rounded-full flex-shrink-0',
                       prospect.current_step > 1 ? 'bg-blue-500' : 'bg-green-500'
                     )}
                   />
-                  <span className="text-sm font-medium text-[--exec-text]">
-                    {prospect.agency_name}
-                  </span>
+                  <div className="min-w-0">
+                    <span className="text-sm font-medium text-[--exec-text] block truncate">
+                      {prospect.agency_name}
+                    </span>
+                    {prospect.contact_name && (
+                      <span className="text-xs text-[--exec-text-muted] block truncate">
+                        {prospect.contact_name}
+                      </span>
+                    )}
+                    <div className="mt-1">
+                      <ProspectLinks prospect={prospect} size="xs" />
+                    </div>
+                  </div>
                 </div>
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm text-[--exec-text-secondary]">
@@ -284,15 +503,23 @@ function AllProspects({
                 {prospect.niche || '-'}
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm text-[--exec-text-secondary]">
-                {prospect.current_step}
+                {prospect.current_step}/5
               </td>
               <td className="px-6 py-4 whitespace-nowrap">
                 <StatusBadge status={prospect.status} />
               </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-[--exec-text-muted]">
-                {prospect.next_action_date
-                  ? new Date(prospect.next_action_date).toLocaleDateString()
-                  : '-'}
+              <td className="px-6 py-4 whitespace-nowrap">
+                <div className="text-sm text-[--exec-text-muted]">
+                  {prospect.next_action_date
+                    ? new Date(prospect.next_action_date).toLocaleDateString()
+                    : '-'}
+                </div>
+                {prospect.last_contacted_at && (
+                  <div className="text-xs text-[--exec-text-muted] mt-0.5 flex items-center gap-1">
+                    <Clock className="w-3 h-3" />
+                    Sent {formatShortDate(prospect.last_contacted_at)}
+                  </div>
+                )}
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-right">
                 {prospect.status === ProspectStatus.IN_SEQUENCE && (
@@ -347,15 +574,34 @@ function RepliedProspects({ prospects }: { prospects: OutreachProspect[] }) {
         <div key={prospect.id} className="bento-card p-5">
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1 min-w-0">
-              <h3 className="font-semibold text-[--exec-text] truncate mb-1">
-                {prospect.agency_name}
-              </h3>
+              <div className="flex items-center gap-2 mb-1">
+                <h3 className="font-semibold text-[--exec-text] truncate">
+                  {prospect.agency_name}
+                </h3>
+              </div>
+              {prospect.contact_name && (
+                <p className="text-xs text-[--exec-text-muted] mb-1">
+                  {prospect.contact_name}
+                </p>
+              )}
               <p className="text-sm text-[--exec-text-secondary] truncate mb-2">
                 {prospect.email}
               </p>
+              {prospect.niche && (
+                <p className="text-xs text-[--exec-text-muted] mb-2">
+                  {prospect.niche}
+                </p>
+              )}
+              <ProspectLinks prospect={prospect} size="sm" />
               {prospect.notes && (
-                <p className="text-xs text-[--exec-text-muted] line-clamp-2">
+                <p className="text-xs text-[--exec-text-muted] line-clamp-2 mt-2">
                   {prospect.notes}
+                </p>
+              )}
+              {prospect.last_contacted_at && (
+                <p className="text-xs text-[--exec-text-muted] mt-2 flex items-center gap-1">
+                  <Clock className="w-3 h-3" />
+                  Last sent {formatShortDate(prospect.last_contacted_at)}
                 </p>
               )}
             </div>
@@ -400,7 +646,7 @@ export default function EmailCampaignsTab() {
   const { data: allProspects = [] } = useQuery<OutreachProspect[]>({
     queryKey: ['outreach-prospects', selectedCampaignId],
     queryFn: () => coldOutreachApi.getProspects(selectedCampaignId!),
-    enabled: !!selectedCampaignId && (activeTab === 'all' || activeTab === 'replied'),
+    enabled: !!selectedCampaignId && (activeTab === 'all' || activeTab === 'replied' || activeTab === 'sent'),
   });
 
   // Mutations
@@ -667,6 +913,11 @@ export default function EmailCampaignsTab() {
                     {stats.converted}
                   </p>
                   <p className="text-xs text-[--exec-text-muted]">Converted</p>
+                  {stats.total_pipeline_value > 0 && (
+                    <p className="text-xs font-medium text-green-400 mt-0.5">
+                      ${stats.total_pipeline_value.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })} pipeline
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
@@ -677,7 +928,7 @@ export default function EmailCampaignsTab() {
         {selectedCampaignId && (
           <div className="mb-6">
             <div className="flex items-center gap-1">
-              {(['today', 'all', 'replied'] as const).map((tab) => (
+              {(['today', 'sent', 'all', 'replied'] as const).map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
@@ -690,6 +941,7 @@ export default function EmailCampaignsTab() {
                   style={activeTab === tab ? { backgroundColor: 'var(--exec-accent)' } : undefined}
                 >
                   {tab === 'today' && 'Today'}
+                  {tab === 'sent' && 'Sent'}
                   {tab === 'all' && 'All Prospects'}
                   {tab === 'replied' && 'Replied'}
                 </button>
@@ -707,6 +959,7 @@ export default function EmailCampaignsTab() {
                 onMarkSent={handleMarkSent}
               />
             )}
+            {activeTab === 'sent' && <SentProspects prospects={allProspects} />}
             {activeTab === 'all' && (
               <AllProspects prospects={allProspects} onMarkSent={handleMarkSent} />
             )}

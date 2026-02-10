@@ -116,7 +116,18 @@ class OutreachProspect(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
+    # Social links (copied from discovered lead during import)
+    linkedin_url = Column(String(500), nullable=True)
+    facebook_url = Column(String(500), nullable=True)
+    instagram_url = Column(String(500), nullable=True)
+
+    # Link back to discovered lead and conversion tracking
+    discovered_lead_id = Column(Integer, ForeignKey("discovered_leads.id", ondelete="SET NULL"), nullable=True)
+    converted_contact_id = Column(Integer, ForeignKey("crm_contacts.id", ondelete="SET NULL"), nullable=True)
+    converted_deal_id = Column(Integer, ForeignKey("crm_deals.id", ondelete="SET NULL"), nullable=True)
+
     campaign = relationship("OutreachCampaign", back_populates="prospects")
+    discovered_lead = relationship("DiscoveredLead", foreign_keys=[discovered_lead_id])
 
     def __repr__(self):
         return f"<OutreachProspect(id={self.id}, agency_name={self.agency_name}, status={self.status})>"

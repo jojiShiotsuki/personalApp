@@ -748,6 +748,15 @@ export const leadDiscoveryApi = {
     return response.data;
   },
 
+  bulkImportToCampaign: async (data: { lead_ids: number[]; campaign_id: number }): Promise<{
+    imported_count: number;
+    skipped_count: number;
+    skipped_reasons: string[];
+  }> => {
+    const response = await api.post('/api/lead-discovery/stored/bulk-import-to-campaign', data);
+    return response.data;
+  },
+
   updateStoredLead: async (leadId: number, data: { agency_name?: string; contact_name?: string; email?: string; website?: string; niche?: string }): Promise<StoredLead> => {
     const params = new URLSearchParams();
     if (data.agency_name) params.append('agency_name', data.agency_name);

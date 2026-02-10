@@ -184,6 +184,12 @@ class ProspectResponse(ProspectBase):
     last_contacted_at: Optional[datetime]
     response_type: Optional[ResponseType]
     notes: Optional[str]
+    discovered_lead_id: Optional[int] = None
+    converted_contact_id: Optional[int] = None
+    converted_deal_id: Optional[int] = None
+    linkedin_url: Optional[str] = None
+    facebook_url: Optional[str] = None
+    instagram_url: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 

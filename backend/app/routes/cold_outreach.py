@@ -48,9 +48,16 @@ def get_campaign_stats(campaign: OutreachCampaign, db: Session) -> CampaignStats
     response_rate = ((replied + not_interested + converted) / contacted * 100) if contacted > 0 else 0.0
 
     # Total pipeline value from converted prospects
-    # This would require joining with deals - for now we'll set to 0
-    # In a real implementation, you'd track deal_id on converted prospects
     total_pipeline_value = 0.0
+    converted_deal_ids = [
+        p.converted_deal_id for p in prospects
+        if p.converted_deal_id is not None
+    ]
+    if converted_deal_ids:
+        pipeline_sum = db.query(func.coalesce(func.sum(Deal.value), 0)).filter(
+            Deal.id.in_(converted_deal_ids)
+        ).scalar()
+        total_pipeline_value = float(pipeline_sum or 0)
 
     return CampaignStats(
         total_prospects=total,
@@ -401,7 +408,7 @@ def mark_replied(prospect_id: int, data: MarkRepliedRequest, db: Session = Depen
             name=prospect.agency_name,
             email=prospect.email,
             company=prospect.agency_name,
-            source="Cold Outreach",
+            source=f"Cold Outreach - {prospect.campaign.name}",
             status=ContactStatus.LEAD,
             notes=f"Converted from cold outreach campaign.\nNiche: {prospect.niche or 'N/A'}\nWebsite: {prospect.website or 'N/A'}"
         )
@@ -421,6 +428,10 @@ def mark_replied(prospect_id: int, data: MarkRepliedRequest, db: Session = Depen
         db.flush()
 
         deal_id = deal.id
+
+        # Store conversion references on prospect
+        prospect.converted_contact_id = contact.id
+        prospect.converted_deal_id = deal.id
 
         # Create Interaction
         interaction = Interaction(

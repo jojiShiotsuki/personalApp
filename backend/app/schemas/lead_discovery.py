@@ -62,6 +62,19 @@ class LeadImportResponse(BaseModel):
     campaign_name: str
 
 
+class BulkImportToCampaignRequest(BaseModel):
+    """Request to bulk import saved leads to a campaign."""
+    lead_ids: list[int]
+    campaign_id: int
+
+
+class BulkImportToCampaignResponse(BaseModel):
+    """Response from bulk import."""
+    imported_count: int
+    skipped_count: int
+    skipped_reasons: list[str]
+
+
 # Email validation regex
 EMAIL_REGEX = re.compile(r'^[^\s@]+@[^\s@]+\.[^\s@]+$')
 
