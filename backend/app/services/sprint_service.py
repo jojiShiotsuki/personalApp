@@ -343,6 +343,16 @@ def build_sprint_response(db: Session, sprint: Sprint) -> SprintResponse:
     current_day = sprint.current_day
     current_week = sprint.current_week
 
+    # Recalculate completion for all days (fixes stale is_complete values)
+    changed = False
+    for day in sprint.days:
+        old_val = day.is_complete
+        day.check_completion()
+        if day.is_complete != old_val:
+            changed = True
+    if changed:
+        db.commit()
+
     # Build week summaries
     weeks = []
     for week_num in range(1, 5):

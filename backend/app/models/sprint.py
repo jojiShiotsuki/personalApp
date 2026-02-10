@@ -242,11 +242,20 @@ class SprintDay(Base):
         self.tasks = json.dumps(tasks)
 
     def check_completion(self) -> bool:
-        """Check if all tasks are completed (using real Task entities)."""
+        """Check if all tasks are completed (real Task entities + JSON tasks)."""
         from app.models.task import TaskStatus
-        if not self.sprint_tasks:
+
+        has_real_tasks = bool(self.sprint_tasks)
+        json_tasks = self.get_tasks_list()
+        has_json_tasks = bool(json_tasks)
+
+        if not has_real_tasks and not has_json_tasks:
             return False
-        self.is_complete = all(t.status == TaskStatus.COMPLETED for t in self.sprint_tasks)
+
+        real_complete = all(t.status == TaskStatus.COMPLETED for t in self.sprint_tasks) if has_real_tasks else True
+        json_complete = all(t.get("completed", False) for t in json_tasks) if has_json_tasks else True
+
+        self.is_complete = real_complete and json_complete
         return self.is_complete
 
     def __repr__(self):
