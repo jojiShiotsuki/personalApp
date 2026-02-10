@@ -366,72 +366,82 @@ async def bulk_delete_stored_leads(lead_ids: list[int], db: Session = Depends(ge
 @router.post("/stored/bulk-import-to-campaign", response_model=BulkImportToCampaignResponse)
 async def bulk_import_to_campaign(request: BulkImportToCampaignRequest, db: Session = Depends(get_db)):
     """Import multiple saved leads into an outreach campaign."""
-    # Verify campaign exists
-    campaign = db.query(OutreachCampaign).filter(
-        OutreachCampaign.id == request.campaign_id
-    ).first()
-    if not campaign:
-        raise HTTPException(status_code=404, detail="Campaign not found")
+    import logging
+    logger = logging.getLogger(__name__)
 
-    # Fetch all requested leads
-    leads = db.query(DiscoveredLeadModel).filter(
-        DiscoveredLeadModel.id.in_(request.lead_ids)
-    ).all()
+    try:
+        # Verify campaign exists
+        campaign = db.query(OutreachCampaign).filter(
+            OutreachCampaign.id == request.campaign_id
+        ).first()
+        if not campaign:
+            raise HTTPException(status_code=404, detail="Campaign not found")
 
-    # Get existing emails in this campaign for dedup
-    existing_emails = {
-        p.email.lower()
-        for p in db.query(OutreachProspect).filter(
-            OutreachProspect.campaign_id == request.campaign_id
+        # Fetch all requested leads
+        leads = db.query(DiscoveredLeadModel).filter(
+            DiscoveredLeadModel.id.in_(request.lead_ids)
         ).all()
-        if p.email
-    }
 
-    imported_count = 0
-    skipped_count = 0
-    skipped_reasons = []
-    today = date.today()
+        # Get existing emails in this campaign for dedup
+        existing_emails = {
+            p.email.lower()
+            for p in db.query(OutreachProspect).filter(
+                OutreachProspect.campaign_id == request.campaign_id
+            ).all()
+            if p.email
+        }
 
-    for lead in leads:
-        # Check email validity
-        if not lead.email or not is_valid_email(lead.email):
-            skipped_count += 1
-            skipped_reasons.append(f"{lead.agency_name}: no valid email")
-            continue
+        imported_count = 0
+        skipped_count = 0
+        skipped_reasons = []
+        today = date.today()
 
-        # Check for duplicates in campaign
-        if lead.email.lower() in existing_emails:
-            skipped_count += 1
-            skipped_reasons.append(f"{lead.agency_name}: already in campaign")
-            continue
+        for lead in leads:
+            # Check email validity
+            if not lead.email or not is_valid_email(lead.email):
+                skipped_count += 1
+                skipped_reasons.append(f"{lead.agency_name}: no valid email")
+                continue
 
-        # Create prospect
-        prospect = OutreachProspect(
-            campaign_id=request.campaign_id,
-            agency_name=lead.agency_name,
-            contact_name=lead.contact_name,
-            email=lead.email,
-            website=lead.website,
-            niche=lead.niche,
-            status=ProspectStatus.QUEUED,
-            current_step=1,
-            next_action_date=today,
-            discovered_lead_id=lead.id,
-            linkedin_url=lead.linkedin_url,
-            facebook_url=lead.facebook_url,
-            instagram_url=lead.instagram_url,
+            # Check for duplicates in campaign
+            if lead.email.lower() in existing_emails:
+                skipped_count += 1
+                skipped_reasons.append(f"{lead.agency_name}: already in campaign")
+                continue
+
+            # Create prospect
+            prospect = OutreachProspect(
+                campaign_id=request.campaign_id,
+                agency_name=lead.agency_name,
+                contact_name=lead.contact_name,
+                email=lead.email,
+                website=lead.website,
+                niche=lead.niche,
+                status=ProspectStatus.QUEUED,
+                current_step=1,
+                next_action_date=today,
+                discovered_lead_id=lead.id,
+                linkedin_url=lead.linkedin_url,
+                facebook_url=lead.facebook_url,
+                instagram_url=lead.instagram_url,
+            )
+            db.add(prospect)
+            existing_emails.add(lead.email.lower())
+            imported_count += 1
+
+        db.commit()
+
+        return BulkImportToCampaignResponse(
+            imported_count=imported_count,
+            skipped_count=skipped_count,
+            skipped_reasons=skipped_reasons,
         )
-        db.add(prospect)
-        existing_emails.add(lead.email.lower())
-        imported_count += 1
-
-    db.commit()
-
-    return BulkImportToCampaignResponse(
-        imported_count=imported_count,
-        skipped_count=skipped_count,
-        skipped_reasons=skipped_reasons,
-    )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Bulk import failed: {e}", exc_info=True)
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Import failed: {str(e)}")
 
 
 @router.post("/stored/{lead_id}/re-verify")
