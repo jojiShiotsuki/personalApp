@@ -154,7 +154,7 @@ class ProspectBase(BaseModel):
     contact_name: Optional[str] = Field(None, max_length=255)
     email: str = Field(..., min_length=1, max_length=255)
     website: Optional[str] = Field(None, max_length=500)
-    niche: Optional[str] = Field(None, max_length=100)
+    niche: Optional[str] = Field(None, max_length=500)
     custom_fields: Optional[dict] = None
 
 
@@ -167,7 +167,7 @@ class ProspectUpdate(BaseModel):
     contact_name: Optional[str] = Field(None, max_length=255)
     email: Optional[str] = Field(None, min_length=1, max_length=255)
     website: Optional[str] = Field(None, max_length=500)
-    niche: Optional[str] = Field(None, max_length=100)
+    niche: Optional[str] = Field(None, max_length=500)
     custom_fields: Optional[dict] = None
     status: Optional[ProspectStatus] = None
     current_step: Optional[int] = Field(None, ge=1, le=5)
