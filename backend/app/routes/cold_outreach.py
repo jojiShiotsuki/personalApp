@@ -325,7 +325,7 @@ def update_prospect(prospect_id: int, data: ProspectUpdate, db: Session = Depend
 
     update_data = data.model_dump(exclude_unset=True)
     for field, value in update_data.items():
-        if field in ("agency_name", "contact_name", "email", "website", "niche") and value:
+        if field in ("agency_name", "contact_name", "email", "website", "niche", "linkedin_url", "facebook_url", "instagram_url") and value:
             value = value.strip()
         setattr(prospect, field, value)
 

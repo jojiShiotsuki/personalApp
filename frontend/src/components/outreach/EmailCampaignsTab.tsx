@@ -25,6 +25,8 @@ import {
   Linkedin,
   Calendar,
   Clock,
+  X,
+  Save,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -134,13 +136,267 @@ function formatShortDate(dateStr?: string | null): string | null {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
+// Edit Prospect Modal
+function EditProspectModal({
+  prospect,
+  isOpen,
+  onClose,
+  onSave,
+  onDelete,
+  isSaving,
+}: {
+  prospect: OutreachProspect;
+  isOpen: boolean;
+  onClose: () => void;
+  onSave: (data: Partial<OutreachProspect>) => void;
+  onDelete: (id: number) => void;
+  isSaving: boolean;
+}) {
+  const [form, setForm] = useState({
+    agency_name: prospect.agency_name,
+    contact_name: prospect.contact_name || '',
+    email: prospect.email,
+    website: prospect.website || '',
+    niche: prospect.niche || '',
+    notes: prospect.notes || '',
+    linkedin_url: prospect.linkedin_url || '',
+    facebook_url: prospect.facebook_url || '',
+    instagram_url: prospect.instagram_url || '',
+  });
+
+  if (!isOpen) return null;
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSave({
+      agency_name: form.agency_name,
+      contact_name: form.contact_name || undefined,
+      email: form.email,
+      website: form.website || undefined,
+      niche: form.niche || undefined,
+      notes: form.notes || undefined,
+      linkedin_url: form.linkedin_url || undefined,
+      facebook_url: form.facebook_url || undefined,
+      instagram_url: form.instagram_url || undefined,
+    });
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={onClose}>
+      <div
+        className="bg-[--exec-surface] rounded-2xl shadow-2xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[--exec-border]">
+          <h2 className="text-lg font-bold text-[--exec-text]">Edit Prospect</h2>
+          <button
+            onClick={onClose}
+            className="text-[--exec-text-muted] hover:text-[--exec-text] p-1 hover:bg-[--exec-surface-alt] rounded-lg transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-[--exec-text-secondary] mb-1.5">Agency Name *</label>
+            <input
+              type="text"
+              required
+              value={form.agency_name}
+              onChange={(e) => setForm({ ...form, agency_name: e.target.value })}
+              className={cn(
+                'w-full px-4 py-2.5 rounded-xl',
+                'bg-[--exec-surface-alt] border border-[--exec-border]',
+                'text-[--exec-text] placeholder:text-[--exec-text-muted]',
+                'focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]',
+                'transition-all duration-200'
+              )}
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-[--exec-text-secondary] mb-1.5">Contact Name</label>
+              <input
+                type="text"
+                value={form.contact_name}
+                onChange={(e) => setForm({ ...form, contact_name: e.target.value })}
+                className={cn(
+                  'w-full px-4 py-2.5 rounded-xl',
+                  'bg-[--exec-surface-alt] border border-[--exec-border]',
+                  'text-[--exec-text] placeholder:text-[--exec-text-muted]',
+                  'focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]',
+                  'transition-all duration-200'
+                )}
+                placeholder="John Smith"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-[--exec-text-secondary] mb-1.5">Email *</label>
+              <input
+                type="email"
+                required
+                value={form.email}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
+                className={cn(
+                  'w-full px-4 py-2.5 rounded-xl',
+                  'bg-[--exec-surface-alt] border border-[--exec-border]',
+                  'text-[--exec-text] placeholder:text-[--exec-text-muted]',
+                  'focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]',
+                  'transition-all duration-200'
+                )}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-[--exec-text-secondary] mb-1.5">Website</label>
+              <input
+                type="url"
+                value={form.website}
+                onChange={(e) => setForm({ ...form, website: e.target.value })}
+                className={cn(
+                  'w-full px-4 py-2.5 rounded-xl',
+                  'bg-[--exec-surface-alt] border border-[--exec-border]',
+                  'text-[--exec-text] placeholder:text-[--exec-text-muted]',
+                  'focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]',
+                  'transition-all duration-200'
+                )}
+                placeholder="https://..."
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-[--exec-text-secondary] mb-1.5">Niche</label>
+              <input
+                type="text"
+                value={form.niche}
+                onChange={(e) => setForm({ ...form, niche: e.target.value })}
+                className={cn(
+                  'w-full px-4 py-2.5 rounded-xl',
+                  'bg-[--exec-surface-alt] border border-[--exec-border]',
+                  'text-[--exec-text] placeholder:text-[--exec-text-muted]',
+                  'focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]',
+                  'transition-all duration-200'
+                )}
+                placeholder="Roofing, Plumbing, etc."
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-[--exec-text-secondary] mb-1.5">Social Links</label>
+            <div className="space-y-2">
+              <input
+                type="url"
+                value={form.linkedin_url}
+                onChange={(e) => setForm({ ...form, linkedin_url: e.target.value })}
+                className={cn(
+                  'w-full px-4 py-2 rounded-xl text-sm',
+                  'bg-[--exec-surface-alt] border border-[--exec-border]',
+                  'text-[--exec-text] placeholder:text-[--exec-text-muted]',
+                  'focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]',
+                  'transition-all duration-200'
+                )}
+                placeholder="LinkedIn URL"
+              />
+              <input
+                type="url"
+                value={form.facebook_url}
+                onChange={(e) => setForm({ ...form, facebook_url: e.target.value })}
+                className={cn(
+                  'w-full px-4 py-2 rounded-xl text-sm',
+                  'bg-[--exec-surface-alt] border border-[--exec-border]',
+                  'text-[--exec-text] placeholder:text-[--exec-text-muted]',
+                  'focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]',
+                  'transition-all duration-200'
+                )}
+                placeholder="Facebook URL"
+              />
+              <input
+                type="url"
+                value={form.instagram_url}
+                onChange={(e) => setForm({ ...form, instagram_url: e.target.value })}
+                className={cn(
+                  'w-full px-4 py-2 rounded-xl text-sm',
+                  'bg-[--exec-surface-alt] border border-[--exec-border]',
+                  'text-[--exec-text] placeholder:text-[--exec-text-muted]',
+                  'focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]',
+                  'transition-all duration-200'
+                )}
+                placeholder="Instagram URL"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-[--exec-text-secondary] mb-1.5">Notes</label>
+            <textarea
+              value={form.notes}
+              onChange={(e) => setForm({ ...form, notes: e.target.value })}
+              rows={3}
+              className={cn(
+                'w-full px-4 py-2.5 rounded-xl',
+                'bg-[--exec-surface-alt] border border-[--exec-border]',
+                'text-[--exec-text] placeholder:text-[--exec-text-muted]',
+                'focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]',
+                'transition-all duration-200 resize-none'
+              )}
+              placeholder="Notes about this prospect..."
+            />
+          </div>
+
+          <div className="flex items-center justify-between pt-2 border-t border-[--exec-border]">
+            <button
+              type="button"
+              onClick={() => {
+                if (confirm('Delete this prospect? This cannot be undone.')) {
+                  onDelete(prospect.id);
+                }
+              }}
+              className="flex items-center gap-1.5 px-3 py-2 text-sm text-red-400 hover:text-red-300 hover:bg-red-900/20 rounded-xl transition-colors"
+            >
+              <Trash2 className="w-4 h-4" />
+              Delete
+            </button>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 text-sm text-[--exec-text-secondary] hover:bg-[--exec-surface-alt] rounded-xl transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={isSaving}
+                className={cn(
+                  'flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium text-white transition-all duration-200',
+                  'hover:brightness-110 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed'
+                )}
+                style={{ backgroundColor: 'var(--exec-accent)' }}
+              >
+                <Save className="w-4 h-4" />
+                {isSaving ? 'Saving...' : 'Save Changes'}
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 // Prospect card component for the Today queue
 function ProspectCard({
   prospect,
   onMarkSent,
+  onEdit,
 }: {
   prospect: OutreachProspect;
   onMarkSent: () => void;
+  onEdit: () => void;
 }) {
   const [isCopyModalOpen, setIsCopyModalOpen] = useState(false);
   const [isResponseModalOpen, setIsResponseModalOpen] = useState(false);
@@ -202,7 +458,16 @@ function ProspectCard({
             )}
           </div>
 
-          <StatusBadge status={prospect.status} />
+          <div className="flex items-center gap-2">
+            <button
+              onClick={onEdit}
+              className="p-1.5 text-[--exec-text-muted] hover:text-[--exec-text] hover:bg-[--exec-surface-alt] rounded-lg transition-colors"
+              title="Edit prospect"
+            >
+              <Edit2 className="w-3.5 h-3.5" />
+            </button>
+            <StatusBadge status={prospect.status} />
+          </div>
         </div>
 
         <div className="flex items-center gap-2 mt-4 pt-4 border-t border-[--exec-border-subtle]">
@@ -269,9 +534,11 @@ function ProspectCard({
 function TodayQueue({
   prospects,
   onMarkSent,
+  onEdit,
 }: {
   prospects: OutreachProspect[];
   onMarkSent: (prospectId: number) => void;
+  onEdit: (prospect: OutreachProspect) => void;
 }) {
   if (prospects.length === 0) {
     return (
@@ -294,6 +561,7 @@ function TodayQueue({
           key={prospect.id}
           prospect={prospect}
           onMarkSent={() => onMarkSent(prospect.id)}
+          onEdit={() => onEdit(prospect)}
         />
       ))}
     </div>
@@ -301,7 +569,7 @@ function TodayQueue({
 }
 
 // Single sent prospect card with its own modal state
-function SentProspectCard({ prospect }: { prospect: OutreachProspect }) {
+function SentProspectCard({ prospect, onEdit }: { prospect: OutreachProspect; onEdit: () => void }) {
   const [isResponseModalOpen, setIsResponseModalOpen] = useState(false);
 
   const daysUntilNext = prospect.next_action_date
@@ -363,7 +631,16 @@ function SentProspectCard({ prospect }: { prospect: OutreachProspect }) {
             </div>
           </div>
 
-          <StatusBadge status={prospect.status} />
+          <div className="flex items-center gap-2">
+            <button
+              onClick={onEdit}
+              className="p-1.5 text-[--exec-text-muted] hover:text-[--exec-text] hover:bg-[--exec-surface-alt] rounded-lg transition-colors"
+              title="Edit prospect"
+            >
+              <Edit2 className="w-3.5 h-3.5" />
+            </button>
+            <StatusBadge status={prospect.status} />
+          </div>
         </div>
 
         <div className="flex items-center gap-2 mt-4 pt-4 border-t border-[--exec-border-subtle]">
@@ -392,7 +669,7 @@ function SentProspectCard({ prospect }: { prospect: OutreachProspect }) {
 }
 
 // Sent / Waiting Prospects component - shows IN_SEQUENCE prospects
-function SentProspects({ prospects }: { prospects: OutreachProspect[] }) {
+function SentProspects({ prospects, onEdit }: { prospects: OutreachProspect[]; onEdit: (prospect: OutreachProspect) => void }) {
   const sentProspects = prospects.filter(
     (p) => p.status === ProspectStatus.IN_SEQUENCE
   );
@@ -414,7 +691,7 @@ function SentProspects({ prospects }: { prospects: OutreachProspect[] }) {
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
       {sentProspects.map((prospect) => (
-        <SentProspectCard key={prospect.id} prospect={prospect} />
+        <SentProspectCard key={prospect.id} prospect={prospect} onEdit={() => onEdit(prospect)} />
       ))}
     </div>
   );
@@ -424,9 +701,11 @@ function SentProspects({ prospects }: { prospects: OutreachProspect[] }) {
 function AllProspects({
   prospects,
   onMarkSent,
+  onEdit,
 }: {
   prospects: OutreachProspect[];
   onMarkSent: (prospectId: number) => void;
+  onEdit: (prospect: OutreachProspect) => void;
 }) {
   if (prospects.length === 0) {
     return (
@@ -522,20 +801,29 @@ function AllProspects({
                 )}
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-right">
-                {prospect.status === ProspectStatus.IN_SEQUENCE && (
+                <div className="flex items-center justify-end gap-2">
                   <button
-                    onClick={() => onMarkSent(prospect.id)}
-                    className={cn(
-                      'px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200',
-                      'text-white',
-                      'hover:brightness-110 hover:scale-105',
-                      'active:scale-95'
-                    )}
-                    style={{ backgroundColor: 'var(--exec-accent)' }}
+                    onClick={() => onEdit(prospect)}
+                    className="p-1.5 text-[--exec-text-muted] hover:text-[--exec-text] hover:bg-[--exec-surface-alt] rounded-lg transition-colors"
+                    title="Edit prospect"
                   >
-                    Mark Sent
+                    <Edit2 className="w-4 h-4" />
                   </button>
-                )}
+                  {prospect.status === ProspectStatus.IN_SEQUENCE && (
+                    <button
+                      onClick={() => onMarkSent(prospect.id)}
+                      className={cn(
+                        'px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200',
+                        'text-white',
+                        'hover:brightness-110 hover:scale-105',
+                        'active:scale-95'
+                      )}
+                      style={{ backgroundColor: 'var(--exec-accent)' }}
+                    >
+                      Mark Sent
+                    </button>
+                  )}
+                </div>
               </td>
             </tr>
           ))}
@@ -546,7 +834,7 @@ function AllProspects({
 }
 
 // Replied Prospects component
-function RepliedProspects({ prospects }: { prospects: OutreachProspect[] }) {
+function RepliedProspects({ prospects, onEdit }: { prospects: OutreachProspect[]; onEdit: (prospect: OutreachProspect) => void }) {
   const repliedProspects = prospects.filter(
     (p) =>
       p.status === ProspectStatus.REPLIED ||
@@ -605,7 +893,16 @@ function RepliedProspects({ prospects }: { prospects: OutreachProspect[] }) {
                 </p>
               )}
             </div>
-            <StatusBadge status={prospect.status} />
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => onEdit(prospect)}
+                className="p-1.5 text-[--exec-text-muted] hover:text-[--exec-text] hover:bg-[--exec-surface-alt] rounded-lg transition-colors"
+                title="Edit prospect"
+              >
+                <Edit2 className="w-3.5 h-3.5" />
+              </button>
+              <StatusBadge status={prospect.status} />
+            </div>
           </div>
         </div>
       ))}
@@ -622,6 +919,7 @@ export default function EmailCampaignsTab() {
   const [isTemplatesOpen, setIsTemplatesOpen] = useState(false);
   const [isCampaignDropdownOpen, setIsCampaignDropdownOpen] = useState(false);
   const [editingCampaign, setEditingCampaign] = useState<OutreachCampaign | null>(null);
+  const [editingProspect, setEditingProspect] = useState<OutreachProspect | null>(null);
 
   const queryClient = useQueryClient();
 
@@ -674,6 +972,35 @@ export default function EmailCampaignsTab() {
     },
     onError: () => {
       toast.error('Failed to delete campaign');
+    },
+  });
+
+  const updateProspectMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: Partial<OutreachProspect> }) =>
+      coldOutreachApi.updateProspect(id, data),
+    onSuccess: () => {
+      toast.success('Prospect updated');
+      queryClient.invalidateQueries({ queryKey: ['outreach-today-queue'] });
+      queryClient.invalidateQueries({ queryKey: ['outreach-prospects'] });
+      queryClient.invalidateQueries({ queryKey: ['outreach-campaign'] });
+      setEditingProspect(null);
+    },
+    onError: () => {
+      toast.error('Failed to update prospect');
+    },
+  });
+
+  const deleteProspectMutation = useMutation({
+    mutationFn: (prospectId: number) => coldOutreachApi.deleteProspect(prospectId),
+    onSuccess: () => {
+      toast.success('Prospect deleted');
+      queryClient.invalidateQueries({ queryKey: ['outreach-today-queue'] });
+      queryClient.invalidateQueries({ queryKey: ['outreach-prospects'] });
+      queryClient.invalidateQueries({ queryKey: ['outreach-campaign'] });
+      setEditingProspect(null);
+    },
+    onError: () => {
+      toast.error('Failed to delete prospect');
     },
   });
 
@@ -957,13 +1284,14 @@ export default function EmailCampaignsTab() {
               <TodayQueue
                 prospects={todayQueue}
                 onMarkSent={handleMarkSent}
+                onEdit={setEditingProspect}
               />
             )}
-            {activeTab === 'sent' && <SentProspects prospects={allProspects} />}
+            {activeTab === 'sent' && <SentProspects prospects={allProspects} onEdit={setEditingProspect} />}
             {activeTab === 'all' && (
-              <AllProspects prospects={allProspects} onMarkSent={handleMarkSent} />
+              <AllProspects prospects={allProspects} onMarkSent={handleMarkSent} onEdit={setEditingProspect} />
             )}
-            {activeTab === 'replied' && <RepliedProspects prospects={allProspects} />}
+            {activeTab === 'replied' && <RepliedProspects prospects={allProspects} onEdit={setEditingProspect} />}
           </div>
         ) : (
           <div className="bento-card p-12 text-center">
@@ -1016,6 +1344,17 @@ export default function EmailCampaignsTab() {
           isOpen={isTemplatesOpen}
           onClose={() => setIsTemplatesOpen(false)}
           campaignId={selectedCampaignId}
+        />
+      )}
+
+      {editingProspect && (
+        <EditProspectModal
+          prospect={editingProspect}
+          isOpen={true}
+          onClose={() => setEditingProspect(null)}
+          onSave={(data) => updateProspectMutation.mutate({ id: editingProspect.id, data })}
+          onDelete={(id) => deleteProspectMutation.mutate(id)}
+          isSaving={updateProspectMutation.isPending}
         />
       )}
     </>

@@ -173,6 +173,9 @@ class ProspectUpdate(BaseModel):
     current_step: Optional[int] = Field(None, ge=1, le=5)
     next_action_date: Optional[date] = None
     notes: Optional[str] = None
+    linkedin_url: Optional[str] = Field(None, max_length=500)
+    facebook_url: Optional[str] = Field(None, max_length=500)
+    instagram_url: Optional[str] = Field(None, max_length=500)
 
 
 class ProspectResponse(ProspectBase):
