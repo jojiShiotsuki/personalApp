@@ -181,52 +181,55 @@ function EditProspectModal({
   };
 
   const inputClasses = cn(
-    'w-full px-4 py-2.5 rounded-xl',
-    'bg-[--exec-surface-alt] border border-[--exec-border]',
+    'w-full px-4 py-2.5 rounded-lg',
+    'bg-stone-800/50 border border-stone-600/40',
     'text-[--exec-text] placeholder:text-[--exec-text-muted]',
-    'focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]',
-    'transition-all duration-200'
+    'focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]/50',
+    'transition-all text-sm'
   );
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 animate-in fade-in duration-200">
-      <div className="bg-[--exec-surface] rounded-2xl shadow-2xl w-full max-w-lg mx-4 max-h-[85vh] flex flex-col border border-[--exec-border] animate-in zoom-in-95 duration-200">
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[--exec-border-subtle]">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center">
-              <Edit2 className="w-5 h-5 text-blue-400" />
-            </div>
+      <div className="bg-[--exec-surface] rounded-2xl shadow-2xl w-full max-w-lg mx-4 border border-stone-600/40 transform transition-all animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
+        <div className="p-6">
+          {/* Header */}
+          <div className="flex justify-between items-center mb-6">
             <div>
-              <h2 className="text-lg font-semibold text-[--exec-text]">Edit Prospect</h2>
-              <p className="text-xs text-[--exec-text-muted]">{prospect.agency_name}</p>
+              <h2 className="text-xl font-semibold text-[--exec-text]">
+                Edit Prospect
+              </h2>
+              <p className="text-sm text-[--exec-text-muted] mt-1">
+                Update prospect details
+              </p>
             </div>
+            <button
+              onClick={onClose}
+              className="text-[--exec-text-muted] hover:text-[--exec-text] p-1.5 hover:bg-stone-700/50 rounded-lg transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
           </div>
-          <button
-            onClick={onClose}
-            className="text-[--exec-text-muted] hover:text-[--exec-text] p-1.5 hover:bg-stone-700/50 rounded-lg transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
 
-        {/* Body */}
-        <form onSubmit={handleSubmit} className="flex-1 overflow-auto">
-          <div className="p-6 space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-[--exec-text-secondary] mb-2">Agency Name</label>
+              <label className="block text-sm font-medium text-[--exec-text-secondary] mb-1.5">
+                Agency Name <span className="text-red-400">*</span>
+              </label>
               <input
                 type="text"
                 required
                 value={form.agency_name}
                 onChange={(e) => setForm({ ...form, agency_name: e.target.value })}
                 className={inputClasses}
+                autoFocus
               />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-[--exec-text-secondary] mb-2">Contact Name</label>
+                <label className="block text-sm font-medium text-[--exec-text-secondary] mb-1.5">
+                  Contact Name
+                </label>
                 <input
                   type="text"
                   value={form.contact_name}
@@ -236,7 +239,9 @@ function EditProspectModal({
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-[--exec-text-secondary] mb-2">Email</label>
+                <label className="block text-sm font-medium text-[--exec-text-secondary] mb-1.5">
+                  Email <span className="text-red-400">*</span>
+                </label>
                 <input
                   type="email"
                   required
@@ -249,7 +254,10 @@ function EditProspectModal({
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-[--exec-text-secondary] mb-2">Website</label>
+                <label className="block text-sm font-medium text-[--exec-text-secondary] mb-1.5">
+                  <Globe className="w-3.5 h-3.5 inline mr-1" />
+                  Website
+                </label>
                 <input
                   type="url"
                   value={form.website}
@@ -259,7 +267,9 @@ function EditProspectModal({
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-[--exec-text-secondary] mb-2">Niche</label>
+                <label className="block text-sm font-medium text-[--exec-text-secondary] mb-1.5">
+                  Niche
+                </label>
                 <input
                   type="text"
                   value={form.niche}
@@ -270,94 +280,99 @@ function EditProspectModal({
               </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-[--exec-text-secondary] mb-2">Social Links</label>
-              <div className="space-y-2">
-                <input
-                  type="url"
-                  value={form.linkedin_url}
-                  onChange={(e) => setForm({ ...form, linkedin_url: e.target.value })}
-                  className={cn(inputClasses, 'text-sm')}
-                  placeholder="LinkedIn URL"
-                />
-                <input
-                  type="url"
-                  value={form.facebook_url}
-                  onChange={(e) => setForm({ ...form, facebook_url: e.target.value })}
-                  className={cn(inputClasses, 'text-sm')}
-                  placeholder="Facebook URL"
-                />
-                <input
-                  type="url"
-                  value={form.instagram_url}
-                  onChange={(e) => setForm({ ...form, instagram_url: e.target.value })}
-                  className={cn(inputClasses, 'text-sm')}
-                  placeholder="Instagram URL"
-                />
+            {/* Social Links Section */}
+            <div className="pt-4 border-t border-stone-700/30">
+              <h3 className="text-sm font-semibold text-[--exec-text] mb-3 flex items-center">
+                <Linkedin className="w-4 h-4 mr-2 text-[--exec-accent]" />
+                Social Links
+              </h3>
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-sm font-medium text-[--exec-text-secondary] mb-1.5">
+                    LinkedIn URL
+                  </label>
+                  <input
+                    type="url"
+                    value={form.linkedin_url}
+                    onChange={(e) => setForm({ ...form, linkedin_url: e.target.value })}
+                    className={inputClasses}
+                    placeholder="https://linkedin.com/in/..."
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-[--exec-text-secondary] mb-1.5">
+                      Facebook URL
+                    </label>
+                    <input
+                      type="url"
+                      value={form.facebook_url}
+                      onChange={(e) => setForm({ ...form, facebook_url: e.target.value })}
+                      className={inputClasses}
+                      placeholder="https://facebook.com/..."
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-[--exec-text-secondary] mb-1.5">
+                      Instagram URL
+                    </label>
+                    <input
+                      type="url"
+                      value={form.instagram_url}
+                      onChange={(e) => setForm({ ...form, instagram_url: e.target.value })}
+                      className={inputClasses}
+                      placeholder="https://instagram.com/..."
+                    />
+                  </div>
+                </div>
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-[--exec-text-secondary] mb-2">Notes</label>
+              <label className="block text-sm font-medium text-[--exec-text-secondary] mb-1.5">
+                Notes
+              </label>
               <textarea
                 value={form.notes}
                 onChange={(e) => setForm({ ...form, notes: e.target.value })}
+                className={cn(inputClasses, 'resize-none')}
                 rows={3}
-                className={cn(
-                  'w-full px-4 py-2.5 rounded-xl',
-                  'bg-[--exec-surface-alt] border border-[--exec-border]',
-                  'text-[--exec-text] placeholder:text-[--exec-text-muted]',
-                  'focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]',
-                  'transition-all text-sm resize-none'
-                )}
-                placeholder="Add any relevant details about this prospect..."
+                placeholder="Any additional details..."
               />
             </div>
-          </div>
 
-          {/* Footer */}
-          <div className="flex items-center justify-between px-6 py-4 border-t border-[--exec-border-subtle]">
-            <button
-              type="button"
-              onClick={() => {
-                if (confirm('Delete this prospect? This cannot be undone.')) {
-                  onDelete(prospect.id);
-                }
-              }}
-              className="flex items-center gap-1.5 px-3 py-2 text-sm text-red-400 hover:text-red-300 hover:bg-red-900/20 rounded-xl transition-colors"
-            >
-              <Trash2 className="w-4 h-4" />
-              Delete
-            </button>
-            <div className="flex gap-3">
+            <div className="flex items-center justify-between pt-4 border-t border-stone-700/30 mt-6">
               <button
                 type="button"
-                onClick={onClose}
-                className={cn(
-                  'px-5 py-2.5 rounded-xl font-medium',
-                  'bg-slate-600/50 text-slate-300',
-                  'hover:bg-slate-500 hover:text-white hover:scale-105',
-                  'active:scale-95 transition-all duration-200'
-                )}
+                onClick={() => {
+                  if (confirm('Delete this prospect? This cannot be undone.')) {
+                    onDelete(prospect.id);
+                  }
+                }}
+                className="flex items-center gap-1.5 px-3 py-2 text-sm text-red-400 hover:text-red-300 hover:bg-red-900/20 rounded-lg transition-colors"
               >
-                Cancel
+                <Trash2 className="w-4 h-4" />
+                Delete
               </button>
-              <button
-                type="submit"
-                disabled={isSaving}
-                className={cn(
-                  'px-5 py-2.5 rounded-xl font-medium',
-                  'bg-[--exec-accent] text-white',
-                  'hover:brightness-110 hover:scale-105 hover:shadow-lg',
-                  'active:scale-95 transition-all duration-200',
-                  'disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100'
-                )}
-              >
-                {isSaving ? 'Saving...' : 'Save Changes'}
-              </button>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="px-4 py-2 text-sm font-medium text-[--exec-text-secondary] bg-stone-700/50 rounded-lg hover:bg-stone-600/50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSaving}
+                  className="px-4 py-2 text-sm font-medium text-white bg-[--exec-accent] rounded-lg hover:bg-[--exec-accent-dark] shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isSaving ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
             </div>
-          </div>
-        </form>
+          </form>
+        </div>
       </div>
     </div>
   );

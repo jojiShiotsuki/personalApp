@@ -272,91 +272,95 @@ className="bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emera
 
 ### Modals
 
-All modals in this app follow the same design pattern using CSS custom properties (`--exec-*` variables). **Always** use this pattern for consistency.
+All modals follow the **ContactModal pattern** (see `frontend/src/components/ContactModal.tsx`). Single `p-6` wrapper, no separate header/body/footer dividers — just spacing via `mb-6` and `border-t` where needed.
 
 ```tsx
-// Backdrop: semi-transparent black with blur
+// Backdrop
 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 animate-in fade-in duration-200">
-  {/* Container: rounded card with border + zoom animation */}
-  <div className="bg-[--exec-surface] rounded-2xl shadow-2xl w-full max-w-md mx-4 border border-[--exec-border] animate-in zoom-in-95 duration-200">
-
-    {/* Header with icon, title, subtitle, and close button */}
-    <div className="flex items-center justify-between px-6 py-4 border-b border-[--exec-border-subtle]">
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center">
-          <IconName className="w-5 h-5 text-blue-400" />
-        </div>
-        <div>
-          <h2 className="text-lg font-semibold text-[--exec-text]">Modal Title</h2>
-          <p className="text-xs text-[--exec-text-muted]">Subtitle or context</p>
-        </div>
-      </div>
-      <button
-        onClick={onClose}
-        className="text-[--exec-text-muted] hover:text-[--exec-text] p-1.5 hover:bg-stone-700/50 rounded-lg transition-colors"
-      >
-        <X className="w-5 h-5" />
-      </button>
-    </div>
-
-    {/* Body */}
+  {/* Container */}
+  <div className="bg-[--exec-surface] rounded-2xl shadow-2xl w-full max-w-lg mx-4 border border-stone-600/40 transform transition-all animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
     <div className="p-6">
-      <label className="block text-sm font-medium text-[--exec-text-secondary] mb-2">
-        Label
-      </label>
-      <input
-        className={cn(
-          'w-full px-4 py-2.5 rounded-xl',
-          'bg-[--exec-surface-alt] border border-[--exec-border]',
-          'text-[--exec-text] placeholder:text-[--exec-text-muted]',
-          'focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]',
-          'transition-all duration-200'
-        )}
-      />
-      {/* Textarea uses same pattern but add: text-sm resize-none */}
-    </div>
 
-    {/* Footer */}
-    <div className="flex gap-3 justify-end px-6 py-4 border-t border-[--exec-border-subtle]">
-      {/* Cancel Button */}
-      <button
-        className={cn(
-          'px-5 py-2.5 rounded-xl font-medium',
-          'bg-slate-600/50 text-slate-300',
-          'hover:bg-slate-500 hover:text-white hover:scale-105',
-          'active:scale-95 transition-all duration-200'
-        )}
-      >
-        Cancel
-      </button>
-      {/* Primary Action Button */}
-      <button
-        className={cn(
-          'px-5 py-2.5 rounded-xl font-medium',
-          'bg-[--exec-accent] text-white',
-          'hover:brightness-110 hover:scale-105 hover:shadow-lg',
-          'active:scale-95 transition-all duration-200',
-          'disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100'
-        )}
-      >
-        Confirm
-      </button>
+      {/* Header — title, subtitle, close button. NO border-b. */}
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h2 className="text-xl font-semibold text-[--exec-text]">Modal Title</h2>
+          <p className="text-sm text-[--exec-text-muted] mt-1">Subtitle or context</p>
+        </div>
+        <button
+          onClick={onClose}
+          className="text-[--exec-text-muted] hover:text-[--exec-text] p-1.5 hover:bg-stone-700/50 rounded-lg transition-colors"
+        >
+          <X className="w-5 h-5" />
+        </button>
+      </div>
+
+      {/* Form body — space-y-4 between fields */}
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-[--exec-text-secondary] mb-1.5">
+            Label <span className="text-red-400">*</span>
+          </label>
+          <input className={inputClasses} />
+        </div>
+
+        {/* Textarea uses same inputClasses + resize-none */}
+
+        {/* Section dividers use: pt-4 border-t border-stone-700/30 */}
+        {/* Section headings: text-sm font-semibold with icon */}
+        <div className="pt-4 border-t border-stone-700/30">
+          <h3 className="text-sm font-semibold text-[--exec-text] mb-3 flex items-center">
+            <Icon className="w-4 h-4 mr-2 text-[--exec-accent]" />
+            Section Title
+          </h3>
+        </div>
+
+        {/* Footer — inside the form, with border-t */}
+        <div className="flex gap-3 justify-end pt-4 border-t border-stone-700/30 mt-6">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2 text-sm font-medium text-[--exec-text-secondary] bg-stone-700/50 rounded-lg hover:bg-stone-600/50 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="px-4 py-2 text-sm font-medium text-white bg-[--exec-accent] rounded-lg hover:bg-[--exec-accent-dark] shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isLoading ? 'Saving...' : 'Save Changes'}
+          </button>
+        </div>
+      </form>
     </div>
   </div>
 </div>
 ```
 
+**Input classes (reusable constant):**
+```tsx
+const inputClasses = cn(
+  "w-full px-4 py-2.5 rounded-lg",
+  "bg-stone-800/50 border border-stone-600/40",
+  "text-[--exec-text] placeholder:text-[--exec-text-muted]",
+  "focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]/50",
+  "transition-all text-sm"
+);
+```
+
 **Key modal rules:**
-- Backdrop: `bg-black/50 backdrop-blur-sm` (NOT `bg-black/60` or `bg-opacity-50`)
-- Container border: `border border-[--exec-border]` (always include)
-- Entry animations: `animate-in zoom-in-95 duration-200` on container, `animate-in fade-in duration-200` on backdrop
-- Header title: `font-semibold` (NOT `font-bold`)
-- Labels: `text-sm font-medium text-[--exec-text-secondary] mb-2`
-- Footer border: `border-t border-[--exec-border-subtle]`
-- Cancel button: `bg-slate-600/50 text-slate-300` with hover scale
-- Primary button: `bg-[--exec-accent] text-white` with hover brightness + scale
-- For scrollable content: add `max-h-[85vh] flex flex-col` on container, `flex-1 overflow-auto` on body
-- For wider modals: use `max-w-lg` or `max-w-2xl` instead of `max-w-md`
+- Backdrop: `bg-black/50 backdrop-blur-sm` with `animate-in fade-in duration-200`
+- Container: `border border-stone-600/40`, `rounded-2xl`, `max-h-[90vh] overflow-y-auto`, `animate-in zoom-in-95 duration-200`
+- Single `p-6` wrapper — NO separate header/body/footer divs with borders
+- Header: `text-xl font-semibold`, subtitle `text-sm text-[--exec-text-muted] mt-1`, spaced with `mb-6`
+- Labels: `text-sm font-medium text-[--exec-text-secondary] mb-1.5`
+- Inputs: `rounded-lg` (NOT `rounded-xl`), `bg-stone-800/50 border border-stone-600/40`
+- Section dividers: `pt-4 border-t border-stone-700/30`
+- Footer: inside form, `pt-4 border-t border-stone-700/30 mt-6`, buttons right-aligned
+- Cancel: `bg-stone-700/50 rounded-lg hover:bg-stone-600/50` (no scale)
+- Primary: `bg-[--exec-accent] rounded-lg hover:bg-[--exec-accent-dark] shadow-sm hover:shadow-md` (no scale)
+- For wider modals: `max-w-lg` or `max-w-2xl`
 
 ### Empty States
 
