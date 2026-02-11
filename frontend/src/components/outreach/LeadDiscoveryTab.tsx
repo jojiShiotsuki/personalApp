@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { leadDiscoveryApi, coldOutreachApi, StoredLead } from '@/lib/api';
@@ -33,6 +33,9 @@ import {
   Facebook,
   Instagram,
   Shield,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -308,6 +311,21 @@ export default function LeadDiscoveryTab() {
   // Single lead import to campaign state
   const [singleImportLeadId, setSingleImportLeadId] = useState<number | null>(null);
 
+  // Sort state for saved leads
+  type SortColumn = 'agency_name' | 'email' | 'website' | 'niche' | 'confidence' | 'created_at';
+  type SortDir = 'asc' | 'desc';
+  const [sortColumn, setSortColumn] = useState<SortColumn>('created_at');
+  const [sortDir, setSortDir] = useState<SortDir>('desc');
+
+  const toggleSort = (col: SortColumn) => {
+    if (sortColumn === col) {
+      setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(col);
+      setSortDir('asc');
+    }
+  };
+
   // Send DM panel state
   const [isSendDMPanelOpen, setIsSendDMPanelOpen] = useState(false);
   const [selectedLeadForDM, setSelectedLeadForDM] = useState<SendDMSource | null>(null);
@@ -330,6 +348,45 @@ export default function LeadDiscoveryTab() {
     queryKey: ['lead-discovery-stats'],
     queryFn: leadDiscoveryApi.getStats,
   });
+
+  // Sorted leads
+  const sortedLeads = useMemo(() => {
+    if (!storedLeadsData?.leads) return [];
+    const leads = [...storedLeadsData.leads];
+    const confidenceOrder = { high: 3, medium: 2, low: 1 };
+    leads.sort((a, b) => {
+      let cmp = 0;
+      switch (sortColumn) {
+        case 'agency_name':
+          cmp = (a.agency_name || '').localeCompare(b.agency_name || '');
+          break;
+        case 'email': {
+          const aHas = a.email ? 1 : 0;
+          const bHas = b.email ? 1 : 0;
+          cmp = aHas - bHas || (a.email || '').localeCompare(b.email || '');
+          break;
+        }
+        case 'website': {
+          const aHas = (a.website && !a.website.includes('google.com/maps')) ? 1 : 0;
+          const bHas = (b.website && !b.website.includes('google.com/maps')) ? 1 : 0;
+          cmp = aHas - bHas;
+          break;
+        }
+        case 'niche':
+          cmp = (a.niche || '').localeCompare(b.niche || '');
+          break;
+        case 'confidence':
+          cmp = (confidenceOrder[a.confidence as keyof typeof confidenceOrder] || 0)
+              - (confidenceOrder[b.confidence as keyof typeof confidenceOrder] || 0);
+          break;
+        case 'created_at':
+          cmp = (a.created_at || '').localeCompare(b.created_at || '');
+          break;
+      }
+      return sortDir === 'asc' ? cmp : -cmp;
+    });
+    return leads;
+  }, [storedLeadsData?.leads, sortColumn, sortDir]);
 
   // Convert to contact mutation
   const convertMutation = useMutation({
@@ -1146,28 +1203,41 @@ export default function LeadDiscoveryTab() {
                       </th>
                       <th className="px-3 py-3 text-left text-xs font-medium text-[--exec-text-muted] uppercase tracking-wider w-10">
                       </th>
-                      <th className="px-3 py-3 text-left text-xs font-medium text-[--exec-text-muted] uppercase tracking-wider min-w-[180px]">
-                        Agency
-                      </th>
-                      <th className="px-3 py-3 text-left text-xs font-medium text-[--exec-text-muted] uppercase tracking-wider min-w-[160px]">
-                        Email
-                      </th>
-                      <th className="px-3 py-3 text-left text-xs font-medium text-[--exec-text-muted] uppercase tracking-wider min-w-[80px]">
-                        Website
-                      </th>
-                      <th className="px-3 py-3 text-left text-xs font-medium text-[--exec-text-muted] uppercase tracking-wider min-w-[80px]">
-                        GMB
-                      </th>
-                      <th className="px-3 py-3 text-left text-xs font-medium text-[--exec-text-muted] uppercase tracking-wider min-w-[140px]">
-                        Niche
-                      </th>
-                      <th className="px-3 py-3 text-left text-xs font-medium text-[--exec-text-muted] uppercase tracking-wider">
-                        Confidence
-                      </th>
+                      {([
+                        { key: 'agency_name' as SortColumn, label: 'Agency', minW: 'min-w-[180px]' },
+                        { key: 'email' as SortColumn, label: 'Email', minW: 'min-w-[160px]' },
+                        { key: 'website' as SortColumn, label: 'Website', minW: 'min-w-[80px]' },
+                        { key: null, label: 'GMB', minW: 'min-w-[80px]' },
+                        { key: 'niche' as SortColumn, label: 'Niche', minW: 'min-w-[140px]' },
+                        { key: 'confidence' as SortColumn, label: 'Confidence', minW: '' },
+                      ] as const).map((col) => (
+                        <th
+                          key={col.label}
+                          className={cn(
+                            "px-3 py-3 text-left text-xs font-medium text-[--exec-text-muted] uppercase tracking-wider",
+                            col.minW,
+                            col.key && "cursor-pointer select-none hover:text-[--exec-text-secondary] transition-colors"
+                          )}
+                          onClick={() => col.key && toggleSort(col.key)}
+                        >
+                          <div className="flex items-center gap-1">
+                            {col.label}
+                            {col.key && (
+                              sortColumn === col.key ? (
+                                sortDir === 'asc'
+                                  ? <ArrowUp className="w-3 h-3 text-blue-400" />
+                                  : <ArrowDown className="w-3 h-3 text-blue-400" />
+                              ) : (
+                                <ArrowUpDown className="w-3 h-3 opacity-30" />
+                              )
+                            )}
+                          </div>
+                        </th>
+                      ))}
                     </tr>
                   </thead>
                   <tbody className="bg-[--exec-surface] divide-y divide-[--exec-border-subtle]">
-                    {storedLeadsData.leads.map((lead: StoredLead) => (
+                    {sortedLeads.map((lead: StoredLead) => (
                       <tr key={lead.id} className={cn(
                         'hover:bg-[--exec-surface-alt]',
                         selectedLeadIds.has(lead.id) && 'bg-blue-900/10'
