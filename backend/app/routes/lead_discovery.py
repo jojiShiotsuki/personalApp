@@ -266,6 +266,7 @@ async def get_stored_leads(
                 "email_source": lead.email_source,
                 "website_issues": lead.website_issues or [],
                 "last_enriched_at": lead.last_enriched_at.isoformat() if lead.last_enriched_at else None,
+                "is_disqualified": bool(lead.is_disqualified),
             }
             for lead in leads
         ]
@@ -348,6 +349,23 @@ async def update_stored_lead(
         "location": lead.location,
         "updated_at": lead.updated_at.isoformat() if lead.updated_at else None,
     }
+
+
+@router.patch("/stored/{lead_id}/disqualify")
+async def toggle_disqualify_lead(
+    lead_id: int,
+    db: Session = Depends(get_db),
+):
+    """Toggle the disqualified status of a stored lead."""
+    lead = db.query(DiscoveredLeadModel).filter(DiscoveredLeadModel.id == lead_id).first()
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+
+    lead.is_disqualified = not lead.is_disqualified
+    db.commit()
+    db.refresh(lead)
+
+    return {"id": lead.id, "is_disqualified": lead.is_disqualified}
 
 
 @router.patch("/stored/{lead_id}/website-issues")

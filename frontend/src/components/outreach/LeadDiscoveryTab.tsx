@@ -36,6 +36,8 @@ import {
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
+  ThumbsDown,
+  RotateCcw,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -281,7 +283,7 @@ export default function LeadDiscoveryTab() {
 
   // Tab state
   const [activeSubTab, setActiveSubTab] = useState<'search' | 'saved'>('search');
-  const [savedFilter, setSavedFilter] = useState<'available' | 'in_campaign'>('available');
+  const [savedFilter, setSavedFilter] = useState<'available' | 'in_campaign' | 'not_qualified'>('available');
 
   // Form state
   const [niche, setNiche] = useState('');
@@ -401,16 +403,20 @@ export default function LeadDiscoveryTab() {
     return leads;
   }, [storedLeadsData?.leads, sortColumn, sortDir]);
 
-  // Filter leads by campaign status
+  // Filter leads by status
   const filteredLeads = useMemo(() => {
     if (savedFilter === 'in_campaign') {
-      return sortedLeads.filter(l => l.in_campaign);
+      return sortedLeads.filter(l => l.in_campaign && !l.is_disqualified);
     }
-    return sortedLeads.filter(l => !l.in_campaign);
+    if (savedFilter === 'not_qualified') {
+      return sortedLeads.filter(l => l.is_disqualified);
+    }
+    return sortedLeads.filter(l => !l.in_campaign && !l.is_disqualified);
   }, [sortedLeads, savedFilter]);
 
-  const availableCount = useMemo(() => sortedLeads.filter(l => !l.in_campaign).length, [sortedLeads]);
-  const inCampaignCount = useMemo(() => sortedLeads.filter(l => l.in_campaign).length, [sortedLeads]);
+  const availableCount = useMemo(() => sortedLeads.filter(l => !l.in_campaign && !l.is_disqualified).length, [sortedLeads]);
+  const inCampaignCount = useMemo(() => sortedLeads.filter(l => l.in_campaign && !l.is_disqualified).length, [sortedLeads]);
+  const disqualifiedCount = useMemo(() => sortedLeads.filter(l => l.is_disqualified).length, [sortedLeads]);
 
   // Convert to contact mutation
   const convertMutation = useMutation({
@@ -458,6 +464,18 @@ export default function LeadDiscoveryTab() {
       leadDiscoveryApi.updateWebsiteIssues(leadId, issues),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['stored-leads'] });
+    },
+  });
+
+  // Toggle disqualify mutation
+  const disqualifyMutation = useMutation({
+    mutationFn: leadDiscoveryApi.toggleDisqualify,
+    onSuccess: (data) => {
+      toast.success(data.is_disqualified ? 'Lead marked as not qualified' : 'Lead restored');
+      queryClient.invalidateQueries({ queryKey: ['stored-leads'] });
+    },
+    onError: () => {
+      toast.error('Failed to update lead status');
     },
   });
 
@@ -1244,6 +1262,23 @@ export default function LeadDiscoveryTab() {
                   {inCampaignCount}
                 </span>
               </button>
+              <button
+                onClick={() => { setSavedFilter('not_qualified'); setSelectedLeadIds(new Set()); }}
+                className={cn(
+                  'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200',
+                  savedFilter === 'not_qualified'
+                    ? 'bg-stone-700 text-white shadow-sm'
+                    : 'text-[--exec-text-muted] hover:text-[--exec-text-secondary]'
+                )}
+              >
+                Not Qualified
+                <span className={cn(
+                  'px-1.5 py-0.5 text-xs rounded-full',
+                  savedFilter === 'not_qualified' ? 'bg-red-600 text-white' : 'bg-stone-700 text-[--exec-text-muted]'
+                )}>
+                  {disqualifiedCount}
+                </span>
+              </button>
             </div>
           )}
 
@@ -1408,6 +1443,19 @@ export default function LeadDiscoveryTab() {
                                   title="Add to Campaign"
                                 >
                                   <Mail className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => disqualifyMutation.mutate(lead.id)}
+                                  disabled={disqualifyMutation.isPending}
+                                  className={cn(
+                                    'p-1.5 rounded-lg transition-colors',
+                                    lead.is_disqualified
+                                      ? 'text-green-500 hover:bg-green-900/30'
+                                      : 'text-[--exec-text-muted] hover:text-yellow-400 hover:bg-yellow-900/30'
+                                  )}
+                                  title={lead.is_disqualified ? 'Restore lead' : 'Mark as not qualified'}
+                                >
+                                  {lead.is_disqualified ? <RotateCcw className="w-4 h-4" /> : <ThumbsDown className="w-4 h-4" />}
                                 </button>
                                 <button
                                   onClick={() => {
@@ -1596,6 +1644,16 @@ export default function LeadDiscoveryTab() {
                     </h3>
                     <p className="text-[--exec-text-muted]">
                       All your saved leads have been added to campaigns. Search for more leads to continue prospecting.
+                    </p>
+                  </>
+                ) : savedFilter === 'not_qualified' ? (
+                  <>
+                    <ThumbsDown className="w-12 h-12 text-[--exec-text-muted] mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-[--exec-text] mb-2">
+                      No disqualified leads
+                    </h3>
+                    <p className="text-[--exec-text-muted]">
+                      Leads you mark as not qualified will appear here.
                     </p>
                   </>
                 ) : (

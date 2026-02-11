@@ -1,5 +1,5 @@
 import enum
-from sqlalchemy import Column, Integer, String, Text, DateTime, Date, ForeignKey, UniqueConstraint, Enum, JSON
+from sqlalchemy import Column, Integer, String, Text, DateTime, Date, ForeignKey, UniqueConstraint, Enum, JSON, Boolean
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from app.database import Base
@@ -173,6 +173,7 @@ class DiscoveredLead(Base):
     instagram_url = Column(String(500), nullable=True)
     email_source = Column(String(20), nullable=True)  # 'scraped', 'ai_found', 'manual'
     website_issues = Column(JSON, nullable=True)  # e.g. ['slow_load', 'not_mobile_friendly', ...]
+    is_disqualified = Column(Boolean, default=False, nullable=False, server_default='0')
     last_enriched_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

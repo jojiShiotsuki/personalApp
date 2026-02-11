@@ -694,6 +694,7 @@ export interface StoredLead {
   website_issues: string[];
   last_enriched_at: string | null;
   in_campaign: boolean;
+  is_disqualified: boolean;
 }
 
 export interface StoredLeadsResponse {
@@ -771,6 +772,11 @@ export const leadDiscoveryApi = {
 
   updateWebsiteIssues: async (leadId: number, issues: string[]): Promise<{ id: number; website_issues: string[] }> => {
     const response = await api.patch(`/api/lead-discovery/stored/${leadId}/website-issues`, issues);
+    return response.data;
+  },
+
+  toggleDisqualify: async (leadId: number): Promise<{ id: number; is_disqualified: boolean }> => {
+    const response = await api.patch(`/api/lead-discovery/stored/${leadId}/disqualify`);
     return response.data;
   },
 
