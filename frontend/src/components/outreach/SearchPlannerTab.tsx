@@ -1,14 +1,13 @@
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { searchPlannerApi, leadDiscoveryApi } from '@/lib/api';
-import type { SearchPlannerCombination } from '@/types';
+import { searchPlannerApi } from '@/lib/api';
 import {
-  Search,
   Loader2,
   CheckCircle,
   Globe,
   RotateCcw,
   Sparkles,
+  Circle,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -21,9 +20,6 @@ export default function SearchPlannerTab() {
   const [plannerNiche, setPlannerNiche] = useState('');
   const [activeNiche, setActiveNiche] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'not_searched' | 'searched'>('all');
-
-  // Searching state — tracks which combination is currently being searched
-  const [searchingComboId, setSearchingComboId] = useState<number | null>(null);
 
   // Fetch countries
   const { data: countries = [] } = useQuery({
@@ -76,6 +72,15 @@ export default function SearchPlannerTab() {
     },
   });
 
+  // Mark as searched mutation
+  const markSearchedMutation = useMutation({
+    mutationFn: (comboId: number) => searchPlannerApi.markSearched(comboId, 0),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['planner-combinations'] });
+      queryClient.invalidateQueries({ queryKey: ['planner-stats'] });
+    },
+  });
+
   // Reset mutation
   const resetMutation = useMutation({
     mutationFn: searchPlannerApi.resetCombination,
@@ -84,38 +89,6 @@ export default function SearchPlannerTab() {
       queryClient.invalidateQueries({ queryKey: ['planner-stats'] });
     },
   });
-
-  // Search a single combination — calls the existing lead discovery search
-  const handleSearchCombo = async (combo: SearchPlannerCombination) => {
-    setSearchingComboId(combo.id);
-    try {
-      const result = await leadDiscoveryApi.search({
-        niche: combo.niche,
-        location: `${combo.city}, ${combo.country}`,
-        count: 10,
-      });
-
-      const totalFound = result.leads.length + result.already_saved;
-      await searchPlannerApi.markSearched(combo.id, totalFound);
-
-      if (result.leads.length > 0) {
-        toast.success(`${combo.city}: Found ${result.leads.length} new leads${result.already_saved > 0 ? ` (${result.already_saved} already saved)` : ''}`);
-      } else if (result.already_saved > 0) {
-        toast.info(`${combo.city}: All ${result.already_saved} results already saved`);
-      } else {
-        toast.info(`${combo.city}: No leads found`);
-      }
-
-      queryClient.invalidateQueries({ queryKey: ['planner-combinations'] });
-      queryClient.invalidateQueries({ queryKey: ['planner-stats'] });
-      queryClient.invalidateQueries({ queryKey: ['stored-leads'] });
-      queryClient.invalidateQueries({ queryKey: ['lead-discovery-stats'] });
-    } catch (error: any) {
-      toast.error(`${combo.city}: Search failed — ${error.response?.data?.detail || 'try again'}`);
-    } finally {
-      setSearchingComboId(null);
-    }
-  };
 
   const handleGenerate = (e: React.FormEvent) => {
     e.preventDefault();
@@ -214,11 +187,6 @@ export default function SearchPlannerTab() {
               <span className="text-sm text-[--exec-text-muted]">
                 ({progressPercent}%)
               </span>
-              {stats.total_leads_found > 0 && (
-                <span className="text-sm text-green-400">
-                  {stats.total_leads_found} total leads found
-                </span>
-              )}
             </div>
             <span className={cn(
               'text-xs font-medium px-2.5 py-1 rounded-full',
@@ -282,16 +250,10 @@ export default function SearchPlannerTab() {
                       City
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-[--exec-text-muted] uppercase tracking-wider">
-                      Niche
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-[--exec-text-muted] uppercase tracking-wider">
                       Status
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-[--exec-text-muted] uppercase tracking-wider">
-                      Leads Found
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-[--exec-text-muted] uppercase tracking-wider">
-                      Searched
+                      Date
                     </th>
                     <th className="px-6 py-3 text-right text-xs font-medium text-[--exec-text-muted] uppercase tracking-wider">
                       Action
@@ -302,19 +264,11 @@ export default function SearchPlannerTab() {
                   {filteredCombos.map((combo) => (
                     <tr
                       key={combo.id}
-                      className={cn(
-                        'hover:bg-[--exec-surface-alt] transition-colors',
-                        searchingComboId === combo.id && 'bg-blue-900/10'
-                      )}
+                      className="hover:bg-[--exec-surface-alt] transition-colors"
                     >
                       <td className="px-6 py-3 whitespace-nowrap">
                         <span className="text-sm font-medium text-[--exec-text]">
                           {combo.city}
-                        </span>
-                      </td>
-                      <td className="px-6 py-3 whitespace-nowrap">
-                        <span className="text-sm text-[--exec-text-secondary]">
-                          {combo.niche}
                         </span>
                       </td>
                       <td className="px-6 py-3 whitespace-nowrap">
@@ -323,25 +277,11 @@ export default function SearchPlannerTab() {
                             <CheckCircle className="w-3 h-3" />
                             Searched
                           </span>
-                        ) : searchingComboId === combo.id ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-blue-900/30 text-blue-400 border border-blue-800">
-                            <Loader2 className="w-3 h-3 animate-spin" />
-                            Searching...
-                          </span>
                         ) : (
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-stone-700/50 text-[--exec-text-muted] border border-stone-600/40">
-                            <Globe className="w-3 h-3" />
+                            <Circle className="w-3 h-3" />
                             Not Searched
                           </span>
-                        )}
-                      </td>
-                      <td className="px-6 py-3 whitespace-nowrap">
-                        {combo.is_searched ? (
-                          <span className="text-sm font-medium text-[--exec-text]">
-                            {combo.leads_found}
-                          </span>
-                        ) : (
-                          <span className="text-sm text-[--exec-text-muted]">—</span>
                         )}
                       </td>
                       <td className="px-6 py-3 whitespace-nowrap">
@@ -359,27 +299,23 @@ export default function SearchPlannerTab() {
                             onClick={() => resetMutation.mutate(combo.id)}
                             disabled={resetMutation.isPending}
                             className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[--exec-text-muted] hover:text-[--exec-text] hover:bg-stone-700/50 rounded-lg transition-colors"
-                            title="Reset to search again"
+                            title="Mark as not searched"
                           >
                             <RotateCcw className="w-3.5 h-3.5" />
-                            Reset
+                            Undo
                           </button>
                         ) : (
                           <button
-                            onClick={() => handleSearchCombo(combo)}
-                            disabled={searchingComboId !== null}
+                            onClick={() => markSearchedMutation.mutate(combo.id)}
+                            disabled={markSearchedMutation.isPending}
                             className={cn(
                               'inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-all',
-                              'bg-blue-600 text-white hover:bg-blue-700',
+                              'bg-green-600 text-white hover:bg-green-700',
                               'disabled:opacity-50 disabled:cursor-not-allowed'
                             )}
                           >
-                            {searchingComboId === combo.id ? (
-                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                            ) : (
-                              <Search className="w-3.5 h-3.5" />
-                            )}
-                            Search
+                            <CheckCircle className="w-3.5 h-3.5" />
+                            Mark Searched
                           </button>
                         )}
                       </td>
