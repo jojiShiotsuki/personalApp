@@ -180,6 +180,16 @@ async def search_leads(request: LeadSearchRequest, db: Session = Depends(get_db)
             if normalized:
                 existing_websites.add(normalized)
 
+    # Collect existing agency names (lowered) to catch duplicates even without matching websites
+    existing_names = {
+        name.lower().strip()
+        for (name,) in db.query(DiscoveredLeadModel.agency_name).all()
+        if name
+    }
+    for (name,) in db.query(OutreachProspect.agency_name).all():
+        if name:
+            existing_names.add(name.lower().strip())
+
     try:
         raw_leads = await find_businesses(
             niche=request.niche,
@@ -202,13 +212,18 @@ async def search_leads(request: LeadSearchRequest, db: Session = Depends(get_db)
         # Store in discovered_leads table (or update existing)
         store_discovered_lead(raw_lead, request.niche, request.location, db)
 
-        # Skip leads that already existed before this search
+        # Skip leads that already existed before this search (by website or name)
         website = raw_lead.get('website', '')
         if website:
             normalized = normalize_website(website)
             if normalized and normalized in existing_websites:
                 already_saved_count += 1
                 continue
+
+        agency_name = raw_lead.get('agency_name', '') or ''
+        if agency_name and agency_name.lower().strip() in existing_names:
+            already_saved_count += 1
+            continue
 
         lead = clean_lead_data(raw_lead)
 
