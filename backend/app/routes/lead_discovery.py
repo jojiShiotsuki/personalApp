@@ -486,6 +486,99 @@ async def re_verify_stored_lead(lead_id: int, db: Session = Depends(get_db)):
     }
 
 
+@router.post("/stored/bulk-enrich")
+async def bulk_enrich_leads(
+    lead_ids: list[int] | None = None,
+    db: Session = Depends(get_db),
+):
+    """
+    Bulk enrich leads by scraping their websites for emails and social links.
+    If lead_ids is provided, enrich only those leads. Otherwise, enrich all leads
+    that have a real website but are missing an email.
+    """
+    query = db.query(DiscoveredLeadModel)
+
+    if lead_ids:
+        query = query.filter(DiscoveredLeadModel.id.in_(lead_ids))
+    else:
+        # All leads with a real website but no valid email
+        query = query.filter(
+            DiscoveredLeadModel.website.isnot(None),
+            ~DiscoveredLeadModel.website.contains('google.com/maps'),
+        ).filter(
+            (DiscoveredLeadModel.email.is_(None)) |
+            (DiscoveredLeadModel.email == '') |
+            (DiscoveredLeadModel.email.in_(['n/a', 'not listed', 'not found', 'none', 'unknown']))
+        )
+
+    leads = query.all()
+
+    if not leads:
+        return {"enriched": 0, "emails_found": 0, "skipped": 0, "results": []}
+
+    enriched = 0
+    emails_found = 0
+    skipped = 0
+    results = []
+
+    import asyncio
+    # Process in batches of 5 to avoid hammering sites
+    batch_size = 5
+    for i in range(0, len(leads), batch_size):
+        batch = leads[i:i + batch_size]
+        tasks = []
+        for lead in batch:
+            if not lead.website or 'google.com/maps' in lead.website:
+                skipped += 1
+                continue
+            tasks.append((lead, re_verify_lead(lead.website, lead.agency_name, lead.niche or '')))
+
+        for lead, task in tasks:
+            try:
+                result = await task
+                updated = False
+
+                if result["email"] and (not lead.email or lead.email in ['', 'n/a', 'not listed', 'not found', 'none', 'unknown']):
+                    lead.email = result["email"]
+                    lead.email_source = "scraped"
+                    emails_found += 1
+                    updated = True
+
+                if result["linkedin_url"] and not lead.linkedin_url:
+                    lead.linkedin_url = result["linkedin_url"]
+                    updated = True
+                if result["facebook_url"] and not lead.facebook_url:
+                    lead.facebook_url = result["facebook_url"]
+                    updated = True
+                if result["instagram_url"] and not lead.instagram_url:
+                    lead.instagram_url = result["instagram_url"]
+                    updated = True
+
+                lead.confidence = result["confidence"]
+                lead.confidence_signals = result["confidence_signals"]
+                lead.last_enriched_at = datetime.utcnow()
+                enriched += 1
+
+                results.append({
+                    "id": lead.id,
+                    "agency_name": lead.agency_name,
+                    "email": lead.email,
+                    "email_found": bool(result["email"]),
+                    "updated": updated,
+                })
+            except Exception:
+                skipped += 1
+
+    db.commit()
+
+    return {
+        "enriched": enriched,
+        "emails_found": emails_found,
+        "skipped": skipped,
+        "results": results,
+    }
+
+
 @router.post("/import", response_model=LeadImportResponse)
 async def import_leads(request: LeadImportRequest, db: Session = Depends(get_db)):
     """

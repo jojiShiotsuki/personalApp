@@ -404,6 +404,25 @@ export default function LeadDiscoveryTab() {
     },
   });
 
+  // Bulk enrich mutation
+  const bulkEnrichMutation = useMutation({
+    mutationFn: (leadIds?: number[]) => leadDiscoveryApi.bulkEnrich(leadIds),
+    onSuccess: (data) => {
+      const msg = `Enriched ${data.enriched} leads — ${data.emails_found} new emails found` +
+        (data.skipped > 0 ? ` (${data.skipped} skipped)` : '');
+      if (data.emails_found > 0) {
+        toast.success(msg);
+      } else {
+        toast.info(msg);
+      }
+      queryClient.invalidateQueries({ queryKey: ['stored-leads'] });
+      queryClient.invalidateQueries({ queryKey: ['lead-discovery-stats'] });
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.detail || 'Bulk enrichment failed');
+    },
+  });
+
   // Update stored lead mutation
   const updateStoredMutation = useMutation({
     mutationFn: ({ id, data }: { id: number; data: { agency_name?: string; contact_name?: string; email?: string; website?: string; niche?: string } }) =>
@@ -1054,6 +1073,18 @@ export default function LeadDiscoveryTab() {
                     Add to Campaign
                   </button>
                   <button
+                    onClick={() => bulkEnrichMutation.mutate(Array.from(selectedLeadIds))}
+                    disabled={bulkEnrichMutation.isPending}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50"
+                  >
+                    {bulkEnrichMutation.isPending ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Globe className="w-3.5 h-3.5" />
+                    )}
+                    Enrich Selected
+                  </button>
+                  <button
                     onClick={handleBulkDelete}
                     disabled={bulkDeleteMutation.isPending}
                     className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
@@ -1068,6 +1099,32 @@ export default function LeadDiscoveryTab() {
                 </div>
               </div>
             )}
+
+          {/* Enrich toolbar */}
+          {storedLeadsData && storedLeadsData.leads.length > 0 && stats && stats.without_email > 0 && (
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-xs text-[--exec-text-muted]">
+                {stats.without_email} lead{stats.without_email !== 1 ? 's' : ''} missing emails
+              </p>
+              <button
+                onClick={() => bulkEnrichMutation.mutate(undefined)}
+                disabled={bulkEnrichMutation.isPending}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50"
+              >
+                {bulkEnrichMutation.isPending ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    Scraping websites...
+                  </>
+                ) : (
+                  <>
+                    <Globe className="w-3.5 h-3.5" />
+                    Enrich All Missing Emails
+                  </>
+                )}
+              </button>
+            </div>
+          )}
 
           <div className="bento-card overflow-hidden">
             {isLoadingStored ? (

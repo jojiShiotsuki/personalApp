@@ -757,6 +757,16 @@ export const leadDiscoveryApi = {
     return response.data;
   },
 
+  bulkEnrich: async (leadIds?: number[]): Promise<{
+    enriched: number;
+    emails_found: number;
+    skipped: number;
+    results: { id: number; agency_name: string; email: string | null; email_found: boolean; updated: boolean }[];
+  }> => {
+    const response = await api.post('/api/lead-discovery/stored/bulk-enrich', leadIds || null);
+    return response.data;
+  },
+
   updateStoredLead: async (leadId: number, data: { agency_name?: string; contact_name?: string; email?: string; website?: string; niche?: string }): Promise<StoredLead> => {
     const params = new URLSearchParams();
     if (data.agency_name) params.append('agency_name', data.agency_name);
