@@ -257,7 +257,7 @@ async def get_stored_leads(
                 "created_at": lead.created_at.isoformat() if lead.created_at else None,
                 "is_valid_email": is_valid_email(lead.email) if lead.email else False,
                 "is_duplicate": check_duplicate_email(lead.email, db) if lead.email else False,
-                "in_campaign": lead.id in imported_lead_ids or (check_duplicate_email(lead.email, db) if lead.email else False),
+                "in_campaign": lead.id in imported_lead_ids,
                 "confidence": lead.confidence,
                 "confidence_signals": lead.confidence_signals,
                 "linkedin_url": lead.linkedin_url,
