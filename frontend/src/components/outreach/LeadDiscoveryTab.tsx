@@ -1086,16 +1086,19 @@ export default function LeadDiscoveryTab() {
                       </th>
                       <th className="px-3 py-3 text-left text-xs font-medium text-[--exec-text-muted] uppercase tracking-wider w-10">
                       </th>
-                      <th className="px-3 py-3 text-left text-xs font-medium text-[--exec-text-muted] uppercase tracking-wider">
+                      <th className="px-3 py-3 text-left text-xs font-medium text-[--exec-text-muted] uppercase tracking-wider min-w-[180px]">
                         Agency
                       </th>
-                      <th className="px-3 py-3 text-left text-xs font-medium text-[--exec-text-muted] uppercase tracking-wider">
+                      <th className="px-3 py-3 text-left text-xs font-medium text-[--exec-text-muted] uppercase tracking-wider min-w-[160px]">
                         Email
                       </th>
-                      <th className="px-3 py-3 text-left text-xs font-medium text-[--exec-text-muted] uppercase tracking-wider">
+                      <th className="px-3 py-3 text-left text-xs font-medium text-[--exec-text-muted] uppercase tracking-wider min-w-[80px]">
                         Website
                       </th>
-                      <th className="px-3 py-3 text-left text-xs font-medium text-[--exec-text-muted] uppercase tracking-wider">
+                      <th className="px-3 py-3 text-left text-xs font-medium text-[--exec-text-muted] uppercase tracking-wider min-w-[80px]">
+                        GMB
+                      </th>
+                      <th className="px-3 py-3 text-left text-xs font-medium text-[--exec-text-muted] uppercase tracking-wider min-w-[140px]">
                         Niche
                       </th>
                       <th className="px-3 py-3 text-left text-xs font-medium text-[--exec-text-muted] uppercase tracking-wider">
@@ -1193,9 +1196,9 @@ export default function LeadDiscoveryTab() {
                             )}
                           </div>
                         </td>
-                        <td className="px-3 py-3 whitespace-nowrap">
+                        <td className={cn("px-3 py-3", editingSavedId !== lead.id && "whitespace-nowrap")}>
                           {editingSavedId === lead.id ? (
-                            <div className="space-y-1">
+                            <div className="space-y-1 min-w-[160px]">
                               <input
                                 type="text"
                                 value={savedEditForm.agency_name}
@@ -1228,14 +1231,14 @@ export default function LeadDiscoveryTab() {
                             </>
                           )}
                         </td>
-                        <td className="px-3 py-3 whitespace-nowrap">
+                        <td className={cn("px-3 py-3", editingSavedId !== lead.id && "whitespace-nowrap")}>
                           {editingSavedId === lead.id ? (
                             <input
                               type="email"
                               value={savedEditForm.email}
                               onChange={(e) => setSavedEditForm({ ...savedEditForm, email: e.target.value })}
                               placeholder="Email"
-                              className="w-full px-2 py-1 text-sm bg-stone-800/50 border border-stone-600/40 rounded-lg text-[--exec-text] focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20"
+                              className="w-full min-w-[140px] px-2 py-1 text-sm bg-stone-800/50 border border-stone-600/40 rounded-lg text-[--exec-text] focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20"
                             />
                           ) : (
                             <div className="flex items-center gap-2">
@@ -1260,37 +1263,61 @@ export default function LeadDiscoveryTab() {
                             </div>
                           )}
                         </td>
-                        <td className="px-3 py-3 whitespace-nowrap">
+                        {/* Website column - actual website URLs only */}
+                        <td className={cn("px-3 py-3", editingSavedId !== lead.id && "whitespace-nowrap")}>
                           {editingSavedId === lead.id ? (
                             <input
                               type="text"
                               value={savedEditForm.website}
                               onChange={(e) => setSavedEditForm({ ...savedEditForm, website: e.target.value })}
-                              placeholder="Website"
-                              className="w-full px-2 py-1 text-sm bg-stone-800/50 border border-stone-600/40 rounded-lg text-[--exec-text] focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20"
+                              placeholder="Website URL"
+                              className="w-full min-w-[120px] px-2 py-1 text-sm bg-stone-800/50 border border-stone-600/40 rounded-lg text-[--exec-text] focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20"
                             />
-                          ) : lead.website ? (
+                          ) : lead.website && !lead.website.includes('google.com/maps') ? (
                             <a
                               href={lead.website.startsWith('http') ? lead.website : `https://${lead.website}`}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="inline-flex items-center gap-1 text-sm text-blue-400 hover:underline"
+                              title={lead.website}
                             >
-                              <Globe className="w-3 h-3" />
+                              <Globe className="w-3.5 h-3.5" />
                               <ExternalLink className="w-3 h-3" />
                             </a>
                           ) : (
                             <span className="text-sm text-[--exec-text-muted]">-</span>
                           )}
                         </td>
+                        {/* GMB column - Google Maps links */}
                         <td className="px-3 py-3 whitespace-nowrap">
+                          {editingSavedId === lead.id ? (
+                            <span className="text-xs text-[--exec-text-muted]">Auto</span>
+                          ) : (() => {
+                            const gmbUrl = lead.website?.includes('google.com/maps')
+                              ? lead.website
+                              : `https://www.google.com/maps/search/${encodeURIComponent((lead.agency_name || '') + ' ' + (lead.location || ''))}`;
+                            return (
+                              <a
+                                href={gmbUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 text-sm text-amber-400 hover:text-amber-300 hover:underline"
+                                title="Google Maps"
+                              >
+                                <MapPin className="w-3.5 h-3.5" />
+                                <ExternalLink className="w-3 h-3" />
+                              </a>
+                            );
+                          })()}
+                        </td>
+                        <td className={cn("px-3 py-3", editingSavedId !== lead.id && "whitespace-nowrap")}>
                           {editingSavedId === lead.id ? (
                             <input
                               type="text"
                               value={savedEditForm.niche}
                               onChange={(e) => setSavedEditForm({ ...savedEditForm, niche: e.target.value })}
                               placeholder="Niche"
-                              className="w-full px-2 py-1 text-sm bg-stone-800/50 border border-stone-600/40 rounded-lg text-[--exec-text] focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20"
+                              className="w-full min-w-[120px] px-2 py-1 text-sm bg-stone-800/50 border border-stone-600/40 rounded-lg text-[--exec-text] focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20"
                             />
                           ) : (
                             <span className="text-sm text-[--exec-text-secondary] max-w-[120px] truncate block">
