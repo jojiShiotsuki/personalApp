@@ -209,9 +209,6 @@ async def search_leads(request: LeadSearchRequest, db: Session = Depends(get_db)
     already_saved_count = 0
 
     for raw_lead in raw_leads:
-        # Store in discovered_leads table (or update existing)
-        store_discovered_lead(raw_lead, request.niche, request.location, db)
-
         # Skip leads that already existed before this search (by website or name)
         website = raw_lead.get('website', '')
         if website:
@@ -224,6 +221,9 @@ async def search_leads(request: LeadSearchRequest, db: Session = Depends(get_db)
         if agency_name and agency_name.lower().strip() in existing_names:
             already_saved_count += 1
             continue
+
+        # Store in discovered_leads table (only new leads reach here)
+        store_discovered_lead(raw_lead, request.niche, request.location, db)
 
         lead = clean_lead_data(raw_lead)
 
