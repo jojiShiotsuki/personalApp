@@ -103,7 +103,7 @@ class OutreachProspect(Base):
     campaign_id = Column(Integer, ForeignKey("outreach_campaigns.id", ondelete="CASCADE"), nullable=False)
     agency_name = Column(String(255), nullable=False)
     contact_name = Column(String(255), nullable=True)
-    email = Column(String(255), nullable=False)
+    email = Column(String(255), nullable=True)
     website = Column(String(500), nullable=True)
     niche = Column(String(500), nullable=True)
     custom_fields = Column(JSON, nullable=True)

@@ -419,14 +419,19 @@ async def bulk_import_to_campaign(request: BulkImportToCampaignRequest, db: Sess
         today = date.today()
 
         for lead in leads:
-            # Check email validity
-            if not lead.email or not is_valid_email(lead.email):
+            has_email = lead.email and is_valid_email(lead.email)
+            # Allow leads with website issues (e.g. outdated_design) even without email
+            # — these can be reached via contact forms on their site
+            issues = lead.website_issues or []
+            has_actionable_issues = bool(issues)
+
+            if not has_email and not has_actionable_issues:
                 skipped_count += 1
-                skipped_reasons.append(f"{lead.agency_name}: no valid email")
+                skipped_reasons.append(f"{lead.agency_name}: no valid email and no website issues tagged")
                 continue
 
-            # Check for duplicates in campaign
-            if lead.email.lower() in existing_emails:
+            # Check for duplicates in campaign (by email if present, by discovered_lead_id otherwise)
+            if has_email and lead.email.lower() in existing_emails:
                 skipped_count += 1
                 skipped_reasons.append(f"{lead.agency_name}: already in campaign")
                 continue
@@ -436,7 +441,7 @@ async def bulk_import_to_campaign(request: BulkImportToCampaignRequest, db: Sess
                 campaign_id=request.campaign_id,
                 agency_name=lead.agency_name,
                 contact_name=lead.contact_name,
-                email=lead.email,
+                email=lead.email if has_email else None,
                 website=lead.website,
                 niche=lead.niche,
                 status=ProspectStatus.QUEUED,
@@ -448,7 +453,8 @@ async def bulk_import_to_campaign(request: BulkImportToCampaignRequest, db: Sess
                 instagram_url=lead.instagram_url,
             )
             db.add(prospect)
-            existing_emails.add(lead.email.lower())
+            if has_email:
+                existing_emails.add(lead.email.lower())
             imported_count += 1
 
         db.commit()
