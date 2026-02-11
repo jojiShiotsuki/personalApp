@@ -172,6 +172,7 @@ class DiscoveredLead(Base):
     facebook_url = Column(String(500), nullable=True)
     instagram_url = Column(String(500), nullable=True)
     email_source = Column(String(20), nullable=True)  # 'scraped', 'ai_found', 'manual'
+    website_issues = Column(JSON, nullable=True)  # e.g. ['slow_load', 'not_mobile_friendly', ...]
     last_enriched_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

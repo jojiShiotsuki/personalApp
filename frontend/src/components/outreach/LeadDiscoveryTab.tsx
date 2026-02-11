@@ -41,6 +41,15 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import SendDMPanel, { type SendDMSource } from '@/components/outreach/SendDMPanel';
 
+// Website issue categories
+const WEBSITE_ISSUES = [
+  { key: 'slow_load', label: 'Slow Load', color: 'text-red-400 bg-red-900/30 border-red-800' },
+  { key: 'not_mobile_friendly', label: 'Not Mobile', color: 'text-orange-400 bg-orange-900/30 border-orange-800' },
+  { key: 'no_google_presence', label: 'No Google', color: 'text-yellow-400 bg-yellow-900/30 border-yellow-800' },
+  { key: 'no_clear_cta', label: 'No CTA', color: 'text-blue-400 bg-blue-900/30 border-blue-800' },
+  { key: 'outdated_design', label: 'Outdated', color: 'text-purple-400 bg-purple-900/30 border-purple-800' },
+] as const;
+
 // Loading messages that rotate
 const LOADING_MESSAGES = [
   { text: 'Searching Google for matches...', icon: Search },
@@ -312,7 +321,7 @@ export default function LeadDiscoveryTab() {
   const [singleImportLeadId, setSingleImportLeadId] = useState<number | null>(null);
 
   // Sort state for saved leads
-  type SortColumn = 'agency_name' | 'email' | 'website' | 'niche' | 'confidence' | 'created_at';
+  type SortColumn = 'agency_name' | 'email' | 'website' | 'niche' | 'confidence' | 'issues' | 'created_at';
   type SortDir = 'asc' | 'desc';
   const [sortColumn, setSortColumn] = useState<SortColumn>('created_at');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
@@ -379,6 +388,9 @@ export default function LeadDiscoveryTab() {
           cmp = (confidenceOrder[a.confidence as keyof typeof confidenceOrder] || 0)
               - (confidenceOrder[b.confidence as keyof typeof confidenceOrder] || 0);
           break;
+        case 'issues':
+          cmp = (a.website_issues?.length || 0) - (b.website_issues?.length || 0);
+          break;
         case 'created_at':
           cmp = (a.created_at || '').localeCompare(b.created_at || '');
           break;
@@ -427,6 +439,23 @@ export default function LeadDiscoveryTab() {
       toast.error('Failed to delete leads');
     },
   });
+
+  // Toggle website issue mutation
+  const toggleIssueMutation = useMutation({
+    mutationFn: ({ leadId, issues }: { leadId: number; issues: string[] }) =>
+      leadDiscoveryApi.updateWebsiteIssues(leadId, issues),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['stored-leads'] });
+    },
+  });
+
+  const toggleIssue = (lead: StoredLead, issueKey: string) => {
+    const current = lead.website_issues || [];
+    const updated = current.includes(issueKey)
+      ? current.filter(i => i !== issueKey)
+      : [...current, issueKey];
+    toggleIssueMutation.mutate({ leadId: lead.id, issues: updated });
+  };
 
   // Bulk import to campaign mutation
   const bulkImportMutation = useMutation({
@@ -1210,6 +1239,7 @@ export default function LeadDiscoveryTab() {
                         { key: null, label: 'GMB', minW: 'min-w-[80px]' },
                         { key: 'niche' as SortColumn, label: 'Niche', minW: 'min-w-[140px]' },
                         { key: 'confidence' as SortColumn, label: 'Confidence', minW: '' },
+                        { key: 'issues' as SortColumn, label: 'Issues', minW: 'min-w-[120px]' },
                       ] as const).map((col) => (
                         <th
                           key={col.label}
@@ -1466,6 +1496,28 @@ export default function LeadDiscoveryTab() {
                           <div className="flex items-center gap-2">
                             <ConfidenceBadge confidence={lead.confidence} />
                             <SocialLinks lead={lead} />
+                          </div>
+                        </td>
+                        <td className="px-3 py-3">
+                          <div className="flex flex-wrap gap-1">
+                            {WEBSITE_ISSUES.map((issue) => {
+                              const active = (lead.website_issues || []).includes(issue.key);
+                              return (
+                                <button
+                                  key={issue.key}
+                                  onClick={() => toggleIssue(lead, issue.key)}
+                                  className={cn(
+                                    "px-1.5 py-0.5 text-[10px] font-medium rounded border transition-all",
+                                    active
+                                      ? issue.color
+                                      : "text-[--exec-text-muted] bg-transparent border-stone-700/40 opacity-40 hover:opacity-70"
+                                  )}
+                                  title={active ? `Remove: ${issue.label}` : `Add: ${issue.label}`}
+                                >
+                                  {issue.label}
+                                </button>
+                              );
+                            })}
                           </div>
                         </td>
                       </tr>

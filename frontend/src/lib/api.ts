@@ -691,6 +691,7 @@ export interface StoredLead {
   facebook_url: string | null;
   instagram_url: string | null;
   email_source: 'scraped' | 'ai_found' | 'manual' | null;
+  website_issues: string[];
   last_enriched_at: string | null;
 }
 
@@ -764,6 +765,11 @@ export const leadDiscoveryApi = {
     results: { id: number; agency_name: string; email: string | null; email_found: boolean; updated: boolean }[];
   }> => {
     const response = await api.post('/api/lead-discovery/stored/bulk-enrich', leadIds || null);
+    return response.data;
+  },
+
+  updateWebsiteIssues: async (leadId: number, issues: string[]): Promise<{ id: number; website_issues: string[] }> => {
+    const response = await api.patch(`/api/lead-discovery/stored/${leadId}/website-issues`, issues);
     return response.data;
   },
 

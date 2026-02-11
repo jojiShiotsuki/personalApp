@@ -253,6 +253,7 @@ async def get_stored_leads(
                 "facebook_url": lead.facebook_url,
                 "instagram_url": lead.instagram_url,
                 "email_source": lead.email_source,
+                "website_issues": lead.website_issues or [],
                 "last_enriched_at": lead.last_enriched_at.isoformat() if lead.last_enriched_at else None,
             }
             for lead in leads
@@ -331,6 +332,27 @@ async def update_stored_lead(
         "niche": lead.niche,
         "location": lead.location,
         "updated_at": lead.updated_at.isoformat() if lead.updated_at else None,
+    }
+
+
+@router.patch("/stored/{lead_id}/website-issues")
+async def update_website_issues(
+    lead_id: int,
+    issues: list[str],
+    db: Session = Depends(get_db),
+):
+    """Update the website issues list for a stored lead."""
+    lead = db.query(DiscoveredLeadModel).filter(DiscoveredLeadModel.id == lead_id).first()
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+
+    lead.website_issues = issues
+    db.commit()
+    db.refresh(lead)
+
+    return {
+        "id": lead.id,
+        "website_issues": lead.website_issues or [],
     }
 
 
