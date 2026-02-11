@@ -795,6 +795,11 @@ export const searchPlannerApi = {
     return response.data;
   },
 
+  getNiches: async (country?: string): Promise<string[]> => {
+    const response = await api.get('/api/lead-discovery/planner/niches', { params: country ? { country } : {} });
+    return response.data;
+  },
+
   getCities: async (country: string): Promise<string[]> => {
     const response = await api.get(`/api/lead-discovery/planner/cities/${encodeURIComponent(country)}`);
     return response.data;

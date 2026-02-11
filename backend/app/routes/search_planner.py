@@ -73,6 +73,18 @@ def generate_combinations(
     )
 
 
+@router.get("/niches")
+def list_niches(
+    country: str | None = None,
+    db: Session = Depends(get_db),
+):
+    """Get all distinct niches that have been generated."""
+    query = db.query(SearchPlannerCombination.niche).distinct()
+    if country:
+        query = query.filter(SearchPlannerCombination.country == country)
+    return [row.niche for row in query.order_by(SearchPlannerCombination.niche).all()]
+
+
 @router.get("/combinations", response_model=list[SearchPlannerCombinationResponse])
 def get_combinations(
     country: str | None = None,

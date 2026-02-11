@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { searchPlannerApi } from '@/lib/api';
 import {
@@ -26,6 +26,25 @@ export default function SearchPlannerTab() {
     queryKey: ['planner-countries'],
     queryFn: searchPlannerApi.getCountries,
   });
+
+  // Fetch existing niches for selected country
+  const { data: existingNiches = [] } = useQuery({
+    queryKey: ['planner-niches', selectedCountry],
+    queryFn: () => searchPlannerApi.getNiches(selectedCountry),
+  });
+
+  // Auto-select first niche when niches load and none is active
+  useEffect(() => {
+    if (!activeNiche && existingNiches.length > 0) {
+      setActiveNiche(existingNiches[0]);
+    }
+  }, [existingNiches, activeNiche]);
+
+  // Reset activeNiche when country changes (will re-select from new niches)
+  const handleCountryChange = (country: string) => {
+    setSelectedCountry(country);
+    setActiveNiche('');
+  };
 
   // Fetch combinations
   const { data: combinations = [], isLoading: isLoadingCombos } = useQuery({
@@ -58,12 +77,15 @@ export default function SearchPlannerTab() {
   const generateMutation = useMutation({
     mutationFn: searchPlannerApi.generateCombinations,
     onSuccess: (data) => {
-      setActiveNiche(plannerNiche);
+      const niche = plannerNiche.trim();
+      setActiveNiche(niche);
+      setPlannerNiche('');
       if (data.created > 0) {
-        toast.success(`Generated ${data.created} combinations for ${plannerNiche} in ${selectedCountry}`);
+        toast.success(`Generated ${data.created} combinations for ${niche} in ${selectedCountry}`);
       } else {
         toast.info(`All ${data.already_existed} combinations already exist`);
       }
+      queryClient.invalidateQueries({ queryKey: ['planner-niches'] });
       queryClient.invalidateQueries({ queryKey: ['planner-combinations'] });
       queryClient.invalidateQueries({ queryKey: ['planner-stats'] });
     },
@@ -114,7 +136,7 @@ export default function SearchPlannerTab() {
               </label>
               <select
                 value={selectedCountry}
-                onChange={(e) => setSelectedCountry(e.target.value)}
+                onChange={(e) => handleCountryChange(e.target.value)}
                 className={cn(
                   'w-full px-4 py-2.5',
                   'bg-stone-800/50 border border-stone-600/40 rounded-xl',
@@ -132,7 +154,7 @@ export default function SearchPlannerTab() {
             {/* Niche Input */}
             <div>
               <label className="block text-sm font-medium text-[--exec-text-secondary] mb-1.5">
-                Business Niche
+                Add New Niche
               </label>
               <input
                 type="text"
@@ -175,6 +197,29 @@ export default function SearchPlannerTab() {
           </div>
         </form>
       </div>
+
+      {/* Niche Selector — shows existing niches as pills */}
+      {existingNiches.length > 0 && (
+        <div className="flex items-center gap-2 mb-4 flex-wrap">
+          <span className="text-xs font-medium text-[--exec-text-muted] uppercase tracking-wider mr-1">
+            Niches:
+          </span>
+          {existingNiches.map((niche) => (
+            <button
+              key={niche}
+              onClick={() => { setActiveNiche(niche); setStatusFilter('all'); }}
+              className={cn(
+                'px-3 py-1.5 text-sm font-medium rounded-lg transition-all duration-200',
+                activeNiche === niche
+                  ? 'bg-blue-600 text-white shadow-sm'
+                  : 'bg-stone-800/50 text-[--exec-text-muted] hover:bg-stone-700/50 hover:text-[--exec-text-secondary]'
+              )}
+            >
+              {niche}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Stats + Progress */}
       {stats && stats.total > 0 && (
@@ -342,8 +387,8 @@ export default function SearchPlannerTab() {
         </div>
       )}
 
-      {/* Empty State - No niche selected */}
-      {!activeNiche && (
+      {/* Empty State - No niches exist yet */}
+      {!activeNiche && existingNiches.length === 0 && (
         <div className="bento-card p-12 text-center">
           <Sparkles className="w-12 h-12 text-[--exec-text-muted] mx-auto mb-4" />
           <h3 className="text-lg font-medium text-[--exec-text] mb-2">
