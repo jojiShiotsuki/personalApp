@@ -173,6 +173,13 @@ async def search_leads(request: LeadSearchRequest, db: Session = Depends(get_db)
         if lead.website_normalized
     }
 
+    # Also include websites from campaign prospects so we don't re-crawl them
+    for row in db.query(OutreachProspect.website).all():
+        if row.website:
+            normalized = normalize_website(row.website)
+            if normalized:
+                existing_websites.add(normalized)
+
     try:
         raw_leads = await find_businesses(
             niche=request.niche,
