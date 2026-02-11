@@ -244,8 +244,7 @@ function EditProspectModal({
                 </label>
                 <input
                   type="email"
-                  required
-                  value={form.email}
+                  value={form.email || ''}
                   onChange={(e) => setForm({ ...form, email: e.target.value })}
                   className={inputClasses}
                 />
