@@ -473,11 +473,14 @@ export default function LeadDiscoveryTab() {
   const bulkImportMutation = useMutation({
     mutationFn: leadDiscoveryApi.bulkImportToCampaign,
     onSuccess: (data) => {
-      let msg = `${data.imported_count} leads imported to campaign`;
-      if (data.skipped_count > 0) {
-        msg += ` (${data.skipped_count} skipped)`;
+      if (data.imported_count > 0) {
+        toast.success(`${data.imported_count} leads imported to campaign`);
       }
-      toast.success(msg);
+      if (data.skipped_count > 0 && data.skipped_reasons?.length > 0) {
+        data.skipped_reasons.forEach((reason: string) => toast.warning(reason));
+      } else if (data.skipped_count > 0) {
+        toast.warning(`${data.skipped_count} leads skipped`);
+      }
       setSelectedLeadIds(new Set());
       setIsBulkImportModalOpen(false);
       queryClient.invalidateQueries({ queryKey: ['stored-leads'] });

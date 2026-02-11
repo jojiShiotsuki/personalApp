@@ -419,14 +419,12 @@ async def bulk_import_to_campaign(request: BulkImportToCampaignRequest, db: Sess
             DiscoveredLeadModel.id.in_(request.lead_ids)
         ).all()
 
-        # Get existing emails in this campaign for dedup
-        existing_emails = {
-            p.email.lower()
-            for p in db.query(OutreachProspect).filter(
-                OutreachProspect.campaign_id == request.campaign_id
-            ).all()
-            if p.email
-        }
+        # Get existing emails and discovered_lead_ids in this campaign for dedup
+        campaign_prospects = db.query(OutreachProspect).filter(
+            OutreachProspect.campaign_id == request.campaign_id
+        ).all()
+        existing_emails = {p.email.lower() for p in campaign_prospects if p.email}
+        existing_lead_ids = {p.discovered_lead_id for p in campaign_prospects if p.discovered_lead_id}
 
         imported_count = 0
         skipped_count = 0
@@ -445,10 +443,15 @@ async def bulk_import_to_campaign(request: BulkImportToCampaignRequest, db: Sess
                 skipped_reasons.append(f"{lead.agency_name}: no valid email and no website issues tagged")
                 continue
 
-            # Check for duplicates in campaign (by email if present, by discovered_lead_id otherwise)
+            # Check for duplicates in campaign (by discovered_lead_id or email)
+            if lead.id in existing_lead_ids:
+                skipped_count += 1
+                skipped_reasons.append(f"{lead.agency_name}: already in this campaign")
+                continue
+
             if has_email and lead.email.lower() in existing_emails:
                 skipped_count += 1
-                skipped_reasons.append(f"{lead.agency_name}: already in campaign")
+                skipped_reasons.append(f"{lead.agency_name}: email already in this campaign")
                 continue
 
             # Create prospect
