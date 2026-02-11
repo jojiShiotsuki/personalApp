@@ -832,6 +832,31 @@ export interface LeadSearchResponse {
   already_saved: number;
 }
 
+// Search Planner Types
+export interface SearchPlannerCombination {
+  id: number;
+  country: string;
+  city: string;
+  niche: string;
+  is_searched: boolean;
+  searched_at: string | null;
+  leads_found: number;
+  created_at: string;
+}
+
+export interface GenerateCombinationsResponse {
+  created: number;
+  already_existed: number;
+  total: number;
+}
+
+export interface SearchPlannerStats {
+  total: number;
+  searched: number;
+  not_searched: number;
+  total_leads_found: number;
+}
+
 export interface LeadImportRequest {
   leads: DiscoveredLead[];
   campaign_id: number;

@@ -1,0 +1,424 @@
+import { useState, useMemo } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { searchPlannerApi, leadDiscoveryApi } from '@/lib/api';
+import type { SearchPlannerCombination } from '@/types';
+import {
+  Search,
+  Loader2,
+  CheckCircle,
+  Globe,
+  RotateCcw,
+  Sparkles,
+} from 'lucide-react';
+import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
+
+export default function SearchPlannerTab() {
+  const queryClient = useQueryClient();
+
+  // Form state
+  const [selectedCountry, setSelectedCountry] = useState('Australia');
+  const [plannerNiche, setPlannerNiche] = useState('');
+  const [activeNiche, setActiveNiche] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'not_searched' | 'searched'>('all');
+
+  // Searching state — tracks which combination is currently being searched
+  const [searchingComboId, setSearchingComboId] = useState<number | null>(null);
+
+  // Fetch countries
+  const { data: countries = [] } = useQuery({
+    queryKey: ['planner-countries'],
+    queryFn: searchPlannerApi.getCountries,
+  });
+
+  // Fetch combinations
+  const { data: combinations = [], isLoading: isLoadingCombos } = useQuery({
+    queryKey: ['planner-combinations', selectedCountry, activeNiche],
+    queryFn: () => searchPlannerApi.getCombinations({
+      country: selectedCountry,
+      niche: activeNiche || undefined,
+    }),
+    enabled: !!activeNiche,
+  });
+
+  // Fetch stats
+  const { data: stats } = useQuery({
+    queryKey: ['planner-stats', selectedCountry, activeNiche],
+    queryFn: () => searchPlannerApi.getStats({
+      country: selectedCountry,
+      niche: activeNiche || undefined,
+    }),
+    enabled: !!activeNiche,
+  });
+
+  // Filtered combinations
+  const filteredCombos = useMemo(() => {
+    if (statusFilter === 'searched') return combinations.filter(c => c.is_searched);
+    if (statusFilter === 'not_searched') return combinations.filter(c => !c.is_searched);
+    return combinations;
+  }, [combinations, statusFilter]);
+
+  // Generate mutation
+  const generateMutation = useMutation({
+    mutationFn: searchPlannerApi.generateCombinations,
+    onSuccess: (data) => {
+      setActiveNiche(plannerNiche);
+      if (data.created > 0) {
+        toast.success(`Generated ${data.created} combinations for ${plannerNiche} in ${selectedCountry}`);
+      } else {
+        toast.info(`All ${data.already_existed} combinations already exist`);
+      }
+      queryClient.invalidateQueries({ queryKey: ['planner-combinations'] });
+      queryClient.invalidateQueries({ queryKey: ['planner-stats'] });
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.detail || 'Failed to generate combinations');
+    },
+  });
+
+  // Reset mutation
+  const resetMutation = useMutation({
+    mutationFn: searchPlannerApi.resetCombination,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['planner-combinations'] });
+      queryClient.invalidateQueries({ queryKey: ['planner-stats'] });
+    },
+  });
+
+  // Search a single combination — calls the existing lead discovery search
+  const handleSearchCombo = async (combo: SearchPlannerCombination) => {
+    setSearchingComboId(combo.id);
+    try {
+      const result = await leadDiscoveryApi.search({
+        niche: combo.niche,
+        location: `${combo.city}, ${combo.country}`,
+        count: 10,
+      });
+
+      const totalFound = result.leads.length + result.already_saved;
+      await searchPlannerApi.markSearched(combo.id, totalFound);
+
+      if (result.leads.length > 0) {
+        toast.success(`${combo.city}: Found ${result.leads.length} new leads${result.already_saved > 0 ? ` (${result.already_saved} already saved)` : ''}`);
+      } else if (result.already_saved > 0) {
+        toast.info(`${combo.city}: All ${result.already_saved} results already saved`);
+      } else {
+        toast.info(`${combo.city}: No leads found`);
+      }
+
+      queryClient.invalidateQueries({ queryKey: ['planner-combinations'] });
+      queryClient.invalidateQueries({ queryKey: ['planner-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['stored-leads'] });
+      queryClient.invalidateQueries({ queryKey: ['lead-discovery-stats'] });
+    } catch (error: any) {
+      toast.error(`${combo.city}: Search failed — ${error.response?.data?.detail || 'try again'}`);
+    } finally {
+      setSearchingComboId(null);
+    }
+  };
+
+  const handleGenerate = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!plannerNiche.trim()) {
+      toast.error('Please enter a business niche');
+      return;
+    }
+    generateMutation.mutate({ country: selectedCountry, niche: plannerNiche.trim() });
+  };
+
+  const progressPercent = stats ? Math.round((stats.searched / Math.max(stats.total, 1)) * 100) : 0;
+
+  return (
+    <div>
+      {/* Generate Form */}
+      <div className="bento-card p-6 mb-6">
+        <form onSubmit={handleGenerate}>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            {/* Country Select */}
+            <div>
+              <label className="block text-sm font-medium text-[--exec-text-secondary] mb-1.5">
+                Country
+              </label>
+              <select
+                value={selectedCountry}
+                onChange={(e) => setSelectedCountry(e.target.value)}
+                className={cn(
+                  'w-full px-4 py-2.5',
+                  'bg-stone-800/50 border border-stone-600/40 rounded-xl',
+                  'text-[--exec-text]',
+                  'focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]/50',
+                  'transition-all duration-200'
+                )}
+              >
+                {countries.map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Niche Input */}
+            <div>
+              <label className="block text-sm font-medium text-[--exec-text-secondary] mb-1.5">
+                Business Niche
+              </label>
+              <input
+                type="text"
+                value={plannerNiche}
+                onChange={(e) => setPlannerNiche(e.target.value)}
+                placeholder="e.g., Roofing, Plumbing, Landscaping..."
+                className={cn(
+                  'w-full px-4 py-2.5',
+                  'bg-stone-800/50 border border-stone-600/40 rounded-xl',
+                  'text-[--exec-text]',
+                  'placeholder:text-[--exec-text-muted]',
+                  'focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]/50',
+                  'transition-all duration-200'
+                )}
+              />
+            </div>
+
+            {/* Generate Button */}
+            <div className="flex items-end">
+              <button
+                type="submit"
+                disabled={generateMutation.isPending || !plannerNiche.trim()}
+                className={cn(
+                  'w-full flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl',
+                  'text-white font-medium',
+                  'transition-all duration-200',
+                  'disabled:opacity-50 disabled:cursor-not-allowed',
+                  'hover:brightness-110 hover:shadow-lg',
+                )}
+                style={{ backgroundColor: 'var(--exec-accent)' }}
+              >
+                {generateMutation.isPending ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Sparkles className="w-4 h-4" />
+                )}
+                Generate Combinations
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      {/* Stats + Progress */}
+      {stats && stats.total > 0 && (
+        <div className="bento-card p-5 mb-4">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-4">
+              <span className="text-sm font-medium text-[--exec-text]">
+                {stats.searched} / {stats.total} searched
+              </span>
+              <span className="text-sm text-[--exec-text-muted]">
+                ({progressPercent}%)
+              </span>
+              {stats.total_leads_found > 0 && (
+                <span className="text-sm text-green-400">
+                  {stats.total_leads_found} total leads found
+                </span>
+              )}
+            </div>
+            <span className={cn(
+              'text-xs font-medium px-2.5 py-1 rounded-full',
+              progressPercent === 100
+                ? 'bg-green-900/30 text-green-400'
+                : 'bg-blue-900/30 text-blue-400'
+            )}>
+              {stats.not_searched} remaining
+            </span>
+          </div>
+          <div className="w-full h-2 bg-stone-700/50 rounded-full overflow-hidden">
+            <div
+              className={cn(
+                'h-full rounded-full transition-all duration-500',
+                progressPercent === 100 ? 'bg-green-500' : 'bg-blue-500'
+              )}
+              style={{ width: `${progressPercent}%` }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Filter Pills */}
+      {activeNiche && combinations.length > 0 && (
+        <div className="flex items-center gap-2 mb-4">
+          {([
+            { key: 'all' as const, label: 'All', count: combinations.length },
+            { key: 'not_searched' as const, label: 'Not Searched', count: combinations.filter(c => !c.is_searched).length },
+            { key: 'searched' as const, label: 'Searched', count: combinations.filter(c => c.is_searched).length },
+          ]).map((filter) => (
+            <button
+              key={filter.key}
+              onClick={() => setStatusFilter(filter.key)}
+              className={cn(
+                'px-3 py-1.5 text-sm font-medium rounded-lg transition-all duration-200',
+                statusFilter === filter.key
+                  ? 'bg-blue-600 text-white'
+                  : 'text-[--exec-text-muted] hover:bg-stone-700/50'
+              )}
+            >
+              {filter.label}
+              <span className="ml-1.5 text-xs opacity-70">{filter.count}</span>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Combinations Table */}
+      {activeNiche && (
+        <div className="bento-card overflow-hidden">
+          {isLoadingCombos ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+            </div>
+          ) : filteredCombos.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-[--exec-border]">
+                <thead className="bg-[--exec-surface-alt]">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-[--exec-text-muted] uppercase tracking-wider">
+                      City
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-[--exec-text-muted] uppercase tracking-wider">
+                      Niche
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-[--exec-text-muted] uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-[--exec-text-muted] uppercase tracking-wider">
+                      Leads Found
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-[--exec-text-muted] uppercase tracking-wider">
+                      Searched
+                    </th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-[--exec-text-muted] uppercase tracking-wider">
+                      Action
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-[--exec-surface] divide-y divide-[--exec-border-subtle]">
+                  {filteredCombos.map((combo) => (
+                    <tr
+                      key={combo.id}
+                      className={cn(
+                        'hover:bg-[--exec-surface-alt] transition-colors',
+                        searchingComboId === combo.id && 'bg-blue-900/10'
+                      )}
+                    >
+                      <td className="px-6 py-3 whitespace-nowrap">
+                        <span className="text-sm font-medium text-[--exec-text]">
+                          {combo.city}
+                        </span>
+                      </td>
+                      <td className="px-6 py-3 whitespace-nowrap">
+                        <span className="text-sm text-[--exec-text-secondary]">
+                          {combo.niche}
+                        </span>
+                      </td>
+                      <td className="px-6 py-3 whitespace-nowrap">
+                        {combo.is_searched ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-green-900/30 text-green-400 border border-green-800">
+                            <CheckCircle className="w-3 h-3" />
+                            Searched
+                          </span>
+                        ) : searchingComboId === combo.id ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-blue-900/30 text-blue-400 border border-blue-800">
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                            Searching...
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-stone-700/50 text-[--exec-text-muted] border border-stone-600/40">
+                            <Globe className="w-3 h-3" />
+                            Not Searched
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-6 py-3 whitespace-nowrap">
+                        {combo.is_searched ? (
+                          <span className="text-sm font-medium text-[--exec-text]">
+                            {combo.leads_found}
+                          </span>
+                        ) : (
+                          <span className="text-sm text-[--exec-text-muted]">—</span>
+                        )}
+                      </td>
+                      <td className="px-6 py-3 whitespace-nowrap">
+                        {combo.searched_at ? (
+                          <span className="text-xs text-[--exec-text-muted]">
+                            {new Date(combo.searched_at).toLocaleDateString()}
+                          </span>
+                        ) : (
+                          <span className="text-sm text-[--exec-text-muted]">—</span>
+                        )}
+                      </td>
+                      <td className="px-6 py-3 whitespace-nowrap text-right">
+                        {combo.is_searched ? (
+                          <button
+                            onClick={() => resetMutation.mutate(combo.id)}
+                            disabled={resetMutation.isPending}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[--exec-text-muted] hover:text-[--exec-text] hover:bg-stone-700/50 rounded-lg transition-colors"
+                            title="Reset to search again"
+                          >
+                            <RotateCcw className="w-3.5 h-3.5" />
+                            Reset
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handleSearchCombo(combo)}
+                            disabled={searchingComboId !== null}
+                            className={cn(
+                              'inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-all',
+                              'bg-blue-600 text-white hover:bg-blue-700',
+                              'disabled:opacity-50 disabled:cursor-not-allowed'
+                            )}
+                          >
+                            {searchingComboId === combo.id ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <Search className="w-3.5 h-3.5" />
+                            )}
+                            Search
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="p-12 text-center">
+              <Globe className="w-12 h-12 text-[--exec-text-muted] mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-[--exec-text] mb-2">
+                {statusFilter === 'not_searched' ? 'All combinations searched!' : 'No combinations found'}
+              </h3>
+              <p className="text-[--exec-text-muted]">
+                {statusFilter === 'not_searched'
+                  ? 'You\'ve searched all combinations. Try a different niche.'
+                  : statusFilter === 'searched'
+                  ? 'No searched combinations yet. Start searching!'
+                  : 'Enter a niche and generate combinations to get started.'}
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Empty State - No niche selected */}
+      {!activeNiche && (
+        <div className="bento-card p-12 text-center">
+          <Sparkles className="w-12 h-12 text-[--exec-text-muted] mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-[--exec-text] mb-2">
+            Plan your lead searches
+          </h3>
+          <p className="text-[--exec-text-muted]">
+            Select a country and enter a business niche to generate all city combinations.
+            Then work through them systematically.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}

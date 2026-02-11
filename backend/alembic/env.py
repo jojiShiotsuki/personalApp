@@ -35,6 +35,7 @@ from app.models.task import Task
 from app.models.crm import Contact, Deal, Interaction
 from app.models.goal import Goal
 from app.models.project import Project
+from app.models.outreach import SearchPlannerCombination
 
 target_metadata = Base.metadata
 

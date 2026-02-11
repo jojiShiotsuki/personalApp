@@ -38,10 +38,12 @@ import {
   ArrowDown,
   ThumbsDown,
   RotateCcw,
+  MapPinned,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import SendDMPanel, { type SendDMSource } from '@/components/outreach/SendDMPanel';
+import SearchPlannerTab from '@/components/outreach/SearchPlannerTab';
 
 // Website issue categories
 const WEBSITE_ISSUES = [
@@ -282,7 +284,7 @@ export default function LeadDiscoveryTab() {
   const queryClient = useQueryClient();
 
   // Tab state
-  const [activeSubTab, setActiveSubTab] = useState<'search' | 'saved'>('search');
+  const [activeSubTab, setActiveSubTab] = useState<'search' | 'saved' | 'planner'>('search');
   const [savedFilter, setSavedFilter] = useState<'available' | 'in_campaign' | 'not_qualified'>('available');
 
   // Form state
@@ -784,6 +786,18 @@ export default function LeadDiscoveryTab() {
                 {stats.total_leads}
               </span>
             )}
+          </button>
+          <button
+            onClick={() => setActiveSubTab('planner')}
+            className={cn(
+              'flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-all duration-200',
+              activeSubTab === 'planner'
+                ? 'bg-blue-600 text-white shadow-sm'
+                : 'bg-[--exec-surface-alt] text-[--exec-text-secondary] hover:bg-[--exec-surface-hover]'
+            )}
+          >
+            <MapPinned className="w-4 h-4" />
+            Search Planner
           </button>
         </div>
 
@@ -1699,6 +1713,11 @@ export default function LeadDiscoveryTab() {
             )}
           </div>
           </div>
+        )}
+
+        {/* Search Planner Tab */}
+        {activeSubTab === 'planner' && (
+          <SearchPlannerTab />
         )}
       </div>
 

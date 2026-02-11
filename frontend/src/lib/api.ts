@@ -73,6 +73,8 @@ import type {
   DiscoveryCallStats,
   DiscoveryCallListResponse,
   CallOutcome,
+  SearchPlannerCombination,
+  SearchPlannerStats,
 } from '../types/index';
 import {
   TaskStatus,
@@ -782,6 +784,49 @@ export const leadDiscoveryApi = {
 
   updateStoredLead: async (leadId: number, data: { agency_name?: string; contact_name?: string; email?: string; website?: string; niche?: string }): Promise<StoredLead> => {
     const response = await api.put(`/api/lead-discovery/stored/${leadId}`, data);
+    return response.data;
+  },
+};
+
+// Search Planner API
+export const searchPlannerApi = {
+  getCountries: async (): Promise<string[]> => {
+    const response = await api.get('/api/lead-discovery/planner/countries');
+    return response.data;
+  },
+
+  getCities: async (country: string): Promise<string[]> => {
+    const response = await api.get(`/api/lead-discovery/planner/cities/${encodeURIComponent(country)}`);
+    return response.data;
+  },
+
+  generateCombinations: async (data: { country: string; niche: string }): Promise<{ created: number; already_existed: number; total: number }> => {
+    const response = await api.post('/api/lead-discovery/planner/generate', data);
+    return response.data;
+  },
+
+  getCombinations: async (params?: { country?: string; niche?: string; is_searched?: boolean }): Promise<SearchPlannerCombination[]> => {
+    const response = await api.get('/api/lead-discovery/planner/combinations', { params });
+    return response.data;
+  },
+
+  getStats: async (params?: { country?: string; niche?: string }): Promise<SearchPlannerStats> => {
+    const response = await api.get('/api/lead-discovery/planner/stats', { params });
+    return response.data;
+  },
+
+  markSearched: async (combinationId: number, leadsFound: number): Promise<SearchPlannerCombination> => {
+    const response = await api.patch(`/api/lead-discovery/planner/combinations/${combinationId}/mark-searched`, { leads_found: leadsFound });
+    return response.data;
+  },
+
+  resetCombination: async (combinationId: number): Promise<SearchPlannerCombination> => {
+    const response = await api.patch(`/api/lead-discovery/planner/combinations/${combinationId}/reset`);
+    return response.data;
+  },
+
+  deleteCombinations: async (country: string, niche: string): Promise<{ deleted: number }> => {
+    const response = await api.delete('/api/lead-discovery/planner/combinations', { params: { country, niche } });
     return response.data;
   },
 };

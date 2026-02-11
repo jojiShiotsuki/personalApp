@@ -10,6 +10,7 @@ from .sprint import Sprint, SprintDay, SprintStatus
 from .loom_audit import LoomAudit, LoomResponseType
 from .pipeline_calculator import PipelineSettings
 from .discovery_call import DiscoveryCall, CallOutcome
+from .outreach import SearchPlannerCombination
 
 __all__ = [
     "Task", "TaskPriority", "TaskStatus",
@@ -25,4 +26,5 @@ __all__ = [
     "LoomAudit", "LoomResponseType",
     "PipelineSettings",
     "DiscoveryCall", "CallOutcome",
+    "SearchPlannerCombination",
 ]

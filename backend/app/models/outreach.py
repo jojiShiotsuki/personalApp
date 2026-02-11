@@ -180,3 +180,24 @@ class DiscoveredLead(Base):
 
     def __repr__(self):
         return f"<DiscoveredLead(id={self.id}, agency_name={self.agency_name}, website={self.website})>"
+
+
+class SearchPlannerCombination(Base):
+    """Tracks city+niche combinations for systematic lead searching."""
+    __tablename__ = "search_planner_combinations"
+
+    id = Column(Integer, primary_key=True, index=True)
+    country = Column(String(100), nullable=False, index=True)
+    city = Column(String(200), nullable=False)
+    niche = Column(String(500), nullable=False)
+    is_searched = Column(Boolean, default=False, nullable=False, server_default='0')
+    searched_at = Column(DateTime, nullable=True)
+    leads_found = Column(Integer, default=0, nullable=False, server_default='0')
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    __table_args__ = (
+        UniqueConstraint('country', 'city', 'niche', name='uq_country_city_niche'),
+    )
+
+    def __repr__(self):
+        return f"<SearchPlannerCombination(id={self.id}, city={self.city}, niche={self.niche})>"
