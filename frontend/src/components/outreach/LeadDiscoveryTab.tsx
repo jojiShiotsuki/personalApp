@@ -281,6 +281,7 @@ export default function LeadDiscoveryTab() {
 
   // Tab state
   const [activeSubTab, setActiveSubTab] = useState<'search' | 'saved'>('search');
+  const [savedFilter, setSavedFilter] = useState<'available' | 'in_campaign'>('available');
 
   // Form state
   const [niche, setNiche] = useState('');
@@ -399,6 +400,17 @@ export default function LeadDiscoveryTab() {
     });
     return leads;
   }, [storedLeadsData?.leads, sortColumn, sortDir]);
+
+  // Filter leads by campaign status
+  const filteredLeads = useMemo(() => {
+    if (savedFilter === 'in_campaign') {
+      return sortedLeads.filter(l => l.in_campaign);
+    }
+    return sortedLeads.filter(l => !l.in_campaign);
+  }, [sortedLeads, savedFilter]);
+
+  const availableCount = useMemo(() => sortedLeads.filter(l => !l.in_campaign).length, [sortedLeads]);
+  const inCampaignCount = useMemo(() => sortedLeads.filter(l => l.in_campaign).length, [sortedLeads]);
 
   // Convert to contact mutation
   const convertMutation = useMutation({
@@ -580,13 +592,19 @@ export default function LeadDiscoveryTab() {
     });
   };
 
-  // Toggle select all
+  // Toggle select all (for currently visible filtered leads)
   const toggleSelectAll = () => {
-    if (!storedLeadsData) return;
-    if (selectedLeadIds.size === storedLeadsData.leads.length) {
-      setSelectedLeadIds(new Set());
+    if (filteredLeads.length === 0) return;
+    const filteredIds = new Set(filteredLeads.map(l => l.id));
+    const allSelected = filteredLeads.every(l => selectedLeadIds.has(l.id));
+    if (allSelected) {
+      setSelectedLeadIds(prev => {
+        const next = new Set(prev);
+        filteredIds.forEach(id => next.delete(id));
+        return next;
+      });
     } else {
-      setSelectedLeadIds(new Set(storedLeadsData.leads.map((l: StoredLead) => l.id)));
+      setSelectedLeadIds(prev => new Set([...prev, ...filteredIds]));
     }
   };
 
@@ -1186,8 +1204,48 @@ export default function LeadDiscoveryTab() {
               </div>
             )}
 
+          {/* Available / In Campaign sub-tabs */}
+          {storedLeadsData && storedLeadsData.leads.length > 0 && (
+            <div className="flex items-center gap-1 mb-3 p-1 bg-stone-800/50 rounded-xl w-fit">
+              <button
+                onClick={() => { setSavedFilter('available'); setSelectedLeadIds(new Set()); }}
+                className={cn(
+                  'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200',
+                  savedFilter === 'available'
+                    ? 'bg-stone-700 text-white shadow-sm'
+                    : 'text-[--exec-text-muted] hover:text-[--exec-text-secondary]'
+                )}
+              >
+                Available
+                <span className={cn(
+                  'px-1.5 py-0.5 text-xs rounded-full',
+                  savedFilter === 'available' ? 'bg-blue-600 text-white' : 'bg-stone-700 text-[--exec-text-muted]'
+                )}>
+                  {availableCount}
+                </span>
+              </button>
+              <button
+                onClick={() => { setSavedFilter('in_campaign'); setSelectedLeadIds(new Set()); }}
+                className={cn(
+                  'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200',
+                  savedFilter === 'in_campaign'
+                    ? 'bg-stone-700 text-white shadow-sm'
+                    : 'text-[--exec-text-muted] hover:text-[--exec-text-secondary]'
+                )}
+              >
+                In Campaign
+                <span className={cn(
+                  'px-1.5 py-0.5 text-xs rounded-full',
+                  savedFilter === 'in_campaign' ? 'bg-green-600 text-white' : 'bg-stone-700 text-[--exec-text-muted]'
+                )}>
+                  {inCampaignCount}
+                </span>
+              </button>
+            </div>
+          )}
+
           {/* Enrich toolbar */}
-          {storedLeadsData && storedLeadsData.leads.length > 0 && stats && stats.without_email > 0 && (
+          {savedFilter === 'available' && storedLeadsData && storedLeadsData.leads.length > 0 && stats && stats.without_email > 0 && (
             <div className="flex items-center justify-between mb-3">
               <p className="text-xs text-[--exec-text-muted]">
                 {stats.without_email} lead{stats.without_email !== 1 ? 's' : ''} missing emails
@@ -1217,7 +1275,7 @@ export default function LeadDiscoveryTab() {
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
               </div>
-            ) : storedLeadsData && storedLeadsData.leads.length > 0 ? (
+            ) : storedLeadsData && storedLeadsData.leads.length > 0 && filteredLeads.length > 0 ? (
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-[--exec-border]">
                   <thead className="bg-[--exec-surface-alt]">
@@ -1225,7 +1283,7 @@ export default function LeadDiscoveryTab() {
                       <th className="px-3 py-3 w-10">
                         <input
                           type="checkbox"
-                          checked={storedLeadsData ? selectedLeadIds.size === storedLeadsData.leads.length && storedLeadsData.leads.length > 0 : false}
+                          checked={filteredLeads.length > 0 && filteredLeads.every(l => selectedLeadIds.has(l.id))}
                           onChange={toggleSelectAll}
                           className="w-4 h-4 text-blue-600 bg-stone-700 border-stone-600 rounded focus:ring-blue-500"
                         />
@@ -1267,7 +1325,7 @@ export default function LeadDiscoveryTab() {
                     </tr>
                   </thead>
                   <tbody className="bg-[--exec-surface] divide-y divide-[--exec-border-subtle]">
-                    {sortedLeads.map((lead: StoredLead) => (
+                    {filteredLeads.map((lead: StoredLead) => (
                       <tr key={lead.id} className={cn(
                         'hover:bg-[--exec-surface-alt]',
                         selectedLeadIds.has(lead.id) && 'bg-blue-900/10'
@@ -1525,8 +1583,32 @@ export default function LeadDiscoveryTab() {
                   </tbody>
                 </table>
               </div>
+            ) : storedLeadsData && storedLeadsData.leads.length > 0 && filteredLeads.length === 0 ? (
+              <div className="bento-card p-12 text-center">
+                {savedFilter === 'available' ? (
+                  <>
+                    <CheckCircle className="w-12 h-12 text-green-500/50 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-[--exec-text] mb-2">
+                      All leads are in campaigns
+                    </h3>
+                    <p className="text-[--exec-text-muted]">
+                      All your saved leads have been added to campaigns. Search for more leads to continue prospecting.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <Mail className="w-12 h-12 text-[--exec-text-muted] mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-[--exec-text] mb-2">
+                      No leads in campaigns yet
+                    </h3>
+                    <p className="text-[--exec-text-muted]">
+                      Select leads from the Available tab and add them to a campaign.
+                    </p>
+                  </>
+                )}
+              </div>
             ) : (
-              <div className="p-12 text-center">
+              <div className="bento-card p-12 text-center">
                 <Database className="w-12 h-12 text-[--exec-text-muted] mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-[--exec-text] mb-2">
                   No saved leads yet

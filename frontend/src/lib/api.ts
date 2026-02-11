@@ -693,6 +693,7 @@ export interface StoredLead {
   email_source: 'scraped' | 'ai_found' | 'manual' | null;
   website_issues: string[];
   last_enriched_at: string | null;
+  in_campaign: boolean;
 }
 
 export interface StoredLeadsResponse {

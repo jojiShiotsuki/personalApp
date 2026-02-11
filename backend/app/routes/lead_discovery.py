@@ -233,6 +233,15 @@ async def get_stored_leads(
     total = query.count()
     leads = query.order_by(DiscoveredLeadModel.created_at.desc()).offset(skip).limit(limit).all()
 
+    # Precompute which leads are already in a campaign (by discovered_lead_id)
+    lead_ids = [lead.id for lead in leads]
+    imported_lead_ids = set()
+    if lead_ids:
+        imported = db.query(OutreachProspect.discovered_lead_id).filter(
+            OutreachProspect.discovered_lead_id.in_(lead_ids)
+        ).all()
+        imported_lead_ids = {row[0] for row in imported if row[0]}
+
     return {
         "total": total,
         "leads": [
@@ -247,6 +256,7 @@ async def get_stored_leads(
                 "created_at": lead.created_at.isoformat() if lead.created_at else None,
                 "is_valid_email": is_valid_email(lead.email) if lead.email else False,
                 "is_duplicate": check_duplicate_email(lead.email, db) if lead.email else False,
+                "in_campaign": lead.id in imported_lead_ids or (check_duplicate_email(lead.email, db) if lead.email else False),
                 "confidence": lead.confidence,
                 "confidence_signals": lead.confidence_signals,
                 "linkedin_url": lead.linkedin_url,
