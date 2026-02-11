@@ -641,10 +641,16 @@ export default function LeadDiscoveryTab() {
     mutationFn: leadDiscoveryApi.search,
     onSuccess: (data) => {
       setResults(data);
-      if (data.leads.length === 0) {
+      if (data.leads.length === 0 && data.already_saved === 0) {
         toast.error('No leads found. Try adjusting your search criteria.');
+      } else if (data.leads.length === 0 && data.already_saved > 0) {
+        toast.info(`All results already in your saved leads (${data.already_saved} skipped)`);
       } else {
-        toast.success(`Found ${data.leads.length} leads!`);
+        let msg = `Found ${data.leads.length} new leads!`;
+        if (data.already_saved > 0) {
+          msg += ` (${data.already_saved} already saved)`;
+        }
+        toast.success(msg);
       }
     },
     onError: (error: any) => {
@@ -944,8 +950,13 @@ export default function LeadDiscoveryTab() {
                     <span className="text-[--exec-text]">
                       Found{' '}
                       <span className="font-semibold">{results.leads.length}</span>{' '}
-                      leads
+                      new leads
                     </span>
+                    {results.already_saved > 0 && (
+                      <span className="text-[--exec-text-muted]">
+                        • {results.already_saved} already saved
+                      </span>
+                    )}
                     {results.duplicates_found > 0 && (
                       <span className="text-amber-400">
                         • {results.duplicates_found} duplicates

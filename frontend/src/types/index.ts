@@ -829,6 +829,7 @@ export interface LeadSearchResponse {
   leads: DiscoveredLead[];
   duplicates_found: number;
   valid_for_import: number;
+  already_saved: number;
 }
 
 export interface LeadImportRequest {

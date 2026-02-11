@@ -48,6 +48,7 @@ class LeadSearchResponse(BaseModel):
     leads: list[DiscoveredLead]
     duplicates_found: int
     valid_for_import: int
+    already_saved: int = 0
 
 
 class LeadImportRequest(BaseModel):

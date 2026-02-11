@@ -166,6 +166,13 @@ async def search_leads(request: LeadSearchRequest, db: Session = Depends(get_db)
     # Get known emails to skip scraping for already-discovered leads
     known_emails = get_known_emails(db)
 
+    # Get all existing normalized websites so we can filter them out of results
+    existing_websites = {
+        lead.website_normalized
+        for lead in db.query(DiscoveredLeadModel.website_normalized).all()
+        if lead.website_normalized
+    }
+
     try:
         raw_leads = await find_businesses(
             niche=request.niche,
@@ -182,10 +189,19 @@ async def search_leads(request: LeadSearchRequest, db: Session = Depends(get_db)
     leads: list[DiscoveredLead] = []
     duplicates_found = 0
     valid_for_import = 0
+    already_saved_count = 0
 
     for raw_lead in raw_leads:
         # Store in discovered_leads table (or update existing)
         store_discovered_lead(raw_lead, request.niche, request.location, db)
+
+        # Skip leads that already existed before this search
+        website = raw_lead.get('website', '')
+        if website:
+            normalized = normalize_website(website)
+            if normalized and normalized in existing_websites:
+                already_saved_count += 1
+                continue
 
         lead = clean_lead_data(raw_lead)
 
@@ -208,6 +224,7 @@ async def search_leads(request: LeadSearchRequest, db: Session = Depends(get_db)
         leads=leads,
         duplicates_found=duplicates_found,
         valid_for_import=valid_for_import,
+        already_saved=already_saved_count,
     )
 
 
