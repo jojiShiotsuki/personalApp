@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from datetime import date, datetime
 from urllib.parse import urlparse
@@ -297,14 +298,18 @@ async def get_stored_leads_stats(db: Session = Depends(get_db)):
     }
 
 
+class StoredLeadUpdate(BaseModel):
+    agency_name: str | None = None
+    contact_name: str | None = None
+    email: str | None = None
+    website: str | None = None
+    niche: str | None = None
+
+
 @router.put("/stored/{lead_id}")
 async def update_stored_lead(
     lead_id: int,
-    agency_name: str | None = None,
-    contact_name: str | None = None,
-    email: str | None = None,
-    website: str | None = None,
-    niche: str | None = None,
+    data: StoredLeadUpdate,
     db: Session = Depends(get_db),
 ):
     """
@@ -318,17 +323,17 @@ async def update_stored_lead(
         raise HTTPException(status_code=404, detail="Lead not found")
 
     # Update fields if provided
-    if agency_name is not None:
-        lead.agency_name = agency_name
-    if contact_name is not None:
-        lead.contact_name = contact_name
-    if email is not None:
-        lead.email = email
-    if website is not None:
-        lead.website = website
-        lead.website_normalized = normalize_website(website)
-    if niche is not None:
-        lead.niche = niche
+    if data.agency_name is not None:
+        lead.agency_name = data.agency_name
+    if data.contact_name is not None:
+        lead.contact_name = data.contact_name
+    if data.email is not None:
+        lead.email = data.email
+    if data.website is not None:
+        lead.website = data.website
+        lead.website_normalized = normalize_website(data.website)
+    if data.niche is not None:
+        lead.niche = data.niche
 
     db.commit()
     db.refresh(lead)
