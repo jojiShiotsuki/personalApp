@@ -697,6 +697,7 @@ export interface StoredLead {
   last_enriched_at: string | null;
   in_campaign: boolean;
   is_disqualified: boolean;
+  search_query: string | null;
 }
 
 export interface StoredLeadsResponse {

@@ -1529,6 +1529,12 @@ export default function LeadDiscoveryTab() {
                                   </span>
                                 )}
                               </div>
+                              {(lead.search_query || lead.location) && (
+                                <span className="inline-flex items-center gap-1 mt-1 px-1.5 py-0.5 text-[10px] font-medium rounded bg-blue-900/30 text-blue-400 border border-blue-800/50">
+                                  <MapPin className="w-2.5 h-2.5" />
+                                  {[lead.search_query, lead.location].filter(Boolean).join(' — ')}
+                                </span>
+                              )}
                             </>
                           )}
                         </td>

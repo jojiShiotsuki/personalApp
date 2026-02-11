@@ -422,9 +422,16 @@ function ProspectCard({
             </p>
 
             {prospect.niche && (
-              <p className="text-xs text-[--exec-text-muted] mb-2">
+              <p className="text-xs text-[--exec-text-muted] mb-1">
                 {prospect.niche}
               </p>
+            )}
+
+            {prospect.custom_fields?.search_source && (
+              <span className="inline-flex items-center gap-1 mb-2 px-1.5 py-0.5 text-[10px] font-medium rounded bg-blue-900/30 text-blue-400 border border-blue-800/50">
+                <MapPin className="w-2.5 h-2.5" />
+                {prospect.custom_fields.search_source}
+              </span>
             )}
 
             <ProspectLinks prospect={prospect} size="sm" />
@@ -608,9 +615,16 @@ function SentProspectCard({ prospect, onEdit }: { prospect: OutreachProspect; on
             </p>
 
             {prospect.niche && (
-              <p className="text-xs text-[--exec-text-muted] mb-2">
+              <p className="text-xs text-[--exec-text-muted] mb-1">
                 {prospect.niche}
               </p>
+            )}
+
+            {prospect.custom_fields?.search_source && (
+              <span className="inline-flex items-center gap-1 mb-2 px-1.5 py-0.5 text-[10px] font-medium rounded bg-blue-900/30 text-blue-400 border border-blue-800/50">
+                <MapPin className="w-2.5 h-2.5" />
+                {prospect.custom_fields.search_source}
+              </span>
             )}
 
             <ProspectLinks prospect={prospect} size="sm" />
@@ -778,6 +792,12 @@ function AllProspects({
                     <div className="mt-1">
                       <ProspectLinks prospect={prospect} size="xs" />
                     </div>
+                    {prospect.custom_fields?.search_source && (
+                      <span className="inline-flex items-center gap-1 mt-1 px-1.5 py-0.5 text-[10px] font-medium rounded bg-blue-900/30 text-blue-400 border border-blue-800/50">
+                        <MapPin className="w-2.5 h-2.5" />
+                        {prospect.custom_fields.search_source}
+                      </span>
+                    )}
                   </div>
                 </div>
               </td>
@@ -882,9 +902,15 @@ function RepliedProspects({ prospects, onEdit }: { prospects: OutreachProspect[]
                 {prospect.email || <span className="text-amber-400 italic">Via contact form</span>}
               </p>
               {prospect.niche && (
-                <p className="text-xs text-[--exec-text-muted] mb-2">
+                <p className="text-xs text-[--exec-text-muted] mb-1">
                   {prospect.niche}
                 </p>
+              )}
+              {prospect.custom_fields?.search_source && (
+                <span className="inline-flex items-center gap-1 mb-2 px-1.5 py-0.5 text-[10px] font-medium rounded bg-blue-900/30 text-blue-400 border border-blue-800/50">
+                  <MapPin className="w-2.5 h-2.5" />
+                  {prospect.custom_fields.search_source}
+                </span>
               )}
               <ProspectLinks prospect={prospect} size="sm" />
               {prospect.notes && (

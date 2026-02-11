@@ -306,6 +306,7 @@ async def get_stored_leads(
                 "website_issues": lead.website_issues or [],
                 "last_enriched_at": lead.last_enriched_at.isoformat() if lead.last_enriched_at else None,
                 "is_disqualified": bool(lead.is_disqualified),
+                "search_query": lead.search_query,
             }
             for lead in leads
         ]
@@ -511,6 +512,10 @@ async def bulk_import_to_campaign(request: BulkImportToCampaignRequest, db: Sess
                 skipped_reasons.append(f"{lead.agency_name}: email already in this campaign")
                 continue
 
+            # Build search source tag
+            source_parts = [lead.search_query or lead.niche, lead.location]
+            search_source = ' — '.join(p for p in source_parts if p) or None
+
             # Create prospect
             prospect = OutreachProspect(
                 campaign_id=request.campaign_id,
@@ -526,6 +531,7 @@ async def bulk_import_to_campaign(request: BulkImportToCampaignRequest, db: Sess
                 linkedin_url=lead.linkedin_url,
                 facebook_url=lead.facebook_url,
                 instagram_url=lead.instagram_url,
+                custom_fields={"search_source": search_source} if search_source else None,
             )
             db.add(prospect)
             if has_email:
