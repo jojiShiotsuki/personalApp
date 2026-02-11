@@ -305,6 +305,9 @@ export default function LeadDiscoveryTab() {
   // Bulk selection state (for saved leads)
   const [selectedLeadIds, setSelectedLeadIds] = useState<Set<number>>(new Set());
 
+  // Single lead import to campaign state
+  const [singleImportLeadId, setSingleImportLeadId] = useState<number | null>(null);
+
   // Send DM panel state
   const [isSendDMPanelOpen, setIsSendDMPanelOpen] = useState(false);
   const [selectedLeadForDM, setSelectedLeadForDM] = useState<SendDMSource | null>(null);
@@ -1182,6 +1185,13 @@ export default function LeadDiscoveryTab() {
                                   <UserPlus className="w-4 h-4" />
                                 </button>
                                 <button
+                                  onClick={() => setSingleImportLeadId(lead.id)}
+                                  className="p-1.5 text-[--exec-text-muted] hover:text-orange-400 hover:bg-orange-900/30 rounded-lg transition-colors"
+                                  title="Add to Campaign"
+                                >
+                                  <Mail className="w-4 h-4" />
+                                </button>
+                                <button
                                   onClick={() => {
                                     if (confirm('Delete this lead?')) {
                                       deleteMutation.mutate(lead.id);
@@ -1380,6 +1390,24 @@ export default function LeadDiscoveryTab() {
             lead_ids: Array.from(selectedLeadIds),
             campaign_id: campaignId,
           });
+        }}
+        isImporting={bulkImportMutation.isPending}
+      />
+
+      {/* Single Lead Import to Campaign Modal */}
+      <CampaignSelectModal
+        isOpen={singleImportLeadId !== null}
+        onClose={() => setSingleImportLeadId(null)}
+        campaigns={campaigns}
+        validCount={1}
+        onSelect={(campaignId) => {
+          if (singleImportLeadId !== null) {
+            bulkImportMutation.mutate({
+              lead_ids: [singleImportLeadId],
+              campaign_id: campaignId,
+            });
+            setSingleImportLeadId(null);
+          }
         }}
         isImporting={bulkImportMutation.isPending}
       />
