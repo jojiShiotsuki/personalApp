@@ -419,7 +419,7 @@ function ProspectCard({
             )}
 
             <p className="text-sm text-[--exec-text-secondary] truncate mb-1">
-              {prospect.email}
+              {prospect.email || <span className="text-amber-400 italic">Via contact form</span>}
             </p>
 
             {prospect.niche && (
@@ -461,18 +461,35 @@ function ProspectCard({
         </div>
 
         <div className="flex items-center gap-2 mt-4 pt-4 border-t border-[--exec-border-subtle]">
-          <button
-            onClick={() => setIsCopyModalOpen(true)}
-            className={cn(
-              'flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200',
-              'bg-slate-600/50 text-slate-300',
-              'hover:bg-slate-500 hover:text-white hover:scale-105',
-              'active:scale-95'
-            )}
-          >
-            <Copy className="w-4 h-4" />
-            Copy Email
-          </button>
+          {prospect.email ? (
+            <button
+              onClick={() => setIsCopyModalOpen(true)}
+              className={cn(
+                'flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200',
+                'bg-slate-600/50 text-slate-300',
+                'hover:bg-slate-500 hover:text-white hover:scale-105',
+                'active:scale-95'
+              )}
+            >
+              <Copy className="w-4 h-4" />
+              Copy Email
+            </button>
+          ) : prospect.website ? (
+            <a
+              href={prospect.website.startsWith('http') ? prospect.website : `https://${prospect.website}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={cn(
+                'flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200',
+                'bg-amber-600/50 text-amber-300',
+                'hover:bg-amber-500 hover:text-white hover:scale-105',
+                'active:scale-95'
+              )}
+            >
+              <Globe className="w-4 h-4" />
+              Open Website
+            </a>
+          ) : null}
 
           <button
             onClick={onMarkSent}
@@ -588,7 +605,7 @@ function SentProspectCard({ prospect, onEdit }: { prospect: OutreachProspect; on
             )}
 
             <p className="text-sm text-[--exec-text-secondary] truncate mb-1">
-              {prospect.email}
+              {prospect.email || <span className="text-amber-400 italic">Via contact form</span>}
             </p>
 
             {prospect.niche && (
@@ -766,7 +783,7 @@ function AllProspects({
                 </div>
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm text-[--exec-text-secondary]">
-                {prospect.email}
+                {prospect.email || <span className="text-amber-400 italic">Via contact form</span>}
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm text-[--exec-text-muted]">
                 {prospect.niche || '-'}
@@ -863,7 +880,7 @@ function RepliedProspects({ prospects, onEdit }: { prospects: OutreachProspect[]
                 </p>
               )}
               <p className="text-sm text-[--exec-text-secondary] truncate mb-2">
-                {prospect.email}
+                {prospect.email || <span className="text-amber-400 italic">Via contact form</span>}
               </p>
               {prospect.niche && (
                 <p className="text-xs text-[--exec-text-muted] mb-2">

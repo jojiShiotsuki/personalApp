@@ -718,7 +718,7 @@ export interface OutreachProspect {
   campaign_id: number;
   agency_name: string;
   contact_name?: string;
-  email: string;
+  email?: string | null;
   website?: string;
   niche?: string;
   custom_fields?: Record<string, any>;
