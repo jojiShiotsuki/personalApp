@@ -471,8 +471,13 @@ async def find_businesses(
         exclude_names_lower = {n.lower().strip() for n in exclude_names}
 
     # Build multiple search prompts for cross-referencing
+    # Each prompt includes instructions to search closely related variations of the niche
+    niche_expansion = f"""Include businesses that use closely related terms for "{niche}" (e.g. if the niche is "roofing", also include "roofers", "roof repairs", "roof restoration", "roof replacement" etc.). Stay within the same trade — do NOT include unrelated trades."""
+
     search_prompts = [
         f"""Find {count} real {niche} businesses in {location}.
+
+{niche_expansion}
 
 For each business, provide:
 - The exact business name
@@ -485,6 +490,8 @@ IMPORTANT: Use your search results to find REAL businesses with REAL website URL
 Only include businesses you can verify actually exist.{exclude_text}""",
 
         f"""List the best {niche} in {location} with their official websites and contact information.
+
+{niche_expansion}
 
 For each business provide:
 - Business name
@@ -500,6 +507,8 @@ Focus on well-established businesses with real websites.{exclude_text}""",
     if count >= 8:
         search_prompts.append(
             f"""Search for {niche} directory listings and reviews in {location}.
+
+{niche_expansion}
 
 Find businesses that appear in local directories, Google reviews, or industry listings.
 For each business provide:
