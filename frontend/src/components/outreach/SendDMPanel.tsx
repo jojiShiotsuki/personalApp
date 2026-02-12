@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { X, Copy, Check, Send, Mail, Linkedin, Phone, Video, MapPin, Globe, Briefcase, ChevronDown, Settings2 } from 'lucide-react';
+import { X, Copy, Check, Send, Mail, Linkedin, Phone, Video, MapPin, Globe, Briefcase, ChevronDown, Settings2, Building2 } from 'lucide-react';
 import { outreachApi, dailyOutreachApi, contactApi } from '@/lib/api';
 import type { OutreachNiche, OutreachSituation, OutreachTemplate, TemplateType } from '@/types';
 import { toast } from 'sonner';
@@ -76,6 +76,14 @@ const TEMPLATE_CATEGORIES = [
     icon: Video,
     types: [
       { value: 'loom_video_audit' as TemplateType, label: 'Video Audit' },
+    ],
+  },
+  {
+    group: 'Agency',
+    icon: Building2,
+    types: [
+      { value: 'agency_email' as TemplateType, label: 'Agency Email' },
+      { value: 'agency_linkedin' as TemplateType, label: 'Agency LinkedIn' },
     ],
   },
 ];

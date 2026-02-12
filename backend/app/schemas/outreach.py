@@ -44,6 +44,7 @@ VALID_TEMPLATE_TYPES = [
     'linkedin_direct', 'linkedin_compliment', 'linkedin_mutual_interest',
     'linkedin_followup_1', 'linkedin_followup_2',
     'loom_video_audit',
+    'agency_email', 'agency_linkedin',
 ]
 
 

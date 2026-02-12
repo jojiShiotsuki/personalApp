@@ -649,7 +649,8 @@ export type TemplateType =
   | 'email_1' | 'email_2' | 'email_3' | 'email_4' | 'email_5'
   | 'linkedin_direct' | 'linkedin_compliment' | 'linkedin_mutual_interest'
   | 'linkedin_followup_1' | 'linkedin_followup_2'
-  | 'loom_video_audit';
+  | 'loom_video_audit'
+  | 'agency_email' | 'agency_linkedin';
 
 export interface OutreachTemplate {
   id: number;
