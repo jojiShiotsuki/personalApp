@@ -62,6 +62,7 @@ class TemplateCreate(TemplateBase):
 
 
 class TemplateUpdate(BaseModel):
+    subject: Optional[str] = Field(None, max_length=500)
     content: str = Field(..., min_length=1)
 
 
