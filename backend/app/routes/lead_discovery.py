@@ -374,21 +374,9 @@ async def update_stored_lead(
         lead.contact_name = data.contact_name or None
     if data.email is not None:
         lead.email = data.email or None
-    if data.website is not None and data.website.strip() and data.website != lead.website:
-        new_normalized = normalize_website(data.website)
-        if new_normalized != lead.website_normalized:
-            # Check for duplicates excluding this lead
-            existing = db.query(DiscoveredLeadModel).filter(
-                DiscoveredLeadModel.website_normalized == new_normalized,
-                DiscoveredLeadModel.id != lead_id,
-            ).first()
-            if existing:
-                raise HTTPException(
-                    status_code=409,
-                    detail=f"A lead with this website already exists: {existing.agency_name}"
-                )
-            lead.website_normalized = new_normalized
+    if data.website is not None and data.website.strip():
         lead.website = data.website
+        lead.website_normalized = normalize_website(data.website)
     if data.niche is not None:
         lead.niche = data.niche or None
 

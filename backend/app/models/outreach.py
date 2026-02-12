@@ -162,7 +162,7 @@ class DiscoveredLead(Base):
     contact_name = Column(String(255), nullable=True)
     email = Column(String(255), nullable=True)
     website = Column(String(500), nullable=False)
-    website_normalized = Column(String(500), nullable=False, unique=True, index=True)
+    website_normalized = Column(String(500), nullable=False, index=True)
     niche = Column(String(255), nullable=True)
     location = Column(String(255), nullable=True)  # Search location used
     search_query = Column(String(500), nullable=True)  # Original search niche
