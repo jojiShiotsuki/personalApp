@@ -52,11 +52,15 @@ const TEMPLATE_CATEGORIES = [
   },
 ];
 
+// Niche selection: null = nothing selected, 'all' = All Niches, number = specific niche
+type NicheSelection = number | 'all' | null;
+const nicheSelectionToApiId = (sel: NicheSelection): number | null => sel === 'all' ? null : sel;
+
 export default function ManageTemplatesModal({ isOpen, onClose }: ManageTemplatesModalProps) {
   const [activeTab, setActiveTab] = useState<Tab>('templates');
   const [newNiche, setNewNiche] = useState('');
   const [newSituation, setNewSituation] = useState('');
-  const [selectedNicheId, setSelectedNicheId] = useState<number | null>(null);
+  const [nicheSelection, setNicheSelection] = useState<NicheSelection>(null);
   const [selectedSituationId, setSelectedSituationId] = useState<number | null>(null);
   const [selectedTemplateType, setSelectedTemplateType] = useState<TemplateType>('email_1');
   const [templateContent, setTemplateContent] = useState('');
@@ -78,8 +82,9 @@ export default function ManageTemplatesModal({ isOpen, onClose }: ManageTemplate
   });
 
   // Load template when niche/situation/template_type changes
+  const effectiveNicheId = nicheSelectionToApiId(nicheSelection);
   const currentTemplate = templates.find(
-    (t) => t.niche_id === selectedNicheId && t.situation_id === selectedSituationId && t.template_type === selectedTemplateType
+    (t) => t.niche_id === effectiveNicheId && t.situation_id === selectedSituationId && t.template_type === selectedTemplateType
   );
 
   const createNicheMutation = useMutation({
@@ -142,7 +147,7 @@ export default function ManageTemplatesModal({ isOpen, onClose }: ManageTemplate
   };
 
   const handleSaveTemplate = () => {
-    if (!selectedNicheId || !selectedSituationId) {
+    if (nicheSelection === null || !selectedSituationId) {
       toast.error('Select a niche and situation first');
       return;
     }
@@ -152,22 +157,23 @@ export default function ManageTemplatesModal({ isOpen, onClose }: ManageTemplate
     }
     saveTemplateMutation.mutate({
       id: currentTemplate?.id,
-      niche_id: selectedNicheId,
+      niche_id: effectiveNicheId,
       situation_id: selectedSituationId,
       template_type: selectedTemplateType,
       content: templateContent,
     });
   };
 
-  const handleSelectionChange = (nicheId: number | null, situationId: number | null, templateType: TemplateType) => {
-    setSelectedNicheId(nicheId);
+  const handleSelectionChange = (niche: NicheSelection, situationId: number | null, templateType: TemplateType) => {
+    setNicheSelection(niche);
     setSelectedSituationId(situationId);
     setSelectedTemplateType(templateType);
 
     // Load existing template if exists
-    if (nicheId && situationId) {
+    const apiNicheId = nicheSelectionToApiId(niche);
+    if (niche !== null && situationId) {
       const existing = templates.find(
-        (t) => t.niche_id === nicheId && t.situation_id === situationId && t.template_type === templateType
+        (t) => t.niche_id === apiNicheId && t.situation_id === situationId && t.template_type === templateType
       );
       setTemplateContent(existing?.content || '');
     } else {
@@ -337,15 +343,16 @@ export default function ManageTemplatesModal({ isOpen, onClose }: ManageTemplate
                         Niche
                       </label>
                       <select
-                        value={selectedNicheId || ''}
-                        onChange={(e) => handleSelectionChange(
-                          e.target.value ? Number(e.target.value) : null,
-                          selectedSituationId,
-                          selectedTemplateType
-                        )}
+                        value={nicheSelection === 'all' ? 'all' : nicheSelection ?? ''}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          const niche: NicheSelection = val === 'all' ? 'all' : val ? Number(val) : null;
+                          handleSelectionChange(niche, selectedSituationId, selectedTemplateType);
+                        }}
                         className={inputClasses}
                       >
                         <option value="">Select niche</option>
+                        <option value="all">All Niches (Default)</option>
                         {niches.map((niche) => (
                           <option key={niche.id} value={niche.id}>
                             {niche.name}
@@ -360,7 +367,7 @@ export default function ManageTemplatesModal({ isOpen, onClose }: ManageTemplate
                       <select
                         value={selectedSituationId || ''}
                         onChange={(e) => handleSelectionChange(
-                          selectedNicheId,
+                          nicheSelection,
                           e.target.value ? Number(e.target.value) : null,
                           selectedTemplateType
                         )}
@@ -394,13 +401,13 @@ export default function ManageTemplatesModal({ isOpen, onClose }: ManageTemplate
                             </div>
                             <div className="flex flex-wrap gap-2">
                               {category.types.map((type) => {
-                                const hasTemplate = selectedNicheId && selectedSituationId && templates.some(
-                                  t => t.niche_id === selectedNicheId && t.situation_id === selectedSituationId && t.template_type === type.value
+                                const hasTemplate = nicheSelection !== null && selectedSituationId && templates.some(
+                                  t => t.niche_id === effectiveNicheId && t.situation_id === selectedSituationId && t.template_type === type.value
                                 );
                                 return (
                                   <button
                                     key={type.value}
-                                    onClick={() => handleSelectionChange(selectedNicheId, selectedSituationId, type.value)}
+                                    onClick={() => handleSelectionChange(nicheSelection, selectedSituationId, type.value)}
                                     className={cn(
                                       'px-3 py-1.5 rounded-lg border transition-all text-sm font-medium relative',
                                       selectedTemplateType === type.value
@@ -441,10 +448,10 @@ export default function ManageTemplatesModal({ isOpen, onClose }: ManageTemplate
                     <textarea
                       value={templateContent}
                       onChange={(e) => setTemplateContent(e.target.value)}
-                      placeholder={selectedNicheId && selectedSituationId
+                      placeholder={nicheSelection !== null && selectedSituationId
                         ? "Enter your script template here...\n\nExample:\nHey {name}! I came across your {niche} content and love what you're doing..."
                         : "Select a niche and situation first"}
-                      disabled={!selectedNicheId || !selectedSituationId}
+                      disabled={nicheSelection === null || !selectedSituationId}
                       rows={8}
                       className={cn(inputClasses, "resize-none disabled:opacity-50 disabled:cursor-not-allowed")}
                     />
@@ -452,7 +459,7 @@ export default function ManageTemplatesModal({ isOpen, onClose }: ManageTemplate
 
                   <button
                     onClick={handleSaveTemplate}
-                    disabled={!selectedNicheId || !selectedSituationId || !templateContent.trim() || saveTemplateMutation.isPending}
+                    disabled={nicheSelection === null || !selectedSituationId || !templateContent.trim() || saveTemplateMutation.isPending}
                     className={cn(
                       "w-full flex items-center justify-center gap-2 px-4 py-3 text-white rounded-lg transition-colors",
                       "bg-[--exec-accent] hover:bg-[--exec-accent-dark]",

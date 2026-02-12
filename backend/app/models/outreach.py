@@ -55,7 +55,7 @@ class OutreachTemplate(Base):
     __tablename__ = "outreach_templates"
 
     id = Column(Integer, primary_key=True, index=True)
-    niche_id = Column(Integer, ForeignKey("outreach_niches.id", ondelete="CASCADE"), nullable=False)
+    niche_id = Column(Integer, ForeignKey("outreach_niches.id", ondelete="CASCADE"), nullable=True)
     situation_id = Column(Integer, ForeignKey("outreach_situations.id", ondelete="CASCADE"), nullable=False)
     template_type = Column(String(50), nullable=False, default='email_1')  # e.g. email_1, linkedin_direct, loom_video_audit
     content = Column(Text, nullable=False)

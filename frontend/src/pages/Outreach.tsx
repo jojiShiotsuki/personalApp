@@ -83,9 +83,12 @@ export default function Outreach() {
   });
 
   // Find the template for current niche + situation + template_type
+  // Fallback: try exact niche match first, then "All Niches" (niche_id === null) default
   const currentTemplate = templates.find(
     (t) => t.niche_id === selectedNicheId && t.situation_id === selectedSituationId && t.template_type === selectedTemplateType
-  );
+  ) || (selectedNicheId !== null ? templates.find(
+    (t) => t.niche_id === null && t.situation_id === selectedSituationId && t.template_type === selectedTemplateType
+  ) : undefined);
 
   const selectedNiche = niches.find((n) => n.id === selectedNicheId);
   const selectedSituation = situations.find((s) => s.id === selectedSituationId);
@@ -192,11 +195,11 @@ export default function Outreach() {
             </label>
             {niches.length > 0 ? (
               <select
-                value={selectedNicheId || ''}
+                value={selectedNicheId ?? ''}
                 onChange={(e) => setSelectedNicheId(e.target.value ? Number(e.target.value) : null)}
                 className="w-full px-4 py-3 bg-[--exec-surface-alt] border border-[--exec-border] rounded-xl focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent] transition-all duration-200 text-[--exec-text] cursor-pointer"
               >
-                <option value="">Select a niche</option>
+                <option value="">All Niches</option>
                 {niches.map((niche) => (
                   <option key={niche.id} value={niche.id}>
                     {niche.name}
@@ -304,7 +307,7 @@ export default function Outreach() {
                 <p className="text-[--exec-text] whitespace-pre-wrap leading-relaxed">
                   {processedScript}
                 </p>
-              ) : selectedNicheId && selectedSituationId ? (
+              ) : selectedSituationId ? (
                 <p className="text-[--exec-text-muted] italic">
                   No template for this combination.{' '}
                   <button
@@ -316,7 +319,7 @@ export default function Outreach() {
                 </p>
               ) : (
                 <p className="text-[--exec-text-muted] italic">
-                  Select a niche and situation to see the script
+                  Select a situation to see the script
                 </p>
               )}
             </div>

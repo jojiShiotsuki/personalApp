@@ -49,7 +49,7 @@ VALID_TEMPLATE_TYPES = [
 
 # Template Schemas
 class TemplateBase(BaseModel):
-    niche_id: int
+    niche_id: Optional[int] = None
     situation_id: int
     template_type: str = Field(default='email_1')
     content: str = Field(..., min_length=1)

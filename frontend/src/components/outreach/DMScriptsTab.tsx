@@ -97,9 +97,12 @@ export default function DMScriptsTab() {
   });
 
   // Find the template for current niche + situation + template_type
+  // Fallback: try exact niche match first, then "All Niches" (niche_id === null) default
   const currentTemplate = templates.find(
     (t) => t.niche_id === selectedNicheId && t.situation_id === selectedSituationId && t.template_type === selectedTemplateType
-  );
+  ) || (selectedNicheId !== null ? templates.find(
+    (t) => t.niche_id === null && t.situation_id === selectedSituationId && t.template_type === selectedTemplateType
+  ) : undefined);
 
   const selectedNiche = niches.find((n) => n.id === selectedNicheId);
   const selectedSituation = situations.find((s) => s.id === selectedSituationId);
@@ -191,7 +194,7 @@ export default function DMScriptsTab() {
                     selectedNicheId ? "text-[--exec-text]" : "text-[--exec-text-muted]"
                   )}
                 >
-                  <span>{selectedNiche?.name || 'Select a niche'}</span>
+                  <span>{selectedNiche?.name || 'All Niches'}</span>
                   <ChevronDown className={cn(
                     "w-4 h-4 text-[--exec-text-muted] transition-transform duration-200",
                     isNicheDropdownOpen && "rotate-180"
@@ -199,21 +202,7 @@ export default function DMScriptsTab() {
                 </button>
                 {isNicheDropdownOpen && (
                   <div className="absolute z-50 w-full mt-2 py-1 bg-stone-800 border border-stone-600/40 rounded-xl shadow-xl overflow-hidden">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedNicheId(null);
-                        setIsNicheDropdownOpen(false);
-                      }}
-                      className={cn(
-                        "w-full px-4 py-2.5 text-left text-sm transition-colors",
-                        !selectedNicheId
-                          ? "bg-[--exec-accent]/20 text-[--exec-accent]"
-                          : "text-stone-400 hover:bg-stone-700/50 hover:text-stone-200"
-                      )}
-                    >
-                      Select a niche
-                    </button>
+
                     {niches.map((niche) => (
                       <button
                         key={niche.id}
@@ -336,7 +325,7 @@ export default function DMScriptsTab() {
                 <p className="text-[--exec-text] whitespace-pre-wrap leading-relaxed">
                   {processedScript}
                 </p>
-              ) : selectedNicheId && selectedSituationId ? (
+              ) : selectedSituationId ? (
                 <p className="text-[--exec-text-muted] italic">
                   No template for this combination.{' '}
                   <button
@@ -348,7 +337,7 @@ export default function DMScriptsTab() {
                 </p>
               ) : (
                 <p className="text-[--exec-text-muted] italic">
-                  Select a niche and situation to see the script
+                  Select a situation to see the script
                 </p>
               )}
             </div>

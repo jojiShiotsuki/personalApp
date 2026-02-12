@@ -653,7 +653,7 @@ export type TemplateType =
 
 export interface OutreachTemplate {
   id: number;
-  niche_id: number;
+  niche_id: number | null;
   situation_id: number;
   template_type: TemplateType;
   content: string;

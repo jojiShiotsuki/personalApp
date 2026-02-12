@@ -111,8 +111,13 @@ def list_templates(
 @router.post("/templates", response_model=TemplateResponse, status_code=201)
 def create_or_update_template(data: TemplateCreate, db: Session = Depends(get_db)):
     # Check if template exists for this niche+situation+template_type combo
+    # NULL niche_id requires is_(None) for proper SQL comparison
+    niche_filter = (
+        OutreachTemplate.niche_id.is_(None) if data.niche_id is None
+        else OutreachTemplate.niche_id == data.niche_id
+    )
     existing = db.query(OutreachTemplate).filter(
-        OutreachTemplate.niche_id == data.niche_id,
+        niche_filter,
         OutreachTemplate.situation_id == data.situation_id,
         OutreachTemplate.template_type == data.template_type
     ).first()

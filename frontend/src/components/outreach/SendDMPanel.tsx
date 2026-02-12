@@ -144,10 +144,14 @@ export default function SendDMPanel({ isOpen, onClose, source, onSuccess }: Send
     n.name.toLowerCase().includes(source?.niche?.toLowerCase() || '')
   );
 
-  // Find current template
+  // Find current template with fallback:
+  // 1) Exact niche match, 2) "All Niches" default (niche_id === null), 3) any template
   const currentTemplate = templates.find(
     t => t.situation_id === selectedSituationId && t.template_type === selectedTemplateType &&
-      (matchingNiche ? t.niche_id === matchingNiche.id : true)
+      matchingNiche && t.niche_id === matchingNiche.id
+  ) || templates.find(
+    t => t.situation_id === selectedSituationId && t.template_type === selectedTemplateType &&
+      t.niche_id === null
   ) || templates.find(
     t => t.situation_id === selectedSituationId && t.template_type === selectedTemplateType
   );
