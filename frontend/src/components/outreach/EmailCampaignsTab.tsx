@@ -445,6 +445,20 @@ function ProspectCard({
 
             <ProspectLinks prospect={prospect} size="sm" />
 
+            {prospect.website_issues && prospect.website_issues.length > 0 && (
+              <div className="flex flex-wrap gap-1 mt-1.5">
+                <AlertTriangle className="w-3 h-3 text-amber-400 flex-shrink-0 mt-0.5" />
+                {prospect.website_issues.map((issue) => {
+                  const info = WEBSITE_ISSUE_LABELS[issue];
+                  return info ? (
+                    <span key={issue} className={cn('px-1.5 py-0.5 text-[10px] font-medium rounded border', info.color)}>
+                      {info.label}
+                    </span>
+                  ) : null;
+                })}
+              </div>
+            )}
+
             {(prospect.last_contacted_at || prospect.next_action_date) && (
               <div className="flex items-center gap-3 mt-2 text-xs text-[--exec-text-muted]">
                 {prospect.last_contacted_at && (
@@ -948,6 +962,19 @@ function RepliedProspects({ prospects, onEdit }: { prospects: OutreachProspect[]
                 </span>
               )}
               <ProspectLinks prospect={prospect} size="sm" />
+              {prospect.website_issues && prospect.website_issues.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-1.5">
+                  <AlertTriangle className="w-3 h-3 text-amber-400 flex-shrink-0 mt-0.5" />
+                  {prospect.website_issues.map((issue) => {
+                    const info = WEBSITE_ISSUE_LABELS[issue];
+                    return info ? (
+                      <span key={issue} className={cn('px-1.5 py-0.5 text-[10px] font-medium rounded border', info.color)}>
+                        {info.label}
+                      </span>
+                    ) : null;
+                  })}
+                </div>
+              )}
               {prospect.notes && (
                 <p className="text-xs text-[--exec-text-muted] line-clamp-2 mt-2">
                   {prospect.notes}
