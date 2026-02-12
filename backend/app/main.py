@@ -20,7 +20,12 @@ app = FastAPI(
 # CORS configuration - supports both development and production
 # In development, allow all localhost origins. In production, use specific origins.
 if os.getenv("ENVIRONMENT", "development") == "production":
-    allowed_origins = os.getenv("CORS_ORIGINS", "").split(",")
+    raw_origins = os.getenv("CORS_ORIGINS", "")
+    allowed_origins = [o.strip() for o in raw_origins.split(",") if o.strip()]
+    # Ensure the Render frontend is always allowed
+    render_frontend = "https://vertex-frontend-h5qj.onrender.com"
+    if render_frontend not in allowed_origins:
+        allowed_origins.append(render_frontend)
     allow_credentials = True
 else:
     # Development: allow all origins (credentials must be False with "*")
