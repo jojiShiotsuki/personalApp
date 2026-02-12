@@ -439,7 +439,8 @@ async def find_businesses(
     location: str,
     count: int = 10,
     max_retries: int = 3,
-    known_emails: dict[str, str] | None = None
+    known_emails: dict[str, str] | None = None,
+    exclude_names: list[str] | None = None,
 ) -> list[dict]:
     """
     Search for businesses using Gemini with Google Search.
@@ -453,11 +454,21 @@ async def find_businesses(
         max_retries: Number of retry attempts
         known_emails: Dict mapping normalized website URLs to known emails.
                       Websites in this dict will skip scraping.
+        exclude_names: List of business names to exclude from results.
 
     Returns:
         List of business lead dictionaries with enrichment data
     """
     client = get_client()
+
+    # Build exclusion text if we have businesses to skip
+    exclude_text = ""
+    exclude_names_lower = set()
+    if exclude_names:
+        # Cap at 30 names to avoid prompt bloat
+        names_to_exclude = exclude_names[:30]
+        exclude_text = "\n\nIMPORTANT: Do NOT include any of these businesses (already found):\n" + "\n".join(f"- {name}" for name in names_to_exclude)
+        exclude_names_lower = {n.lower().strip() for n in exclude_names}
 
     # Build multiple search prompts for cross-referencing
     search_prompts = [
@@ -471,7 +482,7 @@ For each business, provide:
 - Their specific services or niche
 
 IMPORTANT: Use your search results to find REAL businesses with REAL website URLs.
-Only include businesses you can verify actually exist.""",
+Only include businesses you can verify actually exist.{exclude_text}""",
 
         f"""List the best {niche} in {location} with their official websites and contact information.
 
@@ -482,7 +493,7 @@ For each business provide:
 - Owner or key contact name
 - What services they specialize in
 
-Focus on well-established businesses with real websites.""",
+Focus on well-established businesses with real websites.{exclude_text}""",
     ]
 
     # Add a third query for larger searches
@@ -496,7 +507,7 @@ For each business provide:
 - Website URL
 - Contact email
 - Contact person name
-- Their specialty or niche"""
+- Their specialty or niche{exclude_text}"""
         )
 
     parse_template = """Parse the following business information into a JSON array.
@@ -543,6 +554,11 @@ Return ONLY the JSON array, nothing else."""
                 for lead in leads:
                     agency_name = lead.get('agency_name', '') or ''
                     if not agency_name:
+                        continue
+
+                    # Skip excluded businesses (safety net)
+                    if exclude_names_lower and agency_name.lower().strip() in exclude_names_lower:
+                        logger.info(f"Filtered excluded business: {agency_name}")
                         continue
 
                     website = lead.get('website', '') or ''

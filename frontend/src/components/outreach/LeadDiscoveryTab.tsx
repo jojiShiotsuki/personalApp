@@ -644,14 +644,21 @@ export default function LeadDiscoveryTab() {
     onSuccess: (data) => {
       setResults(data);
       if (data.leads.length === 0 && data.already_saved > 0) {
-        toast.info(`Can't find any more new leads — all ${data.already_saved} results are already saved`);
+        toast.info(`No more new leads available — all ${data.already_saved} results are already saved`);
       } else if (data.leads.length === 0) {
         toast.error('No leads found. Try adjusting your search criteria.');
       } else {
-        let msg = `Found ${data.leads.length} new leads!`;
+        let msg = `Found ${data.leads.length} new leads`;
+        if (data.rounds_searched > 1) {
+          msg += ` across ${data.rounds_searched} search rounds`;
+        }
         if (data.already_saved > 0) {
           msg += ` (${data.already_saved} already saved)`;
         }
+        if (data.search_exhausted) {
+          msg += ' — no more available for this search';
+        }
+        msg += '!';
         toast.success(msg);
       }
     },
@@ -979,6 +986,16 @@ export default function LeadDiscoveryTab() {
                     <span className="text-green-400">
                       • {validForImport} ready to import
                     </span>
+                    {results.rounds_searched > 1 && (
+                      <span className="text-[--exec-text-muted]">
+                        • {results.rounds_searched} rounds searched
+                      </span>
+                    )}
+                    {results.search_exhausted && (
+                      <span className="text-amber-400">
+                        • Search exhausted
+                      </span>
+                    )}
                   </div>
 
                   <div className="flex items-center gap-2">

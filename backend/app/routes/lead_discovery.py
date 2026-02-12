@@ -165,6 +165,7 @@ async def search_leads(request: LeadSearchRequest, db: Session = Depends(get_db)
 
     - Checks existing discovered leads first to avoid re-scraping
     - Stores new leads in the database
+    - Retries with exclusions until target count is reached or search exhausted
     - Returns leads with duplicate and email validation flags.
     """
     # Get known emails to skip scraping for already-discovered leads
@@ -194,63 +195,107 @@ async def search_leads(request: LeadSearchRequest, db: Session = Depends(get_db)
         if name:
             existing_names.add(name.lower().strip())
 
-    try:
-        raw_leads = await find_businesses(
-            niche=request.niche,
-            location=request.location,
-            count=request.count,
-            known_emails=known_emails,
-        )
-    except ValueError as e:
-        raise HTTPException(status_code=503, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Search failed: {str(e)}")
+    # Also track original (non-lowered) names for the exclusion prompt
+    exclude_display_names: list[str] = []
 
-    # Process and validate leads
-    leads: list[DiscoveredLead] = []
+    target_count = request.count
+    max_rounds = 3
+    collected_leads: list[DiscoveredLead] = []
     duplicates_found = 0
     valid_for_import = 0
     already_saved_count = 0
+    search_exhausted = False
+    rounds_searched = 0
 
-    for raw_lead in raw_leads:
-        # Skip leads that already existed before this search (by website or name)
-        website = raw_lead.get('website', '')
-        if website:
-            normalized = normalize_website(website)
-            if normalized and normalized in existing_websites:
+    for round_num in range(max_rounds):
+        remaining = target_count - len(collected_leads)
+        if remaining <= 0:
+            break
+
+        rounds_searched += 1
+        logger.info(f"Search round {rounds_searched}: looking for {remaining} more leads (excluding {len(exclude_display_names)} businesses)")
+
+        try:
+            raw_leads = await find_businesses(
+                niche=request.niche,
+                location=request.location,
+                count=remaining,
+                known_emails=known_emails,
+                exclude_names=exclude_display_names if exclude_display_names else None,
+            )
+        except ValueError as e:
+            if rounds_searched == 1:
+                raise HTTPException(status_code=503, detail=str(e))
+            # On subsequent rounds, treat errors as exhaustion
+            logger.warning(f"Search round {rounds_searched} failed: {e}")
+            search_exhausted = True
+            break
+        except Exception as e:
+            if rounds_searched == 1:
+                raise HTTPException(status_code=500, detail=f"Search failed: {str(e)}")
+            logger.warning(f"Search round {rounds_searched} failed: {e}")
+            search_exhausted = True
+            break
+
+        # Process and dedup this round's results
+        new_in_round = 0
+        for raw_lead in raw_leads:
+            # Skip leads that already existed (by website or name)
+            website = raw_lead.get('website', '')
+            if website:
+                normalized = normalize_website(website)
+                if normalized and normalized in existing_websites:
+                    already_saved_count += 1
+                    continue
+
+            agency_name = raw_lead.get('agency_name', '') or ''
+            if agency_name and agency_name.lower().strip() in existing_names:
                 already_saved_count += 1
                 continue
 
-        agency_name = raw_lead.get('agency_name', '') or ''
-        if agency_name and agency_name.lower().strip() in existing_names:
-            already_saved_count += 1
-            continue
+            # Store in discovered_leads table (only new leads reach here)
+            store_discovered_lead(raw_lead, request.niche, request.location, db)
 
-        # Store in discovered_leads table (only new leads reach here)
-        store_discovered_lead(raw_lead, request.niche, request.location, db)
+            lead = clean_lead_data(raw_lead)
 
-        lead = clean_lead_data(raw_lead)
+            # Skip if no agency name
+            if not lead.agency_name:
+                continue
 
-        # Skip if no agency name
-        if not lead.agency_name:
-            continue
+            # Check for duplicate (already in a campaign)
+            if lead.email and check_duplicate_email(lead.email, db):
+                lead.is_duplicate = True
+                duplicates_found += 1
 
-        # Check for duplicate (already in a campaign)
-        if lead.email and check_duplicate_email(lead.email, db):
-            lead.is_duplicate = True
-            duplicates_found += 1
+            # Count valid for import (has valid email and not duplicate)
+            if lead.is_valid_email and not lead.is_duplicate:
+                valid_for_import += 1
 
-        # Count valid for import (has valid email and not duplicate)
-        if lead.is_valid_email and not lead.is_duplicate:
-            valid_for_import += 1
+            collected_leads.append(lead)
+            new_in_round += 1
 
-        leads.append(lead)
+            # Add to exclusion sets for next round
+            if agency_name:
+                existing_names.add(agency_name.lower().strip())
+                exclude_display_names.append(agency_name)
+            if website:
+                normalized = normalize_website(website)
+                if normalized:
+                    existing_websites.add(normalized)
+
+        logger.info(f"Round {rounds_searched}: found {new_in_round} new leads, {len(collected_leads)}/{target_count} total")
+
+        if new_in_round == 0:
+            search_exhausted = True
+            break
 
     return LeadSearchResponse(
-        leads=leads,
+        leads=collected_leads,
         duplicates_found=duplicates_found,
         valid_for_import=valid_for_import,
         already_saved=already_saved_count,
+        search_exhausted=search_exhausted,
+        rounds_searched=rounds_searched,
     )
 
 

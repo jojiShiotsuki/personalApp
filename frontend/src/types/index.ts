@@ -830,6 +830,8 @@ export interface LeadSearchResponse {
   duplicates_found: number;
   valid_for_import: number;
   already_saved: number;
+  search_exhausted: boolean;
+  rounds_searched: number;
 }
 
 // Search Planner Types

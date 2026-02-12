@@ -49,6 +49,8 @@ class LeadSearchResponse(BaseModel):
     duplicates_found: int
     valid_for_import: int
     already_saved: int = 0
+    search_exhausted: bool = False
+    rounds_searched: int = 1
 
 
 class LeadImportRequest(BaseModel):
