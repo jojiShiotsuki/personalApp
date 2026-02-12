@@ -654,7 +654,7 @@ export type TemplateType =
 export interface OutreachTemplate {
   id: number;
   niche_id: number | null;
-  situation_id: number;
+  situation_id: number | null;
   template_type: TemplateType;
   content: string;
   created_at?: string;

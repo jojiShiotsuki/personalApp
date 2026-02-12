@@ -82,13 +82,19 @@ export default function Outreach() {
     },
   });
 
-  // Find the template for current niche + situation + template_type
-  // Fallback: try exact niche match first, then "All Niches" (niche_id === null) default
-  const currentTemplate = templates.find(
-    (t) => t.niche_id === selectedNicheId && t.situation_id === selectedSituationId && t.template_type === selectedTemplateType
-  ) || (selectedNicheId !== null ? templates.find(
-    (t) => t.niche_id === null && t.situation_id === selectedSituationId && t.template_type === selectedTemplateType
-  ) : undefined);
+  // Find template with fallback chain:
+  // 1) exact niche + exact situation
+  // 2) exact niche + all situations (null)
+  // 3) all niches (null) + exact situation
+  // 4) all niches (null) + all situations (null)
+  const findTemplate = (nicheId: number | null, situationId: number | null, templateType: TemplateType) =>
+    templates.find(t => t.niche_id === nicheId && t.situation_id === situationId && t.template_type === templateType);
+
+  const currentTemplate =
+    findTemplate(selectedNicheId, selectedSituationId, selectedTemplateType) ||
+    (selectedSituationId !== null ? findTemplate(selectedNicheId, null, selectedTemplateType) : undefined) ||
+    (selectedNicheId !== null ? findTemplate(null, selectedSituationId, selectedTemplateType) : undefined) ||
+    (selectedNicheId !== null && selectedSituationId !== null ? findTemplate(null, null, selectedTemplateType) : undefined);
 
   const selectedNiche = niches.find((n) => n.id === selectedNicheId);
   const selectedSituation = situations.find((s) => s.id === selectedSituationId);

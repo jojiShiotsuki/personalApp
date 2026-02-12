@@ -554,17 +554,17 @@ export const outreachApi = {
     return response.data;
   },
 
-  createTemplate: async (data: { niche_id: number | null; situation_id: number; template_type: string; content: string }) => {
+  createTemplate: async (data: { niche_id: number | null; situation_id: number | null; template_type: string; content: string }) => {
     const response = await api.post('/api/outreach/templates', data);
     return response.data;
   },
 
-  updateTemplate: async (id: number, data: { niche_id: number | null; situation_id: number; template_type: string; content: string }) => {
+  updateTemplate: async (id: number, data: { niche_id: number | null; situation_id: number | null; template_type: string; content: string }) => {
     const response = await api.put(`/api/outreach/templates/${id}`, data);
     return response.data;
   },
 
-  createOrUpdateTemplate: async (data: { id?: number; niche_id: number | null; situation_id: number; template_type: string; content: string }) => {
+  createOrUpdateTemplate: async (data: { id?: number; niche_id: number | null; situation_id: number | null; template_type: string; content: string }) => {
     if (data.id) {
       const { id, ...rest } = data;
       const response = await api.put(`/api/outreach/templates/${id}`, rest);

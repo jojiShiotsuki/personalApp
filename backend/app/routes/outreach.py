@@ -116,9 +116,13 @@ def create_or_update_template(data: TemplateCreate, db: Session = Depends(get_db
         OutreachTemplate.niche_id.is_(None) if data.niche_id is None
         else OutreachTemplate.niche_id == data.niche_id
     )
+    situation_filter = (
+        OutreachTemplate.situation_id.is_(None) if data.situation_id is None
+        else OutreachTemplate.situation_id == data.situation_id
+    )
     existing = db.query(OutreachTemplate).filter(
         niche_filter,
-        OutreachTemplate.situation_id == data.situation_id,
+        situation_filter,
         OutreachTemplate.template_type == data.template_type
     ).first()
 

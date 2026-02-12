@@ -144,17 +144,19 @@ export default function SendDMPanel({ isOpen, onClose, source, onSuccess }: Send
     n.name.toLowerCase().includes(source?.niche?.toLowerCase() || '')
   );
 
-  // Find current template with fallback:
-  // 1) Exact niche match, 2) "All Niches" default (niche_id === null), 3) any template
-  const currentTemplate = templates.find(
-    t => t.situation_id === selectedSituationId && t.template_type === selectedTemplateType &&
-      matchingNiche && t.niche_id === matchingNiche.id
-  ) || templates.find(
-    t => t.situation_id === selectedSituationId && t.template_type === selectedTemplateType &&
-      t.niche_id === null
-  ) || templates.find(
-    t => t.situation_id === selectedSituationId && t.template_type === selectedTemplateType
-  );
+  // Find current template with fallback chain:
+  // 1) exact niche + exact situation
+  // 2) exact niche + all situations
+  // 3) all niches + exact situation
+  // 4) all niches + all situations
+  // 5) any match (last resort)
+  const matchNicheId = matchingNiche?.id ?? null;
+  const currentTemplate =
+    templates.find(t => t.niche_id === matchNicheId && t.situation_id === selectedSituationId && t.template_type === selectedTemplateType) ||
+    (matchNicheId !== null ? templates.find(t => t.niche_id === matchNicheId && t.situation_id === null && t.template_type === selectedTemplateType) : undefined) ||
+    templates.find(t => t.niche_id === null && t.situation_id === selectedSituationId && t.template_type === selectedTemplateType) ||
+    templates.find(t => t.niche_id === null && t.situation_id === null && t.template_type === selectedTemplateType) ||
+    templates.find(t => t.situation_id === selectedSituationId && t.template_type === selectedTemplateType);
 
   // Get processed script
   const processedScript = source && currentTemplate
