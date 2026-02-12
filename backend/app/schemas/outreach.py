@@ -38,11 +38,20 @@ class SituationResponse(SituationBase):
         from_attributes = True
 
 
+# Valid template types
+VALID_TEMPLATE_TYPES = [
+    'email_1', 'email_2', 'email_3', 'email_4', 'email_5',
+    'linkedin_direct', 'linkedin_compliment', 'linkedin_mutual_interest',
+    'linkedin_followup_1', 'linkedin_followup_2',
+    'loom_video_audit',
+]
+
+
 # Template Schemas
 class TemplateBase(BaseModel):
     niche_id: int
     situation_id: int
-    dm_number: int = Field(default=1, ge=1, le=5)  # 1-5 for DM sequence
+    template_type: str = Field(default='email_1')
     content: str = Field(..., min_length=1)
 
 

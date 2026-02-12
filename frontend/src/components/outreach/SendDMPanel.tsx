@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { X, Copy, Check, Send, Mail, Linkedin, Phone, Video, MapPin, Globe, Briefcase, ChevronDown, Settings2 } from 'lucide-react';
 import { outreachApi, dailyOutreachApi, contactApi } from '@/lib/api';
-import type { OutreachNiche, OutreachSituation, OutreachTemplate } from '@/types';
+import type { OutreachNiche, OutreachSituation, OutreachTemplate, TemplateType } from '@/types';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import ManageTemplatesModal from '@/components/ManageTemplatesModal';
@@ -41,6 +41,45 @@ const activityOptions: { value: ActivityType; label: string; icon: React.ReactNo
   { value: 'loom', label: 'Loom Audit', icon: <Video className="w-4 h-4" /> },
 ];
 
+// Template type categories for the panel
+const TEMPLATE_CATEGORIES = [
+  {
+    group: 'Email',
+    icon: Mail,
+    types: [
+      { value: 'email_1' as TemplateType, label: 'Email 1' },
+      { value: 'email_2' as TemplateType, label: 'Email 2' },
+      { value: 'email_3' as TemplateType, label: 'Email 3' },
+      { value: 'email_4' as TemplateType, label: 'Email 4' },
+      { value: 'email_5' as TemplateType, label: 'Email 5' },
+    ],
+  },
+  {
+    group: 'LinkedIn Outreach',
+    icon: Linkedin,
+    types: [
+      { value: 'linkedin_direct' as TemplateType, label: 'Direct' },
+      { value: 'linkedin_compliment' as TemplateType, label: 'Compliment' },
+      { value: 'linkedin_mutual_interest' as TemplateType, label: 'Mutual Interest' },
+    ],
+  },
+  {
+    group: 'LinkedIn Follow-up',
+    icon: Linkedin,
+    types: [
+      { value: 'linkedin_followup_1' as TemplateType, label: 'Follow-up 1' },
+      { value: 'linkedin_followup_2' as TemplateType, label: 'Follow-up 2' },
+    ],
+  },
+  {
+    group: 'Loom',
+    icon: Video,
+    types: [
+      { value: 'loom_video_audit' as TemplateType, label: 'Video Audit' },
+    ],
+  },
+];
+
 // Extract first name from full name
 const getFirstName = (fullName: string): string => {
   if (!fullName) return '';
@@ -71,11 +110,12 @@ const expandVariables = (template: string, source: SendDMSource): string => {
 export default function SendDMPanel({ isOpen, onClose, source, onSuccess }: SendDMPanelProps) {
   const queryClient = useQueryClient();
   const [selectedSituationId, setSelectedSituationId] = useState<number | null>(null);
-  const [selectedDmNumber, setSelectedDmNumber] = useState(1);
+  const [selectedTemplateType, setSelectedTemplateType] = useState<TemplateType>('email_1');
   const [selectedActivity, setSelectedActivity] = useState<ActivityType>('cold_email');
   const [copied, setCopied] = useState(false);
   const [isSituationDropdownOpen, setIsSituationDropdownOpen] = useState(false);
   const [isManageTemplatesOpen, setIsManageTemplatesOpen] = useState(false);
+  const [isTypeDropdownOpen, setIsTypeDropdownOpen] = useState(false);
 
   // Fetch situations
   const { data: situations = [] } = useQuery<OutreachSituation[]>({
@@ -106,10 +146,10 @@ export default function SendDMPanel({ isOpen, onClose, source, onSuccess }: Send
 
   // Find current template
   const currentTemplate = templates.find(
-    t => t.situation_id === selectedSituationId && t.dm_number === selectedDmNumber &&
+    t => t.situation_id === selectedSituationId && t.template_type === selectedTemplateType &&
       (matchingNiche ? t.niche_id === matchingNiche.id : true)
   ) || templates.find(
-    t => t.situation_id === selectedSituationId && t.dm_number === selectedDmNumber
+    t => t.situation_id === selectedSituationId && t.template_type === selectedTemplateType
   );
 
   // Get processed script
@@ -187,18 +227,24 @@ export default function SendDMPanel({ isOpen, onClose, source, onSuccess }: Send
     }
   }, [isOpen, situations, selectedSituationId]);
 
-  // Close dropdown when clicking outside
+  // Close dropdowns when clicking outside
   useEffect(() => {
-    const handleClickOutside = () => setIsSituationDropdownOpen(false);
-    if (isSituationDropdownOpen) {
+    const handleClickOutside = () => {
+      setIsSituationDropdownOpen(false);
+      setIsTypeDropdownOpen(false);
+    };
+    if (isSituationDropdownOpen || isTypeDropdownOpen) {
       document.addEventListener('click', handleClickOutside);
       return () => document.removeEventListener('click', handleClickOutside);
     }
-  }, [isSituationDropdownOpen]);
+  }, [isSituationDropdownOpen, isTypeDropdownOpen]);
 
   if (!isOpen || !source) return null;
 
   const selectedSituation = situations.find(s => s.id === selectedSituationId);
+
+  // Get display label for current template type
+  const currentTypeLabel = TEMPLATE_CATEGORIES.flatMap(c => c.types).find(t => t.value === selectedTemplateType)?.label || selectedTemplateType;
 
   return (
     <>
@@ -340,30 +386,62 @@ export default function SendDMPanel({ isOpen, onClose, source, onSuccess }: Send
               </button>
             </div>
 
-            {/* DM Number Selector */}
+            {/* Template Type Selector */}
             <div>
               <label className="block text-sm font-medium text-[--exec-text] mb-2">
-                DM Number (Sequence)
+                Template Type
               </label>
-              <div className="flex gap-2">
-                {[1, 2, 3, 4, 5].map((num) => (
-                  <button
-                    key={num}
-                    onClick={() => setSelectedDmNumber(num)}
-                    className={cn(
-                      'w-10 h-10 rounded-lg border transition-all duration-200 font-semibold',
-                      selectedDmNumber === num
-                        ? 'bg-[--exec-accent] text-white border-[--exec-accent]'
-                        : 'bg-stone-800/50 text-[--exec-text-secondary] border-stone-600/40 hover:border-[--exec-accent] hover:text-[--exec-accent]'
-                    )}
-                  >
-                    {num}
-                  </button>
-                ))}
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsTypeDropdownOpen(!isTypeDropdownOpen);
+                  }}
+                  className={cn(
+                    "w-full px-4 py-3 bg-stone-800/50 border border-stone-600/40 rounded-xl",
+                    "focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]",
+                    "transition-all duration-200 text-left cursor-pointer",
+                    "flex items-center justify-between text-[--exec-text]"
+                  )}
+                >
+                  <span>{currentTypeLabel}</span>
+                  <ChevronDown className={cn(
+                    "w-4 h-4 text-[--exec-text-muted] transition-transform duration-200",
+                    isTypeDropdownOpen && "rotate-180"
+                  )} />
+                </button>
+                {isTypeDropdownOpen && (
+                  <div className="absolute z-50 w-full mt-2 py-1 bg-stone-800 border border-stone-600/40 rounded-xl shadow-xl overflow-hidden max-h-72 overflow-y-auto">
+                    {TEMPLATE_CATEGORIES.map((category) => (
+                      <div key={category.group}>
+                        <div className="px-4 py-1.5 text-xs font-semibold text-[--exec-text-muted] uppercase tracking-wider bg-stone-900/50">
+                          {category.group}
+                        </div>
+                        {category.types.map((type) => (
+                          <button
+                            key={type.value}
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedTemplateType(type.value);
+                              setIsTypeDropdownOpen(false);
+                            }}
+                            className={cn(
+                              "w-full px-4 py-2.5 text-left text-sm transition-colors",
+                              selectedTemplateType === type.value
+                                ? "bg-[--exec-accent]/20 text-[--exec-accent]"
+                                : "text-stone-200 hover:bg-stone-700/50"
+                            )}
+                          >
+                            {type.label}
+                          </button>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-              <p className="mt-1 text-xs text-[--exec-text-muted]">
-                1st contact, 2nd follow-up, etc.
-              </p>
             </div>
           </div>
 

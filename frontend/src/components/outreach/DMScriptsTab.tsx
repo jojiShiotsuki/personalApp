@@ -1,17 +1,56 @@
 import { useState, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { outreachApi } from '@/lib/api';
-import type { OutreachNiche, OutreachSituation, OutreachTemplate } from '@/types';
-import { Copy, Check, UserPlus, Settings2, Send, Zap, ChevronDown } from 'lucide-react';
+import type { OutreachNiche, OutreachSituation, OutreachTemplate, TemplateType } from '@/types';
+import { Copy, Check, UserPlus, Settings2, Send, Zap, ChevronDown, Mail, Linkedin, Video } from 'lucide-react';
 import { toast } from 'sonner';
 import ManageTemplatesModal from '@/components/ManageTemplatesModal';
 import { cn } from '@/lib/utils';
+
+// Template type categories - shared config
+const TEMPLATE_CATEGORIES = [
+  {
+    group: 'Email',
+    icon: Mail,
+    types: [
+      { value: 'email_1' as TemplateType, label: 'Email 1' },
+      { value: 'email_2' as TemplateType, label: 'Email 2' },
+      { value: 'email_3' as TemplateType, label: 'Email 3' },
+      { value: 'email_4' as TemplateType, label: 'Email 4' },
+      { value: 'email_5' as TemplateType, label: 'Email 5' },
+    ],
+  },
+  {
+    group: 'LinkedIn Outreach',
+    icon: Linkedin,
+    types: [
+      { value: 'linkedin_direct' as TemplateType, label: 'Direct' },
+      { value: 'linkedin_compliment' as TemplateType, label: 'Compliment' },
+      { value: 'linkedin_mutual_interest' as TemplateType, label: 'Mutual Interest' },
+    ],
+  },
+  {
+    group: 'LinkedIn Follow-up',
+    icon: Linkedin,
+    types: [
+      { value: 'linkedin_followup_1' as TemplateType, label: 'Follow-up 1' },
+      { value: 'linkedin_followup_2' as TemplateType, label: 'Follow-up 2' },
+    ],
+  },
+  {
+    group: 'Loom',
+    icon: Video,
+    types: [
+      { value: 'loom_video_audit' as TemplateType, label: 'Video Audit' },
+    ],
+  },
+];
 
 export default function DMScriptsTab() {
   const [name, setName] = useState('');
   const [selectedNicheId, setSelectedNicheId] = useState<number | null>(null);
   const [selectedSituationId, setSelectedSituationId] = useState<number | null>(null);
-  const [selectedDmNumber, setSelectedDmNumber] = useState(1);
+  const [selectedTemplateType, setSelectedTemplateType] = useState<TemplateType>('email_1');
   const [copied, setCopied] = useState(false);
   const [isManageOpen, setIsManageOpen] = useState(false);
   const [isNicheDropdownOpen, setIsNicheDropdownOpen] = useState(false);
@@ -57,9 +96,9 @@ export default function DMScriptsTab() {
     },
   });
 
-  // Find the template for current niche + situation + dm_number
+  // Find the template for current niche + situation + template_type
   const currentTemplate = templates.find(
-    (t) => t.niche_id === selectedNicheId && t.situation_id === selectedSituationId && t.dm_number === selectedDmNumber
+    (t) => t.niche_id === selectedNicheId && t.situation_id === selectedSituationId && t.template_type === selectedTemplateType
   );
 
   const selectedNiche = niches.find((n) => n.id === selectedNicheId);
@@ -244,31 +283,42 @@ export default function DMScriptsTab() {
             )}
           </div>
 
-          {/* DM Number Selection */}
+          {/* Template Type Selection */}
           <div className="bento-card p-6">
             <label className="block text-sm font-semibold text-[--exec-text] mb-3">
-              DM Number
+              Template Type
             </label>
-            <div className="flex gap-2">
-              {[1, 2, 3, 4, 5].map((num) => (
-                <button
-                  key={num}
-                  onClick={() => setSelectedDmNumber(num)}
-                  className={cn(
-                    'w-12 h-12 rounded-xl border transition-all duration-200 font-bold text-lg',
-                    selectedDmNumber === num
-                      ? 'bg-[--exec-accent] text-white border-[--exec-accent] shadow-lg shadow-[--exec-accent]/20'
-                      : 'bg-[--exec-surface-alt] text-[--exec-text-secondary] border-[--exec-border] hover:border-[--exec-accent] hover:text-[--exec-accent]'
-                  )}
-                  style={{ fontFamily: 'var(--font-display)' }}
-                >
-                  {num}
-                </button>
-              ))}
+            <div className="space-y-3">
+              {TEMPLATE_CATEGORIES.map((category) => {
+                const Icon = category.icon;
+                return (
+                  <div key={category.group}>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Icon className="w-3.5 h-3.5 text-[--exec-text-muted]" />
+                      <span className="text-xs font-semibold text-[--exec-text-muted] uppercase tracking-wider">
+                        {category.group}
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {category.types.map((type) => (
+                        <button
+                          key={type.value}
+                          onClick={() => setSelectedTemplateType(type.value)}
+                          className={cn(
+                            'px-4 py-2.5 rounded-xl border transition-all duration-200 font-medium text-sm',
+                            selectedTemplateType === type.value
+                              ? 'bg-[--exec-accent] text-white border-[--exec-accent] shadow-lg shadow-[--exec-accent]/20'
+                              : 'bg-[--exec-surface-alt] text-[--exec-text-secondary] border-[--exec-border] hover:border-[--exec-accent] hover:text-[--exec-accent]'
+                          )}
+                        >
+                          {type.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-            <p className="mt-2 text-xs text-[--exec-text-muted]">
-              Select which DM in your sequence (1st contact, 2nd follow-up, etc.)
-            </p>
           </div>
 
           {/* Script Preview */}

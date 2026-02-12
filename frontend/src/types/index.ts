@@ -645,11 +645,17 @@ export interface OutreachSituation {
   created_at?: string;
 }
 
+export type TemplateType =
+  | 'email_1' | 'email_2' | 'email_3' | 'email_4' | 'email_5'
+  | 'linkedin_direct' | 'linkedin_compliment' | 'linkedin_mutual_interest'
+  | 'linkedin_followup_1' | 'linkedin_followup_2'
+  | 'loom_video_audit';
+
 export interface OutreachTemplate {
   id: number;
   niche_id: number;
   situation_id: number;
-  dm_number: number;
+  template_type: TemplateType;
   content: string;
   created_at?: string;
   updated_at?: string;

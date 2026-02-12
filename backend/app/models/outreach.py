@@ -57,14 +57,14 @@ class OutreachTemplate(Base):
     id = Column(Integer, primary_key=True, index=True)
     niche_id = Column(Integer, ForeignKey("outreach_niches.id", ondelete="CASCADE"), nullable=False)
     situation_id = Column(Integer, ForeignKey("outreach_situations.id", ondelete="CASCADE"), nullable=False)
-    dm_number = Column(Integer, nullable=False, default=1)  # 1-5 for DM sequence
+    template_type = Column(String(50), nullable=False, default='email_1')  # e.g. email_1, linkedin_direct, loom_video_audit
     content = Column(Text, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    # Ensure unique combination of niche + situation + dm_number
+    # Ensure unique combination of niche + situation + template_type
     __table_args__ = (
-        UniqueConstraint('niche_id', 'situation_id', 'dm_number', name='uq_niche_situation_dm'),
+        UniqueConstraint('niche_id', 'situation_id', 'template_type', name='uq_niche_situation_template_type'),
     )
 
     niche = relationship("OutreachNiche", back_populates="templates")

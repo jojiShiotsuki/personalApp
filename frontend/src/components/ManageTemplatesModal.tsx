@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { outreachApi } from '@/lib/api';
-import type { OutreachNiche, OutreachSituation, OutreachTemplate } from '@/types';
-import { X, Plus, Trash2, Save } from 'lucide-react';
+import type { OutreachNiche, OutreachSituation, OutreachTemplate, TemplateType } from '@/types';
+import { X, Plus, Trash2, Save, Mail, Linkedin, Video } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -13,13 +13,52 @@ interface ManageTemplatesModalProps {
 
 type Tab = 'niches' | 'situations' | 'templates';
 
+// Template type categories with display info
+const TEMPLATE_CATEGORIES = [
+  {
+    group: 'Email',
+    icon: Mail,
+    types: [
+      { value: 'email_1' as TemplateType, label: 'Email 1' },
+      { value: 'email_2' as TemplateType, label: 'Email 2' },
+      { value: 'email_3' as TemplateType, label: 'Email 3' },
+      { value: 'email_4' as TemplateType, label: 'Email 4' },
+      { value: 'email_5' as TemplateType, label: 'Email 5' },
+    ],
+  },
+  {
+    group: 'LinkedIn Outreach',
+    icon: Linkedin,
+    types: [
+      { value: 'linkedin_direct' as TemplateType, label: 'Direct' },
+      { value: 'linkedin_compliment' as TemplateType, label: 'Compliment' },
+      { value: 'linkedin_mutual_interest' as TemplateType, label: 'Mutual Interest' },
+    ],
+  },
+  {
+    group: 'LinkedIn Follow-up',
+    icon: Linkedin,
+    types: [
+      { value: 'linkedin_followup_1' as TemplateType, label: 'Follow-up 1' },
+      { value: 'linkedin_followup_2' as TemplateType, label: 'Follow-up 2' },
+    ],
+  },
+  {
+    group: 'Loom',
+    icon: Video,
+    types: [
+      { value: 'loom_video_audit' as TemplateType, label: 'Video Audit' },
+    ],
+  },
+];
+
 export default function ManageTemplatesModal({ isOpen, onClose }: ManageTemplatesModalProps) {
   const [activeTab, setActiveTab] = useState<Tab>('templates');
   const [newNiche, setNewNiche] = useState('');
   const [newSituation, setNewSituation] = useState('');
   const [selectedNicheId, setSelectedNicheId] = useState<number | null>(null);
   const [selectedSituationId, setSelectedSituationId] = useState<number | null>(null);
-  const [selectedDmNumber, setSelectedDmNumber] = useState(1);
+  const [selectedTemplateType, setSelectedTemplateType] = useState<TemplateType>('email_1');
   const [templateContent, setTemplateContent] = useState('');
   const queryClient = useQueryClient();
 
@@ -38,9 +77,9 @@ export default function ManageTemplatesModal({ isOpen, onClose }: ManageTemplate
     queryFn: () => outreachApi.getTemplates(),
   });
 
-  // Load template when niche/situation/dm_number changes
+  // Load template when niche/situation/template_type changes
   const currentTemplate = templates.find(
-    (t) => t.niche_id === selectedNicheId && t.situation_id === selectedSituationId && t.dm_number === selectedDmNumber
+    (t) => t.niche_id === selectedNicheId && t.situation_id === selectedSituationId && t.template_type === selectedTemplateType
   );
 
   const createNicheMutation = useMutation({
@@ -115,20 +154,20 @@ export default function ManageTemplatesModal({ isOpen, onClose }: ManageTemplate
       id: currentTemplate?.id,
       niche_id: selectedNicheId,
       situation_id: selectedSituationId,
-      dm_number: selectedDmNumber,
+      template_type: selectedTemplateType,
       content: templateContent,
     });
   };
 
-  const handleSelectionChange = (nicheId: number | null, situationId: number | null, dmNumber: number) => {
+  const handleSelectionChange = (nicheId: number | null, situationId: number | null, templateType: TemplateType) => {
     setSelectedNicheId(nicheId);
     setSelectedSituationId(situationId);
-    setSelectedDmNumber(dmNumber);
+    setSelectedTemplateType(templateType);
 
     // Load existing template if exists
     if (nicheId && situationId) {
       const existing = templates.find(
-        (t) => t.niche_id === nicheId && t.situation_id === situationId && t.dm_number === dmNumber
+        (t) => t.niche_id === nicheId && t.situation_id === situationId && t.template_type === templateType
       );
       setTemplateContent(existing?.content || '');
     } else {
@@ -302,7 +341,7 @@ export default function ManageTemplatesModal({ isOpen, onClose }: ManageTemplate
                         onChange={(e) => handleSelectionChange(
                           e.target.value ? Number(e.target.value) : null,
                           selectedSituationId,
-                          selectedDmNumber
+                          selectedTemplateType
                         )}
                         className={inputClasses}
                       >
@@ -323,7 +362,7 @@ export default function ManageTemplatesModal({ isOpen, onClose }: ManageTemplate
                         onChange={(e) => handleSelectionChange(
                           selectedNicheId,
                           e.target.value ? Number(e.target.value) : null,
-                          selectedDmNumber
+                          selectedTemplateType
                         )}
                         className={inputClasses}
                       >
@@ -337,26 +376,49 @@ export default function ManageTemplatesModal({ isOpen, onClose }: ManageTemplate
                     </div>
                   </div>
 
-                  {/* DM Number Selection */}
+                  {/* Template Type Selection - Grouped */}
                   <div>
-                    <label className="block text-sm font-medium text-[--exec-text-secondary] mb-2">
-                      DM Number
+                    <label className="block text-sm font-medium text-[--exec-text-secondary] mb-3">
+                      Template Type
                     </label>
-                    <div className="flex gap-2">
-                      {[1, 2, 3, 4, 5].map((num) => (
-                        <button
-                          key={num}
-                          onClick={() => handleSelectionChange(selectedNicheId, selectedSituationId, num)}
-                          className={cn(
-                            'w-10 h-10 rounded-lg border transition-all font-bold',
-                            selectedDmNumber === num
-                              ? 'bg-[--exec-accent] text-white border-[--exec-accent]'
-                              : 'bg-stone-800/50 text-[--exec-text-secondary] border-stone-600/40 hover:border-[--exec-accent]/50'
-                          )}
-                        >
-                          {num}
-                        </button>
-                      ))}
+                    <div className="space-y-3">
+                      {TEMPLATE_CATEGORIES.map((category) => {
+                        const Icon = category.icon;
+                        return (
+                          <div key={category.group}>
+                            <div className="flex items-center gap-2 mb-2">
+                              <Icon className="w-3.5 h-3.5 text-[--exec-text-muted]" />
+                              <span className="text-xs font-semibold text-[--exec-text-muted] uppercase tracking-wider">
+                                {category.group}
+                              </span>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                              {category.types.map((type) => {
+                                const hasTemplate = selectedNicheId && selectedSituationId && templates.some(
+                                  t => t.niche_id === selectedNicheId && t.situation_id === selectedSituationId && t.template_type === type.value
+                                );
+                                return (
+                                  <button
+                                    key={type.value}
+                                    onClick={() => handleSelectionChange(selectedNicheId, selectedSituationId, type.value)}
+                                    className={cn(
+                                      'px-3 py-1.5 rounded-lg border transition-all text-sm font-medium relative',
+                                      selectedTemplateType === type.value
+                                        ? 'bg-[--exec-accent] text-white border-[--exec-accent]'
+                                        : 'bg-stone-800/50 text-[--exec-text-secondary] border-stone-600/40 hover:border-[--exec-accent]/50',
+                                    )}
+                                  >
+                                    {type.label}
+                                    {hasTemplate && selectedTemplateType !== type.value && (
+                                      <span className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full" />
+                                    )}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
 

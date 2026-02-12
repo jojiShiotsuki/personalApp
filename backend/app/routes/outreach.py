@@ -95,7 +95,7 @@ def delete_situation(situation_id: int, db: Session = Depends(get_db)):
 def list_templates(
     niche_id: Optional[int] = None,
     situation_id: Optional[int] = None,
-    dm_number: Optional[int] = None,
+    template_type: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
     query = db.query(OutreachTemplate)
@@ -103,18 +103,18 @@ def list_templates(
         query = query.filter(OutreachTemplate.niche_id == niche_id)
     if situation_id is not None:
         query = query.filter(OutreachTemplate.situation_id == situation_id)
-    if dm_number is not None:
-        query = query.filter(OutreachTemplate.dm_number == dm_number)
+    if template_type is not None:
+        query = query.filter(OutreachTemplate.template_type == template_type)
     return query.all()
 
 
 @router.post("/templates", response_model=TemplateResponse, status_code=201)
 def create_or_update_template(data: TemplateCreate, db: Session = Depends(get_db)):
-    # Check if template exists for this niche+situation+dm_number combo
+    # Check if template exists for this niche+situation+template_type combo
     existing = db.query(OutreachTemplate).filter(
         OutreachTemplate.niche_id == data.niche_id,
         OutreachTemplate.situation_id == data.situation_id,
-        OutreachTemplate.dm_number == data.dm_number
+        OutreachTemplate.template_type == data.template_type
     ).first()
 
     if existing:
@@ -128,7 +128,7 @@ def create_or_update_template(data: TemplateCreate, db: Session = Depends(get_db
         template = OutreachTemplate(
             niche_id=data.niche_id,
             situation_id=data.situation_id,
-            dm_number=data.dm_number,
+            template_type=data.template_type,
             content=data.content
         )
         db.add(template)
