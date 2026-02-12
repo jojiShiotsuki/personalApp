@@ -669,8 +669,10 @@ export const coldOutreachApi = {
   },
 
   // Render email for prospect
-  renderEmail: async (prospectId: number): Promise<RenderedEmail> => {
-    const response = await api.get(`/api/outreach/campaigns/prospects/${prospectId}/render-email/`);
+  renderEmail: async (prospectId: number, templateType?: string): Promise<RenderedEmail> => {
+    const params: Record<string, string> = {};
+    if (templateType) params.template_type = templateType;
+    const response = await api.get(`/api/outreach/campaigns/prospects/${prospectId}/render-email/`, { params });
     return response.data;
   },
 };

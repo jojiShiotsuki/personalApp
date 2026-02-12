@@ -528,17 +528,21 @@ def delete_template(template_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/prospects/{prospect_id}/render-email", response_model=RenderedEmail)
-def render_email(prospect_id: int, db: Session = Depends(get_db)):
-    """Get the rendered email for a prospect's current step using unified outreach templates."""
+def render_email(prospect_id: int, template_type: Optional[str] = None, db: Session = Depends(get_db)):
+    """Get the rendered email for a prospect using unified outreach templates.
+
+    If template_type is provided, use that directly. Otherwise, map from prospect's current_step.
+    """
     prospect = db.query(OutreachProspect).filter(OutreachProspect.id == prospect_id).first()
     if not prospect:
         raise HTTPException(status_code=404, detail="Prospect not found")
 
-    # Map step number to template_type
-    step_to_type = {1: 'email_1', 2: 'email_2', 3: 'email_3', 4: 'email_4', 5: 'email_5'}
-    template_type = step_to_type.get(prospect.current_step)
     if not template_type:
-        raise HTTPException(status_code=400, detail=f"Invalid step {prospect.current_step}")
+        # Map step number to template_type
+        step_to_type = {1: 'email_1', 2: 'email_2', 3: 'email_3', 4: 'email_4', 5: 'email_5'}
+        template_type = step_to_type.get(prospect.current_step)
+        if not template_type:
+            raise HTTPException(status_code=400, detail=f"Invalid step {prospect.current_step}")
 
     # Match prospect niche string to OutreachNiche
     matched_niche = None

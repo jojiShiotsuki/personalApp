@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { coldOutreachApi } from '@/lib/api';
 import type { OutreachProspect, RenderedEmail } from '@/types';
-import { X, Mail, Copy, Check, Send, Loader2 } from 'lucide-react';
+import { X, Mail, Copy, Check, Send, Loader2, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -13,18 +13,33 @@ interface CopyEmailModalProps {
   prospect: OutreachProspect;
 }
 
+const EMAIL_TEMPLATES = [
+  { value: 'email_1', label: 'Email 1 — Initial' },
+  { value: 'email_2', label: 'Email 2 — Follow-up 1' },
+  { value: 'email_3', label: 'Email 3 — Follow-up 2' },
+  { value: 'email_4', label: 'Email 4 — Follow-up 3' },
+  { value: 'email_5', label: 'Email 5 — Final' },
+  { value: 'agency_email', label: 'Agency Email' },
+];
+
+const STEP_TO_TYPE: Record<number, string> = {
+  1: 'email_1', 2: 'email_2', 3: 'email_3', 4: 'email_4', 5: 'email_5',
+};
+
 export default function CopyEmailModal({
   isOpen,
   onClose,
   prospect,
 }: CopyEmailModalProps) {
+  const defaultType = STEP_TO_TYPE[prospect.current_step] || 'email_1';
+  const [selectedTemplate, setSelectedTemplate] = useState(defaultType);
   const [copiedField, setCopiedField] = useState<'to' | 'subject' | 'body' | 'all' | null>(null);
   const queryClient = useQueryClient();
 
-  // Query rendered email
+  // Query rendered email with selected template type
   const { data: email, isLoading, error } = useQuery<RenderedEmail>({
-    queryKey: ['rendered-email', prospect.id],
-    queryFn: () => coldOutreachApi.renderEmail(prospect.id),
+    queryKey: ['rendered-email', prospect.id, selectedTemplate],
+    queryFn: () => coldOutreachApi.renderEmail(prospect.id, selectedTemplate),
     enabled: isOpen,
   });
 
@@ -131,6 +146,33 @@ export default function CopyEmailModal({
             </button>
           </div>
 
+          {/* Template Selector */}
+          <div className="mb-4">
+            <label className="block text-xs font-medium text-[--exec-text-muted] uppercase tracking-wider mb-2">
+              Template
+            </label>
+            <div className="relative">
+              <select
+                value={selectedTemplate}
+                onChange={(e) => setSelectedTemplate(e.target.value)}
+                className={cn(
+                  'w-full px-4 py-2.5 rounded-lg appearance-none',
+                  'bg-stone-800/50 border border-stone-600/40',
+                  'text-[--exec-text] text-sm',
+                  'focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]/50',
+                  'transition-all cursor-pointer'
+                )}
+              >
+                {EMAIL_TEMPLATES.map((t) => (
+                  <option key={t.value} value={t.value}>
+                    {t.label}{t.value === defaultType ? ' (Current Step)' : ''}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[--exec-text-muted] pointer-events-none" />
+            </div>
+          </div>
+
           {/* Content */}
           {isLoading ? (
             <div className="flex items-center justify-center py-12">
@@ -140,7 +182,7 @@ export default function CopyEmailModal({
             <div className="text-center py-12">
               <p className="text-red-400 mb-2">Failed to load email template</p>
               <p className="text-sm text-[--exec-text-muted]">
-                Make sure you have a template set up for step {prospect.current_step}
+                Make sure you have a template set up for {EMAIL_TEMPLATES.find(t => t.value === selectedTemplate)?.label || selectedTemplate}
               </p>
             </div>
           ) : email ? (
@@ -167,7 +209,7 @@ export default function CopyEmailModal({
                   <CopyButton field="subject" value={email.subject} />
                 </div>
                 <p className="text-sm text-[--exec-text] font-medium">
-                  {email.subject}
+                  {email.subject || <span className="text-[--exec-text-muted] italic">No subject set</span>}
                 </p>
               </div>
 
