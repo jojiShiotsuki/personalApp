@@ -374,9 +374,8 @@ async def update_stored_lead(
         lead.contact_name = data.contact_name or None
     if data.email is not None:
         lead.email = data.email or None
-    if data.website is not None and data.website.strip():
+    if data.website is not None and data.website.strip() and data.website != lead.website:
         new_normalized = normalize_website(data.website)
-        # Only update website_normalized if it actually changed
         if new_normalized != lead.website_normalized:
             # Check for duplicates excluding this lead
             existing = db.query(DiscoveredLeadModel).filter(
