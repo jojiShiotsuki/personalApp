@@ -706,9 +706,38 @@ export interface StoredLeadsResponse {
 }
 
 export const leadDiscoveryApi = {
-  search: async (data: LeadSearchRequest): Promise<LeadSearchResponse> => {
+  startSearch: async (data: LeadSearchRequest): Promise<{ job_id: string; status: string }> => {
     const response = await api.post('/api/lead-discovery/search', data);
     return response.data;
+  },
+
+  getSearchStatus: async (jobId: string): Promise<{
+    job_id: string;
+    status: string;
+    rounds_searched: number;
+    result?: LeadSearchResponse;
+    error?: string;
+  }> => {
+    const response = await api.get(`/api/lead-discovery/search/status/${jobId}`);
+    return response.data;
+  },
+
+  // Convenience method that starts search and polls until complete
+  search: async (data: LeadSearchRequest): Promise<LeadSearchResponse> => {
+    const { job_id } = await leadDiscoveryApi.startSearch(data);
+
+    // Poll for results
+    while (true) {
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      const status = await leadDiscoveryApi.getSearchStatus(job_id);
+
+      if (status.status === 'completed' && status.result) {
+        return status.result;
+      }
+      if (status.status === 'error') {
+        throw new Error(status.error || 'Search failed');
+      }
+    }
   },
 
   importLeads: async (data: LeadImportRequest): Promise<LeadImportResponse> => {
