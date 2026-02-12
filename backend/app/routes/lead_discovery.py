@@ -1,17 +1,14 @@
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from datetime import date, datetime
 from urllib.parse import urlparse
-import asyncio
 import logging
-import uuid
 
 logger = logging.getLogger(__name__)
 
 from app.database import get_db
-from app.database.connection import SessionLocal
 from app.models.outreach import OutreachProspect, OutreachCampaign, ProspectStatus, DiscoveredLead as DiscoveredLeadModel
 from app.models.crm import Contact, ContactStatus
 from app.schemas.lead_discovery import (
@@ -26,9 +23,6 @@ from app.schemas.lead_discovery import (
     is_valid_email,
 )
 from app.services.gemini_service import find_businesses, re_verify_lead
-
-# In-memory store for async search jobs
-_search_jobs: dict[str, dict] = {}
 
 router = APIRouter(prefix="/api/lead-discovery", tags=["lead-discovery"])
 
@@ -164,177 +158,126 @@ def get_known_emails(db: Session) -> dict[str, str]:
     }
 
 
-async def _run_search_job(job_id: str, niche: str, location: str, count: int):
-    """Background task that runs the actual search."""
-    db = SessionLocal()
-    try:
-        _search_jobs[job_id]["status"] = "searching"
+@router.post("/search", response_model=LeadSearchResponse)
+async def search_leads(request: LeadSearchRequest, db: Session = Depends(get_db)):
+    """
+    Search for business leads using AI.
 
-        known_emails = get_known_emails(db)
+    Retries with exclusions until target count is reached or search exhausted.
+    """
+    known_emails = get_known_emails(db)
 
-        existing_websites = {
-            lead.website_normalized
-            for lead in db.query(DiscoveredLeadModel.website_normalized).all()
-            if lead.website_normalized
-        }
-        for row in db.query(OutreachProspect.website).all():
-            if row.website:
-                normalized = normalize_website(row.website)
-                if normalized:
-                    existing_websites.add(normalized)
+    existing_websites = {
+        lead.website_normalized
+        for lead in db.query(DiscoveredLeadModel.website_normalized).all()
+        if lead.website_normalized
+    }
+    for row in db.query(OutreachProspect.website).all():
+        if row.website:
+            normalized = normalize_website(row.website)
+            if normalized:
+                existing_websites.add(normalized)
 
-        existing_names = {
-            name.lower().strip()
-            for (name,) in db.query(DiscoveredLeadModel.agency_name).all()
-            if name
-        }
-        for (name,) in db.query(OutreachProspect.agency_name).all():
-            if name:
-                existing_names.add(name.lower().strip())
+    existing_names = {
+        name.lower().strip()
+        for (name,) in db.query(DiscoveredLeadModel.agency_name).all()
+        if name
+    }
+    for (name,) in db.query(OutreachProspect.agency_name).all():
+        if name:
+            existing_names.add(name.lower().strip())
 
-        exclude_display_names: list[str] = []
-        target_count = count
-        max_rounds = 3
-        collected_leads: list[DiscoveredLead] = []
-        duplicates_found = 0
-        valid_for_import = 0
-        already_saved_count = 0
-        search_exhausted = False
-        rounds_searched = 0
+    exclude_display_names: list[str] = []
+    target_count = request.count
+    max_rounds = 3
+    collected_leads: list[DiscoveredLead] = []
+    duplicates_found = 0
+    valid_for_import = 0
+    already_saved_count = 0
+    search_exhausted = False
+    rounds_searched = 0
 
-        for round_num in range(max_rounds):
-            remaining = target_count - len(collected_leads)
-            if remaining <= 0:
-                break
+    for round_num in range(max_rounds):
+        remaining = target_count - len(collected_leads)
+        if remaining <= 0:
+            break
 
-            rounds_searched += 1
-            _search_jobs[job_id]["status"] = f"searching_round_{rounds_searched}"
-            _search_jobs[job_id]["rounds_searched"] = rounds_searched
-            logger.info(f"Search round {rounds_searched}: looking for {remaining} more leads")
+        rounds_searched += 1
+        logger.info(f"Search round {rounds_searched}: looking for {remaining} more leads (excluding {len(exclude_display_names)} businesses)")
 
-            try:
-                raw_leads = await find_businesses(
-                    niche=niche,
-                    location=location,
-                    count=remaining,
-                    known_emails=known_emails,
-                    exclude_names=exclude_display_names if exclude_display_names else None,
-                )
-            except Exception as e:
-                if rounds_searched == 1:
-                    _search_jobs[job_id]["status"] = "error"
-                    _search_jobs[job_id]["error"] = str(e)
-                    return
-                logger.warning(f"Search round {rounds_searched} failed: {e}")
-                search_exhausted = True
-                break
+        try:
+            raw_leads = await find_businesses(
+                niche=request.niche,
+                location=request.location,
+                count=remaining,
+                known_emails=known_emails,
+                exclude_names=exclude_display_names if exclude_display_names else None,
+            )
+        except ValueError as e:
+            if rounds_searched == 1:
+                raise HTTPException(status_code=503, detail=str(e))
+            logger.warning(f"Search round {rounds_searched} failed: {e}")
+            search_exhausted = True
+            break
+        except Exception as e:
+            if rounds_searched == 1:
+                raise HTTPException(status_code=500, detail=f"Search failed: {str(e)}")
+            logger.warning(f"Search round {rounds_searched} failed: {e}")
+            search_exhausted = True
+            break
 
-            new_in_round = 0
-            for raw_lead in raw_leads:
-                website = raw_lead.get('website', '')
-                if website:
-                    normalized = normalize_website(website)
-                    if normalized and normalized in existing_websites:
-                        already_saved_count += 1
-                        continue
-
-                agency_name = raw_lead.get('agency_name', '') or ''
-                if agency_name and agency_name.lower().strip() in existing_names:
+        new_in_round = 0
+        for raw_lead in raw_leads:
+            website = raw_lead.get('website', '')
+            if website:
+                normalized = normalize_website(website)
+                if normalized and normalized in existing_websites:
                     already_saved_count += 1
                     continue
 
-                store_discovered_lead(raw_lead, niche, location, db)
-                lead = clean_lead_data(raw_lead)
+            agency_name = raw_lead.get('agency_name', '') or ''
+            if agency_name and agency_name.lower().strip() in existing_names:
+                already_saved_count += 1
+                continue
 
-                if not lead.agency_name:
-                    continue
+            store_discovered_lead(raw_lead, request.niche, request.location, db)
+            lead = clean_lead_data(raw_lead)
 
-                if lead.email and check_duplicate_email(lead.email, db):
-                    lead.is_duplicate = True
-                    duplicates_found += 1
+            if not lead.agency_name:
+                continue
 
-                if lead.is_valid_email and not lead.is_duplicate:
-                    valid_for_import += 1
+            if lead.email and check_duplicate_email(lead.email, db):
+                lead.is_duplicate = True
+                duplicates_found += 1
 
-                collected_leads.append(lead)
-                new_in_round += 1
+            if lead.is_valid_email and not lead.is_duplicate:
+                valid_for_import += 1
 
-                if agency_name:
-                    existing_names.add(agency_name.lower().strip())
-                    exclude_display_names.append(agency_name)
-                if website:
-                    normalized = normalize_website(website)
-                    if normalized:
-                        existing_websites.add(normalized)
+            collected_leads.append(lead)
+            new_in_round += 1
 
-            logger.info(f"Round {rounds_searched}: found {new_in_round} new leads, {len(collected_leads)}/{target_count} total")
+            if agency_name:
+                existing_names.add(agency_name.lower().strip())
+                exclude_display_names.append(agency_name)
+            if website:
+                normalized = normalize_website(website)
+                if normalized:
+                    existing_websites.add(normalized)
 
-            if new_in_round == 0:
-                search_exhausted = True
-                break
+        logger.info(f"Round {rounds_searched}: found {new_in_round} new leads, {len(collected_leads)}/{target_count} total")
 
-        _search_jobs[job_id]["status"] = "completed"
-        _search_jobs[job_id]["result"] = LeadSearchResponse(
-            leads=collected_leads,
-            duplicates_found=duplicates_found,
-            valid_for_import=valid_for_import,
-            already_saved=already_saved_count,
-            search_exhausted=search_exhausted,
-            rounds_searched=rounds_searched,
-        ).model_dump()
+        if new_in_round == 0:
+            search_exhausted = True
+            break
 
-    except Exception as e:
-        logger.error(f"Search job {job_id} failed: {e}", exc_info=True)
-        _search_jobs[job_id]["status"] = "error"
-        _search_jobs[job_id]["error"] = str(e)
-    finally:
-        db.close()
-
-
-@router.post("/search")
-async def search_leads(request: LeadSearchRequest):
-    """
-    Start an async search for business leads.
-
-    Returns a job_id immediately. Poll GET /search/status/{job_id} for results.
-    """
-    job_id = str(uuid.uuid4())
-    _search_jobs[job_id] = {
-        "status": "pending",
-        "niche": request.niche,
-        "location": request.location,
-        "count": request.count,
-        "rounds_searched": 0,
-        "result": None,
-        "error": None,
-    }
-
-    # Start search in background
-    asyncio.create_task(_run_search_job(job_id, request.niche, request.location, request.count))
-
-    return {"job_id": job_id, "status": "pending"}
-
-
-@router.get("/search/status/{job_id}")
-async def get_search_status(job_id: str):
-    """Poll this endpoint to check search progress and get results."""
-    job = _search_jobs.get(job_id)
-    if not job:
-        raise HTTPException(status_code=404, detail="Search job not found")
-
-    response = {
-        "job_id": job_id,
-        "status": job["status"],
-        "rounds_searched": job.get("rounds_searched", 0),
-    }
-
-    if job["status"] == "completed":
-        response["result"] = job["result"]
-        # Clean up old job after delivering results (keep for 5 min)
-    elif job["status"] == "error":
-        response["error"] = job.get("error", "Unknown error")
-
-    return response
+    return LeadSearchResponse(
+        leads=collected_leads,
+        duplicates_found=duplicates_found,
+        valid_for_import=valid_for_import,
+        already_saved=already_saved_count,
+        search_exhausted=search_exhausted,
+        rounds_searched=rounds_searched,
+    )
 
 
 @router.get("/stored")
