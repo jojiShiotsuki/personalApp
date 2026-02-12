@@ -33,7 +33,7 @@ import CsvImportModal from '@/components/CsvImportModal';
 import CopyEmailModal from '@/components/CopyEmailModal';
 import ResponseOutcomeModal from '@/components/ResponseOutcomeModal';
 import NewCampaignModal from '@/components/NewCampaignModal';
-import EmailTemplatesModal from '@/components/EmailTemplatesModal';
+import ManageTemplatesModal from '@/components/ManageTemplatesModal';
 
 type TabType = 'today' | 'sent' | 'all' | 'replied';
 
@@ -1189,21 +1189,12 @@ export default function EmailCampaignsTab() {
           </button>
 
           <button
-            onClick={() => {
-              if (!selectedCampaignId) {
-                toast.error('Please select a campaign first');
-                return;
-              }
-              setIsTemplatesOpen(true);
-            }}
-            disabled={!selectedCampaignId}
+            onClick={() => setIsTemplatesOpen(true)}
             className={cn(
               'flex items-center gap-2 px-4 py-2.5 rounded-xl',
               'bg-slate-600/50 text-slate-300 border border-slate-500/30',
               'transition-all duration-200 font-medium text-sm',
-              selectedCampaignId
-                ? 'hover:bg-slate-500 hover:text-white hover:border-slate-400 hover:scale-105 active:scale-95'
-                : 'opacity-50 cursor-not-allowed'
+              'hover:bg-slate-500 hover:text-white hover:border-slate-400 hover:scale-105 active:scale-95'
             )}
           >
             <FileText className="w-4 h-4" />
@@ -1371,13 +1362,10 @@ export default function EmailCampaignsTab() {
         />
       )}
 
-      {selectedCampaignId && (
-        <EmailTemplatesModal
-          isOpen={isTemplatesOpen}
-          onClose={() => setIsTemplatesOpen(false)}
-          campaignId={selectedCampaignId}
-        />
-      )}
+      <ManageTemplatesModal
+        isOpen={isTemplatesOpen}
+        onClose={() => setIsTemplatesOpen(false)}
+      />
 
       {editingProspect && (
         <EditProspectModal

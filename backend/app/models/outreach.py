@@ -58,6 +58,7 @@ class OutreachTemplate(Base):
     niche_id = Column(Integer, ForeignKey("outreach_niches.id", ondelete="CASCADE"), nullable=True)
     situation_id = Column(Integer, ForeignKey("outreach_situations.id", ondelete="CASCADE"), nullable=True)
     template_type = Column(String(50), nullable=False, default='email_1')  # e.g. email_1, linkedin_direct, loom_video_audit
+    subject = Column(String(500), nullable=True)  # Email subject line (used for email template types)
     content = Column(Text, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

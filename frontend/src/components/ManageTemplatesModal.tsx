@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { outreachApi } from '@/lib/api';
 import type { OutreachNiche, OutreachSituation, OutreachTemplate, TemplateType } from '@/types';
@@ -64,6 +65,9 @@ const TEMPLATE_CATEGORIES = [
 type ItemSelection = number | 'all' | null;
 const selectionToApiId = (sel: ItemSelection): number | null => sel === 'all' ? null : sel;
 
+const EMAIL_TEMPLATE_TYPES: TemplateType[] = ['email_1', 'email_2', 'email_3', 'email_4', 'email_5', 'agency_email'];
+const isEmailType = (type: TemplateType) => EMAIL_TEMPLATE_TYPES.includes(type);
+
 export default function ManageTemplatesModal({ isOpen, onClose }: ManageTemplatesModalProps) {
   const [activeTab, setActiveTab] = useState<Tab>('templates');
   const [newNiche, setNewNiche] = useState('');
@@ -71,6 +75,7 @@ export default function ManageTemplatesModal({ isOpen, onClose }: ManageTemplate
   const [nicheSelection, setNicheSelection] = useState<ItemSelection>(null);
   const [situationSelection, setSituationSelection] = useState<ItemSelection>(null);
   const [selectedTemplateType, setSelectedTemplateType] = useState<TemplateType>('email_1');
+  const [templateSubject, setTemplateSubject] = useState('');
   const [templateContent, setTemplateContent] = useState('');
   const queryClient = useQueryClient();
 
@@ -169,6 +174,7 @@ export default function ManageTemplatesModal({ isOpen, onClose }: ManageTemplate
       niche_id: effectiveNicheId,
       situation_id: effectiveSituationId,
       template_type: selectedTemplateType,
+      subject: isEmailType(selectedTemplateType) ? templateSubject || null : null,
       content: templateContent,
     });
   };
@@ -185,8 +191,10 @@ export default function ManageTemplatesModal({ isOpen, onClose }: ManageTemplate
       const existing = templates.find(
         (t) => t.niche_id === apiNicheId && t.situation_id === apiSituationId && t.template_type === templateType
       );
+      setTemplateSubject(existing?.subject || '');
       setTemplateContent(existing?.content || '');
     } else {
+      setTemplateSubject('');
       setTemplateContent('');
     }
   };
@@ -201,7 +209,7 @@ export default function ManageTemplatesModal({ isOpen, onClose }: ManageTemplate
     "transition-all"
   );
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
       <div className="bg-[--exec-surface] rounded-2xl shadow-2xl w-full max-w-3xl mx-4 max-h-[85vh] flex flex-col border border-stone-600/40">
         {/* Header */}
@@ -440,9 +448,28 @@ export default function ManageTemplatesModal({ isOpen, onClose }: ManageTemplate
                     </div>
                   </div>
 
+                  {/* Subject Line (only for email types) */}
+                  {isEmailType(selectedTemplateType) && (
+                    <div>
+                      <label className="block text-sm font-medium text-[--exec-text-secondary] mb-2">
+                        Email Subject Line
+                      </label>
+                      <input
+                        type="text"
+                        value={templateSubject}
+                        onChange={(e) => setTemplateSubject(e.target.value)}
+                        placeholder={nicheSelection !== null && situationSelection !== null
+                          ? "e.g., Quick question about {company}"
+                          : "Select a niche and situation first"}
+                        disabled={nicheSelection === null || situationSelection === null}
+                        className={cn(inputClasses, "disabled:opacity-50 disabled:cursor-not-allowed")}
+                      />
+                    </div>
+                  )}
+
                   <div>
                     <label className="block text-sm font-medium text-[--exec-text-secondary] mb-2">
-                      Template Script
+                      {isEmailType(selectedTemplateType) ? 'Email Body' : 'Template Script'}
                     </label>
                     <div className="text-xs text-[--exec-text-muted] mb-2 space-y-1">
                       <p className="font-medium text-[--exec-text-secondary]">Available variables:</p>
@@ -486,6 +513,7 @@ export default function ManageTemplatesModal({ isOpen, onClose }: ManageTemplate
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

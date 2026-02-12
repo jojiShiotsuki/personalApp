@@ -53,6 +53,7 @@ class TemplateBase(BaseModel):
     niche_id: Optional[int] = None
     situation_id: Optional[int] = None
     template_type: str = Field(default='email_1')
+    subject: Optional[str] = Field(None, max_length=500)  # Email subject line (for email template types)
     content: str = Field(..., min_length=1)
 
 

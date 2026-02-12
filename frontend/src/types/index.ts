@@ -657,6 +657,7 @@ export interface OutreachTemplate {
   niche_id: number | null;
   situation_id: number | null;
   template_type: TemplateType;
+  subject: string | null;
   content: string;
   created_at?: string;
   updated_at?: string;

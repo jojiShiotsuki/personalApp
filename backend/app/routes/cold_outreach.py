@@ -7,6 +7,7 @@ from datetime import datetime, date, timedelta
 from app.database import get_db
 from app.models.outreach import (
     OutreachCampaign, OutreachProspect, OutreachEmailTemplate,
+    OutreachTemplate, OutreachNiche,
     ProspectStatus, ResponseType, CampaignStatus
 )
 from app.models.crm import Contact, Deal, ContactStatus, DealStage, Interaction, InteractionType
@@ -528,43 +529,73 @@ def delete_template(template_id: int, db: Session = Depends(get_db)):
 
 @router.get("/prospects/{prospect_id}/render-email", response_model=RenderedEmail)
 def render_email(prospect_id: int, db: Session = Depends(get_db)):
-    """Get the rendered email for a prospect's current step."""
+    """Get the rendered email for a prospect's current step using unified outreach templates."""
     prospect = db.query(OutreachProspect).filter(OutreachProspect.id == prospect_id).first()
     if not prospect:
         raise HTTPException(status_code=404, detail="Prospect not found")
 
-    # Get template for current step
-    template = db.query(OutreachEmailTemplate).filter(
-        OutreachEmailTemplate.campaign_id == prospect.campaign_id,
-        OutreachEmailTemplate.step_number == prospect.current_step
-    ).first()
+    # Map step number to template_type
+    step_to_type = {1: 'email_1', 2: 'email_2', 3: 'email_3', 4: 'email_4', 5: 'email_5'}
+    template_type = step_to_type.get(prospect.current_step)
+    if not template_type:
+        raise HTTPException(status_code=400, detail=f"Invalid step {prospect.current_step}")
+
+    # Match prospect niche string to OutreachNiche
+    matched_niche = None
+    if prospect.niche:
+        matched_niche = db.query(OutreachNiche).filter(
+            func.lower(OutreachNiche.name) == func.lower(prospect.niche)
+        ).first()
+
+    niche_id = matched_niche.id if matched_niche else None
+
+    # Fallback chain: exact niche match → null niche (All Niches default)
+    template = None
+    if niche_id is not None:
+        # Try exact niche match first (any situation, then null situation)
+        template = db.query(OutreachTemplate).filter(
+            OutreachTemplate.niche_id == niche_id,
+            OutreachTemplate.template_type == template_type
+        ).first()
+    if not template:
+        # Fall back to All Niches (null niche_id)
+        template = db.query(OutreachTemplate).filter(
+            OutreachTemplate.niche_id.is_(None),
+            OutreachTemplate.template_type == template_type
+        ).first()
+    if not template:
+        # Last resort: any template with this type
+        template = db.query(OutreachTemplate).filter(
+            OutreachTemplate.template_type == template_type
+        ).first()
 
     if not template:
         raise HTTPException(
             status_code=404,
-            detail=f"No template found for step {prospect.current_step}"
+            detail=f"No template found for step {prospect.current_step} ({template_type}). Set up templates in the Manage Templates modal."
         )
 
     # Replace variables
-    # contact_name falls back to agency_name if null
     contact_name = prospect.contact_name or prospect.agency_name
 
     replacements = {
         "{agency_name}": prospect.agency_name or "",
         "{contact_name}": contact_name or "",
+        "{name}": contact_name or "",
+        "{company}": prospect.agency_name or "",
         "{niche}": prospect.niche or "",
         "{website}": prospect.website or "",
     }
 
-    subject = template.subject
-    body = template.body
+    subject = template.subject or ""
+    body = template.content
 
     for placeholder, value in replacements.items():
         subject = subject.replace(placeholder, value)
         body = body.replace(placeholder, value)
 
     return RenderedEmail(
-        to_email=prospect.email,
+        to_email=prospect.email or "",
         subject=subject,
         body=body,
         prospect_id=prospect.id,

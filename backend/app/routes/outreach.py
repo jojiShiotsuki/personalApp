@@ -128,6 +128,7 @@ def create_or_update_template(data: TemplateCreate, db: Session = Depends(get_db
 
     if existing:
         # Update existing
+        existing.subject = data.subject
         existing.content = data.content
         db.commit()
         db.refresh(existing)
@@ -138,6 +139,7 @@ def create_or_update_template(data: TemplateCreate, db: Session = Depends(get_db
             niche_id=data.niche_id,
             situation_id=data.situation_id,
             template_type=data.template_type,
+            subject=data.subject,
             content=data.content
         )
         db.add(template)
