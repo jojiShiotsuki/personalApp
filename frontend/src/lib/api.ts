@@ -787,6 +787,11 @@ export const leadDiscoveryApi = {
     const response = await api.put(`/api/lead-discovery/stored/${leadId}`, data);
     return response.data;
   },
+
+  createManualLead: async (data: { agency_name: string; contact_name?: string; email?: string; website?: string; niche?: string; location?: string }): Promise<StoredLead> => {
+    const response = await api.post('/api/lead-discovery/stored/manual', data);
+    return response.data;
+  },
 };
 
 // Search Planner API

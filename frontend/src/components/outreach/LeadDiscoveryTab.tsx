@@ -319,6 +319,17 @@ export default function LeadDiscoveryTab() {
     niche: '',
   });
 
+  // Manual add lead state
+  const [isAddLeadModalOpen, setIsAddLeadModalOpen] = useState(false);
+  const [addLeadForm, setAddLeadForm] = useState({
+    agency_name: '',
+    contact_name: '',
+    email: '',
+    website: '',
+    niche: '',
+    location: '',
+  });
+
   // Bulk selection state (for saved leads)
   const [selectedLeadIds, setSelectedLeadIds] = useState<Set<number>>(new Set());
 
@@ -555,6 +566,22 @@ export default function LeadDiscoveryTab() {
     },
     onError: () => {
       toast.error('Failed to update lead');
+    },
+  });
+
+  // Create manual lead mutation
+  const createLeadMutation = useMutation({
+    mutationFn: (data: { agency_name: string; contact_name?: string; email?: string; website?: string; niche?: string; location?: string }) =>
+      leadDiscoveryApi.createManualLead(data),
+    onSuccess: () => {
+      toast.success('Lead added');
+      setIsAddLeadModalOpen(false);
+      setAddLeadForm({ agency_name: '', contact_name: '', email: '', website: '', niche: '', location: '' });
+      queryClient.invalidateQueries({ queryKey: ['stored-leads'] });
+      queryClient.invalidateQueries({ queryKey: ['stored-leads-stats'] });
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.detail || 'Failed to add lead');
     },
   });
 
@@ -1267,9 +1294,10 @@ export default function LeadDiscoveryTab() {
               </div>
             )}
 
-          {/* Available / In Campaign sub-tabs */}
-          {storedLeadsData && storedLeadsData.leads.length > 0 && (
-            <div className="flex items-center gap-1 mb-3 p-1 bg-stone-800/50 rounded-xl w-fit">
+          {/* Available / In Campaign sub-tabs + Add Lead button */}
+          <div className="flex items-center justify-between mb-3">
+          {storedLeadsData && storedLeadsData.leads.length > 0 ? (
+            <div className="flex items-center gap-1 p-1 bg-stone-800/50 rounded-xl w-fit">
               <button
                 onClick={() => { setSavedFilter('available'); setSelectedLeadIds(new Set()); }}
                 className={cn(
@@ -1322,7 +1350,15 @@ export default function LeadDiscoveryTab() {
                 </span>
               </button>
             </div>
-          )}
+          ) : <div />}
+            <button
+              onClick={() => setIsAddLeadModalOpen(true)}
+              className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              <UserPlus className="w-4 h-4" />
+              Add Lead
+            </button>
+          </div>
 
           {/* Enrich toolbar */}
           {savedFilter === 'available' && storedLeadsData && storedLeadsData.leads.length > 0 && stats && stats.without_email > 0 && (
@@ -1786,6 +1822,138 @@ export default function LeadDiscoveryTab() {
         }}
         isImporting={bulkImportMutation.isPending}
       />
+
+      {/* Add Lead Modal */}
+      {isAddLeadModalOpen && createPortal(
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 animate-in fade-in duration-200">
+          <div className="bg-[--exec-surface] rounded-2xl shadow-2xl w-full max-w-lg mx-4 border border-stone-600/40 transform transition-all animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <div>
+                  <h2 className="text-xl font-semibold text-[--exec-text]">Add Lead Manually</h2>
+                  <p className="text-sm text-[--exec-text-muted] mt-1">Add a lead to your saved leads list</p>
+                </div>
+                <button
+                  onClick={() => setIsAddLeadModalOpen(false)}
+                  className="text-[--exec-text-muted] hover:text-[--exec-text] p-1.5 hover:bg-stone-700/50 rounded-lg transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (!addLeadForm.agency_name.trim()) {
+                    toast.error('Business name is required');
+                    return;
+                  }
+                  createLeadMutation.mutate(addLeadForm);
+                }}
+                className="space-y-4"
+              >
+                <div>
+                  <label className="block text-sm font-medium text-[--exec-text-secondary] mb-1.5">
+                    Business Name <span className="text-red-400">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={addLeadForm.agency_name}
+                    onChange={(e) => setAddLeadForm({ ...addLeadForm, agency_name: e.target.value })}
+                    className="w-full px-4 py-2.5 rounded-lg bg-stone-800/50 border border-stone-600/40 text-[--exec-text] placeholder:text-[--exec-text-muted] focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]/50 transition-all text-sm"
+                    placeholder="e.g. Smith Roofing Co."
+                    autoFocus
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-[--exec-text-secondary] mb-1.5">
+                    Contact Name
+                  </label>
+                  <input
+                    type="text"
+                    value={addLeadForm.contact_name}
+                    onChange={(e) => setAddLeadForm({ ...addLeadForm, contact_name: e.target.value })}
+                    className="w-full px-4 py-2.5 rounded-lg bg-stone-800/50 border border-stone-600/40 text-[--exec-text] placeholder:text-[--exec-text-muted] focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]/50 transition-all text-sm"
+                    placeholder="e.g. John Smith"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-[--exec-text-secondary] mb-1.5">
+                    Email
+                  </label>
+                  <input
+                    type="email"
+                    value={addLeadForm.email}
+                    onChange={(e) => setAddLeadForm({ ...addLeadForm, email: e.target.value })}
+                    className="w-full px-4 py-2.5 rounded-lg bg-stone-800/50 border border-stone-600/40 text-[--exec-text] placeholder:text-[--exec-text-muted] focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]/50 transition-all text-sm"
+                    placeholder="e.g. john@smithroofing.com"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-[--exec-text-secondary] mb-1.5">
+                    Website
+                  </label>
+                  <input
+                    type="text"
+                    value={addLeadForm.website}
+                    onChange={(e) => setAddLeadForm({ ...addLeadForm, website: e.target.value })}
+                    className="w-full px-4 py-2.5 rounded-lg bg-stone-800/50 border border-stone-600/40 text-[--exec-text] placeholder:text-[--exec-text-muted] focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]/50 transition-all text-sm"
+                    placeholder="e.g. smithroofing.com.au"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-[--exec-text-secondary] mb-1.5">
+                      Niche
+                    </label>
+                    <input
+                      type="text"
+                      value={addLeadForm.niche}
+                      onChange={(e) => setAddLeadForm({ ...addLeadForm, niche: e.target.value })}
+                      className="w-full px-4 py-2.5 rounded-lg bg-stone-800/50 border border-stone-600/40 text-[--exec-text] placeholder:text-[--exec-text-muted] focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]/50 transition-all text-sm"
+                      placeholder="e.g. Roofing"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-[--exec-text-secondary] mb-1.5">
+                      Location
+                    </label>
+                    <input
+                      type="text"
+                      value={addLeadForm.location}
+                      onChange={(e) => setAddLeadForm({ ...addLeadForm, location: e.target.value })}
+                      className="w-full px-4 py-2.5 rounded-lg bg-stone-800/50 border border-stone-600/40 text-[--exec-text] placeholder:text-[--exec-text-muted] focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]/50 transition-all text-sm"
+                      placeholder="e.g. Brisbane, Australia"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex gap-3 justify-end pt-4 border-t border-stone-700/30 mt-6">
+                  <button
+                    type="button"
+                    onClick={() => setIsAddLeadModalOpen(false)}
+                    className="px-4 py-2 text-sm font-medium text-[--exec-text-secondary] bg-stone-700/50 rounded-lg hover:bg-stone-600/50 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={createLeadMutation.isPending}
+                    className="px-4 py-2 text-sm font-medium text-white bg-[--exec-accent] rounded-lg hover:bg-[--exec-accent-dark] shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {createLeadMutation.isPending ? 'Adding...' : 'Add Lead'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
 
       {/* Send DM Panel */}
       <SendDMPanel

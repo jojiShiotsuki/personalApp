@@ -388,12 +388,83 @@ async def get_stored_leads_stats(db: Session = Depends(get_db)):
     }
 
 
+class ManualLeadCreate(BaseModel):
+    agency_name: str
+    contact_name: str | None = None
+    email: str | None = None
+    website: str | None = None
+    niche: str | None = None
+    location: str | None = None
+
+
 class StoredLeadUpdate(BaseModel):
     agency_name: str | None = None
     contact_name: str | None = None
     email: str | None = None
     website: str | None = None
     niche: str | None = None
+
+
+@router.post("/stored/manual")
+async def create_manual_lead(
+    data: ManualLeadCreate,
+    db: Session = Depends(get_db),
+):
+    """Manually add a lead to the saved leads list."""
+    website = data.website.strip() if data.website else None
+    normalized = normalize_website(website) if website else None
+
+    # Check for duplicate by website
+    if normalized:
+        existing = db.query(DiscoveredLeadModel).filter(
+            DiscoveredLeadModel.website_normalized == normalized
+        ).first()
+        if existing:
+            raise HTTPException(
+                status_code=409,
+                detail=f"A lead with this website already exists: {existing.agency_name}"
+            )
+
+    new_lead = DiscoveredLeadModel(
+        agency_name=data.agency_name,
+        contact_name=data.contact_name or None,
+        email=data.email or None,
+        website=website or '',
+        website_normalized=normalized or data.agency_name.lower().strip(),
+        niche=data.niche or None,
+        location=data.location or None,
+        search_query=data.niche,
+        email_source='manual' if data.email else None,
+        confidence='low',
+        confidence_signals={'manual_entry': True},
+    )
+    db.add(new_lead)
+    db.commit()
+    db.refresh(new_lead)
+
+    return {
+        "id": new_lead.id,
+        "agency_name": new_lead.agency_name,
+        "contact_name": new_lead.contact_name,
+        "email": new_lead.email,
+        "website": new_lead.website,
+        "niche": new_lead.niche,
+        "location": new_lead.location,
+        "created_at": new_lead.created_at.isoformat() if new_lead.created_at else None,
+        "confidence": new_lead.confidence,
+        "confidence_signals": new_lead.confidence_signals,
+        "linkedin_url": new_lead.linkedin_url,
+        "facebook_url": new_lead.facebook_url,
+        "instagram_url": new_lead.instagram_url,
+        "email_source": new_lead.email_source,
+        "website_issues": [],
+        "last_enriched_at": None,
+        "is_disqualified": False,
+        "is_valid_email": bool(new_lead.email and is_valid_email(new_lead.email)),
+        "is_duplicate": False,
+        "in_campaign": False,
+        "search_query": new_lead.search_query,
+    }
 
 
 @router.put("/stored/{lead_id}")
