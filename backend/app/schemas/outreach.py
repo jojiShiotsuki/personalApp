@@ -202,6 +202,7 @@ class ProspectResponse(ProspectBase):
     discovered_lead_id: Optional[int] = None
     converted_contact_id: Optional[int] = None
     converted_deal_id: Optional[int] = None
+    website_issues: Optional[list] = None
     linkedin_url: Optional[str] = None
     facebook_url: Optional[str] = None
     instagram_url: Optional[str] = None

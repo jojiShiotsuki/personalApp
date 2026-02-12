@@ -20,6 +20,7 @@ import {
   ChevronDown,
   Edit2,
   Trash2,
+  AlertTriangle,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -30,6 +31,14 @@ import NewCampaignModal from '@/components/NewCampaignModal';
 import ManageTemplatesModal from '@/components/ManageTemplatesModal';
 
 type TabType = 'today' | 'all' | 'replied';
+
+const WEBSITE_ISSUE_LABELS: Record<string, { label: string; color: string }> = {
+  slow_load: { label: 'Slow Load', color: 'text-red-400 bg-red-900/30 border-red-800' },
+  not_mobile_friendly: { label: 'Not Mobile', color: 'text-orange-400 bg-orange-900/30 border-orange-800' },
+  no_google_presence: { label: 'No Google', color: 'text-yellow-400 bg-yellow-900/30 border-yellow-800' },
+  no_clear_cta: { label: 'No CTA', color: 'text-blue-400 bg-blue-900/30 border-blue-800' },
+  outdated_design: { label: 'Outdated', color: 'text-purple-400 bg-purple-900/30 border-purple-800' },
+};
 
 // Status badge component for prospects
 function StatusBadge({ status }: { status: ProspectStatus }) {
@@ -111,6 +120,20 @@ function ProspectCard({
               <p className="text-xs text-[--exec-text-muted]">
                 {prospect.niche}
               </p>
+            )}
+
+            {prospect.website_issues && prospect.website_issues.length > 0 && (
+              <div className="flex flex-wrap gap-1 mt-1">
+                <AlertTriangle className="w-3 h-3 text-amber-400 flex-shrink-0 mt-0.5" />
+                {prospect.website_issues.map((issue) => {
+                  const info = WEBSITE_ISSUE_LABELS[issue];
+                  return info ? (
+                    <span key={issue} className={cn('px-1.5 py-0.5 text-[10px] font-medium rounded border', info.color)}>
+                      {info.label}
+                    </span>
+                  ) : null;
+                })}
+              </div>
             )}
           </div>
 

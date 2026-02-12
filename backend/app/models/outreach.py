@@ -117,6 +117,9 @@ class OutreachProspect(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
+    # Data copied from discovered lead during import
+    website_issues = Column(JSON, nullable=True)  # e.g. ['slow_load', 'not_mobile_friendly', ...]
+
     # Social links (copied from discovered lead during import)
     linkedin_url = Column(String(500), nullable=True)
     facebook_url = Column(String(500), nullable=True)

@@ -656,6 +656,7 @@ async def bulk_import_to_campaign(request: BulkImportToCampaignRequest, db: Sess
                 current_step=1,
                 next_action_date=today,
                 discovered_lead_id=lead.id,
+                website_issues=lead.website_issues or None,
                 linkedin_url=lead.linkedin_url,
                 facebook_url=lead.facebook_url,
                 instagram_url=lead.instagram_url,

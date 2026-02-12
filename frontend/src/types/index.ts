@@ -739,6 +739,7 @@ export interface OutreachProspect {
   discovered_lead_id?: number;
   converted_contact_id?: number;
   converted_deal_id?: number;
+  website_issues?: string[];
   linkedin_url?: string;
   facebook_url?: string;
   instagram_url?: string;
