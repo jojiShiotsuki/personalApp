@@ -1,8 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 from datetime import date, datetime
 from urllib.parse import urlparse
+import logging
+
+logger = logging.getLogger(__name__)
 
 from app.database import get_db
 from app.models.outreach import OutreachProspect, OutreachCampaign, ProspectStatus, DiscoveredLead as DiscoveredLeadModel
@@ -363,21 +367,35 @@ async def update_stored_lead(
     if not lead:
         raise HTTPException(status_code=404, detail="Lead not found")
 
-    # Update fields if provided
+    # Update fields if provided (treat empty string same as the value)
     if data.agency_name is not None:
         lead.agency_name = data.agency_name
     if data.contact_name is not None:
-        lead.contact_name = data.contact_name
+        lead.contact_name = data.contact_name or None
     if data.email is not None:
-        lead.email = data.email
-    if data.website is not None:
+        lead.email = data.email or None
+    if data.website is not None and data.website.strip():
         lead.website = data.website
         lead.website_normalized = normalize_website(data.website)
     if data.niche is not None:
-        lead.niche = data.niche
+        lead.niche = data.niche or None
 
-    db.commit()
-    db.refresh(lead)
+    try:
+        db.commit()
+        db.refresh(lead)
+    except IntegrityError as e:
+        db.rollback()
+        logger.error(f"IntegrityError updating lead {lead_id}: {e}")
+        raise HTTPException(status_code=409, detail="A lead with this website already exists")
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error updating lead {lead_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to update lead: {str(e)}")
+
+    # Check if this lead is already in a campaign
+    in_campaign = db.query(OutreachProspect).filter(
+        OutreachProspect.website == lead.website
+    ).first() is not None
 
     return {
         "id": lead.id,
@@ -387,7 +405,20 @@ async def update_stored_lead(
         "website": lead.website,
         "niche": lead.niche,
         "location": lead.location,
-        "updated_at": lead.updated_at.isoformat() if lead.updated_at else None,
+        "created_at": lead.created_at.isoformat() if lead.created_at else None,
+        "confidence": lead.confidence,
+        "confidence_signals": lead.confidence_signals,
+        "linkedin_url": lead.linkedin_url,
+        "facebook_url": lead.facebook_url,
+        "instagram_url": lead.instagram_url,
+        "email_source": lead.email_source,
+        "website_issues": lead.website_issues or [],
+        "last_enriched_at": lead.last_enriched_at.isoformat() if lead.last_enriched_at else None,
+        "is_disqualified": bool(lead.is_disqualified),
+        "is_valid_email": bool(lead.email and is_valid_email(lead.email)),
+        "is_duplicate": False,
+        "in_campaign": in_campaign,
+        "search_query": lead.search_query,
     }
 
 
