@@ -30,6 +30,7 @@ class ProjectResponse(ProjectBase):
     progress: int
     created_at: datetime
     updated_at: datetime
+    completed_at: Optional[datetime] = None
     task_count: Optional[int] = None
     completed_task_count: Optional[int] = None
 

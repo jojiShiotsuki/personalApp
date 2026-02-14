@@ -35,6 +35,7 @@ export type Project = {
   progress: number;
   created_at: string;
   updated_at: string;
+  completed_at?: string;
   task_count?: number;
   completed_task_count?: number;
   hourly_rate?: number;

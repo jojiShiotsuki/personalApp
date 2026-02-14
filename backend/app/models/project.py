@@ -22,6 +22,7 @@ class Project(Base):
     progress = Column(Integer, default=0)  # 0-100
     hourly_rate = Column(Numeric(10, 2), nullable=True)  # For time tracking billing
     deadline = Column(Date, nullable=True)
+    completed_at = Column(DateTime, nullable=True)
 
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

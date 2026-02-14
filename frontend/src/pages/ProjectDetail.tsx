@@ -389,7 +389,21 @@ function OverviewTab({ project }: { project: Project }) {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-5">
+        <div className="bento-card p-5">
+          <div className="text-xs font-bold text-[--exec-text-muted] mb-2 uppercase tracking-wider">Duration</div>
+          <div className="text-3xl font-bold text-[--exec-text]" style={{ fontFamily: 'var(--font-display)' }}>
+            {(() => {
+              const start = new Date(project.created_at);
+              const end = project.completed_at ? new Date(project.completed_at) : new Date();
+              return Math.max(1, Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)));
+            })()}
+          </div>
+          <div className="text-xs text-[--exec-text-muted] mt-1">
+            {project.status === ProjectStatus.COMPLETED ? 'days to complete' : 'days so far'}
+          </div>
+        </div>
+
         <div className="bento-card p-5">
           <div className="text-xs font-bold text-[--exec-text-muted] mb-2 uppercase tracking-wider">Total Tasks</div>
           <div className="text-3xl font-bold text-[--exec-text]" style={{ fontFamily: 'var(--font-display)' }}>{project.task_count || 0}</div>

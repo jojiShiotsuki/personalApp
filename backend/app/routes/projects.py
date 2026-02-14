@@ -5,7 +5,7 @@ from typing import List
 from datetime import datetime
 
 from app.database import get_db
-from app.models.project import Project
+from app.models.project import Project, ProjectStatus
 from app.models.task import Task, TaskStatus
 from app.models.project_template import ProjectTemplate, ProjectTemplateTask
 from app.schemas.project import ProjectCreate, ProjectUpdate, ProjectResponse
@@ -88,6 +88,12 @@ def update_project(project_id: int, project_update: ProjectUpdate, db: Session =
     update_data = project_update.model_dump(exclude_unset=True)
     for field, value in update_data.items():
         setattr(db_project, field, value)
+    # Auto-set completed_at when status changes to COMPLETED
+    if "status" in update_data:
+        if update_data["status"] == ProjectStatus.COMPLETED and db_project.completed_at is None:
+            db_project.completed_at = datetime.utcnow()
+        elif update_data["status"] != ProjectStatus.COMPLETED:
+            db_project.completed_at = None
     db_project.updated_at = datetime.utcnow()
     db.commit()
     db.refresh(db_project)

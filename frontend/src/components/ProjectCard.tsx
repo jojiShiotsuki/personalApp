@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Project, ProjectStatus } from '@/types';
-import { Folder, CheckCircle2, Trash2, Calendar } from 'lucide-react';
+import { Folder, CheckCircle2, Trash2, Calendar, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
 import ConfirmModal from './ConfirmModal';
@@ -69,7 +69,18 @@ export default function ProjectCard({ project, onDelete }: ProjectCardProps) {
           </div>
           <div>
             <h3 className="font-bold text-[--exec-text] line-clamp-1 group-hover:text-[--exec-accent] transition-colors">{project.name}</h3>
-            <span className="text-xs text-[--exec-text-muted]">Updated recently</span>
+            <span className="text-xs text-[--exec-text-muted] flex items-center gap-1">
+              <Clock className="w-3 h-3" />
+              {(() => {
+                const start = new Date(project.created_at);
+                const end = project.completed_at ? new Date(project.completed_at) : new Date();
+                const days = Math.max(1, Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)));
+                if (project.status === ProjectStatus.COMPLETED) {
+                  return `Done in ${days} day${days !== 1 ? 's' : ''}`;
+                }
+                return `Day ${days}`;
+              })()}
+            </span>
           </div>
         </div>
         <div className="flex items-center gap-2">
