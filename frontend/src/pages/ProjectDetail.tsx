@@ -511,7 +511,7 @@ function ListTab({ projectId }: { projectId: number }) {
             <div className="relative" ref={templateMenuRef}>
               <button
                 onClick={() => setShowTemplateMenu(!showTemplateMenu)}
-                className="flex items-center gap-2 px-4 py-2 bg-[--exec-surface-alt] border border-[--exec-border] text-[--exec-text-secondary] rounded-xl hover:bg-[--exec-surface] hover:text-[--exec-text] hover:border-[--exec-accent]/30 transition-all duration-200 font-medium text-sm"
+                className="flex items-center gap-2 px-4 py-2 bg-[--exec-surface-alt] border border-[--exec-border] text-[--exec-text-secondary] rounded-xl hover:bg-stone-600/40 hover:text-[--exec-text] hover:border-[--exec-accent]/40 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 transition-all duration-200 font-medium text-sm"
               >
                 <FileText className="w-4 h-4" />
                 Add from Template
