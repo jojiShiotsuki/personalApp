@@ -85,6 +85,14 @@ export type ProjectTemplateCreate = {
   tasks: ProjectTemplateTaskCreate[];
 }
 
+export type TaskLink = {
+  id: number;
+  task_id: number;
+  url: string;
+  label?: string;
+  created_at: string;
+}
+
 export type Task = {
   id: number;
   title: string;
@@ -100,6 +108,7 @@ export type Task = {
   project_id?: number;
   sprint_day_id?: number;
   phase?: string;
+  links?: TaskLink[];
 
   // Recurrence fields
   is_recurring: boolean;

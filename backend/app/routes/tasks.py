@@ -6,8 +6,8 @@ from datetime import datetime
 from pydantic import BaseModel
 
 from app.database import get_db
-from app.models.task import Task, TaskStatus, TaskPriority
-from app.schemas.task import TaskCreate, TaskUpdate, TaskResponse
+from app.models.task import Task, TaskLink, TaskStatus, TaskPriority
+from app.schemas.task import TaskCreate, TaskUpdate, TaskResponse, TaskLinkCreate, TaskLinkResponse
 from app.services.project_service import recalculate_project_progress
 from app.services.recurrence_service import create_all_future_occurrences
 from app.services.activity_service import log_activity
@@ -345,3 +345,32 @@ def delete_all_recurring_tasks(
         "deleted_count": deleted_count,
         "message": f"Successfully deleted {deleted_count} recurring task(s)"
     }
+
+
+@router.post("/{task_id}/links", response_model=TaskLinkResponse, status_code=201)
+def add_task_link(task_id: int, link: TaskLinkCreate, db: Session = Depends(get_db)):
+    """Add a link/reference to a task"""
+    task = db.query(Task).filter(Task.id == task_id).first()
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    db_link = TaskLink(task_id=task_id, **link.model_dump())
+    db.add(db_link)
+    db.commit()
+    db.refresh(db_link)
+    return db_link
+
+
+@router.delete("/{task_id}/links/{link_id}", status_code=204)
+def remove_task_link(task_id: int, link_id: int, db: Session = Depends(get_db)):
+    """Remove a link from a task"""
+    link = db.query(TaskLink).filter(
+        TaskLink.id == link_id,
+        TaskLink.task_id == task_id
+    ).first()
+    if not link:
+        raise HTTPException(status_code=404, detail="Link not found")
+
+    db.delete(link)
+    db.commit()
+    return None

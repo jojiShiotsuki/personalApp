@@ -77,6 +77,7 @@ import type {
   SearchPlannerStats,
   ProjectTemplate,
   ProjectTemplateCreate,
+  TaskLink,
 } from '../types/index';
 import {
   TaskStatus,
@@ -159,6 +160,15 @@ export const taskApi = {
   parseBulk: async (lines: string[]): Promise<Task[]> => {
     const response = await api.post('/api/task-parser/parsebulk', { lines });
     return response.data;
+  },
+
+  addLink: async (taskId: number, data: { url: string; label?: string }): Promise<TaskLink> => {
+    const response = await api.post(`/api/tasks/${taskId}/links`, data);
+    return response.data;
+  },
+
+  removeLink: async (taskId: number, linkId: number): Promise<void> => {
+    await api.delete(`/api/tasks/${taskId}/links/${linkId}`);
   },
 };
 

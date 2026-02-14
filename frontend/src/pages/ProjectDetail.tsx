@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Trash2, Plus, Clock, Briefcase, CheckCircle2, ListTodo, LayoutGrid, FileText, ChevronDown, ChevronRight, Square, CheckSquare, MinusSquare, ChevronsDownUp, ChevronsUpDown, MousePointerClick } from 'lucide-react';
+import { ArrowLeft, Trash2, Plus, Clock, Briefcase, CheckCircle2, ListTodo, LayoutGrid, FileText, ChevronDown, ChevronRight, Square, CheckSquare, MinusSquare, ChevronsDownUp, ChevronsUpDown, MousePointerClick, Link2, ExternalLink, X } from 'lucide-react';
 import { projectApi, taskApi, projectTemplateApi } from '@/lib/api';
 import type { Project } from '@/types';
 import { ProjectStatus, TaskStatus, TaskCreate, TaskPriority } from '@/types';
@@ -484,6 +484,9 @@ function ListTab({ projectId }: { projectId: number }) {
   const [showBulkStatus, setShowBulkStatus] = useState(false);
   const [showBulkPriority, setShowBulkPriority] = useState(false);
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
+  const [expandedTaskId, setExpandedTaskId] = useState<number | null>(null);
+  const [newLinkUrl, setNewLinkUrl] = useState('');
+  const [newLinkLabel, setNewLinkLabel] = useState('');
   const bulkStatusRef = useRef<HTMLDivElement>(null);
   const bulkPriorityRef = useRef<HTMLDivElement>(null);
 
@@ -580,6 +583,28 @@ function ListTab({ projectId }: { projectId: number }) {
     onError: () => {
       toast.error('Failed to delete tasks');
     },
+  });
+
+  const addLinkMutation = useMutation({
+    mutationFn: ({ taskId, data }: { taskId: number; data: { url: string; label?: string } }) =>
+      taskApi.addLink(taskId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['projects', projectId, 'tasks'] });
+      setNewLinkUrl('');
+      setNewLinkLabel('');
+      toast.success('Link added');
+    },
+    onError: () => toast.error('Failed to add link'),
+  });
+
+  const removeLinkMutation = useMutation({
+    mutationFn: ({ taskId, linkId }: { taskId: number; linkId: number }) =>
+      taskApi.removeLink(taskId, linkId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['projects', projectId, 'tasks'] });
+      toast.success('Link removed');
+    },
+    onError: () => toast.error('Failed to remove link'),
   });
 
   const handleStatusChange = (taskId: number, status: TaskStatus) => {
@@ -960,29 +985,141 @@ function ListTab({ projectId }: { projectId: number }) {
                 )}
                 {!isCollapsed && (
                   <div className="space-y-2">
-                    {phaseTasks.map((task) => (
-                      <div key={task.id} className="flex items-center gap-2">
-                        {selectMode && (
-                          <button
-                            onClick={() => toggleTask(task.id)}
-                            className="text-[--exec-text-muted] hover:text-[--exec-accent] transition-colors flex-shrink-0 ml-2"
-                          >
-                            {selectedTasks.has(task.id) ? (
-                              <CheckSquare className="w-4 h-4 text-[--exec-accent]" />
-                            ) : (
-                              <Square className="w-4 h-4" />
+                    {phaseTasks.map((task) => {
+                      const isExpanded = expandedTaskId === task.id;
+                      const taskLinks = task.links || [];
+                      return (
+                        <div key={task.id}>
+                          <div className="flex items-center gap-2">
+                            {selectMode && (
+                              <button
+                                onClick={() => toggleTask(task.id)}
+                                className="text-[--exec-text-muted] hover:text-[--exec-accent] transition-colors flex-shrink-0 ml-2"
+                              >
+                                {selectedTasks.has(task.id) ? (
+                                  <CheckSquare className="w-4 h-4 text-[--exec-accent]" />
+                                ) : (
+                                  <Square className="w-4 h-4" />
+                                )}
+                              </button>
                             )}
-                          </button>
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <TaskItem
-                            task={task}
-                            onStatusChange={handleStatusChange}
-                            onClick={() => {}}
-                          />
+                            <div className="flex-1 min-w-0">
+                              <TaskItem
+                                task={task}
+                                onStatusChange={handleStatusChange}
+                                onClick={() => {
+                                  if (expandedTaskId === task.id) {
+                                    setExpandedTaskId(null);
+                                    setNewLinkUrl('');
+                                    setNewLinkLabel('');
+                                  } else {
+                                    setExpandedTaskId(task.id);
+                                    setNewLinkUrl('');
+                                    setNewLinkLabel('');
+                                  }
+                                }}
+                              />
+                            </div>
+                          </div>
+
+                          {/* Expandable Links Panel */}
+                          {isExpanded && (
+                            <div className="ml-8 mt-1 mb-3 p-4 rounded-xl bg-stone-800/30 border border-stone-700/30 animate-in slide-in-from-top-1 fade-in duration-200">
+                              <div className="flex items-center justify-between mb-3">
+                                <h4 className="text-xs font-bold uppercase tracking-wider text-[--exec-text-muted] flex items-center gap-1.5">
+                                  <Link2 className="w-3.5 h-3.5" />
+                                  Links & References
+                                  {taskLinks.length > 0 && (
+                                    <span className="text-[10px] bg-stone-700/50 px-1.5 py-0.5 rounded-full">
+                                      {taskLinks.length}
+                                    </span>
+                                  )}
+                                </h4>
+                                <button
+                                  onClick={() => { setExpandedTaskId(null); setNewLinkUrl(''); setNewLinkLabel(''); }}
+                                  className="text-[--exec-text-muted] hover:text-[--exec-text] p-1 rounded-md hover:bg-stone-700/30 transition-colors"
+                                >
+                                  <X className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+
+                              {/* Existing links */}
+                              {taskLinks.length > 0 && (
+                                <div className="space-y-2 mb-3">
+                                  {taskLinks.map((link) => (
+                                    <div key={link.id} className="flex items-center gap-2 group/link">
+                                      <ExternalLink className="w-3.5 h-3.5 text-[--exec-info] flex-shrink-0" />
+                                      <a
+                                        href={link.url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-sm text-[--exec-info] hover:underline truncate flex-1 min-w-0"
+                                        onClick={(e) => e.stopPropagation()}
+                                      >
+                                        {link.label || link.url}
+                                      </a>
+                                      {link.label && (
+                                        <span className="text-[10px] text-[--exec-text-muted] truncate max-w-[200px] hidden group-hover/link:inline">
+                                          {link.url}
+                                        </span>
+                                      )}
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          removeLinkMutation.mutate({ taskId: task.id, linkId: link.id });
+                                        }}
+                                        className="p-1 rounded text-[--exec-text-muted] opacity-0 group-hover/link:opacity-100 hover:text-[--exec-danger] transition-all flex-shrink-0"
+                                      >
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                      </button>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+
+                              {/* Add link form */}
+                              <form
+                                onSubmit={(e) => {
+                                  e.preventDefault();
+                                  if (!newLinkUrl.trim()) return;
+                                  addLinkMutation.mutate({
+                                    taskId: task.id,
+                                    data: {
+                                      url: newLinkUrl.trim(),
+                                      label: newLinkLabel.trim() || undefined,
+                                    },
+                                  });
+                                }}
+                                className="flex gap-2"
+                              >
+                                <input
+                                  type="url"
+                                  value={newLinkUrl}
+                                  onChange={(e) => setNewLinkUrl(e.target.value)}
+                                  className={cn(inputClasses, 'flex-1')}
+                                  placeholder="https://..."
+                                  required
+                                />
+                                <input
+                                  type="text"
+                                  value={newLinkLabel}
+                                  onChange={(e) => setNewLinkLabel(e.target.value)}
+                                  className={cn(inputClasses, 'w-40')}
+                                  placeholder="Label (optional)"
+                                />
+                                <button
+                                  type="submit"
+                                  disabled={!newLinkUrl.trim() || addLinkMutation.isPending}
+                                  className="px-3 py-2 bg-[--exec-accent] text-white rounded-lg hover:bg-[--exec-accent-dark] transition-colors disabled:opacity-30 disabled:cursor-not-allowed flex-shrink-0 text-sm font-medium"
+                                >
+                                  {addLinkMutation.isPending ? '...' : 'Add'}
+                                </button>
+                              </form>
+                            </div>
+                          )}
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>

@@ -47,12 +47,28 @@ class TaskUpdate(BaseModel):
     recurrence_end_date: Optional[date] = None
     recurrence_count: Optional[int] = Field(None, ge=1)
 
+class TaskLinkBase(BaseModel):
+    url: str = Field(..., min_length=1, max_length=2000)
+    label: Optional[str] = Field(None, max_length=255)
+
+class TaskLinkCreate(TaskLinkBase):
+    pass
+
+class TaskLinkResponse(TaskLinkBase):
+    id: int
+    task_id: int
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
 class TaskResponse(TaskBase):
     id: int
     phase: Optional[str] = None
     created_at: datetime
     updated_at: datetime
     completed_at: Optional[datetime] = None
+    links: List[TaskLinkResponse] = []
 
     # Additional recurrence tracking fields
     occurrences_created: int = 0

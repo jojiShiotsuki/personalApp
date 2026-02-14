@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { Task, Goal } from '@/types';
 import { TaskStatus, TaskPriority } from '@/types';
 import { format, isPast, isToday, isTomorrow, parseISO, differenceInDays, startOfDay } from 'date-fns';
-import { Check, Clock, Trash2, Edit, Target, Repeat, Play, Square } from 'lucide-react';
+import { Check, Clock, Trash2, Edit, Target, Repeat, Play, Square, Link2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import ConfirmModal from './ConfirmModal';
 import { useTimer, formatElapsedTime } from '@/contexts/TimerContext';
@@ -267,6 +267,14 @@ export default function TaskItem({ task, onStatusChange, onClick, onDelete, isUp
               <span className="text-xs text-[--exec-sage] flex items-center gap-1">
                 <Repeat className="w-3 h-3" />
                 Recurring
+              </span>
+            )}
+
+            {/* Links Badge */}
+            {task.links && task.links.length > 0 && (
+              <span className="text-xs text-[--exec-info] flex items-center gap-1">
+                <Link2 className="w-3 h-3" />
+                {task.links.length} link{task.links.length !== 1 ? 's' : ''}
               </span>
             )}
 
