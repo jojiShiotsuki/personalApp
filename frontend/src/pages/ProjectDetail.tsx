@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Trash2, Plus, Clock, Briefcase, CheckCircle2, ListTodo, LayoutGrid, FileText, ChevronDown, ChevronRight, Square, CheckSquare, MinusSquare, ChevronsDownUp, ChevronsUpDown, MousePointerClick, Link2, ExternalLink, X, StickyNote, Calendar, Pencil } from 'lucide-react';
+import { ArrowLeft, Trash2, Plus, Clock, Briefcase, CheckCircle2, ListTodo, LayoutGrid, FileText, ChevronDown, ChevronRight, Square, CheckSquare, MinusSquare, ChevronsDownUp, ChevronsUpDown, MousePointerClick, Link2, ExternalLink, X, StickyNote, Calendar, Pencil, Sparkles } from 'lucide-react';
 import { projectApi, taskApi, projectTemplateApi } from '@/lib/api';
 import type { Project, ProjectCreate } from '@/types';
 import { ProjectStatus, TaskStatus, TaskCreate as TaskCreateType, TaskPriority } from '@/types';
@@ -303,7 +303,7 @@ export default function ProjectDetail() {
       {/* Tab Content */}
       <div className="flex-1 overflow-auto px-8 py-8">
         <div className="max-w-7xl mx-auto">
-          {activeTab === 'overview' && <OverviewTab project={project} />}
+          {activeTab === 'overview' && <OverviewTab project={project} projectId={projectId} />}
           {activeTab === 'list' && <ListTab projectId={projectId} />}
           {activeTab === 'board' && <BoardTab projectId={projectId} />}
         </div>
@@ -332,7 +332,22 @@ export default function ProjectDetail() {
   );
 }
 
-function OverviewTab({ project }: { project: Project }) {
+function OverviewTab({ project, projectId }: { project: Project; projectId: number }) {
+  const queryClient = useQueryClient();
+
+  const autoScheduleMutation = useMutation({
+    mutationFn: () => projectApi.autoSchedule(projectId),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['projects', projectId, 'tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['projects', projectId] });
+      toast.success(data.message);
+    },
+    onError: (error: any) => {
+      const detail = error?.response?.data?.detail || 'Failed to auto-schedule tasks';
+      toast.error(detail);
+    },
+  });
+
   const getProgressColor = (progress: number) => {
     if (progress < 34) return 'text-[--exec-danger]';
     if (progress < 67) return 'text-[--exec-warning]';
@@ -344,6 +359,8 @@ function OverviewTab({ project }: { project: Project }) {
     if (progress < 67) return 'var(--exec-warning)';
     return 'var(--exec-sage)';
   };
+
+  const remainingTasks = (project.task_count || 0) - (project.completed_task_count || 0);
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
@@ -419,7 +436,7 @@ function OverviewTab({ project }: { project: Project }) {
         <div className="bento-card p-5">
           <div className="text-xs font-bold text-[--exec-text-muted] mb-2 uppercase tracking-wider">Remaining</div>
           <div className="text-3xl font-bold text-[--exec-info]" style={{ fontFamily: 'var(--font-display)' }}>
-            {(project.task_count || 0) - (project.completed_task_count || 0)}
+            {remainingTasks}
           </div>
         </div>
 
@@ -442,6 +459,7 @@ function OverviewTab({ project }: { project: Project }) {
         const isDueToday = isToday(deadlineDate);
         const daysLeft = differenceInDays(deadlineDate, new Date());
         const isCompleted = project.status === ProjectStatus.COMPLETED;
+        const canAutoSchedule = !isOverdue && !isCompleted && remainingTasks > 0;
 
         return (
           <div className={cn(
@@ -471,17 +489,29 @@ function OverviewTab({ project }: { project: Project }) {
                 </div>
               </div>
             </div>
-            <div className={cn(
-              'text-sm font-semibold',
-              isOverdue ? 'text-red-400' :
-              isDueToday ? 'text-amber-400' :
-              daysLeft <= 7 ? 'text-amber-400/80' :
-              'text-[--exec-text-secondary]'
-            )}>
-              {isCompleted ? 'Completed' :
-               isOverdue ? `${Math.abs(daysLeft)} day${Math.abs(daysLeft) !== 1 ? 's' : ''} overdue` :
-               isDueToday ? 'Due today' :
-               `${daysLeft} day${daysLeft !== 1 ? 's' : ''} left`}
+            <div className="flex items-center gap-4">
+              {canAutoSchedule && (
+                <button
+                  onClick={() => autoScheduleMutation.mutate()}
+                  disabled={autoScheduleMutation.isPending}
+                  className="flex items-center gap-2 px-3.5 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-xl hover:from-purple-500 hover:to-blue-500 hover:shadow-lg hover:shadow-purple-500/20 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 text-xs font-semibold disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-none"
+                >
+                  <Sparkles className={cn('w-3.5 h-3.5', autoScheduleMutation.isPending && 'animate-spin')} />
+                  {autoScheduleMutation.isPending ? 'Scheduling...' : 'AI Schedule Tasks'}
+                </button>
+              )}
+              <div className={cn(
+                'text-sm font-semibold',
+                isOverdue ? 'text-red-400' :
+                isDueToday ? 'text-amber-400' :
+                daysLeft <= 7 ? 'text-amber-400/80' :
+                'text-[--exec-text-secondary]'
+              )}>
+                {isCompleted ? 'Completed' :
+                 isOverdue ? `${Math.abs(daysLeft)} day${Math.abs(daysLeft) !== 1 ? 's' : ''} overdue` :
+                 isDueToday ? 'Due today' :
+                 `${daysLeft} day${daysLeft !== 1 ? 's' : ''} left`}
+              </div>
             </div>
           </div>
         );

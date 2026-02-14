@@ -443,6 +443,11 @@ export const projectApi = {
     const response = await api.post(`/api/projects/${projectId}/apply-template/${templateId}`);
     return response.data;
   },
+
+  autoSchedule: async (projectId: number): Promise<{ message: string; updated_count: number; total_tasks: number }> => {
+    const response = await api.post(`/api/projects/${projectId}/auto-schedule`);
+    return response.data;
+  },
 };
 
 // Project Template API

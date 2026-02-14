@@ -2,7 +2,9 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import func, case
 from typing import List
-from datetime import datetime
+from datetime import datetime, date
+import json
+import logging
 
 from app.database import get_db
 from app.models.project import Project, ProjectStatus
@@ -11,6 +13,8 @@ from app.models.project_template import ProjectTemplate, ProjectTemplateTask
 from app.schemas.project import ProjectCreate, ProjectUpdate, ProjectResponse
 from app.schemas.task import TaskCreate, TaskResponse
 from app.services.project_service import recalculate_project_progress
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/projects", tags=["projects"])
 
@@ -178,3 +182,130 @@ def create_project_task(project_id: int, task: TaskCreate, db: Session = Depends
     db.refresh(db_task)
     recalculate_project_progress(project_id, db)
     return prepare_task_for_response(db_task)
+
+
+@router.post("/{project_id}/auto-schedule")
+def auto_schedule_tasks(project_id: int, db: Session = Depends(get_db)):
+    """Use AI to intelligently assign due dates to incomplete tasks based on project deadline."""
+    from app.services.gemini_service import get_client
+
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    if not project.deadline:
+        raise HTTPException(status_code=400, detail="Project has no deadline set")
+
+    # Get incomplete tasks
+    tasks = db.query(Task).filter(
+        Task.project_id == project_id,
+        Task.status != TaskStatus.COMPLETED,
+    ).order_by(Task.created_at.asc()).all()
+
+    if not tasks:
+        raise HTTPException(status_code=400, detail="No incomplete tasks to schedule")
+
+    today = date.today()
+    deadline = project.deadline
+    if deadline <= today:
+        raise HTTPException(status_code=400, detail="Project deadline is in the past")
+
+    # Build task list for AI
+    task_list = []
+    for t in tasks:
+        task_info = {
+            "id": t.id,
+            "title": t.title,
+            "description": t.description or "",
+            "priority": t.priority.value if t.priority else "medium",
+            "phase": t.phase or "",
+        }
+        task_list.append(task_info)
+
+    prompt = f"""You are a project planning assistant. Given a list of tasks for a project, assign a realistic due date to each task.
+
+Project: "{project.name}"
+{f'Description: "{project.description}"' if project.description else ''}
+Today's date: {today.isoformat()}
+Project deadline: {deadline.isoformat()}
+Available working days: {(deadline - today).days} days
+
+Tasks to schedule:
+{json.dumps(task_list, indent=2)}
+
+Rules:
+1. All due dates must be between {today.isoformat()} and {deadline.isoformat()} (inclusive)
+2. Consider task complexity based on the title and description — harder tasks need more time
+3. Consider task priority — urgent/high priority tasks should generally be scheduled earlier
+4. If tasks have phases, keep tasks within the same phase close together chronologically
+5. Spread tasks realistically — don't bunch everything at the deadline
+6. Leave some buffer before the deadline for the final tasks
+7. Earlier phases should have earlier dates
+
+Return ONLY a valid JSON array where each item has "id" (the task id as integer) and "due_date" (YYYY-MM-DD format). Example:
+[{{"id": 1, "due_date": "2026-02-20"}}, {{"id": 2, "due_date": "2026-02-25"}}]
+
+Return ONLY the JSON array, no other text."""
+
+    try:
+        client = get_client()
+        response = client.models.generate_content(
+            model="gemini-2.0-flash",
+            contents=prompt,
+        )
+        text = response.text.strip()
+
+        # Clean up response — strip markdown fences if present
+        if text.startswith("```"):
+            text = text.split("\n", 1)[1] if "\n" in text else text[3:]
+            if text.endswith("```"):
+                text = text[:-3].strip()
+
+        schedule = json.loads(text)
+
+        if not isinstance(schedule, list):
+            raise ValueError("AI response was not a JSON array")
+
+        # Build lookup
+        task_map = {t.id: t for t in tasks}
+        updated_count = 0
+
+        for entry in schedule:
+            task_id = entry.get("id")
+            due_date_str = entry.get("due_date")
+            if not task_id or not due_date_str:
+                continue
+
+            task = task_map.get(task_id)
+            if not task:
+                continue
+
+            try:
+                parsed_date = date.fromisoformat(due_date_str)
+                # Clamp to valid range
+                if parsed_date < today:
+                    parsed_date = today
+                if parsed_date > deadline:
+                    parsed_date = deadline
+                task.due_date = parsed_date
+                updated_count += 1
+            except ValueError:
+                logger.warning(f"Invalid date '{due_date_str}' for task {task_id}")
+                continue
+
+        db.commit()
+
+        return {
+            "message": f"Scheduled {updated_count} task(s) with AI-generated deadlines",
+            "updated_count": updated_count,
+            "total_tasks": len(tasks),
+        }
+
+    except json.JSONDecodeError as e:
+        logger.error(f"Failed to parse AI response: {e}")
+        raise HTTPException(status_code=500, detail="AI returned invalid scheduling data")
+    except ValueError as e:
+        logger.error(f"AI service error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+    except Exception as e:
+        logger.error(f"Auto-schedule failed: {e}")
+        raise HTTPException(status_code=500, detail="Failed to auto-schedule tasks")
