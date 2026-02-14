@@ -12,7 +12,7 @@ class ProjectBase(BaseModel):
 
 
 class ProjectCreate(ProjectBase):
-    pass
+    template_id: Optional[int] = None
 
 
 class ProjectUpdate(BaseModel):

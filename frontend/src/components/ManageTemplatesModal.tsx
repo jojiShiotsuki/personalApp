@@ -1,519 +1,290 @@
 import { useState } from 'react';
-import { createPortal } from 'react-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { outreachApi } from '@/lib/api';
-import type { OutreachNiche, OutreachSituation, OutreachTemplate, TemplateType } from '@/types';
-import { X, Plus, Trash2, Save, Mail, Linkedin, Video, Building2 } from 'lucide-react';
-import { toast } from 'sonner';
+import { X, Plus, Trash2, GripVertical, FileText } from 'lucide-react';
+import { projectTemplateApi } from '@/lib/api';
+import { TaskPriority } from '@/types';
+import type { ProjectTemplateTaskCreate } from '@/types';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
+import ConfirmModal from './ConfirmModal';
 
 interface ManageTemplatesModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-type Tab = 'niches' | 'situations' | 'templates';
+const inputClasses = cn(
+  "w-full px-4 py-2.5 rounded-lg",
+  "bg-stone-800/50 border border-stone-600/40",
+  "text-[--exec-text] placeholder:text-[--exec-text-muted]",
+  "focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]/50",
+  "transition-all text-sm"
+);
 
-// Template type categories with display info
-const TEMPLATE_CATEGORIES = [
-  {
-    group: 'Email',
-    icon: Mail,
-    types: [
-      { value: 'email_1' as TemplateType, label: 'Email 1' },
-      { value: 'email_2' as TemplateType, label: 'Email 2' },
-      { value: 'email_3' as TemplateType, label: 'Email 3' },
-      { value: 'email_4' as TemplateType, label: 'Email 4' },
-      { value: 'email_5' as TemplateType, label: 'Email 5' },
-    ],
-  },
-  {
-    group: 'LinkedIn Outreach',
-    icon: Linkedin,
-    types: [
-      { value: 'linkedin_direct' as TemplateType, label: 'Direct' },
-      { value: 'linkedin_compliment' as TemplateType, label: 'Compliment' },
-      { value: 'linkedin_mutual_interest' as TemplateType, label: 'Mutual Interest' },
-    ],
-  },
-  {
-    group: 'LinkedIn Follow-up',
-    icon: Linkedin,
-    types: [
-      { value: 'linkedin_followup_1' as TemplateType, label: 'Follow-up 1' },
-      { value: 'linkedin_followup_2' as TemplateType, label: 'Follow-up 2' },
-    ],
-  },
-  {
-    group: 'Loom',
-    icon: Video,
-    types: [
-      { value: 'loom_video_audit' as TemplateType, label: 'Video Audit' },
-    ],
-  },
-  {
-    group: 'Agency',
-    icon: Building2,
-    types: [
-      { value: 'agency_email' as TemplateType, label: 'Agency Email' },
-      { value: 'agency_linkedin' as TemplateType, label: 'Agency LinkedIn' },
-    ],
-  },
+const priorityOptions = [
+  { value: TaskPriority.LOW, label: 'Low', color: 'text-stone-400' },
+  { value: TaskPriority.MEDIUM, label: 'Medium', color: 'text-[--exec-accent]' },
+  { value: TaskPriority.HIGH, label: 'High', color: 'text-[--exec-warning]' },
+  { value: TaskPriority.URGENT, label: 'Urgent', color: 'text-[--exec-danger]' },
 ];
 
-// Selection: null = nothing selected, 'all' = All, number = specific item
-type ItemSelection = number | 'all' | null;
-const selectionToApiId = (sel: ItemSelection): number | null => sel === 'all' ? null : sel;
-
-const EMAIL_TEMPLATE_TYPES: TemplateType[] = ['email_1', 'email_2', 'email_3', 'email_4', 'email_5', 'agency_email'];
-const isEmailType = (type: TemplateType) => EMAIL_TEMPLATE_TYPES.includes(type);
-
 export default function ManageTemplatesModal({ isOpen, onClose }: ManageTemplatesModalProps) {
-  const [activeTab, setActiveTab] = useState<Tab>('templates');
-  const [newNiche, setNewNiche] = useState('');
-  const [newSituation, setNewSituation] = useState('');
-  const [nicheSelection, setNicheSelection] = useState<ItemSelection>(null);
-  const [situationSelection, setSituationSelection] = useState<ItemSelection>(null);
-  const [selectedTemplateType, setSelectedTemplateType] = useState<TemplateType>('email_1');
-  const [templateSubject, setTemplateSubject] = useState('');
-  const [templateContent, setTemplateContent] = useState('');
   const queryClient = useQueryClient();
+  const [view, setView] = useState<'list' | 'create'>('list');
+  const [deleteId, setDeleteId] = useState<number | null>(null);
 
-  const { data: niches = [] } = useQuery<OutreachNiche[]>({
-    queryKey: ['outreach-niches'],
-    queryFn: outreachApi.getNiches,
+  const [templateName, setTemplateName] = useState('');
+  const [templateDesc, setTemplateDesc] = useState('');
+  const [tasks, setTasks] = useState<ProjectTemplateTaskCreate[]>([]);
+  const [newTaskTitle, setNewTaskTitle] = useState('');
+  const [newTaskPriority, setNewTaskPriority] = useState<TaskPriority>(TaskPriority.MEDIUM);
+
+  const { data: templates = [], isLoading } = useQuery({
+    queryKey: ['project-templates'],
+    queryFn: projectTemplateApi.getAll,
+    enabled: isOpen,
   });
 
-  const { data: situations = [] } = useQuery<OutreachSituation[]>({
-    queryKey: ['outreach-situations'],
-    queryFn: outreachApi.getSituations,
-  });
-
-  const { data: templates = [] } = useQuery<OutreachTemplate[]>({
-    queryKey: ['outreach-templates'],
-    queryFn: () => outreachApi.getTemplates(),
-  });
-
-  // Load template when niche/situation/template_type changes
-  const effectiveNicheId = selectionToApiId(nicheSelection);
-  const effectiveSituationId = selectionToApiId(situationSelection);
-  const currentTemplate = templates.find(
-    (t) => t.niche_id === effectiveNicheId && t.situation_id === effectiveSituationId && t.template_type === selectedTemplateType
-  );
-
-  const createNicheMutation = useMutation({
-    mutationFn: outreachApi.createNiche,
+  const createMutation = useMutation({
+    mutationFn: projectTemplateApi.create,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['outreach-niches'] });
-      setNewNiche('');
-      toast.success('Niche added');
+      queryClient.invalidateQueries({ queryKey: ['project-templates'] });
+      toast.success('Template created');
+      resetForm();
+      setView('list');
     },
-    onError: () => toast.error('Failed to add niche'),
+    onError: () => toast.error('Failed to create template'),
   });
 
-  const deleteNicheMutation = useMutation({
-    mutationFn: outreachApi.deleteNiche,
+  const deleteMutation = useMutation({
+    mutationFn: projectTemplateApi.delete,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['outreach-niches'] });
-      queryClient.invalidateQueries({ queryKey: ['outreach-templates'] });
-      toast.success('Niche deleted');
+      queryClient.invalidateQueries({ queryKey: ['project-templates'] });
+      toast.success('Template deleted');
+      setDeleteId(null);
     },
-    onError: () => toast.error('Failed to delete niche'),
+    onError: () => toast.error('Failed to delete template'),
   });
 
-  const createSituationMutation = useMutation({
-    mutationFn: outreachApi.createSituation,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['outreach-situations'] });
-      setNewSituation('');
-      toast.success('Situation added');
-    },
-    onError: () => toast.error('Failed to add situation'),
-  });
-
-  const deleteSituationMutation = useMutation({
-    mutationFn: outreachApi.deleteSituation,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['outreach-situations'] });
-      queryClient.invalidateQueries({ queryKey: ['outreach-templates'] });
-      toast.success('Situation deleted');
-    },
-    onError: () => toast.error('Failed to delete situation'),
-  });
-
-  const saveTemplateMutation = useMutation({
-    mutationFn: outreachApi.createOrUpdateTemplate,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['outreach-templates'] });
-      toast.success('Template saved');
-    },
-    onError: () => toast.error('Failed to save template'),
-  });
-
-  const handleAddNiche = () => {
-    if (!newNiche.trim()) return;
-    createNicheMutation.mutate({ name: newNiche.trim() });
+  const resetForm = () => {
+    setTemplateName('');
+    setTemplateDesc('');
+    setTasks([]);
+    setNewTaskTitle('');
+    setNewTaskPriority(TaskPriority.MEDIUM);
   };
 
-  const handleAddSituation = () => {
-    if (!newSituation.trim()) return;
-    createSituationMutation.mutate({ name: newSituation.trim() });
+  const addTask = () => {
+    if (!newTaskTitle.trim()) return;
+    setTasks([...tasks, { title: newTaskTitle.trim(), priority: newTaskPriority, order: tasks.length }]);
+    setNewTaskTitle('');
+    setNewTaskPriority(TaskPriority.MEDIUM);
   };
 
-  const handleSaveTemplate = () => {
-    if (nicheSelection === null || situationSelection === null) {
-      toast.error('Select a niche and situation first');
-      return;
-    }
-    if (!templateContent.trim()) {
-      toast.error('Template cannot be empty');
-      return;
-    }
-    saveTemplateMutation.mutate({
-      id: currentTemplate?.id,
-      niche_id: effectiveNicheId,
-      situation_id: effectiveSituationId,
-      template_type: selectedTemplateType,
-      subject: isEmailType(selectedTemplateType) ? templateSubject || null : null,
-      content: templateContent,
+  const removeTask = (index: number) => {
+    setTasks(tasks.filter((_, i) => i !== index));
+  };
+
+  const handleSubmit = () => {
+    if (!templateName.trim() || tasks.length === 0) return;
+    createMutation.mutate({
+      name: templateName.trim(),
+      description: templateDesc.trim() || undefined,
+      tasks,
     });
-  };
-
-  const handleSelectionChange = (niche: ItemSelection, situation: ItemSelection, templateType: TemplateType) => {
-    setNicheSelection(niche);
-    setSituationSelection(situation);
-    setSelectedTemplateType(templateType);
-
-    // Load existing template if exists
-    const apiNicheId = selectionToApiId(niche);
-    const apiSituationId = selectionToApiId(situation);
-    if (niche !== null && situation !== null) {
-      const existing = templates.find(
-        (t) => t.niche_id === apiNicheId && t.situation_id === apiSituationId && t.template_type === templateType
-      );
-      setTemplateSubject(existing?.subject || '');
-      setTemplateContent(existing?.content || '');
-    } else {
-      setTemplateSubject('');
-      setTemplateContent('');
-    }
   };
 
   if (!isOpen) return null;
 
-  const inputClasses = cn(
-    "w-full px-4 py-2 rounded-lg",
-    "bg-stone-800/50 border border-stone-600/40",
-    "text-[--exec-text] placeholder:text-[--exec-text-muted]",
-    "focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]/50",
-    "transition-all"
-  );
+  const deleteTemplate = templates.find(t => t.id === deleteId);
 
-  return createPortal(
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className="bg-[--exec-surface] rounded-2xl shadow-2xl w-full max-w-3xl mx-4 max-h-[85vh] flex flex-col border border-stone-600/40">
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-stone-700/30">
-          <h2 className="text-xl font-bold text-[--exec-text]">Manage Templates</h2>
-          <button
-            onClick={onClose}
-            className="text-[--exec-text-muted] hover:text-[--exec-text] p-1.5 hover:bg-stone-700/50 rounded-lg transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        {/* Tabs */}
-        <div className="flex border-b border-stone-700/30 px-6">
-          {(['templates', 'niches', 'situations'] as Tab[]).map((tab) => (
+  return (
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 animate-in fade-in duration-200" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-[--exec-surface] rounded-2xl shadow-2xl w-full max-w-2xl mx-4 border border-stone-600/40 transform transition-all animate-in zoom-in-95 duration-200 max-h-[85vh] flex flex-col">
+        <div className="p-6 flex-shrink-0">
+          <div className="flex justify-between items-center mb-6">
+            <div>
+              <h2 className="text-xl font-semibold text-[--exec-text]">
+                {view === 'list' ? 'Project Templates' : 'Create Template'}
+              </h2>
+              <p className="text-sm text-[--exec-text-muted] mt-1">
+                {view === 'list' ? 'Reusable task sets for new projects' : 'Define a name and add tasks'}
+              </p>
+            </div>
             <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={cn(
-                'px-4 py-3 text-sm font-medium border-b-2 transition-colors capitalize',
-                activeTab === tab
-                  ? 'border-[--exec-accent] text-[--exec-accent]'
-                  : 'border-transparent text-[--exec-text-muted] hover:text-[--exec-text-secondary]'
-              )}
+              onClick={() => { if (view === 'create') { resetForm(); setView('list'); } else { onClose(); } }}
+              className="text-[--exec-text-muted] hover:text-[--exec-text] p-1.5 hover:bg-stone-700/50 rounded-lg transition-colors"
             >
-              {tab}
+              <X className="w-5 h-5" />
             </button>
-          ))}
+          </div>
         </div>
 
-        {/* Content */}
-        <div className="flex-1 overflow-auto p-6">
-          {activeTab === 'niches' && (
-            <div className="space-y-4">
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={newNiche}
-                  onChange={(e) => setNewNiche(e.target.value)}
-                  placeholder="New niche name (e.g., Fitness)"
-                  className={cn(inputClasses, "flex-1")}
-                  onKeyDown={(e) => e.key === 'Enter' && handleAddNiche()}
-                />
-                <button
-                  onClick={handleAddNiche}
-                  disabled={!newNiche.trim() || createNicheMutation.isPending}
-                  className="px-4 py-2 bg-[--exec-accent] text-white rounded-lg hover:bg-[--exec-accent-dark] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  <Plus className="w-5 h-5" />
-                </button>
-              </div>
-
-              <div className="space-y-2">
-                {niches.map((niche) => (
-                  <div
-                    key={niche.id}
-                    className="flex items-center justify-between p-3 bg-stone-800/40 rounded-lg"
-                  >
-                    <span className="text-[--exec-text]">{niche.name}</span>
-                    <button
-                      onClick={() => deleteNicheMutation.mutate(niche.id)}
-                      className="text-[--exec-text-muted] hover:text-red-400 transition-colors p-1"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                ))}
-                {niches.length === 0 && (
-                  <p className="text-center text-[--exec-text-muted] py-4">
-                    No niches yet. Add your first one above.
-                  </p>
-                )}
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'situations' && (
-            <div className="space-y-4">
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={newSituation}
-                  onChange={(e) => setNewSituation(e.target.value)}
-                  placeholder="New situation (e.g., No Site)"
-                  className={cn(inputClasses, "flex-1")}
-                  onKeyDown={(e) => e.key === 'Enter' && handleAddSituation()}
-                />
-                <button
-                  onClick={handleAddSituation}
-                  disabled={!newSituation.trim() || createSituationMutation.isPending}
-                  className="px-4 py-2 bg-[--exec-accent] text-white rounded-lg hover:bg-[--exec-accent-dark] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  <Plus className="w-5 h-5" />
-                </button>
-              </div>
-
-              <div className="space-y-2">
-                {situations.map((situation) => (
-                  <div
-                    key={situation.id}
-                    className="flex items-center justify-between p-3 bg-stone-800/40 rounded-lg"
-                  >
-                    <span className="text-[--exec-text]">{situation.name}</span>
-                    <button
-                      onClick={() => deleteSituationMutation.mutate(situation.id)}
-                      className="text-[--exec-text-muted] hover:text-red-400 transition-colors p-1"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                ))}
-                {situations.length === 0 && (
-                  <p className="text-center text-[--exec-text-muted] py-4">
-                    No situations yet. Add your first one above.
-                  </p>
-                )}
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'templates' && (
-            <div className="space-y-4">
-              {niches.length === 0 || situations.length === 0 ? (
+        <div className="px-6 pb-6 overflow-y-auto flex-1">
+          {view === 'list' ? (
+            <>
+              {isLoading ? (
                 <div className="text-center py-8">
-                  <p className="text-[--exec-text-muted] mb-4">
-                    Add niches and situations first before creating templates.
-                  </p>
-                  <div className="flex gap-2 justify-center">
-                    <button
-                      onClick={() => setActiveTab('niches')}
-                      className="px-4 py-2 bg-[--exec-accent] text-white rounded-lg hover:bg-[--exec-accent-dark]"
-                    >
-                      Add Niches
-                    </button>
-                    <button
-                      onClick={() => setActiveTab('situations')}
-                      className="px-4 py-2 bg-[--exec-accent] text-white rounded-lg hover:bg-[--exec-accent-dark]"
-                    >
-                      Add Situations
-                    </button>
-                  </div>
+                  <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-[--exec-accent] mb-3" />
+                  <p className="text-sm text-[--exec-text-muted]">Loading templates...</p>
+                </div>
+              ) : templates.length === 0 ? (
+                <div className="text-center py-8">
+                  <FileText className="w-10 h-10 text-[--exec-text-muted] mx-auto mb-3" />
+                  <p className="text-[--exec-text-secondary] font-medium">No templates yet</p>
+                  <p className="text-sm text-[--exec-text-muted] mt-1">Create one to speed up project setup</p>
                 </div>
               ) : (
-                <>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-[--exec-text-secondary] mb-2">
-                        Niche
-                      </label>
-                      <select
-                        value={nicheSelection === 'all' ? 'all' : nicheSelection ?? ''}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          const niche: ItemSelection = val === 'all' ? 'all' : val ? Number(val) : null;
-                          handleSelectionChange(niche, situationSelection, selectedTemplateType);
-                        }}
-                        className={inputClasses}
+                <div className="space-y-3">
+                  {templates.map((template) => (
+                    <div key={template.id} className="flex items-center justify-between p-4 rounded-xl bg-stone-800/30 border border-stone-700/30 group">
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-medium text-[--exec-text] truncate">{template.name}</h4>
+                        <p className="text-xs text-[--exec-text-muted] mt-0.5">
+                          {template.tasks.length} task{template.tasks.length !== 1 ? 's' : ''}
+                          {template.description && ` · ${template.description}`}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => setDeleteId(template.id)}
+                        className="p-1.5 rounded-md text-[--exec-text-muted] opacity-0 group-hover:opacity-100 transition-all hover:text-[--exec-danger] hover:bg-[--exec-danger]/10"
                       >
-                        <option value="">Select niche</option>
-                        <option value="all">All Niches (Default)</option>
-                        {niches.map((niche) => (
-                          <option key={niche.id} value={niche.id}>
-                            {niche.name}
-                          </option>
-                        ))}
-                      </select>
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-[--exec-text-secondary] mb-2">
-                        Situation
-                      </label>
-                      <select
-                        value={situationSelection === 'all' ? 'all' : situationSelection ?? ''}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          const sit: ItemSelection = val === 'all' ? 'all' : val ? Number(val) : null;
-                          handleSelectionChange(nicheSelection, sit, selectedTemplateType);
-                        }}
-                        className={inputClasses}
-                      >
-                        <option value="">Select situation</option>
-                        <option value="all">All Situations (Default)</option>
-                        {situations.map((situation) => (
-                          <option key={situation.id} value={situation.id}>
-                            {situation.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
+                  ))}
+                </div>
+              )}
+              <div className="mt-6 pt-4 border-t border-stone-700/30">
+                <button
+                  onClick={() => setView('create')}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-[--exec-accent] to-[--exec-accent-dark] text-white rounded-xl hover:shadow-lg hover:shadow-[--exec-accent]/25 transition-all font-semibold text-sm"
+                >
+                  <Plus className="w-4 h-4" />
+                  Create Template
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-[--exec-text-secondary] mb-1.5">
+                    Template Name <span className="text-red-400">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={templateName}
+                    onChange={(e) => setTemplateName(e.target.value)}
+                    className={inputClasses}
+                    placeholder="e.g., Website Build"
+                    maxLength={255}
+                    autoFocus
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-[--exec-text-secondary] mb-1.5">
+                    Description
+                  </label>
+                  <input
+                    type="text"
+                    value={templateDesc}
+                    onChange={(e) => setTemplateDesc(e.target.value)}
+                    className={inputClasses}
+                    placeholder="Brief description (optional)"
+                    maxLength={2000}
+                  />
+                </div>
 
-                  {/* Template Type Selection - Grouped */}
-                  <div>
-                    <label className="block text-sm font-medium text-[--exec-text-secondary] mb-3">
-                      Template Type
-                    </label>
-                    <div className="space-y-3">
-                      {TEMPLATE_CATEGORIES.map((category) => {
-                        const Icon = category.icon;
+                <div className="pt-4 border-t border-stone-700/30">
+                  <h3 className="text-sm font-semibold text-[--exec-text] mb-3 flex items-center">
+                    <FileText className="w-4 h-4 mr-2 text-[--exec-accent]" />
+                    Tasks ({tasks.length})
+                  </h3>
+
+                  {tasks.length > 0 && (
+                    <div className="space-y-2 mb-4">
+                      {tasks.map((task, index) => {
+                        const pConfig = priorityOptions.find(p => p.value === task.priority);
                         return (
-                          <div key={category.group}>
-                            <div className="flex items-center gap-2 mb-2">
-                              <Icon className="w-3.5 h-3.5 text-[--exec-text-muted]" />
-                              <span className="text-xs font-semibold text-[--exec-text-muted] uppercase tracking-wider">
-                                {category.group}
-                              </span>
-                            </div>
-                            <div className="flex flex-wrap gap-2">
-                              {category.types.map((type) => {
-                                const hasTemplate = nicheSelection !== null && situationSelection !== null && templates.some(
-                                  t => t.niche_id === effectiveNicheId && t.situation_id === effectiveSituationId && t.template_type === type.value
-                                );
-                                return (
-                                  <button
-                                    key={type.value}
-                                    onClick={() => handleSelectionChange(nicheSelection, situationSelection, type.value)}
-                                    className={cn(
-                                      'px-3 py-1.5 rounded-lg border transition-all text-sm font-medium relative',
-                                      selectedTemplateType === type.value
-                                        ? 'bg-[--exec-accent] text-white border-[--exec-accent]'
-                                        : 'bg-stone-800/50 text-[--exec-text-secondary] border-stone-600/40 hover:border-[--exec-accent]/50',
-                                    )}
-                                  >
-                                    {type.label}
-                                    {hasTemplate && selectedTemplateType !== type.value && (
-                                      <span className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full" />
-                                    )}
-                                  </button>
-                                );
-                              })}
-                            </div>
+                          <div key={index} className="flex items-center gap-2 p-2.5 rounded-lg bg-stone-800/30 border border-stone-700/30">
+                            <GripVertical className="w-4 h-4 text-[--exec-text-muted] flex-shrink-0" />
+                            <span className="text-sm text-[--exec-text] flex-1 truncate">{task.title}</span>
+                            <span className={cn('text-[10px] font-bold uppercase tracking-wide flex-shrink-0', pConfig?.color)}>
+                              {pConfig?.label}
+                            </span>
+                            <button
+                              onClick={() => removeTask(index)}
+                              className="p-1 rounded text-[--exec-text-muted] hover:text-[--exec-danger] transition-colors flex-shrink-0"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
                           </div>
                         );
                       })}
                     </div>
-                  </div>
-
-                  {/* Subject Line (only for email types) */}
-                  {isEmailType(selectedTemplateType) && (
-                    <div>
-                      <label className="block text-sm font-medium text-[--exec-text-secondary] mb-2">
-                        Email Subject Line
-                      </label>
-                      <input
-                        type="text"
-                        value={templateSubject}
-                        onChange={(e) => setTemplateSubject(e.target.value)}
-                        placeholder={nicheSelection !== null && situationSelection !== null
-                          ? "e.g., Quick question about {company}"
-                          : "Select a niche and situation first"}
-                        disabled={nicheSelection === null || situationSelection === null}
-                        className={cn(inputClasses, "disabled:opacity-50 disabled:cursor-not-allowed")}
-                      />
-                    </div>
                   )}
 
-                  <div>
-                    <label className="block text-sm font-medium text-[--exec-text-secondary] mb-2">
-                      {isEmailType(selectedTemplateType) ? 'Email Body' : 'Template Script'}
-                    </label>
-                    <div className="text-xs text-[--exec-text-muted] mb-2 space-y-1">
-                      <p className="font-medium text-[--exec-text-secondary]">Available variables:</p>
-                      <div className="flex flex-wrap gap-2">
-                        <code className="px-1.5 py-0.5 bg-stone-700/50 rounded">{'{name}'}</code>
-                        <code className="px-1.5 py-0.5 bg-stone-700/50 rounded">{'{company}'}</code>
-                        <code className="px-1.5 py-0.5 bg-stone-700/50 rounded">{'{city}'}</code>
-                        <code className="px-1.5 py-0.5 bg-stone-700/50 rounded">{'{niche}'}</code>
-                        <code className="px-1.5 py-0.5 bg-stone-700/50 rounded">{'{issue1}'}</code>
-                        <code className="px-1.5 py-0.5 bg-stone-700/50 rounded">{'{issue2}'}</code>
-                        <code className="px-1.5 py-0.5 bg-stone-700/50 rounded">{'{issue3}'}</code>
-                      </div>
-                    </div>
-                    <textarea
-                      value={templateContent}
-                      onChange={(e) => setTemplateContent(e.target.value)}
-                      placeholder={nicheSelection !== null && situationSelection !== null
-                        ? "Enter your script template here...\n\nExample:\nHey {name}! I came across your {niche} content and love what you're doing..."
-                        : "Select a niche and situation first"}
-                      disabled={nicheSelection === null || situationSelection === null}
-                      rows={8}
-                      className={cn(inputClasses, "resize-none disabled:opacity-50 disabled:cursor-not-allowed")}
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={newTaskTitle}
+                      onChange={(e) => setNewTaskTitle(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addTask(); } }}
+                      className={cn(inputClasses, 'flex-1')}
+                      placeholder="Task title..."
                     />
+                    <select
+                      value={newTaskPriority}
+                      onChange={(e) => setNewTaskPriority(e.target.value as TaskPriority)}
+                      className={cn(inputClasses, 'w-28')}
+                    >
+                      {priorityOptions.map(p => (
+                        <option key={p.value} value={p.value}>{p.label}</option>
+                      ))}
+                    </select>
+                    <button
+                      onClick={addTask}
+                      disabled={!newTaskTitle.trim()}
+                      className="px-3 py-2 bg-[--exec-accent] text-white rounded-lg hover:bg-[--exec-accent-dark] transition-colors disabled:opacity-30 disabled:cursor-not-allowed flex-shrink-0"
+                    >
+                      <Plus className="w-4 h-4" />
+                    </button>
                   </div>
+                </div>
+              </div>
 
-                  <button
-                    onClick={handleSaveTemplate}
-                    disabled={nicheSelection === null || situationSelection === null || !templateContent.trim() || saveTemplateMutation.isPending}
-                    className={cn(
-                      "w-full flex items-center justify-center gap-2 px-4 py-3 text-white rounded-lg transition-colors",
-                      "bg-[--exec-accent] hover:bg-[--exec-accent-dark]",
-                      "disabled:opacity-50 disabled:cursor-not-allowed"
-                    )}
-                  >
-                    <Save className="w-5 h-5" />
-                    {saveTemplateMutation.isPending ? 'Saving...' : currentTemplate ? 'Update Template' : 'Save Template'}
-                  </button>
-                </>
-              )}
-            </div>
+              <div className="flex gap-3 justify-end pt-4 border-t border-stone-700/30 mt-6">
+                <button
+                  type="button"
+                  onClick={() => { resetForm(); setView('list'); }}
+                  className="px-4 py-2 text-sm font-medium text-[--exec-text-secondary] bg-stone-700/50 rounded-lg hover:bg-stone-600/50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSubmit}
+                  disabled={!templateName.trim() || tasks.length === 0 || createMutation.isPending}
+                  className="px-4 py-2 text-sm font-medium text-white bg-[--exec-accent] rounded-lg hover:bg-[--exec-accent-dark] shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {createMutation.isPending ? 'Creating...' : 'Create Template'}
+                </button>
+              </div>
+            </>
           )}
         </div>
       </div>
-    </div>,
-    document.body
+
+      <ConfirmModal
+        isOpen={deleteId !== null}
+        onClose={() => setDeleteId(null)}
+        onConfirm={() => { if (deleteId) deleteMutation.mutate(deleteId); }}
+        title="Delete Template"
+        message={`Are you sure you want to delete "${deleteTemplate?.name}"? This won't affect existing projects.`}
+        confirmText="Delete"
+        variant="danger"
+        isLoading={deleteMutation.isPending}
+      />
+    </div>
   );
 }

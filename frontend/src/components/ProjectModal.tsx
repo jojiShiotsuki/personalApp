@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
-import { X } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { X, FileText, ChevronDown } from 'lucide-react';
 import { Project, ProjectCreate } from '@/types';
+import type { ProjectTemplate } from '@/types';
+import { projectTemplateApi } from '@/lib/api';
 import { cn } from '@/lib/utils';
 
 interface ProjectModalProps {
@@ -20,6 +23,13 @@ export default function ProjectModal({
     name: '',
     description: '',
   });
+  const [selectedTemplate, setSelectedTemplate] = useState<ProjectTemplate | null>(null);
+
+  const { data: templates = [] } = useQuery({
+    queryKey: ['project-templates'],
+    queryFn: projectTemplateApi.getAll,
+    enabled: isOpen && !project,
+  });
 
   useEffect(() => {
     if (project) {
@@ -27,16 +37,37 @@ export default function ProjectModal({
         name: project.name,
         description: project.description || '',
       });
+      setSelectedTemplate(null);
     } else {
       setFormData({ name: '', description: '' });
+      setSelectedTemplate(null);
     }
   }, [project, isOpen]);
+
+  const handleTemplateChange = (templateId: string) => {
+    if (!templateId) {
+      setSelectedTemplate(null);
+      setFormData({ ...formData, template_id: undefined });
+      return;
+    }
+    const template = templates.find(t => t.id === parseInt(templateId));
+    if (template) {
+      setSelectedTemplate(template);
+      setFormData({
+        ...formData,
+        name: formData.name || template.name,
+        description: formData.description || template.description || '',
+        template_id: template.id,
+      });
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name.trim()) return;
     onSubmit(formData);
     setFormData({ name: '', description: '' });
+    setSelectedTemplate(null);
   };
 
   if (!isOpen) return null;
@@ -51,7 +82,7 @@ export default function ProjectModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 animate-in fade-in duration-200">
-      <div className="bg-[--exec-surface] rounded-2xl shadow-2xl w-full max-w-md mx-4 border border-stone-600/40 transform transition-all animate-in zoom-in-95 duration-200">
+      <div className="bg-[--exec-surface] rounded-2xl shadow-2xl w-full max-w-md mx-4 border border-stone-600/40 transform transition-all animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
         <div className="p-6">
           <div className="flex justify-between items-center mb-6">
             <div>
@@ -71,6 +102,54 @@ export default function ProjectModal({
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
+            {/* Template Selector - only show for new projects */}
+            {!project && templates.length > 0 && (
+              <div>
+                <label className="block text-sm font-medium text-[--exec-text-secondary] mb-1.5">
+                  Start from Template
+                </label>
+                <div className="relative">
+                  <select
+                    value={selectedTemplate?.id || ''}
+                    onChange={(e) => handleTemplateChange(e.target.value)}
+                    className={cn(inputClasses, 'appearance-none cursor-pointer pr-10')}
+                  >
+                    <option value="">Blank project</option>
+                    {templates.map(t => (
+                      <option key={t.id} value={t.id}>
+                        {t.name} ({t.tasks.length} tasks)
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[--exec-text-muted] pointer-events-none" />
+                </div>
+              </div>
+            )}
+
+            {/* Template task preview */}
+            {selectedTemplate && selectedTemplate.tasks.length > 0 && (
+              <div className="p-3 rounded-lg bg-[--exec-accent]/5 border border-[--exec-accent]/15">
+                <div className="flex items-center gap-2 mb-2">
+                  <FileText className="w-3.5 h-3.5 text-[--exec-accent]" />
+                  <span className="text-xs font-semibold text-[--exec-accent] uppercase tracking-wide">
+                    {selectedTemplate.tasks.length} tasks will be created
+                  </span>
+                </div>
+                <div className="space-y-1">
+                  {selectedTemplate.tasks.slice(0, 5).map((task, i) => (
+                    <p key={i} className="text-xs text-[--exec-text-secondary] truncate">
+                      {task.title}
+                    </p>
+                  ))}
+                  {selectedTemplate.tasks.length > 5 && (
+                    <p className="text-xs text-[--exec-text-muted]">
+                      +{selectedTemplate.tasks.length - 5} more...
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+
             <div>
               <label className="block text-sm font-medium text-[--exec-text-secondary] mb-1.5">
                 Project Name <span className="text-red-400">*</span>

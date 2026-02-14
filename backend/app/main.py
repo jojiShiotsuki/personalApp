@@ -13,7 +13,7 @@ from fastapi.responses import FileResponse, JSONResponse
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 from app.database import init_db
-from app.routes import tasks, crm, task_parser, export, goals, goal_parser, projects, social_content, dashboard, time, outreach, cold_outreach, lead_discovery, daily_outreach, sprint, loom_audit, pipeline_calculator, discovery_call, search_planner
+from app.routes import tasks, crm, task_parser, export, goals, goal_parser, projects, project_templates, social_content, dashboard, time, outreach, cold_outreach, lead_discovery, daily_outreach, sprint, loom_audit, pipeline_calculator, discovery_call, search_planner
 
 app = FastAPI(
     title="Personal Productivity App",
@@ -54,6 +54,7 @@ app.include_router(crm.router)
 app.include_router(export.router)
 app.include_router(goals.router)
 app.include_router(projects.router)
+app.include_router(project_templates.router)
 app.include_router(social_content.router)
 app.include_router(dashboard.router)
 app.include_router(time.router)

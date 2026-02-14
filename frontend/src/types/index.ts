@@ -42,14 +42,44 @@ export type Project = {
 export type ProjectCreate = {
   name: string;
   description?: string;
-  hourly_rate?: number;  // For time tracking billing
+  hourly_rate?: number;
+  template_id?: number;
 }
 
 export type ProjectUpdate = {
   name?: string;
   description?: string;
   status?: ProjectStatus;
-  hourly_rate?: number;  // For time tracking billing
+  hourly_rate?: number;
+}
+
+export type ProjectTemplateTask = {
+  id: number;
+  title: string;
+  description?: string;
+  priority: TaskPriority;
+  order: number;
+}
+
+export type ProjectTemplateTaskCreate = {
+  title: string;
+  description?: string;
+  priority: TaskPriority;
+  order: number;
+}
+
+export type ProjectTemplate = {
+  id: number;
+  name: string;
+  description?: string;
+  created_at: string;
+  tasks: ProjectTemplateTask[];
+}
+
+export type ProjectTemplateCreate = {
+  name: string;
+  description?: string;
+  tasks: ProjectTemplateTaskCreate[];
 }
 
 export type Task = {

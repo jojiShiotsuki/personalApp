@@ -11,12 +11,14 @@ from .loom_audit import LoomAudit, LoomResponseType
 from .pipeline_calculator import PipelineSettings
 from .discovery_call import DiscoveryCall, CallOutcome
 from .outreach import SearchPlannerCombination
+from .project_template import ProjectTemplate, ProjectTemplateTask
 
 __all__ = [
     "Task", "TaskPriority", "TaskStatus",
     "Contact", "Deal", "Interaction",
     "ContactStatus", "DealStage", "InteractionType",
     "Project", "ProjectStatus",
+    "ProjectTemplate", "ProjectTemplateTask",
     "Goal",
     "SocialContent", "ContentType", "ContentStatus", "EditingStyle",
     "TimeEntry",

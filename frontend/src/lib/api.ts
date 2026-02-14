@@ -75,6 +75,8 @@ import type {
   CallOutcome,
   SearchPlannerCombination,
   SearchPlannerStats,
+  ProjectTemplate,
+  ProjectTemplateCreate,
 } from '../types/index';
 import {
   TaskStatus,
@@ -361,6 +363,28 @@ export const projectApi = {
 
   createTask: async (projectId: number, data: TaskCreate): Promise<Task> => {
     const response = await api.post(`/api/projects/${projectId}/tasks`, data);
+    return response.data;
+  },
+};
+
+// Project Template API
+export const projectTemplateApi = {
+  getAll: async (): Promise<ProjectTemplate[]> => {
+    const response = await api.get('/api/project-templates');
+    return response.data;
+  },
+
+  create: async (data: ProjectTemplateCreate): Promise<ProjectTemplate> => {
+    const response = await api.post('/api/project-templates', data);
+    return response.data;
+  },
+
+  delete: async (id: number): Promise<void> => {
+    await api.delete(`/api/project-templates/${id}`);
+  },
+
+  createFromProject: async (projectId: number): Promise<ProjectTemplate> => {
+    const response = await api.post(`/api/project-templates/from-project/${projectId}`);
     return response.data;
   },
 };

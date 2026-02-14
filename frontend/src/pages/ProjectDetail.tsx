@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Trash2, Plus, Clock, Briefcase, CheckCircle2, ListTodo, LayoutGrid } from 'lucide-react';
-import { projectApi, taskApi } from '@/lib/api';
+import { ArrowLeft, Trash2, Plus, Clock, Briefcase, CheckCircle2, ListTodo, LayoutGrid, FileText } from 'lucide-react';
+import { projectApi, taskApi, projectTemplateApi } from '@/lib/api';
 import type { Project } from '@/types';
 import { ProjectStatus, TaskStatus, TaskCreate, TaskPriority } from '@/types';
 import { toast } from 'sonner';
@@ -62,10 +62,22 @@ export default function ProjectDetail() {
       projectApi.update(projectId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['projects', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
       toast.success('Project updated');
     },
     onError: () => {
       toast.error('Failed to update project');
+    },
+  });
+
+  const saveTemplateMutation = useMutation({
+    mutationFn: () => projectTemplateApi.createFromProject(projectId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['project-templates'] });
+      toast.success('Project saved as template');
+    },
+    onError: () => {
+      toast.error('Failed to save as template');
     },
   });
 
@@ -143,6 +155,17 @@ export default function ProjectDetail() {
             </div>
 
             <div className="flex items-center gap-3">
+              {/* Save as Template */}
+              <button
+                onClick={() => saveTemplateMutation.mutate()}
+                disabled={saveTemplateMutation.isPending}
+                className="flex items-center gap-2 px-3.5 py-2 bg-[--exec-surface-alt] border border-[--exec-border] text-[--exec-text-secondary] rounded-xl hover:bg-[--exec-surface] hover:text-[--exec-text] hover:border-[--exec-accent]/30 transition-all duration-200 text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Save as Template"
+              >
+                <FileText className="w-3.5 h-3.5" />
+                {saveTemplateMutation.isPending ? 'Saving...' : 'Save as Template'}
+              </button>
+
               {/* Status Selector */}
               <div className="relative">
                 <select
@@ -153,11 +176,13 @@ export default function ProjectDetail() {
                   className={cn(
                     'appearance-none pl-4 pr-10 py-2 border rounded-xl font-bold text-xs uppercase tracking-wide cursor-pointer',
                     'focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 transition-all',
+                    'bg-[--exec-surface] text-[--exec-text]',
                     statusConfig[project.status].badge
                   )}
+                  style={{ colorScheme: 'dark' }}
                 >
                   {Object.entries(statusConfig).map(([value, config]) => (
-                    <option key={value} value={value}>
+                    <option key={value} value={value} className="bg-[--exec-surface] text-[--exec-text]">
                       {config.label}
                     </option>
                   ))}
@@ -170,15 +195,7 @@ export default function ProjectDetail() {
               {/* Delete Button */}
               <button
                 onClick={() => setShowDeleteConfirm(true)}
-                className="p-2 text-[--exec-text-muted] rounded-xl transition-all duration-200 hover:scale-110 active:scale-95"
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.color = '#ef4444';
-                  e.currentTarget.style.backgroundColor = 'rgba(239,68,68,0.15)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.color = '';
-                  e.currentTarget.style.backgroundColor = '';
-                }}
+                className="p-2 text-[--exec-text-muted] rounded-xl transition-all duration-200 hover:text-[--exec-danger] hover:bg-[--exec-danger]/10"
                 title="Delete Project"
               >
                 <Trash2 className="w-5 h-5" />

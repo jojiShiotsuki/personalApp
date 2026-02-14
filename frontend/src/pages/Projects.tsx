@@ -1,14 +1,16 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Search, Folder, Briefcase } from 'lucide-react';
+import { Plus, Search, Folder, Briefcase, FileText } from 'lucide-react';
 import { projectApi } from '@/lib/api';
 import { ProjectCreate } from '@/types';
 import ProjectCard from '@/components/ProjectCard';
 import ProjectModal from '@/components/ProjectModal';
+import ManageTemplatesModal from '@/components/ManageTemplatesModal';
 import { toast } from 'sonner';
 
 export default function Projects() {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isTemplatesOpen, setIsTemplatesOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const queryClient = useQueryClient();
 
@@ -86,13 +88,22 @@ export default function Projects() {
               </p>
             </div>
 
-            <button
-              onClick={() => setIsModalOpen(true)}
-              className="group flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[--exec-accent] to-[--exec-accent-dark] text-white rounded-2xl hover:shadow-lg hover:shadow-[--exec-accent]/25 hover:-translate-y-0.5 transition-all duration-200 font-semibold animate-fade-slide-up delay-3"
-            >
-              <Plus className="w-5 h-5 transition-transform duration-200 group-hover:rotate-90" />
-              New Project
-            </button>
+            <div className="flex items-center gap-3 animate-fade-slide-up delay-3">
+              <button
+                onClick={() => setIsTemplatesOpen(true)}
+                className="flex items-center gap-2 px-4 py-2.5 bg-[--exec-surface-alt] border border-[--exec-border] text-[--exec-text-secondary] rounded-2xl hover:bg-[--exec-surface] hover:text-[--exec-text] hover:border-[--exec-accent]/30 transition-all duration-200 font-medium text-sm"
+              >
+                <FileText className="w-4 h-4" />
+                Templates
+              </button>
+              <button
+                onClick={() => setIsModalOpen(true)}
+                className="group flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[--exec-accent] to-[--exec-accent-dark] text-white rounded-2xl hover:shadow-lg hover:shadow-[--exec-accent]/25 hover:-translate-y-0.5 transition-all duration-200 font-semibold"
+              >
+                <Plus className="w-5 h-5 transition-transform duration-200 group-hover:rotate-90" />
+                New Project
+              </button>
+            </div>
           </div>
 
           {/* Search Bar */}
@@ -162,6 +173,12 @@ export default function Projects() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSubmit={handleCreate}
+      />
+
+      {/* Manage Templates Modal */}
+      <ManageTemplatesModal
+        isOpen={isTemplatesOpen}
+        onClose={() => setIsTemplatesOpen(false)}
       />
     </div>
   );

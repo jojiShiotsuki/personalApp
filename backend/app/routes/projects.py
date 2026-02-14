@@ -7,6 +7,7 @@ from datetime import datetime
 from app.database import get_db
 from app.models.project import Project
 from app.models.task import Task, TaskStatus
+from app.models.project_template import ProjectTemplate, ProjectTemplateTask
 from app.schemas.project import ProjectCreate, ProjectUpdate, ProjectResponse
 from app.schemas.task import TaskCreate, TaskResponse
 from app.services.project_service import recalculate_project_progress
@@ -51,9 +52,29 @@ def get_project(project_id: int, db: Session = Depends(get_db)):
 def create_project(project: ProjectCreate, db: Session = Depends(get_db)):
     db_project = Project(name=project.name, description=project.description)
     db.add(db_project)
+    db.flush()
+
+    task_count = 0
+    if project.template_id:
+        template = db.query(ProjectTemplate).filter(ProjectTemplate.id == project.template_id).first()
+        if template:
+            template_tasks = db.query(ProjectTemplateTask).filter(
+                ProjectTemplateTask.template_id == template.id
+            ).order_by(ProjectTemplateTask.order).all()
+            for tt in template_tasks:
+                task = Task(
+                    title=tt.title,
+                    description=tt.description,
+                    priority=tt.priority,
+                    status=TaskStatus.PENDING,
+                    project_id=db_project.id,
+                )
+                db.add(task)
+                task_count += 1
+
     db.commit()
     db.refresh(db_project)
-    db_project.task_count = 0
+    db_project.task_count = task_count
     db_project.completed_task_count = 0
     return db_project
 
