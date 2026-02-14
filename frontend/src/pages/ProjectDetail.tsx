@@ -23,15 +23,18 @@ const tabConfig: { id: Tab; label: string; icon: React.ElementType }[] = [
 const statusConfig = {
   [ProjectStatus.TODO]: {
     label: 'To Do',
-    badge: 'bg-[--exec-surface-alt] text-[--exec-text-muted] border-[--exec-border]',
+    badge: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+    dot: 'bg-amber-400',
   },
   [ProjectStatus.IN_PROGRESS]: {
     label: 'In Progress',
-    badge: 'bg-[--exec-info-bg] text-[--exec-info] border-[--exec-info]/20',
+    badge: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
+    dot: 'bg-blue-400',
   },
   [ProjectStatus.COMPLETED]: {
     label: 'Completed',
-    badge: 'bg-[--exec-success-bg] text-[--exec-success] border-[--exec-success]/20',
+    badge: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+    dot: 'bg-emerald-400',
   },
 };
 
@@ -335,9 +338,10 @@ function OverviewTab({ project }: { project: Project }) {
         <div className="bento-card p-5">
           <div className="text-xs font-bold text-[--exec-text-muted] mb-2 uppercase tracking-wider">Status</div>
           <span className={cn(
-            'inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold uppercase tracking-wide border',
+            'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold uppercase tracking-wide border',
             statusConfig[project.status].badge
           )}>
+            <span className={cn('w-2 h-2 rounded-full', statusConfig[project.status].dot)} />
             {statusConfig[project.status].label}
           </span>
         </div>

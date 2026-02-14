@@ -12,15 +12,18 @@ interface ProjectCardProps {
 
 const statusConfig = {
   [ProjectStatus.TODO]: {
-    badge: 'bg-[--exec-surface-alt] text-[--exec-text-muted] border-[--exec-border]',
+    badge: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+    dot: 'bg-amber-400',
     label: 'To Do',
   },
   [ProjectStatus.IN_PROGRESS]: {
-    badge: 'bg-[--exec-info-bg] text-[--exec-info] border-[--exec-info]/20',
+    badge: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
+    dot: 'bg-blue-400',
     label: 'In Progress',
   },
   [ProjectStatus.COMPLETED]: {
-    badge: 'bg-[--exec-success-bg] text-[--exec-success] border-[--exec-success]/20',
+    badge: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+    dot: 'bg-emerald-400',
     label: 'Completed',
   },
 };
@@ -66,10 +69,11 @@ export default function ProjectCard({ project, onDelete }: ProjectCardProps) {
         <div className="flex items-center gap-2">
           <span
             className={cn(
-              'px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wide border',
+              'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wide border',
               statusConfig[project.status].badge
             )}
           >
+            <span className={cn('w-1.5 h-1.5 rounded-full', statusConfig[project.status].dot)} />
             {statusConfig[project.status].label}
           </span>
           {onDelete && (
