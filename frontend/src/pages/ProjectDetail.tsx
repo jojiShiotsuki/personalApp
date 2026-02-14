@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Trash2, Plus, Clock, Briefcase, CheckCircle2, ListTodo, LayoutGrid, FileText, ChevronDown, ChevronRight, Square, CheckSquare, MinusSquare } from 'lucide-react';
+import { ArrowLeft, Trash2, Plus, Clock, Briefcase, CheckCircle2, ListTodo, LayoutGrid, FileText, ChevronDown, ChevronRight, Square, CheckSquare, MinusSquare, ChevronsDownUp, ChevronsUpDown } from 'lucide-react';
 import { projectApi, taskApi, projectTemplateApi } from '@/lib/api';
 import type { Project } from '@/types';
 import { ProjectStatus, TaskStatus, TaskCreate, TaskPriority } from '@/types';
@@ -633,6 +633,17 @@ function ListTab({ projectId }: { projectId: number }) {
     });
   };
 
+  const allPhaseNames = groupedTasks.map(g => g.phase).filter(Boolean);
+  const allCollapsed = allPhaseNames.length > 0 && allPhaseNames.every(p => collapsedPhases.has(p));
+
+  const collapseAll = () => {
+    setCollapsedPhases(new Set(allPhaseNames));
+  };
+
+  const expandAll = () => {
+    setCollapsedPhases(new Set());
+  };
+
   const toggleTask = (taskId: number) => {
     setSelectedTasks(prev => {
       const next = new Set(prev);
@@ -681,12 +692,26 @@ function ListTab({ projectId }: { projectId: number }) {
             label="All Priority"
           />
           {hasPhases && (
-            <FilterDropdown
-              value={filterPhase}
-              onChange={setFilterPhase}
-              options={phaseFilterOptions}
-              label="All Phases"
-            />
+            <>
+              <FilterDropdown
+                value={filterPhase}
+                onChange={setFilterPhase}
+                options={phaseFilterOptions}
+                label="All Phases"
+              />
+              <button
+                onClick={allCollapsed ? expandAll : collapseAll}
+                className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-[--exec-text-muted] hover:text-[--exec-text] hover:bg-stone-700/30 rounded-lg transition-colors"
+                title={allCollapsed ? 'Expand all phases' : 'Collapse all phases'}
+              >
+                {allCollapsed ? (
+                  <ChevronsUpDown className="w-4 h-4" />
+                ) : (
+                  <ChevronsDownUp className="w-4 h-4" />
+                )}
+                {allCollapsed ? 'Expand All' : 'Collapse All'}
+              </button>
+            </>
           )}
         </div>
         <div className="flex items-center gap-2">
