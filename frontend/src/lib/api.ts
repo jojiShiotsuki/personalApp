@@ -365,6 +365,11 @@ export const projectApi = {
     const response = await api.post(`/api/projects/${projectId}/tasks`, data);
     return response.data;
   },
+
+  applyTemplate: async (projectId: number, templateId: number): Promise<{ tasks_added: number }> => {
+    const response = await api.post(`/api/projects/${projectId}/apply-template/${templateId}`);
+    return response.data;
+  },
 };
 
 // Project Template API

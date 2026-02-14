@@ -84,15 +84,7 @@ export default function ProjectCard({ project, onDelete }: ProjectCardProps) {
           {onDelete && (
             <button
               onClick={handleDelete}
-              className="p-1.5 rounded-md text-[--exec-text-muted] opacity-0 group-hover:opacity-100 transition-all duration-200 hover:scale-110 active:scale-95"
-              onMouseEnter={(e) => {
-                e.currentTarget.style.color = '#ef4444';
-                e.currentTarget.style.backgroundColor = 'rgba(239,68,68,0.2)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.color = '';
-                e.currentTarget.style.backgroundColor = '';
-              }}
+              className="p-1.5 rounded-md text-[--exec-text-muted] opacity-0 group-hover:opacity-100 transition-all duration-200 hover:text-red-400 hover:bg-red-500/15 hover:scale-110 active:scale-95"
               title="Delete project"
             >
               <Trash2 className="w-4 h-4" />

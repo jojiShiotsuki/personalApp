@@ -128,6 +128,33 @@ def get_project_tasks(project_id: int, db: Session = Depends(get_db)):
     return tasks
 
 
+@router.post("/{project_id}/apply-template/{template_id}", status_code=201)
+def apply_template_to_project(project_id: int, template_id: int, db: Session = Depends(get_db)):
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    template = db.query(ProjectTemplate).filter(ProjectTemplate.id == template_id).first()
+    if not template:
+        raise HTTPException(status_code=404, detail="Template not found")
+    template_tasks = db.query(ProjectTemplateTask).filter(
+        ProjectTemplateTask.template_id == template.id
+    ).order_by(ProjectTemplateTask.order).all()
+    added = 0
+    for tt in template_tasks:
+        task = Task(
+            title=tt.title,
+            description=tt.description,
+            priority=tt.priority,
+            status=TaskStatus.PENDING,
+            project_id=project_id,
+        )
+        db.add(task)
+        added += 1
+    db.commit()
+    recalculate_project_progress(project_id, db)
+    return {"message": f"Added {added} tasks from template", "tasks_added": added}
+
+
 @router.post("/{project_id}/tasks", response_model=TaskResponse, status_code=201)
 def create_project_task(project_id: int, task: TaskCreate, db: Session = Depends(get_db)):
     project = db.query(Project).filter(Project.id == project_id).first()

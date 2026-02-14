@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Trash2, Plus, Clock, Briefcase, CheckCircle2, ListTodo, LayoutGrid, FileText, ChevronDown } from 'lucide-react';
 import { projectApi, taskApi, projectTemplateApi } from '@/lib/api';
+import type { ProjectTemplate } from '@/types';
 import type { Project } from '@/types';
 import { ProjectStatus, TaskStatus, TaskCreate, TaskPriority } from '@/types';
 import { toast } from 'sonner';
@@ -249,10 +250,10 @@ export default function ProjectDetail() {
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
                   className={cn(
-                    'flex items-center gap-2 pb-3 px-4 font-medium transition-all relative text-sm',
+                    'flex items-center gap-2 pb-3 px-4 font-medium transition-all relative text-sm rounded-t-lg',
                     activeTab === tab.id
                       ? 'text-[--exec-accent]'
-                      : 'text-[--exec-text-muted] hover:text-[--exec-text]'
+                      : 'text-[--exec-text-muted] hover:text-[--exec-text] hover:bg-[--exec-surface-alt]/50'
                   )}
                 >
                   <Icon className="w-4 h-4" />
@@ -400,10 +401,27 @@ function ListTab({ projectId }: { projectId: number }) {
   const [showAddTask, setShowAddTask] = useState(false);
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [filterPriority, setFilterPriority] = useState<string>('all');
+  const [showTemplateMenu, setShowTemplateMenu] = useState(false);
+  const templateMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (templateMenuRef.current && !templateMenuRef.current.contains(e.target as Node)) {
+        setShowTemplateMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const { data: tasks = [], isLoading } = useQuery({
     queryKey: ['projects', projectId, 'tasks'],
     queryFn: () => projectApi.getTasks(projectId),
+  });
+
+  const { data: templates = [] } = useQuery({
+    queryKey: ['project-templates'],
+    queryFn: projectTemplateApi.getAll,
   });
 
   const createTaskMutation = useMutation({
@@ -416,6 +434,19 @@ function ListTab({ projectId }: { projectId: number }) {
     },
     onError: () => {
       toast.error('Failed to create task');
+    },
+  });
+
+  const applyTemplateMutation = useMutation({
+    mutationFn: (templateId: number) => projectApi.applyTemplate(projectId, templateId),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['projects', projectId, 'tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['projects', projectId] });
+      setShowTemplateMenu(false);
+      toast.success(`Added ${data.tasks_added} tasks from template`);
+    },
+    onError: () => {
+      toast.error('Failed to apply template');
     },
   });
 
@@ -475,13 +506,47 @@ function ListTab({ projectId }: { projectId: number }) {
             <option value={TaskPriority.LOW}>Low</option>
           </select>
         </div>
-        <button
-          onClick={() => setShowAddTask(true)}
-          className="group flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[--exec-accent] to-[--exec-accent-dark] text-white rounded-xl hover:shadow-lg hover:shadow-[--exec-accent]/25 hover:-translate-y-0.5 transition-all duration-200 font-semibold text-sm"
-        >
-          <Plus className="w-4 h-4 transition-transform duration-200 group-hover:rotate-90" />
-          Add Task
-        </button>
+        <div className="flex items-center gap-2">
+          {templates.length > 0 && (
+            <div className="relative" ref={templateMenuRef}>
+              <button
+                onClick={() => setShowTemplateMenu(!showTemplateMenu)}
+                className="flex items-center gap-2 px-4 py-2 bg-[--exec-surface-alt] border border-[--exec-border] text-[--exec-text-secondary] rounded-xl hover:bg-[--exec-surface] hover:text-[--exec-text] hover:border-[--exec-accent]/30 transition-all duration-200 font-medium text-sm"
+              >
+                <FileText className="w-4 h-4" />
+                Add from Template
+              </button>
+              {showTemplateMenu && (
+                <div className="absolute right-0 top-full mt-2 w-72 bg-stone-800 border border-stone-600/50 rounded-xl shadow-xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-1 duration-150">
+                  <div className="px-4 py-2.5 border-b border-stone-700/50">
+                    <p className="text-xs font-bold text-[--exec-text-muted] uppercase tracking-wide">Choose a template</p>
+                  </div>
+                  {templates.map((template) => (
+                    <button
+                      key={template.id}
+                      onClick={() => applyTemplateMutation.mutate(template.id)}
+                      disabled={applyTemplateMutation.isPending}
+                      className="w-full flex items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-stone-700/50 disabled:opacity-50"
+                    >
+                      <FileText className="w-4 h-4 text-[--exec-accent] mt-0.5 flex-shrink-0" />
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-[--exec-text] truncate">{template.name}</p>
+                        <p className="text-xs text-[--exec-text-muted]">{template.tasks.length} tasks</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+          <button
+            onClick={() => setShowAddTask(true)}
+            className="group flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[--exec-accent] to-[--exec-accent-dark] text-white rounded-xl hover:shadow-lg hover:shadow-[--exec-accent]/25 hover:-translate-y-0.5 transition-all duration-200 font-semibold text-sm"
+          >
+            <Plus className="w-4 h-4 transition-transform duration-200 group-hover:rotate-90" />
+            Add Task
+          </button>
+        </div>
       </div>
 
       {showAddTask && (
