@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Trash2, Plus, Clock, Briefcase, CheckCircle2, ListTodo, LayoutGrid, FileText } from 'lucide-react';
+import { ArrowLeft, Trash2, Plus, Clock, Briefcase, CheckCircle2, ListTodo, LayoutGrid, FileText, ChevronDown } from 'lucide-react';
 import { projectApi, taskApi, projectTemplateApi } from '@/lib/api';
 import type { Project } from '@/types';
 import { ProjectStatus, TaskStatus, TaskCreate, TaskPriority } from '@/types';
@@ -53,6 +53,18 @@ export default function ProjectDetail() {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<Tab>('overview');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
+  const statusDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (statusDropdownRef.current && !statusDropdownRef.current.contains(e.target as Node)) {
+        setStatusDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const { data: project, isLoading, isError } = useQuery({
     queryKey: ['projects', projectId],
@@ -170,29 +182,44 @@ export default function ProjectDetail() {
               </button>
 
               {/* Status Selector */}
-              <div className="relative">
-                <select
-                  value={project.status}
-                  onChange={(e) =>
-                    updateMutation.mutate({ status: e.target.value as ProjectStatus })
-                  }
+              <div className="relative" ref={statusDropdownRef}>
+                <button
+                  onClick={() => setStatusDropdownOpen(!statusDropdownOpen)}
                   className={cn(
-                    'appearance-none pl-4 pr-10 py-2 border rounded-xl font-bold text-xs uppercase tracking-wide cursor-pointer',
+                    'inline-flex items-center gap-2 pl-3 pr-2.5 py-2 border rounded-xl font-bold text-xs uppercase tracking-wide cursor-pointer',
                     'focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 transition-all',
-                    'bg-[--exec-surface] text-[--exec-text]',
                     statusConfig[project.status].badge
                   )}
-                  style={{ colorScheme: 'dark' }}
                 >
-                  {Object.entries(statusConfig).map(([value, config]) => (
-                    <option key={value} value={value} className="bg-[--exec-surface] text-[--exec-text]">
-                      {config.label}
-                    </option>
-                  ))}
-                </select>
-                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                  <div className="w-2 h-2 border-r-2 border-b-2 rotate-45 border-current opacity-50" />
-                </div>
+                  <span className={cn('w-2 h-2 rounded-full', statusConfig[project.status].dot)} />
+                  {statusConfig[project.status].label}
+                  <ChevronDown className={cn('w-3.5 h-3.5 transition-transform', statusDropdownOpen && 'rotate-180')} />
+                </button>
+
+                {statusDropdownOpen && (
+                  <div className="absolute right-0 top-full mt-2 w-44 bg-stone-800 border border-stone-600/50 rounded-xl shadow-xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-1 duration-150">
+                    {Object.entries(statusConfig).map(([value, config]) => (
+                      <button
+                        key={value}
+                        onClick={() => {
+                          if (value !== project.status) {
+                            updateMutation.mutate({ status: value as ProjectStatus });
+                          }
+                          setStatusDropdownOpen(false);
+                        }}
+                        className={cn(
+                          'w-full flex items-center gap-2.5 px-4 py-2.5 text-xs font-bold uppercase tracking-wide transition-colors',
+                          value === project.status
+                            ? cn(config.badge, 'border-0')
+                            : 'text-stone-300 hover:bg-stone-700/50'
+                        )}
+                      >
+                        <span className={cn('w-2 h-2 rounded-full flex-shrink-0', config.dot)} />
+                        {config.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Delete Button */}
