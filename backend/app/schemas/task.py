@@ -62,6 +62,20 @@ class TaskLinkResponse(TaskLinkBase):
     class Config:
         from_attributes = True
 
+class TaskNoteBase(BaseModel):
+    content: str = Field(..., min_length=1, max_length=5000)
+
+class TaskNoteCreate(TaskNoteBase):
+    pass
+
+class TaskNoteResponse(TaskNoteBase):
+    id: int
+    task_id: int
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
 class TaskResponse(TaskBase):
     id: int
     phase: Optional[str] = None
@@ -69,6 +83,7 @@ class TaskResponse(TaskBase):
     updated_at: datetime
     completed_at: Optional[datetime] = None
     links: List[TaskLinkResponse] = []
+    notes: List[TaskNoteResponse] = []
 
     # Additional recurrence tracking fields
     occurrences_created: int = 0

@@ -78,6 +78,7 @@ import type {
   ProjectTemplate,
   ProjectTemplateCreate,
   TaskLink,
+  TaskNote,
 } from '../types/index';
 import {
   TaskStatus,
@@ -169,6 +170,15 @@ export const taskApi = {
 
   removeLink: async (taskId: number, linkId: number): Promise<void> => {
     await api.delete(`/api/tasks/${taskId}/links/${linkId}`);
+  },
+
+  addNote: async (taskId: number, data: { content: string }): Promise<TaskNote> => {
+    const response = await api.post(`/api/tasks/${taskId}/notes`, data);
+    return response.data;
+  },
+
+  removeNote: async (taskId: number, noteId: number): Promise<void> => {
+    await api.delete(`/api/tasks/${taskId}/notes/${noteId}`);
   },
 };
 

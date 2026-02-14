@@ -6,8 +6,8 @@ from datetime import datetime
 from pydantic import BaseModel
 
 from app.database import get_db
-from app.models.task import Task, TaskLink, TaskStatus, TaskPriority
-from app.schemas.task import TaskCreate, TaskUpdate, TaskResponse, TaskLinkCreate, TaskLinkResponse
+from app.models.task import Task, TaskLink, TaskNote, TaskStatus, TaskPriority
+from app.schemas.task import TaskCreate, TaskUpdate, TaskResponse, TaskLinkCreate, TaskLinkResponse, TaskNoteCreate, TaskNoteResponse
 from app.services.project_service import recalculate_project_progress
 from app.services.recurrence_service import create_all_future_occurrences
 from app.services.activity_service import log_activity
@@ -372,5 +372,34 @@ def remove_task_link(task_id: int, link_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Link not found")
 
     db.delete(link)
+    db.commit()
+    return None
+
+
+@router.post("/{task_id}/notes", response_model=TaskNoteResponse, status_code=201)
+def add_task_note(task_id: int, note: TaskNoteCreate, db: Session = Depends(get_db)):
+    """Add a note to a task"""
+    task = db.query(Task).filter(Task.id == task_id).first()
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    db_note = TaskNote(task_id=task_id, **note.model_dump())
+    db.add(db_note)
+    db.commit()
+    db.refresh(db_note)
+    return db_note
+
+
+@router.delete("/{task_id}/notes/{note_id}", status_code=204)
+def remove_task_note(task_id: int, note_id: int, db: Session = Depends(get_db)):
+    """Remove a note from a task"""
+    note = db.query(TaskNote).filter(
+        TaskNote.id == note_id,
+        TaskNote.task_id == task_id
+    ).first()
+    if not note:
+        raise HTTPException(status_code=404, detail="Note not found")
+
+    db.delete(note)
     db.commit()
     return None

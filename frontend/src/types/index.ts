@@ -93,6 +93,13 @@ export type TaskLink = {
   created_at: string;
 }
 
+export type TaskNote = {
+  id: number;
+  task_id: number;
+  content: string;
+  created_at: string;
+}
+
 export type Task = {
   id: number;
   title: string;
@@ -109,6 +116,7 @@ export type Task = {
   sprint_day_id?: number;
   phase?: string;
   links?: TaskLink[];
+  notes?: TaskNote[];
 
   // Recurrence fields
   is_recurring: boolean;

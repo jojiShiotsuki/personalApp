@@ -60,6 +60,7 @@ class Task(Base):
     parent_task = relationship("Task", remote_side=[id], foreign_keys=[parent_task_id], backref="child_tasks")
     sprint_day = relationship("SprintDay", back_populates="sprint_tasks")
     links = relationship("TaskLink", backref="task", cascade="all, delete-orphan", lazy="joined")
+    notes = relationship("TaskNote", backref="task", cascade="all, delete-orphan", lazy="joined", order_by="TaskNote.created_at.desc()")
 
     def __repr__(self):
         return f"<Task(id={self.id}, title='{self.title}', status={self.status})>"
@@ -72,4 +73,13 @@ class TaskLink(Base):
     task_id = Column(Integer, ForeignKey("tasks.id", ondelete="CASCADE"), nullable=False, index=True)
     url = Column(String(2000), nullable=False)
     label = Column(String(255), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class TaskNote(Base):
+    __tablename__ = "task_notes"
+
+    id = Column(Integer, primary_key=True, index=True)
+    task_id = Column(Integer, ForeignKey("tasks.id", ondelete="CASCADE"), nullable=False, index=True)
+    content = Column(Text, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)

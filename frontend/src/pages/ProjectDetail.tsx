@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Trash2, Plus, Clock, Briefcase, CheckCircle2, ListTodo, LayoutGrid, FileText, ChevronDown, ChevronRight, Square, CheckSquare, MinusSquare, ChevronsDownUp, ChevronsUpDown, MousePointerClick, Link2, ExternalLink, X } from 'lucide-react';
+import { ArrowLeft, Trash2, Plus, Clock, Briefcase, CheckCircle2, ListTodo, LayoutGrid, FileText, ChevronDown, ChevronRight, Square, CheckSquare, MinusSquare, ChevronsDownUp, ChevronsUpDown, MousePointerClick, Link2, ExternalLink, X, StickyNote } from 'lucide-react';
 import { projectApi, taskApi, projectTemplateApi } from '@/lib/api';
 import type { Project } from '@/types';
 import { ProjectStatus, TaskStatus, TaskCreate, TaskPriority } from '@/types';
@@ -487,6 +487,7 @@ function ListTab({ projectId }: { projectId: number }) {
   const [expandedTaskId, setExpandedTaskId] = useState<number | null>(null);
   const [newLinkUrl, setNewLinkUrl] = useState('');
   const [newLinkLabel, setNewLinkLabel] = useState('');
+  const [newNoteContent, setNewNoteContent] = useState('');
   const bulkStatusRef = useRef<HTMLDivElement>(null);
   const bulkPriorityRef = useRef<HTMLDivElement>(null);
 
@@ -605,6 +606,27 @@ function ListTab({ projectId }: { projectId: number }) {
       toast.success('Link removed');
     },
     onError: () => toast.error('Failed to remove link'),
+  });
+
+  const addNoteMutation = useMutation({
+    mutationFn: ({ taskId, data }: { taskId: number; data: { content: string } }) =>
+      taskApi.addNote(taskId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['projects', projectId, 'tasks'] });
+      setNewNoteContent('');
+      toast.success('Note added');
+    },
+    onError: () => toast.error('Failed to add note'),
+  });
+
+  const removeNoteMutation = useMutation({
+    mutationFn: ({ taskId, noteId }: { taskId: number; noteId: number }) =>
+      taskApi.removeNote(taskId, noteId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['projects', projectId, 'tasks'] });
+      toast.success('Note removed');
+    },
+    onError: () => toast.error('Failed to remove note'),
   });
 
   const handleStatusChange = (taskId: number, status: TaskStatus) => {
@@ -988,6 +1010,7 @@ function ListTab({ projectId }: { projectId: number }) {
                     {phaseTasks.map((task) => {
                       const isExpanded = expandedTaskId === task.id;
                       const taskLinks = task.links || [];
+                      const taskNotes = task.notes || [];
                       return (
                         <div key={task.id}>
                           <div className="flex items-center gap-2">
@@ -1010,13 +1033,12 @@ function ListTab({ projectId }: { projectId: number }) {
                                 onClick={() => {
                                   if (expandedTaskId === task.id) {
                                     setExpandedTaskId(null);
-                                    setNewLinkUrl('');
-                                    setNewLinkLabel('');
                                   } else {
                                     setExpandedTaskId(task.id);
-                                    setNewLinkUrl('');
-                                    setNewLinkLabel('');
                                   }
+                                  setNewLinkUrl('');
+                                  setNewLinkLabel('');
+                                  setNewNoteContent('');
                                 }}
                               />
                             </div>
@@ -1036,7 +1058,7 @@ function ListTab({ projectId }: { projectId: number }) {
                                   )}
                                 </h4>
                                 <button
-                                  onClick={() => { setExpandedTaskId(null); setNewLinkUrl(''); setNewLinkLabel(''); }}
+                                  onClick={() => { setExpandedTaskId(null); setNewLinkUrl(''); setNewLinkLabel(''); setNewNoteContent(''); }}
                                   className="text-[--exec-text-muted] hover:text-[--exec-text] p-1 rounded-md hover:bg-stone-700/30 transition-colors"
                                 >
                                   <X className="w-3.5 h-3.5" />
@@ -1115,6 +1137,69 @@ function ListTab({ projectId }: { projectId: number }) {
                                   {addLinkMutation.isPending ? '...' : 'Add'}
                                 </button>
                               </form>
+
+                              {/* Notes Section */}
+                              <div className="mt-4 pt-4 border-t border-stone-700/30">
+                                <h4 className="text-xs font-bold uppercase tracking-wider text-[--exec-text-muted] flex items-center gap-1.5 mb-3">
+                                  <StickyNote className="w-3.5 h-3.5" />
+                                  Notes
+                                  {taskNotes.length > 0 && (
+                                    <span className="text-[10px] bg-stone-700/50 px-1.5 py-0.5 rounded-full">
+                                      {taskNotes.length}
+                                    </span>
+                                  )}
+                                </h4>
+
+                                {/* Existing notes */}
+                                {taskNotes.length > 0 && (
+                                  <div className="space-y-2 mb-3">
+                                    {taskNotes.map((note) => (
+                                      <div key={note.id} className="flex items-start gap-2 group/note p-2.5 rounded-lg bg-stone-700/20">
+                                        <p className="text-sm text-[--exec-text-secondary] flex-1 whitespace-pre-wrap break-words min-w-0">
+                                          {note.content}
+                                        </p>
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            removeNoteMutation.mutate({ taskId: task.id, noteId: note.id });
+                                          }}
+                                          className="p-1 rounded text-[--exec-text-muted] opacity-0 group-hover/note:opacity-100 hover:text-[--exec-danger] transition-all flex-shrink-0"
+                                        >
+                                          <Trash2 className="w-3.5 h-3.5" />
+                                        </button>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+
+                                {/* Add note form */}
+                                <form
+                                  onSubmit={(e) => {
+                                    e.preventDefault();
+                                    if (!newNoteContent.trim()) return;
+                                    addNoteMutation.mutate({
+                                      taskId: task.id,
+                                      data: { content: newNoteContent.trim() },
+                                    });
+                                  }}
+                                  className="flex gap-2"
+                                >
+                                  <textarea
+                                    value={newNoteContent}
+                                    onChange={(e) => setNewNoteContent(e.target.value)}
+                                    className={cn(inputClasses, 'flex-1 resize-none')}
+                                    placeholder="Add a note..."
+                                    rows={2}
+                                  />
+                                  <button
+                                    type="submit"
+                                    disabled={!newNoteContent.trim() || addNoteMutation.isPending}
+                                    className="px-3 py-2 bg-[--exec-accent] text-white rounded-lg hover:bg-[--exec-accent-dark] transition-colors disabled:opacity-30 disabled:cursor-not-allowed flex-shrink-0 text-sm font-medium self-end"
+                                  >
+                                    {addNoteMutation.isPending ? '...' : 'Add'}
+                                  </button>
+                                </form>
+                              </div>
                             </div>
                           )}
                         </div>
