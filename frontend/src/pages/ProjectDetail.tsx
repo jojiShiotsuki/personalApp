@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Trash2, Plus, Clock, Briefcase, CheckCircle2, ListTodo, LayoutGrid, FileText, ChevronDown, ChevronRight, Square, CheckSquare, MinusSquare, ChevronsDownUp, ChevronsUpDown } from 'lucide-react';
+import { ArrowLeft, Trash2, Plus, Clock, Briefcase, CheckCircle2, ListTodo, LayoutGrid, FileText, ChevronDown, ChevronRight, Square, CheckSquare, MinusSquare, ChevronsDownUp, ChevronsUpDown, MousePointerClick } from 'lucide-react';
 import { projectApi, taskApi, projectTemplateApi } from '@/lib/api';
 import type { Project } from '@/types';
 import { ProjectStatus, TaskStatus, TaskCreate, TaskPriority } from '@/types';
@@ -478,6 +478,7 @@ function ListTab({ projectId }: { projectId: number }) {
   const [filterPhase, setFilterPhase] = useState<string>('all');
   const [showTemplateMenu, setShowTemplateMenu] = useState(false);
   const templateMenuRef = useRef<HTMLDivElement>(null);
+  const [selectMode, setSelectMode] = useState(false);
   const [selectedTasks, setSelectedTasks] = useState<Set<number>>(new Set());
   const [collapsedPhases, setCollapsedPhases] = useState<Set<string>>(new Set());
   const [showBulkStatus, setShowBulkStatus] = useState(false);
@@ -558,6 +559,7 @@ function ListTab({ projectId }: { projectId: number }) {
       queryClient.invalidateQueries({ queryKey: ['projects', projectId, 'tasks'] });
       queryClient.invalidateQueries({ queryKey: ['projects', projectId] });
       setSelectedTasks(new Set());
+      setSelectMode(false);
       toast.success(`Updated ${data.updated_count} task(s)`);
     },
     onError: () => {
@@ -571,6 +573,7 @@ function ListTab({ projectId }: { projectId: number }) {
       queryClient.invalidateQueries({ queryKey: ['projects', projectId, 'tasks'] });
       queryClient.invalidateQueries({ queryKey: ['projects', projectId] });
       setSelectedTasks(new Set());
+      setSelectMode(false);
       setShowBulkDeleteConfirm(false);
       toast.success(`Deleted ${data.deleted_count} task(s)`);
     },
@@ -747,6 +750,27 @@ function ListTab({ projectId }: { projectId: number }) {
               )}
             </div>
           )}
+          {filteredTasks.length > 0 && (
+            <button
+              onClick={() => {
+                if (selectMode) {
+                  setSelectMode(false);
+                  setSelectedTasks(new Set());
+                } else {
+                  setSelectMode(true);
+                }
+              }}
+              className={cn(
+                "flex items-center gap-2 px-4 py-2 rounded-xl font-medium text-sm transition-all duration-200",
+                selectMode
+                  ? "bg-[--exec-accent]/10 border border-[--exec-accent]/30 text-[--exec-accent]"
+                  : "bg-[--exec-surface-alt] border border-[--exec-border] text-[--exec-text-secondary] hover:bg-stone-600/40 hover:text-[--exec-text] hover:border-[--exec-accent]/40"
+              )}
+            >
+              <MousePointerClick className="w-4 h-4" />
+              {selectMode ? 'Done' : 'Select'}
+            </button>
+          )}
           <button
             onClick={() => setShowAddTask(true)}
             className="group flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[--exec-accent] to-[--exec-accent-dark] text-white rounded-xl hover:shadow-lg hover:shadow-[--exec-accent]/25 hover:-translate-y-0.5 transition-all duration-200 font-semibold text-sm"
@@ -849,9 +873,9 @@ function ListTab({ projectId }: { projectId: number }) {
         </div>
       )}
 
-      {/* Select All header */}
-      {filteredTasks.length > 0 && (
-        <div className="flex items-center gap-3 px-2">
+      {/* Select All header — only in select mode */}
+      {selectMode && filteredTasks.length > 0 && (
+        <div className="flex items-center gap-3 px-2 animate-in fade-in slide-in-from-top-1 duration-200">
           <button
             onClick={toggleAll}
             className="text-[--exec-text-muted] hover:text-[--exec-accent] transition-colors"
@@ -868,7 +892,7 @@ function ListTab({ projectId }: { projectId: number }) {
           <span className="text-xs font-medium text-[--exec-text-muted]">
             {selectedTasks.size > 0
               ? `${selectedTasks.size} selected`
-              : `${filteredTasks.length} task${filteredTasks.length !== 1 ? 's' : ''}`}
+              : `Select all (${filteredTasks.length})`}
           </span>
         </div>
       )}
@@ -902,18 +926,20 @@ function ListTab({ projectId }: { projectId: number }) {
               <div key={phase || '_flat'}>
                 {hasPhases && phase && (
                   <div className="flex items-center gap-2 py-2.5 px-2 mb-1 mt-3 first:mt-0">
-                    <button
-                      onClick={() => togglePhaseSelection(phaseTasks)}
-                      className="text-[--exec-text-muted] hover:text-[--exec-accent] transition-colors"
-                    >
-                      {allPhaseSelected ? (
-                        <CheckSquare className="w-4 h-4 text-[--exec-accent]" />
-                      ) : somePhaseSelected ? (
-                        <MinusSquare className="w-4 h-4 text-[--exec-accent]" />
-                      ) : (
-                        <Square className="w-4 h-4" />
-                      )}
-                    </button>
+                    {selectMode && (
+                      <button
+                        onClick={() => togglePhaseSelection(phaseTasks)}
+                        className="text-[--exec-text-muted] hover:text-[--exec-accent] transition-colors"
+                      >
+                        {allPhaseSelected ? (
+                          <CheckSquare className="w-4 h-4 text-[--exec-accent]" />
+                        ) : somePhaseSelected ? (
+                          <MinusSquare className="w-4 h-4 text-[--exec-accent]" />
+                        ) : (
+                          <Square className="w-4 h-4" />
+                        )}
+                      </button>
+                    )}
                     <button
                       onClick={() => togglePhase(phase)}
                       className="flex items-center gap-2 flex-1 group"
@@ -936,16 +962,18 @@ function ListTab({ projectId }: { projectId: number }) {
                   <div className="space-y-2">
                     {phaseTasks.map((task) => (
                       <div key={task.id} className="flex items-center gap-2">
-                        <button
-                          onClick={() => toggleTask(task.id)}
-                          className="text-[--exec-text-muted] hover:text-[--exec-accent] transition-colors flex-shrink-0 ml-2"
-                        >
-                          {selectedTasks.has(task.id) ? (
-                            <CheckSquare className="w-4 h-4 text-[--exec-accent]" />
-                          ) : (
-                            <Square className="w-4 h-4" />
-                          )}
-                        </button>
+                        {selectMode && (
+                          <button
+                            onClick={() => toggleTask(task.id)}
+                            className="text-[--exec-text-muted] hover:text-[--exec-accent] transition-colors flex-shrink-0 ml-2"
+                          >
+                            {selectedTasks.has(task.id) ? (
+                              <CheckSquare className="w-4 h-4 text-[--exec-accent]" />
+                            ) : (
+                              <Square className="w-4 h-4" />
+                            )}
+                          </button>
+                        )}
                         <div className="flex-1 min-w-0">
                           <TaskItem
                             task={task}
@@ -1058,10 +1086,10 @@ function ListTab({ projectId }: { projectId: number }) {
             <div className="w-px h-6 bg-stone-600/50" />
 
             <button
-              onClick={() => setSelectedTasks(new Set())}
+              onClick={() => { setSelectedTasks(new Set()); setSelectMode(false); }}
               className="text-xs font-medium text-[--exec-text-muted] hover:text-[--exec-text] transition-colors"
             >
-              Clear
+              Cancel
             </button>
           </div>
         </div>
