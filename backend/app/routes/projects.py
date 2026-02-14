@@ -123,7 +123,7 @@ def get_project_tasks(project_id: int, db: Session = Depends(get_db)):
     project = db.query(Project).filter(Project.id == project_id).first()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
-    tasks = db.query(Task).filter(Task.project_id == project_id).order_by(Task.created_at.desc()).all()
+    tasks = db.query(Task).filter(Task.project_id == project_id).order_by(Task.created_at.asc()).all()
     for task in tasks:
         prepare_task_for_response(task)
     return tasks
