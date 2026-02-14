@@ -370,12 +370,12 @@ export const projectApi = {
 // Project Template API
 export const projectTemplateApi = {
   getAll: async (): Promise<ProjectTemplate[]> => {
-    const response = await api.get('/api/project-templates');
+    const response = await api.get('/api/project-templates/');
     return response.data;
   },
 
   create: async (data: ProjectTemplateCreate): Promise<ProjectTemplate> => {
-    const response = await api.post('/api/project-templates', data);
+    const response = await api.post('/api/project-templates/', data);
     return response.data;
   },
 
