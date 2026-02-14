@@ -49,7 +49,7 @@ export default function ConfirmModal({
   // Use portal to render modal outside parent DOM tree
   // This prevents hover state conflicts with parent components
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
       <div
         className="absolute inset-0 bg-black/50 backdrop-blur-sm"
         onClick={onClose}
