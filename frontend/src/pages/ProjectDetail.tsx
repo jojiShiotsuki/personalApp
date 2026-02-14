@@ -36,6 +36,11 @@ const statusConfig = {
     badge: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
     dot: 'bg-emerald-400',
   },
+  [ProjectStatus.RETAINER]: {
+    label: 'Retainer',
+    badge: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
+    dot: 'bg-purple-400',
+  },
 };
 
 const inputClasses = cn(

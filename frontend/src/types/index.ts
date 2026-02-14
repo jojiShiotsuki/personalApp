@@ -24,6 +24,7 @@ export enum ProjectStatus {
   TODO = "todo",
   IN_PROGRESS = "in_progress",
   COMPLETED = "completed",
+  RETAINER = "retainer",
 }
 
 export type Project = {

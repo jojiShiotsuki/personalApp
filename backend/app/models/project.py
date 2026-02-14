@@ -9,6 +9,7 @@ class ProjectStatus(str, enum.Enum):
     TODO = "todo"
     IN_PROGRESS = "in_progress"
     COMPLETED = "completed"
+    RETAINER = "retainer"
 
 
 class Project(Base):

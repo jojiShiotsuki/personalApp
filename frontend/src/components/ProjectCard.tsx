@@ -26,6 +26,11 @@ const statusConfig = {
     dot: 'bg-emerald-400',
     label: 'Completed',
   },
+  [ProjectStatus.RETAINER]: {
+    badge: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
+    dot: 'bg-purple-400',
+    label: 'Retainer',
+  },
 };
 
 export default function ProjectCard({ project, onDelete }: ProjectCardProps) {
