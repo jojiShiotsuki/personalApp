@@ -5,7 +5,7 @@ load_dotenv()
 
 from pathlib import Path
 import logging
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse
@@ -13,7 +13,8 @@ from fastapi.responses import FileResponse, JSONResponse
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 from app.database import init_db
-from app.routes import tasks, crm, task_parser, export, goals, goal_parser, projects, project_templates, social_content, dashboard, time, outreach, cold_outreach, lead_discovery, daily_outreach, sprint, loom_audit, pipeline_calculator, discovery_call, search_planner
+from app.auth import get_current_user
+from app.routes import auth, tasks, crm, task_parser, export, goals, goal_parser, projects, project_templates, social_content, dashboard, time, outreach, cold_outreach, lead_discovery, daily_outreach, sprint, loom_audit, pipeline_calculator, discovery_call, search_planner
 
 app = FastAPI(
     title="Personal Productivity App",
@@ -44,29 +45,33 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Register API routers
+# Register auth router (no auth dependency - public endpoints)
+app.include_router(auth.router)
+
+# Register API routers (all protected by auth)
 # IMPORTANT: task_parser and goal_parser must come BEFORE tasks/goals to match
 # /parse and /parse-bulk before the generic /{id} route
-app.include_router(task_parser.router)
-app.include_router(goal_parser.router)
-app.include_router(tasks.router)
-app.include_router(crm.router)
-app.include_router(export.router)
-app.include_router(goals.router)
-app.include_router(projects.router)
-app.include_router(project_templates.router)
-app.include_router(social_content.router)
-app.include_router(dashboard.router)
-app.include_router(time.router)
-app.include_router(outreach.router)
-app.include_router(cold_outreach.router)
-app.include_router(lead_discovery.router)
-app.include_router(daily_outreach.router)
-app.include_router(sprint.router)
-app.include_router(loom_audit.router)
-app.include_router(pipeline_calculator.router)
-app.include_router(discovery_call.router)
-app.include_router(search_planner.router)
+auth_dep = [Depends(get_current_user)]
+app.include_router(task_parser.router, dependencies=auth_dep)
+app.include_router(goal_parser.router, dependencies=auth_dep)
+app.include_router(tasks.router, dependencies=auth_dep)
+app.include_router(crm.router, dependencies=auth_dep)
+app.include_router(export.router, dependencies=auth_dep)
+app.include_router(goals.router, dependencies=auth_dep)
+app.include_router(projects.router, dependencies=auth_dep)
+app.include_router(project_templates.router, dependencies=auth_dep)
+app.include_router(social_content.router, dependencies=auth_dep)
+app.include_router(dashboard.router, dependencies=auth_dep)
+app.include_router(time.router, dependencies=auth_dep)
+app.include_router(outreach.router, dependencies=auth_dep)
+app.include_router(cold_outreach.router, dependencies=auth_dep)
+app.include_router(lead_discovery.router, dependencies=auth_dep)
+app.include_router(daily_outreach.router, dependencies=auth_dep)
+app.include_router(sprint.router, dependencies=auth_dep)
+app.include_router(loom_audit.router, dependencies=auth_dep)
+app.include_router(pipeline_calculator.router, dependencies=auth_dep)
+app.include_router(discovery_call.router, dependencies=auth_dep)
+app.include_router(search_planner.router, dependencies=auth_dep)
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):

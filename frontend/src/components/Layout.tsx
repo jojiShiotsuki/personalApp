@@ -17,7 +17,9 @@ import {
   ChevronRight,
   ArrowUpRight,
   Rocket,
+  LogOut,
 } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 
 import FloatingTimer from './FloatingTimer';
@@ -63,6 +65,7 @@ const bottomNav = [
 export default function Layout({ children }: LayoutProps) {
   const location = useLocation();
   const [isExpanded, setIsExpanded] = useState(true);
+  const { logout } = useAuth();
 
   const toggleSidebar = () => {
     setIsExpanded(!isExpanded);
@@ -238,6 +241,19 @@ export default function Layout({ children }: LayoutProps) {
                 title={isExpanded ? 'Collapse sidebar' : 'Expand sidebar'}
               >
                 {isExpanded ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+              </button>
+
+              {/* Logout */}
+              <button
+                onClick={logout}
+                className={cn(
+                  "p-2 rounded-lg transition-all duration-200",
+                  "text-[--sidebar-text]",
+                  "hover:text-red-400 hover:bg-red-500/10"
+                )}
+                title="Sign out"
+              >
+                <LogOut className="w-4 h-4" />
               </button>
             </div>
           </div>

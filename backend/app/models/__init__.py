@@ -12,6 +12,7 @@ from .pipeline_calculator import PipelineSettings
 from .discovery_call import DiscoveryCall, CallOutcome
 from .outreach import SearchPlannerCombination
 from .project_template import ProjectTemplate, ProjectTemplateTask
+from .user import User
 
 __all__ = [
     "Task", "TaskPriority", "TaskStatus",
@@ -29,4 +30,5 @@ __all__ = [
     "PipelineSettings",
     "DiscoveryCall", "CallOutcome",
     "SearchPlannerCombination",
+    "User",
 ]

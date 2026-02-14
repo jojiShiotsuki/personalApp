@@ -97,6 +97,54 @@ const api = axios.create({
   },
 });
 
+// Auth: attach token to every request
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('auth_token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+// Auth: redirect to login on 401
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      const url = error.config?.url || '';
+      // Don't redirect for auth endpoints themselves
+      if (!url.includes('/api/auth/')) {
+        localStorage.removeItem('auth_token');
+        window.location.href = '/login';
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
+// Auth API
+export const authApi = {
+  login: async (username: string, password: string): Promise<{ access_token: string; token_type: string }> => {
+    const response = await api.post('/api/auth/login', { username, password });
+    return response.data;
+  },
+
+  setup: async (username: string, password: string): Promise<{ access_token: string; token_type: string }> => {
+    const response = await api.post('/api/auth/setup', { username, password });
+    return response.data;
+  },
+
+  me: async (): Promise<{ id: number; username: string }> => {
+    const response = await api.get('/api/auth/me');
+    return response.data;
+  },
+
+  status: async (): Promise<{ needs_setup: boolean }> => {
+    const response = await api.get('/api/auth/status');
+    return response.data;
+  },
+};
+
 // Task API
 export const taskApi = {
   getAll: async (status?: TaskStatus, goalId?: number): Promise<Task[]> => {
