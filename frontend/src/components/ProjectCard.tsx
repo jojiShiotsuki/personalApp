@@ -1,10 +1,13 @@
+import { useState } from 'react';
 import { Project, ProjectStatus } from '@/types';
-import { Folder, CheckCircle2 } from 'lucide-react';
+import { Folder, CheckCircle2, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
+import ConfirmModal from './ConfirmModal';
 
 interface ProjectCardProps {
   project: Project;
+  onDelete?: (id: number) => void;
 }
 
 const statusConfig = {
@@ -22,8 +25,14 @@ const statusConfig = {
   },
 };
 
-export default function ProjectCard({ project }: ProjectCardProps) {
+export default function ProjectCard({ project, onDelete }: ProjectCardProps) {
   const navigate = useNavigate();
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  const handleDelete = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setShowDeleteConfirm(true);
+  };
 
   const getProgressColor = (progress: number) => {
     if (progress < 34) return 'bg-[--exec-danger]';
@@ -47,14 +56,33 @@ export default function ProjectCard({ project }: ProjectCardProps) {
             <span className="text-xs text-[--exec-text-muted]">Updated recently</span>
           </div>
         </div>
-        <span
-          className={cn(
-            'px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wide border',
-            statusConfig[project.status].badge
+        <div className="flex items-center gap-2">
+          <span
+            className={cn(
+              'px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wide border',
+              statusConfig[project.status].badge
+            )}
+          >
+            {statusConfig[project.status].label}
+          </span>
+          {onDelete && (
+            <button
+              onClick={handleDelete}
+              className="p-1.5 rounded-md text-[--exec-text-muted] opacity-0 group-hover:opacity-100 transition-all duration-200 hover:scale-110 active:scale-95"
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = '#ef4444';
+                e.currentTarget.style.backgroundColor = 'rgba(239,68,68,0.2)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = '';
+                e.currentTarget.style.backgroundColor = '';
+              }}
+              title="Delete project"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
           )}
-        >
-          {statusConfig[project.status].label}
-        </span>
+        </div>
       </div>
 
       {/* Description */}
@@ -91,6 +119,20 @@ export default function ProjectCard({ project }: ProjectCardProps) {
           </div>
         </div>
       </div>
+      <ConfirmModal
+        isOpen={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        onConfirm={() => {
+          setShowDeleteConfirm(false);
+          setTimeout(() => {
+            if (onDelete) onDelete(project.id);
+          }, 100);
+        }}
+        title="Delete Project"
+        message={`Are you sure you want to delete "${project.name}"? This will also delete ${project.task_count || 0} tasks. This action cannot be undone.`}
+        confirmText="Delete"
+        variant="danger"
+      />
     </div>
   );
 }

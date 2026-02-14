@@ -31,8 +31,24 @@ export default function Projects() {
     },
   });
 
+  // Delete mutation
+  const deleteMutation = useMutation({
+    mutationFn: projectApi.delete,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
+      toast.success('Project deleted');
+    },
+    onError: () => {
+      toast.error('Failed to delete project');
+    },
+  });
+
   const handleCreate = (data: ProjectCreate) => {
     createMutation.mutate(data);
+  };
+
+  const handleDelete = (id: number) => {
+    deleteMutation.mutate(id);
   };
 
   // Filter projects by search query
@@ -134,7 +150,7 @@ export default function Projects() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
             {filteredProjects.map((project, idx) => (
               <div key={project.id} className="animate-fade-slide-up" style={{ animationDelay: `${(idx + 5) * 50}ms` }}>
-                <ProjectCard project={project} />
+                <ProjectCard project={project} onDelete={handleDelete} />
               </div>
             ))}
           </div>

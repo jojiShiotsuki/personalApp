@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Trash2, Plus, Clock } from 'lucide-react';
+import { ArrowLeft, Trash2, Plus, Clock, Briefcase, CheckCircle2, ListTodo, LayoutGrid } from 'lucide-react';
 import { projectApi, taskApi } from '@/lib/api';
 import type { Project } from '@/types';
 import { ProjectStatus, TaskStatus, TaskCreate, TaskPriority } from '@/types';
@@ -14,6 +14,35 @@ import { format } from 'date-fns';
 
 type Tab = 'overview' | 'list' | 'board';
 
+const tabConfig: { id: Tab; label: string; icon: React.ElementType }[] = [
+  { id: 'overview', label: 'Overview', icon: Briefcase },
+  { id: 'list', label: 'List', icon: ListTodo },
+  { id: 'board', label: 'Board', icon: LayoutGrid },
+];
+
+const statusConfig = {
+  [ProjectStatus.TODO]: {
+    label: 'To Do',
+    badge: 'bg-[--exec-surface-alt] text-[--exec-text-muted] border-[--exec-border]',
+  },
+  [ProjectStatus.IN_PROGRESS]: {
+    label: 'In Progress',
+    badge: 'bg-[--exec-info-bg] text-[--exec-info] border-[--exec-info]/20',
+  },
+  [ProjectStatus.COMPLETED]: {
+    label: 'Completed',
+    badge: 'bg-[--exec-success-bg] text-[--exec-success] border-[--exec-success]/20',
+  },
+};
+
+const inputClasses = cn(
+  "w-full px-4 py-2.5 rounded-lg",
+  "bg-stone-800/50 border border-stone-600/40",
+  "text-[--exec-text] placeholder:text-[--exec-text-muted]",
+  "focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]/50",
+  "transition-all text-sm"
+);
+
 export default function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
   const projectId = parseInt(id || '0');
@@ -22,14 +51,12 @@ export default function ProjectDetail() {
   const [activeTab, setActiveTab] = useState<Tab>('overview');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  // Fetch project
   const { data: project, isLoading, isError } = useQuery({
     queryKey: ['projects', projectId],
     queryFn: () => projectApi.getById(projectId),
     enabled: projectId > 0,
   });
 
-  // Update mutation
   const updateMutation = useMutation({
     mutationFn: (data: { status: ProjectStatus }) =>
       projectApi.update(projectId, data),
@@ -42,7 +69,6 @@ export default function ProjectDetail() {
     },
   });
 
-  // Delete mutation
   const deleteMutation = useMutation({
     mutationFn: () => projectApi.delete(projectId),
     onSuccess: () => {
@@ -54,16 +80,12 @@ export default function ProjectDetail() {
     },
   });
 
-  const handleDelete = () => {
-    setShowDeleteConfirm(true);
-  };
-
   if (isLoading) {
     return (
-      <div className="h-full flex items-center justify-center bg-background">
+      <div className="h-full flex items-center justify-center bg-[--exec-bg]">
         <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-4"></div>
-          <p className="text-muted-foreground">Loading project...</p>
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[--exec-accent] mb-4" />
+          <p className="text-[--exec-text-muted]">Loading project...</p>
         </div>
       </div>
     );
@@ -71,14 +93,14 @@ export default function ProjectDetail() {
 
   if (isError || !project) {
     return (
-      <div className="h-full flex items-center justify-center bg-background">
+      <div className="h-full flex items-center justify-center bg-[--exec-bg]">
         <div className="text-center">
-          <p className="text-destructive mb-4">
+          <p className="text-[--exec-danger] mb-4">
             {isError ? 'Failed to load project' : 'Project not found'}
           </p>
           <button
             onClick={() => navigate('/projects')}
-            className="text-muted-foreground hover:text-foreground"
+            className="text-[--exec-text-muted] hover:text-[--exec-accent] transition-colors"
           >
             Back to Projects
           </button>
@@ -87,99 +109,109 @@ export default function ProjectDetail() {
     );
   }
 
-  const statusConfig = {
-    [ProjectStatus.TODO]: { label: 'To Do', color: 'text-muted-foreground' },
-    [ProjectStatus.IN_PROGRESS]: { label: 'In Progress', color: 'text-foreground' },
-    [ProjectStatus.COMPLETED]: { label: 'Completed', color: 'text-green-600 dark:text-green-400' },
-  };
-
   return (
-    <div className="h-full flex flex-col bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
+    <div className="h-full flex flex-col bg-[--exec-bg] grain">
       {/* Header */}
-      <div className="bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm border-b border-gray-200/60 dark:border-gray-700 px-8 py-6 sticky top-0 z-10 transition-colors duration-200">
-        <button
-          onClick={() => navigate('/projects')}
-          className="flex items-center gap-2 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white mb-6 transition-colors group"
-        >
-          <div className="p-1 rounded-full group-hover:bg-gray-100 dark:group-hover:bg-gray-700 transition-colors">
-            <ArrowLeft className="w-4 h-4" />
-          </div>
-          <span className="font-medium">Back to Projects</span>
-        </button>
+      <header className="relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-[--exec-surface] via-[--exec-surface] to-[--exec-accent-bg-subtle]" />
+        <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-bl from-[--exec-accent]/5 to-transparent rounded-full blur-3xl" />
 
-        <div className="flex justify-between items-start">
-          <div>
-            <h1 className="text-2xl font-semibold text-gray-900 dark:text-white tracking-tight">{project.name}</h1>
-            {project.description && (
-              <p className="text-gray-500 dark:text-gray-400 mt-2 text-base">{project.description}</p>
-            )}
-          </div>
+        <div className="relative px-8 pt-6 pb-0">
+          {/* Back button */}
+          <button
+            onClick={() => navigate('/projects')}
+            className="flex items-center gap-2 text-[--exec-text-muted] hover:text-[--exec-accent] mb-5 transition-colors group"
+          >
+            <div className="p-1 rounded-full group-hover:bg-[--exec-accent-bg] transition-colors">
+              <ArrowLeft className="w-4 h-4" />
+            </div>
+            <span className="text-sm font-medium">Back to Projects</span>
+          </button>
 
-          <div className="flex items-center gap-3">
-            {/* Status Selector */}
-            <div className="relative">
-              <select
-                value={project.status}
-                onChange={(e) =>
-                  updateMutation.mutate({ status: e.target.value as ProjectStatus })
-                }
-                className={cn(
-                  'appearance-none pl-4 pr-10 py-2 border rounded-xl font-medium text-sm focus:outline-none focus:ring-2 focus:ring-offset-1 transition-all cursor-pointer',
-                  project.status === ProjectStatus.COMPLETED
-                    ? 'bg-emerald-50 border-emerald-200 text-emerald-700 focus:ring-emerald-500 dark:bg-emerald-900/20 dark:border-emerald-800 dark:text-emerald-400'
-                    : project.status === ProjectStatus.IN_PROGRESS
-                    ? 'bg-blue-50 border-blue-200 text-blue-700 focus:ring-blue-500 dark:bg-blue-900/20 dark:border-blue-800 dark:text-blue-400'
-                    : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white focus:ring-gray-400'
-                )}
-              >
-                {Object.entries(statusConfig).map(([value, config]) => (
-                  <option key={value} value={value}>
-                    {config.label}
-                  </option>
-                ))}
-              </select>
-              <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                <div className={cn(
-                  "w-2 h-2 border-r-2 border-b-2 rotate-45",
-                  project.status === ProjectStatus.COMPLETED ? "border-emerald-600" :
-                  project.status === ProjectStatus.IN_PROGRESS ? "border-blue-600" :
-                  "border-gray-400"
-                )} />
+          <div className="flex justify-between items-start">
+            <div>
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-[--exec-surface-alt] rounded-full mb-3">
+                <Briefcase className="w-3.5 h-3.5 text-[--exec-accent]" />
+                <span className="text-xs font-medium text-[--exec-text-secondary]">Project</span>
               </div>
+              <h1 className="text-3xl font-bold text-[--exec-text] tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>
+                {project.name}
+              </h1>
+              {project.description && (
+                <p className="text-[--exec-text-secondary] mt-2 text-base max-w-2xl">{project.description}</p>
+              )}
             </div>
 
-            {/* Delete Button */}
-            <button
-              onClick={handleDelete}
-              className="p-2 text-gray-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl transition-all duration-200"
-              title="Delete Project"
-            >
-              <Trash2 className="w-5 h-5" />
-            </button>
+            <div className="flex items-center gap-3">
+              {/* Status Selector */}
+              <div className="relative">
+                <select
+                  value={project.status}
+                  onChange={(e) =>
+                    updateMutation.mutate({ status: e.target.value as ProjectStatus })
+                  }
+                  className={cn(
+                    'appearance-none pl-4 pr-10 py-2 border rounded-xl font-bold text-xs uppercase tracking-wide cursor-pointer',
+                    'focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 transition-all',
+                    statusConfig[project.status].badge
+                  )}
+                >
+                  {Object.entries(statusConfig).map(([value, config]) => (
+                    <option key={value} value={value}>
+                      {config.label}
+                    </option>
+                  ))}
+                </select>
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                  <div className="w-2 h-2 border-r-2 border-b-2 rotate-45 border-current opacity-50" />
+                </div>
+              </div>
+
+              {/* Delete Button */}
+              <button
+                onClick={() => setShowDeleteConfirm(true)}
+                className="p-2 text-[--exec-text-muted] rounded-xl transition-all duration-200 hover:scale-110 active:scale-95"
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = '#ef4444';
+                  e.currentTarget.style.backgroundColor = 'rgba(239,68,68,0.15)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = '';
+                  e.currentTarget.style.backgroundColor = '';
+                }}
+                title="Delete Project"
+              >
+                <Trash2 className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+
+          {/* Tabs */}
+          <div className="flex gap-1 mt-6 border-b border-[--exec-border-subtle]">
+            {tabConfig.map((tab) => {
+              const Icon = tab.icon;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={cn(
+                    'flex items-center gap-2 pb-3 px-4 font-medium transition-all relative text-sm',
+                    activeTab === tab.id
+                      ? 'text-[--exec-accent]'
+                      : 'text-[--exec-text-muted] hover:text-[--exec-text]'
+                  )}
+                >
+                  <Icon className="w-4 h-4" />
+                  {tab.label}
+                  {activeTab === tab.id && (
+                    <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[--exec-accent] rounded-t-full" />
+                  )}
+                </button>
+              );
+            })}
           </div>
         </div>
-
-        {/* Tabs */}
-        <div className="flex gap-8 mt-8 border-b border-gray-200 dark:border-gray-700">
-          {(['overview', 'list', 'board'] as Tab[]).map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={cn(
-                'pb-4 font-medium capitalize transition-all relative text-sm',
-                activeTab === tab
-                  ? 'text-blue-600 dark:text-blue-400'
-                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-              )}
-            >
-              {tab}
-              {activeTab === tab && (
-                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400 rounded-t-full" />
-              )}
-            </button>
-          ))}
-        </div>
-      </div>
+      </header>
 
       {/* Tab Content */}
       <div className="flex-1 overflow-auto px-8 py-8">
@@ -206,41 +238,41 @@ export default function ProjectDetail() {
   );
 }
 
-// Placeholder components (will implement in next tasks)
 function OverviewTab({ project }: { project: Project }) {
-  const progressColor =
-    project.progress < 34 ? 'text-rose-600' :
-    project.progress < 67 ? 'text-amber-600' :
-    'text-emerald-600';
+  const getProgressColor = (progress: number) => {
+    if (progress < 34) return 'text-[--exec-danger]';
+    if (progress < 67) return 'text-[--exec-warning]';
+    return 'text-[--exec-sage]';
+  };
 
-  const progressBg =
-    project.progress < 34 ? 'bg-rose-500' :
-    project.progress < 67 ? 'bg-amber-500' :
-    'bg-emerald-500';
+  const getProgressStroke = (progress: number) => {
+    if (progress < 34) return 'var(--exec-danger)';
+    if (progress < 67) return 'var(--exec-warning)';
+    return 'var(--exec-sage)';
+  };
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       {/* Progress Circle */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200/60 dark:border-gray-700 p-8 shadow-sm">
+      <div className="bento-card-static p-8">
         <div className="flex flex-col items-center justify-center">
           <div className="relative inline-flex items-center justify-center mb-4">
             <svg className="w-48 h-48 transform -rotate-90">
               <circle
-                className="text-gray-100 dark:text-gray-700"
+                stroke="var(--exec-border)"
                 strokeWidth="12"
-                stroke="currentColor"
                 fill="transparent"
                 r="88"
                 cx="96"
                 cy="96"
               />
               <circle
-                className={cn("transition-all duration-1000 ease-out", progressBg.replace('bg-', 'text-'))}
+                stroke={getProgressStroke(project.progress)}
+                className="transition-all duration-1000 ease-out"
                 strokeWidth="12"
                 strokeDasharray={88 * 2 * Math.PI}
                 strokeDashoffset={88 * 2 * Math.PI * (1 - project.progress / 100)}
                 strokeLinecap="round"
-                stroke="currentColor"
                 fill="transparent"
                 r="88"
                 cx="96"
@@ -248,55 +280,60 @@ function OverviewTab({ project }: { project: Project }) {
               />
             </svg>
             <div className="absolute flex flex-col items-center">
-              <span className={cn('text-5xl font-bold tracking-tight', progressColor)}>
+              <span className={cn('text-5xl font-bold tracking-tight', getProgressColor(project.progress))} style={{ fontFamily: 'var(--font-display)' }}>
                 {project.progress}%
               </span>
-              <span className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mt-1">Complete</span>
+              <span className="text-sm font-medium text-[--exec-text-muted] uppercase tracking-wider mt-1">Complete</span>
             </div>
           </div>
-          <p className="text-gray-500 dark:text-gray-400 text-center max-w-md">
-            {project.progress === 100 
-              ? "All tasks completed! Great job!" 
+          <p className="text-[--exec-text-secondary] text-center max-w-md">
+            {project.progress === 100
+              ? "All tasks completed! Great job!"
               : `${project.completed_task_count || 0} of ${project.task_count || 0} tasks completed`}
           </p>
         </div>
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200/60 dark:border-gray-700 p-6 shadow-sm hover:shadow-md transition-all duration-300">
-          <div className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wider">Total Tasks</div>
-          <div className="text-3xl font-bold text-gray-900 dark:text-white">{project.task_count || 0}</div>
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
+        <div className="bento-card p-5">
+          <div className="text-xs font-bold text-[--exec-text-muted] mb-2 uppercase tracking-wider">Total Tasks</div>
+          <div className="text-3xl font-bold text-[--exec-text]" style={{ fontFamily: 'var(--font-display)' }}>{project.task_count || 0}</div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200/60 dark:border-gray-700 p-6 shadow-sm hover:shadow-md transition-all duration-300">
-          <div className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wider">Completed</div>
-          <div className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">
+        <div className="bento-card p-5">
+          <div className="text-xs font-bold text-[--exec-text-muted] mb-2 uppercase tracking-wider">Completed</div>
+          <div className="text-3xl font-bold text-[--exec-sage]" style={{ fontFamily: 'var(--font-display)' }}>
             {project.completed_task_count || 0}
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200/60 dark:border-gray-700 p-6 shadow-sm hover:shadow-md transition-all duration-300">
-          <div className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wider">In Progress</div>
-          <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">
+        <div className="bento-card p-5">
+          <div className="text-xs font-bold text-[--exec-text-muted] mb-2 uppercase tracking-wider">Remaining</div>
+          <div className="text-3xl font-bold text-[--exec-info]" style={{ fontFamily: 'var(--font-display)' }}>
             {(project.task_count || 0) - (project.completed_task_count || 0)}
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200/60 dark:border-gray-700 p-6 shadow-sm hover:shadow-md transition-all duration-300">
-          <div className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wider">Status</div>
-          <div className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white capitalize">
-            {project.status.replace('_', ' ')}
-          </div>
+        <div className="bento-card p-5">
+          <div className="text-xs font-bold text-[--exec-text-muted] mb-2 uppercase tracking-wider">Status</div>
+          <span className={cn(
+            'inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold uppercase tracking-wide border',
+            statusConfig[project.status].badge
+          )}>
+            {statusConfig[project.status].label}
+          </span>
         </div>
       </div>
 
-      {/* Completion Message */}
+      {/* Completion Celebration */}
       {project.progress === 100 && (
-        <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-8 text-center animate-in zoom-in duration-500 dark:bg-emerald-900/20 dark:border-emerald-800">
-          <div className="text-4xl mb-4">🎉</div>
-          <h3 className="text-xl font-bold text-emerald-900 mb-2 dark:text-emerald-100">Project Completed!</h3>
-          <p className="text-emerald-700 dark:text-emerald-300">You've finished all tasks in this project. Ready to archive it?</p>
+        <div className="bento-card-static bg-[--exec-success-bg] border-[--exec-success]/20 p-8 text-center animate-in zoom-in duration-500">
+          <div className="w-16 h-16 bg-[--exec-success]/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <CheckCircle2 className="w-8 h-8 text-[--exec-success]" />
+          </div>
+          <h3 className="text-xl font-bold text-[--exec-text] mb-2" style={{ fontFamily: 'var(--font-display)' }}>Project Completed!</h3>
+          <p className="text-[--exec-text-secondary]">You've finished all tasks in this project.</p>
         </div>
       )}
     </div>
@@ -309,13 +346,11 @@ function ListTab({ projectId }: { projectId: number }) {
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [filterPriority, setFilterPriority] = useState<string>('all');
 
-  // Fetch project tasks
   const { data: tasks = [], isLoading } = useQuery({
     queryKey: ['projects', projectId, 'tasks'],
     queryFn: () => projectApi.getTasks(projectId),
   });
 
-  // Create task mutation
   const createTaskMutation = useMutation({
     mutationFn: (data: TaskCreate) => projectApi.createTask(projectId, data),
     onSuccess: () => {
@@ -329,7 +364,6 @@ function ListTab({ projectId }: { projectId: number }) {
     },
   });
 
-  // Update task status mutation
   const updateStatusMutation = useMutation({
     mutationFn: ({ taskId, status }: { taskId: number; status: TaskStatus }) =>
       taskApi.update(taskId, { status }),
@@ -343,7 +377,6 @@ function ListTab({ projectId }: { projectId: number }) {
     },
   });
 
-  // Handle task status change
   const handleStatusChange = (taskId: number, status: TaskStatus) => {
     updateStatusMutation.mutate({ taskId, status });
   };
@@ -354,6 +387,14 @@ function ListTab({ projectId }: { projectId: number }) {
     return true;
   });
 
+  const selectClasses = cn(
+    "px-4 py-2 rounded-lg text-sm font-medium cursor-pointer appearance-none",
+    "bg-[--exec-surface] border border-[--exec-border-subtle]",
+    "text-[--exec-text-secondary]",
+    "focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]/50",
+    "transition-all"
+  );
+
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex justify-between items-center">
@@ -361,7 +402,7 @@ function ListTab({ projectId }: { projectId: number }) {
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
-            className="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+            className={selectClasses}
           >
             <option value="all">All Status</option>
             <option value={TaskStatus.PENDING}>Pending</option>
@@ -371,7 +412,7 @@ function ListTab({ projectId }: { projectId: number }) {
           <select
             value={filterPriority}
             onChange={(e) => setFilterPriority(e.target.value)}
-            className="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+            className={selectClasses}
           >
             <option value="all">All Priority</option>
             <option value={TaskPriority.HIGH}>High</option>
@@ -381,17 +422,16 @@ function ListTab({ projectId }: { projectId: number }) {
         </div>
         <button
           onClick={() => setShowAddTask(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 dark:bg-blue-500 text-white rounded-xl hover:bg-blue-700 dark:hover:bg-blue-600 transition-all shadow-sm hover:shadow-md font-medium"
+          className="group flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[--exec-accent] to-[--exec-accent-dark] text-white rounded-xl hover:shadow-lg hover:shadow-[--exec-accent]/25 hover:-translate-y-0.5 transition-all duration-200 font-semibold text-sm"
         >
-          <Plus className="w-4 h-4" />
+          <Plus className="w-4 h-4 transition-transform duration-200 group-hover:rotate-90" />
           Add Task
         </button>
       </div>
 
       {showAddTask && (
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700 shadow-lg animate-in slide-in-from-top-2 duration-300">
-          <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">New Task</h3>
-          {/* Simple form for now */}
+        <div className="bento-card-static p-6 animate-in slide-in-from-top-2 duration-300">
+          <h3 className="text-lg font-bold text-[--exec-text] mb-4" style={{ fontFamily: 'var(--font-display)' }}>New Task</h3>
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -407,52 +447,49 @@ function ListTab({ projectId }: { projectId: number }) {
             className="space-y-4"
           >
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-sm font-medium text-[--exec-text-secondary] mb-1.5">
                 Title
               </label>
               <input
                 name="title"
                 required
-                className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                className={inputClasses}
                 placeholder="What needs to be done?"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-sm font-medium text-[--exec-text-secondary] mb-1.5">
                 Description
               </label>
               <textarea
                 name="description"
                 rows={3}
-                className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                className={cn(inputClasses, 'resize-none')}
                 placeholder="Add details..."
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-sm font-medium text-[--exec-text-secondary] mb-1.5">
                 Priority
               </label>
-              <select
-                name="priority"
-                className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-              >
+              <select name="priority" className={inputClasses}>
                 <option value={TaskPriority.LOW}>Low</option>
                 <option value={TaskPriority.MEDIUM}>Medium</option>
                 <option value={TaskPriority.HIGH}>High</option>
               </select>
             </div>
-            <div className="flex justify-end gap-3 pt-2">
+            <div className="flex justify-end gap-3 pt-4 border-t border-stone-700/30">
               <button
                 type="button"
                 onClick={() => setShowAddTask(false)}
-                className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg font-medium transition-colors"
+                className="px-4 py-2 text-sm font-medium text-[--exec-text-secondary] bg-stone-700/50 rounded-lg hover:bg-stone-600/50 transition-colors"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={createTaskMutation.isPending}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors disabled:opacity-50"
+                className="px-4 py-2 text-sm font-medium text-white bg-[--exec-accent] rounded-lg hover:bg-[--exec-accent-dark] shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {createTaskMutation.isPending ? 'Creating...' : 'Create Task'}
               </button>
@@ -464,13 +501,14 @@ function ListTab({ projectId }: { projectId: number }) {
       <div className="space-y-3">
         {isLoading ? (
           <div className="text-center py-12">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-4"></div>
-            <p className="text-gray-500 dark:text-gray-400">Loading tasks...</p>
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[--exec-accent] mb-4" />
+            <p className="text-[--exec-text-muted]">Loading tasks...</p>
           </div>
         ) : filteredTasks.length === 0 ? (
-          <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 border-dashed">
-            <p className="text-gray-500 dark:text-gray-400 font-medium">No tasks found</p>
-            <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">
+          <div className="bento-card-static p-12 text-center border-dashed">
+            <ListTodo className="w-10 h-10 text-[--exec-text-muted] mx-auto mb-3" />
+            <p className="text-[--exec-text-secondary] font-medium">No tasks found</p>
+            <p className="text-sm text-[--exec-text-muted] mt-1">
               {tasks.length === 0
                 ? "Get started by adding a task to this project"
                 : "Try adjusting your filters"}
@@ -478,9 +516,9 @@ function ListTab({ projectId }: { projectId: number }) {
           </div>
         ) : (
           filteredTasks.map((task) => (
-            <TaskItem 
-              key={task.id} 
-              task={task} 
+            <TaskItem
+              key={task.id}
+              task={task}
               onStatusChange={handleStatusChange}
               onClick={() => {}}
             />
@@ -520,17 +558,29 @@ function BoardTab({ projectId }: { projectId: number }) {
   if (isLoading) {
     return (
       <div className="text-center py-12">
-        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-4"></div>
-        <p className="text-gray-500 dark:text-gray-400">Loading board...</p>
+        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[--exec-accent] mb-4" />
+        <p className="text-[--exec-text-muted]">Loading board...</p>
       </div>
     );
   }
 
   const columns = [
-    { id: TaskStatus.PENDING, title: 'To Do', color: 'bg-gray-100 dark:bg-gray-700' },
-    { id: TaskStatus.IN_PROGRESS, title: 'In Progress', color: 'bg-blue-50 dark:bg-blue-900/20' },
-    { id: TaskStatus.COMPLETED, title: 'Completed', color: 'bg-emerald-50 dark:bg-emerald-900/20' },
+    { id: TaskStatus.PENDING, title: 'To Do', bg: 'bg-[--exec-surface-alt]' },
+    { id: TaskStatus.IN_PROGRESS, title: 'In Progress', bg: 'bg-[--exec-info-bg]' },
+    { id: TaskStatus.COMPLETED, title: 'Completed', bg: 'bg-[--exec-success-bg]' },
   ];
+
+  const priorityBadge = (priority: TaskPriority) => {
+    switch (priority) {
+      case TaskPriority.HIGH:
+      case TaskPriority.URGENT:
+        return 'bg-[--exec-danger]/10 text-[--exec-danger]';
+      case TaskPriority.MEDIUM:
+        return 'bg-[--exec-warning]/10 text-[--exec-warning]';
+      default:
+        return 'bg-[--exec-info]/10 text-[--exec-info]';
+    }
+  };
 
   return (
     <DragDropContext onDragEnd={onDragEnd}>
@@ -538,8 +588,8 @@ function BoardTab({ projectId }: { projectId: number }) {
         {columns.map((column) => (
           <div key={column.id} className="flex flex-col h-full">
             <div className="flex items-center justify-between mb-4 px-1">
-              <h3 className="font-bold text-gray-900 dark:text-white">{column.title}</h3>
-              <span className="bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-2.5 py-0.5 rounded-full text-xs font-medium">
+              <h3 className="font-bold text-[--exec-text]">{column.title}</h3>
+              <span className="bg-[--exec-surface-alt] text-[--exec-text-muted] px-2.5 py-0.5 rounded-full text-xs font-bold">
                 {tasks.filter((t) => t.status === column.id).length}
               </span>
             </div>
@@ -549,9 +599,9 @@ function BoardTab({ projectId }: { projectId: number }) {
                   ref={provided.innerRef}
                   {...provided.droppableProps}
                   className={cn(
-                    'flex-1 rounded-xl p-4 transition-colors border border-transparent',
-                    column.color,
-                    snapshot.isDraggingOver ? 'ring-2 ring-blue-500/20 dark:ring-blue-500/40 bg-white dark:bg-gray-800' : ''
+                    'flex-1 rounded-2xl p-4 transition-all border border-transparent',
+                    column.bg,
+                    snapshot.isDraggingOver && 'ring-2 ring-[--exec-accent]/30 bg-[--exec-surface]'
                   )}
                 >
                   <div className="space-y-3">
@@ -569,34 +619,30 @@ function BoardTab({ projectId }: { projectId: number }) {
                               {...provided.draggableProps}
                               {...provided.dragHandleProps}
                               className={cn(
-                                'bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md transition-all group',
-                                snapshot.isDragging ? 'shadow-lg rotate-2 scale-105 z-50' : ''
+                                'bento-card p-4 group',
+                                snapshot.isDragging && 'shadow-lg rotate-2 scale-105 z-50'
                               )}
                             >
                               <div className="flex justify-between items-start mb-2">
                                 <span
                                   className={cn(
-                                    'text-xs font-medium px-2 py-0.5 rounded-full',
-                                    task.priority === TaskPriority.HIGH
-                                      ? 'bg-rose-50 dark:bg-rose-900/30 text-rose-700 dark:text-rose-400'
-                                      : task.priority === TaskPriority.MEDIUM
-                                      ? 'bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400'
-                                      : 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400'
+                                    'text-xs font-bold px-2 py-0.5 rounded-full uppercase tracking-wide',
+                                    priorityBadge(task.priority)
                                   )}
                                 >
                                   {task.priority}
                                 </span>
                               </div>
-                              <h4 className="font-medium text-gray-900 dark:text-white mb-1 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                              <h4 className="font-medium text-[--exec-text] mb-1 group-hover:text-[--exec-accent] transition-colors">
                                 {task.title}
                               </h4>
                               {task.description && (
-                                <p className="text-sm text-gray-500 dark:text-gray-400 line-clamp-2 mb-3">
+                                <p className="text-sm text-[--exec-text-muted] line-clamp-2 mb-3">
                                   {task.description}
                                 </p>
                               )}
                               {task.due_date && (
-                                <div className="flex items-center text-xs text-gray-400 dark:text-gray-500 mt-2 pt-2 border-t border-gray-100 dark:border-gray-700">
+                                <div className="flex items-center text-xs text-[--exec-text-muted] mt-2 pt-2 border-t border-[--exec-border-subtle]">
                                   <Clock className="w-3 h-3 mr-1" />
                                   {format(new Date(task.due_date), 'MMM d')}
                                 </div>
