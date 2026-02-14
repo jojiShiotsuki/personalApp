@@ -252,7 +252,7 @@ export default function ProjectDetail() {
                   className={cn(
                     'flex items-center gap-2 py-2.5 px-5 font-semibold transition-all relative text-sm rounded-t-xl',
                     isActive
-                      ? 'text-[--exec-accent] bg-[--exec-accent]/10'
+                      ? 'text-[--exec-accent] bg-stone-700/50'
                       : 'text-[--exec-text-muted] hover:text-[--exec-text] hover:bg-stone-700/30 active:bg-stone-700/50'
                   )}
                 >
