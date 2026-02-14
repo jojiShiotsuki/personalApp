@@ -202,7 +202,7 @@ export default function ProjectDetail() {
                 </button>
 
                 {statusDropdownOpen && (
-                  <div className="absolute right-0 top-full mt-2 w-44 bg-stone-800 border border-stone-600/50 rounded-xl shadow-xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-1 duration-150">
+                  <div className="absolute right-0 top-full mt-2 w-48 bg-stone-800 border border-stone-600/50 rounded-xl shadow-xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-1 duration-150">
                     {Object.entries(statusConfig).map(([value, config]) => (
                       <button
                         key={value}
