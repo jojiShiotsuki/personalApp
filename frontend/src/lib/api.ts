@@ -129,6 +129,11 @@ export const taskApi = {
     return response.data;
   },
 
+  bulkUpdate: async (taskIds: number[], updates: Record<string, string | null>): Promise<{ updated_count: number; message: string }> => {
+    const response = await api.put('/api/tasks/bulk-update', { task_ids: taskIds, updates });
+    return response.data;
+  },
+
   updateStatus: async (id: number, status: TaskStatus): Promise<Task> => {
     const response = await api.patch(`/api/tasks/${id}/status`, null, {
       params: { status },

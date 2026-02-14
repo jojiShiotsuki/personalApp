@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Trash2, Plus, Clock, Briefcase, CheckCircle2, ListTodo, LayoutGrid, FileText, ChevronDown } from 'lucide-react';
+import { ArrowLeft, Trash2, Plus, Clock, Briefcase, CheckCircle2, ListTodo, LayoutGrid, FileText, ChevronDown, ChevronRight, Square, CheckSquare, MinusSquare } from 'lucide-react';
 import { projectApi, taskApi, projectTemplateApi } from '@/lib/api';
 import type { Project } from '@/types';
 import { ProjectStatus, TaskStatus, TaskCreate, TaskPriority } from '@/types';
@@ -475,13 +475,27 @@ function ListTab({ projectId }: { projectId: number }) {
   const [showAddTask, setShowAddTask] = useState(false);
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [filterPriority, setFilterPriority] = useState<string>('all');
+  const [filterPhase, setFilterPhase] = useState<string>('all');
   const [showTemplateMenu, setShowTemplateMenu] = useState(false);
   const templateMenuRef = useRef<HTMLDivElement>(null);
+  const [selectedTasks, setSelectedTasks] = useState<Set<number>>(new Set());
+  const [collapsedPhases, setCollapsedPhases] = useState<Set<string>>(new Set());
+  const [showBulkStatus, setShowBulkStatus] = useState(false);
+  const [showBulkPriority, setShowBulkPriority] = useState(false);
+  const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
+  const bulkStatusRef = useRef<HTMLDivElement>(null);
+  const bulkPriorityRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (templateMenuRef.current && !templateMenuRef.current.contains(e.target as Node)) {
         setShowTemplateMenu(false);
+      }
+      if (bulkStatusRef.current && !bulkStatusRef.current.contains(e.target as Node)) {
+        setShowBulkStatus(false);
+      }
+      if (bulkPriorityRef.current && !bulkPriorityRef.current.contains(e.target as Node)) {
+        setShowBulkPriority(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -537,6 +551,34 @@ function ListTab({ projectId }: { projectId: number }) {
     },
   });
 
+  const bulkUpdateMutation = useMutation({
+    mutationFn: ({ ids, updates }: { ids: number[]; updates: Record<string, string | null> }) =>
+      taskApi.bulkUpdate(ids, updates),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['projects', projectId, 'tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['projects', projectId] });
+      setSelectedTasks(new Set());
+      toast.success(`Updated ${data.updated_count} task(s)`);
+    },
+    onError: () => {
+      toast.error('Failed to update tasks');
+    },
+  });
+
+  const bulkDeleteMutation = useMutation({
+    mutationFn: (ids: number[]) => taskApi.bulkDelete(ids),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['projects', projectId, 'tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['projects', projectId] });
+      setSelectedTasks(new Set());
+      setShowBulkDeleteConfirm(false);
+      toast.success(`Deleted ${data.deleted_count} task(s)`);
+    },
+    onError: () => {
+      toast.error('Failed to delete tasks');
+    },
+  });
+
   const handleStatusChange = (taskId: number, status: TaskStatus) => {
     updateStatusMutation.mutate({ taskId, status });
   };
@@ -544,13 +586,88 @@ function ListTab({ projectId }: { projectId: number }) {
   const filteredTasks = tasks.filter((task) => {
     if (filterStatus !== 'all' && task.status !== filterStatus) return false;
     if (filterPriority !== 'all' && task.priority !== filterPriority) return false;
+    if (filterPhase !== 'all') {
+      const taskPhase = task.phase || 'Ungrouped';
+      if (filterPhase !== taskPhase) return false;
+    }
     return true;
   });
+
+  // Group tasks by phase
+  const phases = new Set(tasks.map(t => t.phase).filter(Boolean) as string[]);
+  const hasPhases = phases.size > 0;
+  const groupedTasks: { phase: string; tasks: typeof filteredTasks }[] = [];
+
+  if (hasPhases) {
+    const phaseMap = new Map<string, typeof filteredTasks>();
+    filteredTasks.forEach(task => {
+      const phase = task.phase || 'Ungrouped';
+      if (!phaseMap.has(phase)) phaseMap.set(phase, []);
+      phaseMap.get(phase)!.push(task);
+    });
+    // Preserve phase order from tasks (order they appear)
+    const seenPhases = new Set<string>();
+    tasks.forEach(task => {
+      const phase = task.phase || 'Ungrouped';
+      if (!seenPhases.has(phase) && phaseMap.has(phase)) {
+        seenPhases.add(phase);
+        groupedTasks.push({ phase, tasks: phaseMap.get(phase)! });
+      }
+    });
+  } else {
+    groupedTasks.push({ phase: '', tasks: filteredTasks });
+  }
+
+  const phaseFilterOptions = [
+    { value: 'all', label: 'All Phases' },
+    ...Array.from(phases).map(p => ({ value: p, label: p })),
+    ...(tasks.some(t => !t.phase) && phases.size > 0 ? [{ value: 'Ungrouped', label: 'Ungrouped' }] : []),
+  ];
+
+  const togglePhase = (phase: string) => {
+    setCollapsedPhases(prev => {
+      const next = new Set(prev);
+      if (next.has(phase)) next.delete(phase);
+      else next.add(phase);
+      return next;
+    });
+  };
+
+  const toggleTask = (taskId: number) => {
+    setSelectedTasks(prev => {
+      const next = new Set(prev);
+      if (next.has(taskId)) next.delete(taskId);
+      else next.add(taskId);
+      return next;
+    });
+  };
+
+  const toggleAll = () => {
+    if (selectedTasks.size === filteredTasks.length) {
+      setSelectedTasks(new Set());
+    } else {
+      setSelectedTasks(new Set(filteredTasks.map(t => t.id)));
+    }
+  };
+
+  const togglePhaseSelection = (phaseTasks: typeof filteredTasks) => {
+    const phaseIds = phaseTasks.map(t => t.id);
+    const allSelected = phaseIds.every(id => selectedTasks.has(id));
+    setSelectedTasks(prev => {
+      const next = new Set(prev);
+      if (allSelected) {
+        phaseIds.forEach(id => next.delete(id));
+      } else {
+        phaseIds.forEach(id => next.add(id));
+      }
+      return next;
+    });
+  };
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex justify-between items-center">
-        <div className="flex gap-3">
+        <div className="flex gap-3 items-center">
           <FilterDropdown
             value={filterStatus}
             onChange={setFilterStatus}
@@ -563,6 +680,14 @@ function ListTab({ projectId }: { projectId: number }) {
             options={priorityFilterOptions}
             label="All Priority"
           />
+          {hasPhases && (
+            <FilterDropdown
+              value={filterPhase}
+              onChange={setFilterPhase}
+              options={phaseFilterOptions}
+              label="All Phases"
+            />
+          )}
         </div>
         <div className="flex items-center gap-2">
           {templates.length > 0 && (
@@ -618,22 +743,55 @@ function ListTab({ projectId }: { projectId: number }) {
                 title: formData.get('title') as string,
                 description: formData.get('description') as string,
                 priority: (formData.get('priority') as TaskPriority) || TaskPriority.MEDIUM,
+                phase: (formData.get('phase') as string)?.trim() || undefined,
                 status: TaskStatus.PENDING,
                 project_id: projectId,
               });
             }}
             className="space-y-4"
           >
-            <div>
-              <label className="block text-sm font-medium text-[--exec-text-secondary] mb-1.5">
-                Title
-              </label>
-              <input
-                name="title"
-                required
-                className={inputClasses}
-                placeholder="What needs to be done?"
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-[--exec-text-secondary] mb-1.5">
+                  Title <span className="text-red-400">*</span>
+                </label>
+                <input
+                  name="title"
+                  required
+                  className={inputClasses}
+                  placeholder="What needs to be done?"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-[--exec-text-secondary] mb-1.5">
+                    Phase
+                  </label>
+                  <input
+                    name="phase"
+                    className={inputClasses}
+                    placeholder="e.g., Discovery"
+                    list="phase-suggestions"
+                  />
+                  {hasPhases && (
+                    <datalist id="phase-suggestions">
+                      {Array.from(phases).map(p => (
+                        <option key={p} value={p} />
+                      ))}
+                    </datalist>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-[--exec-text-secondary] mb-1.5">
+                    Priority
+                  </label>
+                  <select name="priority" className={inputClasses}>
+                    <option value={TaskPriority.LOW}>Low</option>
+                    <option value={TaskPriority.MEDIUM}>Medium</option>
+                    <option value={TaskPriority.HIGH}>High</option>
+                  </select>
+                </div>
+              </div>
             </div>
             <div>
               <label className="block text-sm font-medium text-[--exec-text-secondary] mb-1.5">
@@ -641,20 +799,10 @@ function ListTab({ projectId }: { projectId: number }) {
               </label>
               <textarea
                 name="description"
-                rows={3}
+                rows={2}
                 className={cn(inputClasses, 'resize-none')}
                 placeholder="Add details..."
               />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-[--exec-text-secondary] mb-1.5">
-                Priority
-              </label>
-              <select name="priority" className={inputClasses}>
-                <option value={TaskPriority.LOW}>Low</option>
-                <option value={TaskPriority.MEDIUM}>Medium</option>
-                <option value={TaskPriority.HIGH}>High</option>
-              </select>
             </div>
             <div className="flex justify-end gap-3 pt-4 border-t border-stone-700/30">
               <button
@@ -676,7 +824,31 @@ function ListTab({ projectId }: { projectId: number }) {
         </div>
       )}
 
-      <div className="space-y-3">
+      {/* Select All header */}
+      {filteredTasks.length > 0 && (
+        <div className="flex items-center gap-3 px-2">
+          <button
+            onClick={toggleAll}
+            className="text-[--exec-text-muted] hover:text-[--exec-accent] transition-colors"
+            title={selectedTasks.size === filteredTasks.length ? 'Deselect all' : 'Select all'}
+          >
+            {selectedTasks.size === 0 ? (
+              <Square className="w-4.5 h-4.5" />
+            ) : selectedTasks.size === filteredTasks.length ? (
+              <CheckSquare className="w-4.5 h-4.5 text-[--exec-accent]" />
+            ) : (
+              <MinusSquare className="w-4.5 h-4.5 text-[--exec-accent]" />
+            )}
+          </button>
+          <span className="text-xs font-medium text-[--exec-text-muted]">
+            {selectedTasks.size > 0
+              ? `${selectedTasks.size} selected`
+              : `${filteredTasks.length} task${filteredTasks.length !== 1 ? 's' : ''}`}
+          </span>
+        </div>
+      )}
+
+      <div className="space-y-2">
         {isLoading ? (
           <div className="text-center py-12">
             <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[--exec-accent] mb-4" />
@@ -693,16 +865,195 @@ function ListTab({ projectId }: { projectId: number }) {
             </p>
           </div>
         ) : (
-          filteredTasks.map((task) => (
-            <TaskItem
-              key={task.id}
-              task={task}
-              onStatusChange={handleStatusChange}
-              onClick={() => {}}
-            />
-          ))
+          groupedTasks.map(({ phase, tasks: phaseTasks }) => {
+            if (phaseTasks.length === 0) return null;
+            const isCollapsed = collapsedPhases.has(phase);
+            const phaseCompleted = phaseTasks.filter(t => t.status === TaskStatus.COMPLETED).length;
+            const phaseIds = phaseTasks.map(t => t.id);
+            const allPhaseSelected = phaseIds.every(id => selectedTasks.has(id));
+            const somePhaseSelected = phaseIds.some(id => selectedTasks.has(id));
+
+            return (
+              <div key={phase || '_flat'}>
+                {hasPhases && phase && (
+                  <div className="flex items-center gap-2 py-2.5 px-2 mb-1 mt-3 first:mt-0">
+                    <button
+                      onClick={() => togglePhaseSelection(phaseTasks)}
+                      className="text-[--exec-text-muted] hover:text-[--exec-accent] transition-colors"
+                    >
+                      {allPhaseSelected ? (
+                        <CheckSquare className="w-4 h-4 text-[--exec-accent]" />
+                      ) : somePhaseSelected ? (
+                        <MinusSquare className="w-4 h-4 text-[--exec-accent]" />
+                      ) : (
+                        <Square className="w-4 h-4" />
+                      )}
+                    </button>
+                    <button
+                      onClick={() => togglePhase(phase)}
+                      className="flex items-center gap-2 flex-1 group"
+                    >
+                      <ChevronRight className={cn(
+                        'w-4 h-4 text-[--exec-text-muted] transition-transform duration-200',
+                        !isCollapsed && 'rotate-90'
+                      )} />
+                      <span className="text-xs font-bold uppercase tracking-wider text-[--exec-accent]">
+                        {phase}
+                      </span>
+                      <span className="text-[10px] font-medium text-[--exec-text-muted] bg-stone-700/40 px-2 py-0.5 rounded-full">
+                        {phaseCompleted}/{phaseTasks.length}
+                      </span>
+                      <div className="flex-1 h-px bg-stone-700/30 ml-2" />
+                    </button>
+                  </div>
+                )}
+                {!isCollapsed && (
+                  <div className="space-y-2">
+                    {phaseTasks.map((task) => (
+                      <div key={task.id} className="flex items-center gap-2">
+                        <button
+                          onClick={() => toggleTask(task.id)}
+                          className="text-[--exec-text-muted] hover:text-[--exec-accent] transition-colors flex-shrink-0 ml-2"
+                        >
+                          {selectedTasks.has(task.id) ? (
+                            <CheckSquare className="w-4 h-4 text-[--exec-accent]" />
+                          ) : (
+                            <Square className="w-4 h-4" />
+                          )}
+                        </button>
+                        <div className="flex-1 min-w-0">
+                          <TaskItem
+                            task={task}
+                            onStatusChange={handleStatusChange}
+                            onClick={() => {}}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })
         )}
       </div>
+
+      {/* Bulk Action Bar */}
+      {selectedTasks.size > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom-4 duration-300">
+          <div className="flex items-center gap-3 px-5 py-3 bg-stone-800 border border-stone-600/50 rounded-2xl shadow-2xl shadow-black/40">
+            <span className="text-sm font-bold text-[--exec-text] mr-2">
+              {selectedTasks.size} selected
+            </span>
+
+            <div className="w-px h-6 bg-stone-600/50" />
+
+            {/* Bulk Status */}
+            <div className="relative" ref={bulkStatusRef}>
+              <button
+                onClick={() => { setShowBulkStatus(!showBulkStatus); setShowBulkPriority(false); }}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-[--exec-text-secondary] hover:text-[--exec-text] hover:bg-stone-700/50 rounded-lg transition-colors"
+              >
+                Status
+                <ChevronDown className="w-3.5 h-3.5" />
+              </button>
+              {showBulkStatus && (
+                <div className="absolute bottom-full mb-2 left-0 w-44 bg-stone-800 border border-stone-600/50 rounded-xl shadow-xl overflow-hidden z-50">
+                  {[
+                    { value: TaskStatus.PENDING, label: 'Pending', dot: 'bg-stone-400' },
+                    { value: TaskStatus.IN_PROGRESS, label: 'In Progress', dot: 'bg-blue-400' },
+                    { value: TaskStatus.COMPLETED, label: 'Completed', dot: 'bg-emerald-400' },
+                  ].map(opt => (
+                    <button
+                      key={opt.value}
+                      onClick={() => {
+                        bulkUpdateMutation.mutate({
+                          ids: Array.from(selectedTasks),
+                          updates: { status: opt.value },
+                        });
+                        setShowBulkStatus(false);
+                      }}
+                      className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-stone-300 hover:bg-stone-700/50 transition-colors"
+                    >
+                      <span className={cn('w-2 h-2 rounded-full', opt.dot)} />
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Bulk Priority */}
+            <div className="relative" ref={bulkPriorityRef}>
+              <button
+                onClick={() => { setShowBulkPriority(!showBulkPriority); setShowBulkStatus(false); }}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-[--exec-text-secondary] hover:text-[--exec-text] hover:bg-stone-700/50 rounded-lg transition-colors"
+              >
+                Priority
+                <ChevronDown className="w-3.5 h-3.5" />
+              </button>
+              {showBulkPriority && (
+                <div className="absolute bottom-full mb-2 left-0 w-44 bg-stone-800 border border-stone-600/50 rounded-xl shadow-xl overflow-hidden z-50">
+                  {[
+                    { value: TaskPriority.LOW, label: 'Low', dot: 'bg-stone-400' },
+                    { value: TaskPriority.MEDIUM, label: 'Medium', dot: 'bg-blue-400' },
+                    { value: TaskPriority.HIGH, label: 'High', dot: 'bg-orange-400' },
+                    { value: TaskPriority.URGENT, label: 'Urgent', dot: 'bg-red-400' },
+                  ].map(opt => (
+                    <button
+                      key={opt.value}
+                      onClick={() => {
+                        bulkUpdateMutation.mutate({
+                          ids: Array.from(selectedTasks),
+                          updates: { priority: opt.value },
+                        });
+                        setShowBulkPriority(false);
+                      }}
+                      className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-stone-300 hover:bg-stone-700/50 transition-colors"
+                    >
+                      <span className={cn('w-2 h-2 rounded-full', opt.dot)} />
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="w-px h-6 bg-stone-600/50" />
+
+            {/* Bulk Delete */}
+            <button
+              onClick={() => setShowBulkDeleteConfirm(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-colors"
+            >
+              <Trash2 className="w-4 h-4" />
+              Delete
+            </button>
+
+            <div className="w-px h-6 bg-stone-600/50" />
+
+            <button
+              onClick={() => setSelectedTasks(new Set())}
+              className="text-xs font-medium text-[--exec-text-muted] hover:text-[--exec-text] transition-colors"
+            >
+              Clear
+            </button>
+          </div>
+        </div>
+      )}
+
+      <ConfirmModal
+        isOpen={showBulkDeleteConfirm}
+        onClose={() => setShowBulkDeleteConfirm(false)}
+        onConfirm={() => {
+          bulkDeleteMutation.mutate(Array.from(selectedTasks));
+        }}
+        title="Delete Tasks"
+        message={`Are you sure you want to delete ${selectedTasks.size} task(s)? This action cannot be undone.`}
+        confirmText="Delete"
+        variant="danger"
+        isLoading={bulkDeleteMutation.isPending}
+      />
     </div>
   );
 }

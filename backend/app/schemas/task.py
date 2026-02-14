@@ -14,6 +14,7 @@ class TaskBase(BaseModel):
     goal_id: Optional[int] = None
     project_id: Optional[int] = None
     sprint_day_id: Optional[int] = None
+    phase: Optional[str] = None
 
     # Recurrence fields
     is_recurring: bool = False
@@ -36,6 +37,7 @@ class TaskUpdate(BaseModel):
     goal_id: Optional[int] = None
     project_id: Optional[int] = None
     sprint_day_id: Optional[int] = None
+    phase: Optional[str] = None
 
     # Recurrence fields
     is_recurring: Optional[bool] = None
@@ -47,6 +49,7 @@ class TaskUpdate(BaseModel):
 
 class TaskResponse(TaskBase):
     id: int
+    phase: Optional[str] = None
     created_at: datetime
     updated_at: datetime
     completed_at: Optional[datetime] = None

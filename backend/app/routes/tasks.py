@@ -3,6 +3,8 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import datetime
 
+from pydantic import BaseModel
+
 from app.database import get_db
 from app.models.task import Task, TaskStatus, TaskPriority
 from app.schemas.task import TaskCreate, TaskUpdate, TaskResponse
@@ -147,13 +149,61 @@ def bulk_delete_tasks(task_ids: List[int], db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="No tasks found with the provided IDs")
 
     deleted_count = len(tasks)
+    project_ids = set()
 
     for task in tasks:
+        if task.project_id:
+            project_ids.add(task.project_id)
         db.delete(task)
 
     db.commit()
 
+    for pid in project_ids:
+        recalculate_project_progress(pid, db)
+
     return {"deleted_count": deleted_count, "message": f"Successfully deleted {deleted_count} task(s)"}
+
+
+class BulkUpdateRequest(BaseModel):
+    task_ids: List[int]
+    updates: dict
+
+
+@router.put("/bulk-update", status_code=200)
+def bulk_update_tasks(request: BulkUpdateRequest, db: Session = Depends(get_db)):
+    """Update multiple tasks with the same changes"""
+    if not request.task_ids:
+        raise HTTPException(status_code=400, detail="No task IDs provided")
+    if not request.updates:
+        raise HTTPException(status_code=400, detail="No updates provided")
+
+    tasks = db.query(Task).filter(Task.id.in_(request.task_ids)).all()
+    if not tasks:
+        raise HTTPException(status_code=404, detail="No tasks found with the provided IDs")
+
+    project_ids = set()
+    for task in tasks:
+        for field, value in request.updates.items():
+            if field == "status" and value:
+                setattr(task, field, TaskStatus(value))
+                if value == TaskStatus.COMPLETED.value:
+                    task.completed_at = datetime.utcnow()
+            elif field == "priority" and value:
+                setattr(task, field, TaskPriority(value))
+            elif field == "phase":
+                task.phase = value
+            else:
+                setattr(task, field, value)
+        task.updated_at = datetime.utcnow()
+        if task.project_id:
+            project_ids.add(task.project_id)
+
+    db.commit()
+
+    for pid in project_ids:
+        recalculate_project_progress(pid, db)
+
+    return {"updated_count": len(tasks), "message": f"Successfully updated {len(tasks)} task(s)"}
 
 
 @router.delete("/{task_id}", status_code=204)

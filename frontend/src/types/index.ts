@@ -60,6 +60,7 @@ export type ProjectTemplateTask = {
   description?: string;
   priority: TaskPriority;
   order: number;
+  phase?: string;
 }
 
 export type ProjectTemplateTaskCreate = {
@@ -67,6 +68,7 @@ export type ProjectTemplateTaskCreate = {
   description?: string;
   priority: TaskPriority;
   order: number;
+  phase?: string;
 }
 
 export type ProjectTemplate = {
@@ -97,6 +99,7 @@ export type Task = {
   completed_at?: string;
   project_id?: number;
   sprint_day_id?: number;
+  phase?: string;
 
   // Recurrence fields
   is_recurring: boolean;
@@ -119,6 +122,7 @@ export type TaskCreate = {
   project_id?: number;
   goal_id?: number;
   sprint_day_id?: number;
+  phase?: string;
 
   // Recurrence fields
   is_recurring?: boolean;
@@ -139,6 +143,7 @@ export type TaskUpdate = {
   project_id?: number;
   goal_id?: number;
   sprint_day_id?: number;
+  phase?: string;
 
   // Recurrence fields
   is_recurring?: boolean;

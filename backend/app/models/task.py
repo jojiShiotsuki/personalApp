@@ -48,6 +48,7 @@ class Task(Base):
     recurrence_type = Column(Enum(RecurrenceType), nullable=True)
     recurrence_interval = Column(Integer, default=1, nullable=True)
     recurrence_days = Column(String(255), nullable=True)
+    phase = Column(String(255), nullable=True)
     recurrence_end_date = Column(Date, nullable=True)
     recurrence_count = Column(Integer, nullable=True)
     occurrences_created = Column(Integer, default=0, nullable=False)

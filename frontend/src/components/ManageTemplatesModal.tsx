@@ -38,6 +38,7 @@ export default function ManageTemplatesModal({ isOpen, onClose }: ManageTemplate
   const [tasks, setTasks] = useState<ProjectTemplateTaskCreate[]>([]);
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [newTaskPriority, setNewTaskPriority] = useState<TaskPriority>(TaskPriority.MEDIUM);
+  const [newTaskPhase, setNewTaskPhase] = useState('');
 
   const { data: templates = [], isLoading } = useQuery({
     queryKey: ['project-templates'],
@@ -72,11 +73,17 @@ export default function ManageTemplatesModal({ isOpen, onClose }: ManageTemplate
     setTasks([]);
     setNewTaskTitle('');
     setNewTaskPriority(TaskPriority.MEDIUM);
+    setNewTaskPhase('');
   };
 
   const addTask = () => {
     if (!newTaskTitle.trim()) return;
-    setTasks([...tasks, { title: newTaskTitle.trim(), priority: newTaskPriority, order: tasks.length }]);
+    setTasks([...tasks, {
+      title: newTaskTitle.trim(),
+      priority: newTaskPriority,
+      order: tasks.length,
+      phase: newTaskPhase.trim() || undefined,
+    }]);
     setNewTaskTitle('');
     setNewTaskPriority(TaskPriority.MEDIUM);
   };
@@ -142,6 +149,10 @@ export default function ManageTemplatesModal({ isOpen, onClose }: ManageTemplate
                         <h4 className="font-medium text-[--exec-text] truncate">{template.name}</h4>
                         <p className="text-xs text-[--exec-text-muted] mt-0.5">
                           {template.tasks.length} task{template.tasks.length !== 1 ? 's' : ''}
+                          {(() => {
+                            const phases = new Set(template.tasks.map(t => t.phase).filter(Boolean));
+                            return phases.size > 0 ? ` · ${phases.size} phase${phases.size !== 1 ? 's' : ''}` : '';
+                          })()}
                           {template.description && ` · ${template.description}`}
                         </p>
                       </div>
@@ -202,28 +213,50 @@ export default function ManageTemplatesModal({ isOpen, onClose }: ManageTemplate
                     Tasks ({tasks.length})
                   </h3>
 
-                  {tasks.length > 0 && (
-                    <div className="space-y-2 mb-4">
-                      {tasks.map((task, index) => {
-                        const pConfig = priorityOptions.find(p => p.value === task.priority);
-                        return (
-                          <div key={index} className="flex items-center gap-2 p-2.5 rounded-lg bg-stone-800/30 border border-stone-700/30">
-                            <GripVertical className="w-4 h-4 text-[--exec-text-muted] flex-shrink-0" />
-                            <span className="text-sm text-[--exec-text] flex-1 truncate">{task.title}</span>
-                            <span className={cn('text-[10px] font-bold uppercase tracking-wide flex-shrink-0', pConfig?.color)}>
-                              {pConfig?.label}
-                            </span>
-                            <button
-                              onClick={() => removeTask(index)}
-                              className="p-1 rounded text-[--exec-text-muted] hover:text-[--exec-danger] transition-colors flex-shrink-0"
-                            >
-                              <X className="w-3.5 h-3.5" />
-                            </button>
+                  {tasks.length > 0 && (() => {
+                    const grouped: Record<string, { task: ProjectTemplateTaskCreate; originalIndex: number }[]> = {};
+                    tasks.forEach((task, index) => {
+                      const phase = task.phase || 'Ungrouped';
+                      if (!grouped[phase]) grouped[phase] = [];
+                      grouped[phase].push({ task, originalIndex: index });
+                    });
+                    const phases = Object.keys(grouped);
+                    const hasPhases = phases.length > 1 || (phases.length === 1 && phases[0] !== 'Ungrouped');
+                    return (
+                      <div className="space-y-1 mb-4">
+                        {phases.map(phase => (
+                          <div key={phase}>
+                            {hasPhases && (
+                              <div className="text-[10px] font-bold uppercase tracking-wider text-[--exec-accent] mt-2 mb-1 px-1">
+                                {phase}
+                              </div>
+                            )}
+                            {grouped[phase].map(({ task, originalIndex }) => {
+                              const pConfig = priorityOptions.find(p => p.value === task.priority);
+                              return (
+                                <div key={originalIndex} className="flex items-center gap-2 p-2.5 rounded-lg bg-stone-800/30 border border-stone-700/30">
+                                  <GripVertical className="w-4 h-4 text-[--exec-text-muted] flex-shrink-0" />
+                                  <span className="text-sm text-[--exec-text] flex-1 truncate">{task.title}</span>
+                                  {task.phase && !hasPhases && (
+                                    <span className="text-[10px] font-medium text-[--exec-accent] bg-[--exec-accent-bg] px-1.5 py-0.5 rounded flex-shrink-0">{task.phase}</span>
+                                  )}
+                                  <span className={cn('text-[10px] font-bold uppercase tracking-wide flex-shrink-0', pConfig?.color)}>
+                                    {pConfig?.label}
+                                  </span>
+                                  <button
+                                    onClick={() => removeTask(originalIndex)}
+                                    className="p-1 rounded text-[--exec-text-muted] hover:text-[--exec-danger] transition-colors flex-shrink-0"
+                                  >
+                                    <X className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              );
+                            })}
                           </div>
-                        );
-                      })}
-                    </div>
-                  )}
+                        ))}
+                      </div>
+                    );
+                  })()}
 
                   <div className="flex gap-2">
                     <input
@@ -233,6 +266,13 @@ export default function ManageTemplatesModal({ isOpen, onClose }: ManageTemplate
                       onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addTask(); } }}
                       className={cn(inputClasses, 'flex-1')}
                       placeholder="Task title..."
+                    />
+                    <input
+                      type="text"
+                      value={newTaskPhase}
+                      onChange={(e) => setNewTaskPhase(e.target.value)}
+                      className={cn(inputClasses, 'w-36')}
+                      placeholder="Phase..."
                     />
                     <select
                       value={newTaskPriority}

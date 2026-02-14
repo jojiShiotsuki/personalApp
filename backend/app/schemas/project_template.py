@@ -9,6 +9,7 @@ class TemplateTaskBase(BaseModel):
     description: Optional[str] = Field(None, max_length=2000)
     priority: TaskPriority = TaskPriority.MEDIUM
     order: int = 0
+    phase: Optional[str] = None
 
 
 class TemplateTaskCreate(TemplateTaskBase):

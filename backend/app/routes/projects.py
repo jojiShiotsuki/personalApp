@@ -66,6 +66,7 @@ def create_project(project: ProjectCreate, db: Session = Depends(get_db)):
                     title=tt.title,
                     description=tt.description,
                     priority=tt.priority,
+                    phase=tt.phase,
                     status=TaskStatus.PENDING,
                     project_id=db_project.id,
                 )
@@ -145,6 +146,7 @@ def apply_template_to_project(project_id: int, template_id: int, db: Session = D
             title=tt.title,
             description=tt.description,
             priority=tt.priority,
+            phase=tt.phase,
             status=TaskStatus.PENDING,
             project_id=project_id,
         )

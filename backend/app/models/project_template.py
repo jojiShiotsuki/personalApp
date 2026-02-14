@@ -28,5 +28,6 @@ class ProjectTemplateTask(Base):
     description = Column(Text, nullable=True)
     priority = Column(Enum(TaskPriority), default=TaskPriority.MEDIUM)
     order = Column(Integer, default=0)
+    phase = Column(String(255), nullable=True)
 
     template = relationship("ProjectTemplate", back_populates="tasks")

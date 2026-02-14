@@ -37,6 +37,7 @@ def create_template(data: ProjectTemplateCreate, db: Session = Depends(get_db)):
             title=task_data.title,
             description=task_data.description,
             priority=task_data.priority,
+            phase=task_data.phase,
             order=i,
         )
         db.add(task)
@@ -77,6 +78,7 @@ def create_template_from_project(project_id: int, db: Session = Depends(get_db))
             title=task.title,
             description=task.description,
             priority=task.priority or TaskPriority.MEDIUM,
+            phase=task.phase,
             order=i,
         )
         db.add(template_task)
