@@ -244,21 +244,22 @@ export default function ProjectDetail() {
           <div className="flex gap-1 mt-6 border-b border-[--exec-border-subtle]">
             {tabConfig.map((tab) => {
               const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
               return (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
                   className={cn(
-                    'flex items-center gap-2 pb-3 px-4 font-medium transition-all relative text-sm rounded-t-lg',
-                    activeTab === tab.id
-                      ? 'text-[--exec-accent]'
-                      : 'text-[--exec-text-muted] hover:text-[--exec-text] hover:bg-[--exec-surface-alt]/50'
+                    'flex items-center gap-2 py-2.5 px-5 font-semibold transition-all relative text-sm rounded-t-xl',
+                    isActive
+                      ? 'text-[--exec-accent] bg-[--exec-accent]/10'
+                      : 'text-[--exec-text-muted] hover:text-[--exec-text] hover:bg-stone-700/30 active:bg-stone-700/50'
                   )}
                 >
-                  <Icon className="w-4 h-4" />
+                  <Icon className={cn('w-4 h-4', isActive && 'text-[--exec-accent]')} />
                   {tab.label}
-                  {activeTab === tab.id && (
-                    <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[--exec-accent] rounded-t-full" />
+                  {isActive && (
+                    <div className="absolute bottom-0 left-2 right-2 h-[3px] bg-[--exec-accent] rounded-t-full" />
                   )}
                 </button>
               );
