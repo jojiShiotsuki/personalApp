@@ -37,13 +37,15 @@ export type Project = {
   updated_at: string;
   task_count?: number;
   completed_task_count?: number;
-  hourly_rate?: number;  // For time tracking billing
+  hourly_rate?: number;
+  deadline?: string;
 }
 
 export type ProjectCreate = {
   name: string;
   description?: string;
   hourly_rate?: number;
+  deadline?: string;
   template_id?: number;
 }
 
@@ -52,6 +54,7 @@ export type ProjectUpdate = {
   description?: string;
   status?: ProjectStatus;
   hourly_rate?: number;
+  deadline?: string | null;
 }
 
 export type ProjectTemplateTask = {

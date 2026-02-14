@@ -1,16 +1,17 @@
 import { useState, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Trash2, Plus, Clock, Briefcase, CheckCircle2, ListTodo, LayoutGrid, FileText, ChevronDown, ChevronRight, Square, CheckSquare, MinusSquare, ChevronsDownUp, ChevronsUpDown, MousePointerClick, Link2, ExternalLink, X, StickyNote } from 'lucide-react';
+import { ArrowLeft, Trash2, Plus, Clock, Briefcase, CheckCircle2, ListTodo, LayoutGrid, FileText, ChevronDown, ChevronRight, Square, CheckSquare, MinusSquare, ChevronsDownUp, ChevronsUpDown, MousePointerClick, Link2, ExternalLink, X, StickyNote, Calendar, Pencil } from 'lucide-react';
 import { projectApi, taskApi, projectTemplateApi } from '@/lib/api';
-import type { Project } from '@/types';
-import { ProjectStatus, TaskStatus, TaskCreate, TaskPriority } from '@/types';
+import type { Project, ProjectCreate } from '@/types';
+import { ProjectStatus, TaskStatus, TaskCreate as TaskCreateType, TaskPriority } from '@/types';
+import ProjectModal from '@/components/ProjectModal';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import TaskItem from '@/components/TaskItem';
 import ConfirmModal from '@/components/ConfirmModal';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
-import { format } from 'date-fns';
+import { format, isPast, isToday, differenceInDays } from 'date-fns';
 
 type Tab = 'overview' | 'list' | 'board';
 
@@ -58,6 +59,7 @@ export default function ProjectDetail() {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<Tab>('overview');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
   const statusDropdownRef = useRef<HTMLDivElement>(null);
 
@@ -78,17 +80,31 @@ export default function ProjectDetail() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: (data: { status: ProjectStatus }) =>
-      projectApi.update(projectId, data),
+    mutationFn: (data: Record<string, unknown>) =>
+      projectApi.update(projectId, data as any),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['projects', projectId] });
       queryClient.invalidateQueries({ queryKey: ['projects'] });
       toast.success('Project updated');
+      setShowEditModal(false);
     },
     onError: () => {
       toast.error('Failed to update project');
     },
   });
+
+  const handleEditSubmit = (data: ProjectCreate) => {
+    const updateData: Record<string, unknown> = {
+      name: data.name,
+      description: data.description,
+    };
+    if (data.deadline) {
+      updateData.deadline = data.deadline;
+    } else {
+      updateData.deadline = null;
+    }
+    updateMutation.mutate(updateData);
+  };
 
   const saveTemplateMutation = useMutation({
     mutationFn: () => projectTemplateApi.createFromProject(projectId),
@@ -174,9 +190,25 @@ export default function ProjectDetail() {
               {project.description && (
                 <p className="text-[--exec-text-secondary] mt-2 text-base max-w-2xl">{project.description}</p>
               )}
+              {project.deadline && (
+                <div className="flex items-center gap-1.5 mt-2 text-sm text-[--exec-text-muted]">
+                  <Calendar className="w-3.5 h-3.5" />
+                  Due {format(new Date(project.deadline + 'T00:00:00'), 'MMM d, yyyy')}
+                </div>
+              )}
             </div>
 
             <div className="flex items-center gap-3">
+              {/* Edit Project */}
+              <button
+                onClick={() => setShowEditModal(true)}
+                className="flex items-center gap-2 px-3.5 py-2 bg-[--exec-surface-alt] border border-[--exec-border] text-[--exec-text-secondary] rounded-xl hover:bg-stone-600/40 hover:text-[--exec-text] hover:border-[--exec-accent]/40 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 transition-all duration-200 text-xs font-medium"
+                title="Edit Project"
+              >
+                <Pencil className="w-3.5 h-3.5" />
+                Edit
+              </button>
+
               {/* Save as Template */}
               <button
                 onClick={() => saveTemplateMutation.mutate()}
@@ -276,6 +308,13 @@ export default function ProjectDetail() {
           {activeTab === 'board' && <BoardTab projectId={projectId} />}
         </div>
       </div>
+
+      <ProjectModal
+        isOpen={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        onSubmit={handleEditSubmit}
+        project={project}
+      />
 
       <ConfirmModal
         isOpen={showDeleteConfirm}
@@ -381,6 +420,58 @@ function OverviewTab({ project }: { project: Project }) {
           </span>
         </div>
       </div>
+
+      {/* Deadline Banner */}
+      {project.deadline && (() => {
+        const deadlineDate = new Date(project.deadline + 'T00:00:00');
+        const isOverdue = isPast(deadlineDate) && !isToday(deadlineDate) && project.status !== ProjectStatus.COMPLETED;
+        const isDueToday = isToday(deadlineDate);
+        const daysLeft = differenceInDays(deadlineDate, new Date());
+        const isCompleted = project.status === ProjectStatus.COMPLETED;
+
+        return (
+          <div className={cn(
+            'bento-card p-5 flex items-center justify-between',
+            isOverdue && 'border-red-500/30 bg-red-500/5',
+            isDueToday && 'border-amber-500/30 bg-amber-500/5',
+          )}>
+            <div className="flex items-center gap-3">
+              <div className={cn(
+                'w-10 h-10 rounded-xl flex items-center justify-center',
+                isOverdue ? 'bg-red-500/15 text-red-400' :
+                isDueToday ? 'bg-amber-500/15 text-amber-400' :
+                isCompleted ? 'bg-emerald-500/15 text-emerald-400' :
+                'bg-[--exec-accent-bg] text-[--exec-accent]'
+              )}>
+                <Calendar className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="text-xs font-bold text-[--exec-text-muted] uppercase tracking-wider mb-0.5">Deadline</div>
+                <div className={cn(
+                  'text-lg font-bold',
+                  isOverdue ? 'text-red-400' :
+                  isDueToday ? 'text-amber-400' :
+                  'text-[--exec-text]'
+                )} style={{ fontFamily: 'var(--font-display)' }}>
+                  {format(deadlineDate, 'MMMM d, yyyy')}
+                </div>
+              </div>
+            </div>
+            <div className={cn(
+              'text-sm font-semibold',
+              isOverdue ? 'text-red-400' :
+              isDueToday ? 'text-amber-400' :
+              daysLeft <= 7 ? 'text-amber-400/80' :
+              'text-[--exec-text-secondary]'
+            )}>
+              {isCompleted ? 'Completed' :
+               isOverdue ? `${Math.abs(daysLeft)} day${Math.abs(daysLeft) !== 1 ? 's' : ''} overdue` :
+               isDueToday ? 'Due today' :
+               `${daysLeft} day${daysLeft !== 1 ? 's' : ''} left`}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Completion Celebration */}
       {project.progress === 100 && (
@@ -518,7 +609,7 @@ function ListTab({ projectId }: { projectId: number }) {
   });
 
   const createTaskMutation = useMutation({
-    mutationFn: (data: TaskCreate) => projectApi.createTask(projectId, data),
+    mutationFn: (data: TaskCreateType) => projectApi.createTask(projectId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['projects', projectId, 'tasks'] });
       queryClient.invalidateQueries({ queryKey: ['projects', projectId] });

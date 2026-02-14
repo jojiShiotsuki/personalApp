@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { Project, ProjectStatus } from '@/types';
-import { Folder, CheckCircle2, Trash2 } from 'lucide-react';
+import { Folder, CheckCircle2, Trash2, Calendar } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
 import ConfirmModal from './ConfirmModal';
+import { format, isPast, isToday, differenceInDays } from 'date-fns';
 
 interface ProjectCardProps {
   project: Project;
@@ -120,12 +121,25 @@ export default function ProjectCard({ project, onDelete }: ProjectCardProps) {
             {project.completed_task_count || 0}/{project.task_count || 0} tasks
           </span>
         </div>
-        <div className="flex -space-x-2">
-          {/* Placeholder for team members if added later */}
-          <div className="w-7 h-7 rounded-full bg-[--exec-surface-alt] border-2 border-[--exec-surface] flex items-center justify-center text-[10px] font-bold text-[--exec-text-muted] group-hover:bg-[--exec-accent-bg] group-hover:text-[--exec-accent] transition-colors">
-            +
-          </div>
-        </div>
+        {project.deadline && (() => {
+          const deadlineDate = new Date(project.deadline + 'T00:00:00');
+          const isOverdue = isPast(deadlineDate) && !isToday(deadlineDate) && project.status !== ProjectStatus.COMPLETED;
+          const isDueToday = isToday(deadlineDate);
+          const daysLeft = differenceInDays(deadlineDate, new Date());
+          const isUpcoming = daysLeft <= 7 && daysLeft > 0;
+          return (
+            <div className={cn(
+              'flex items-center gap-1.5 text-xs font-medium',
+              isOverdue ? 'text-red-400' :
+              isDueToday ? 'text-amber-400' :
+              isUpcoming ? 'text-amber-400/80' :
+              'text-[--exec-text-muted]'
+            )}>
+              <Calendar className="w-3.5 h-3.5" />
+              {isOverdue ? 'Overdue' : isDueToday ? 'Due today' : format(deadlineDate, 'MMM d')}
+            </div>
+          );
+        })()}
       </div>
       <ConfirmModal
         isOpen={showDeleteConfirm}

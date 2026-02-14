@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { X, FileText, ChevronDown } from 'lucide-react';
+import { X, FileText, ChevronDown, Calendar } from 'lucide-react';
 import { Project, ProjectCreate } from '@/types';
 import type { ProjectTemplate } from '@/types';
 import { projectTemplateApi } from '@/lib/api';
@@ -36,10 +36,11 @@ export default function ProjectModal({
       setFormData({
         name: project.name,
         description: project.description || '',
+        deadline: project.deadline || '',
       });
       setSelectedTemplate(null);
     } else {
-      setFormData({ name: '', description: '' });
+      setFormData({ name: '', description: '', deadline: '' });
       setSelectedTemplate(null);
     }
   }, [project, isOpen]);
@@ -65,7 +66,11 @@ export default function ProjectModal({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name.trim()) return;
-    onSubmit(formData);
+    const submitData = { ...formData };
+    if (!submitData.deadline) {
+      delete submitData.deadline;
+    }
+    onSubmit(submitData);
     setFormData({ name: '', description: '' });
     setSelectedTemplate(null);
   };
@@ -179,6 +184,21 @@ export default function ProjectModal({
                 rows={4}
                 placeholder="What is this project about?"
                 maxLength={2000}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-[--exec-text-secondary] mb-1.5">
+                <span className="flex items-center gap-1.5">
+                  <Calendar className="w-3.5 h-3.5" />
+                  Deadline
+                </span>
+              </label>
+              <input
+                type="date"
+                value={formData.deadline || ''}
+                onChange={(e) => setFormData({ ...formData, deadline: e.target.value })}
+                className={cn(inputClasses, 'cursor-pointer')}
               />
             </div>
 
