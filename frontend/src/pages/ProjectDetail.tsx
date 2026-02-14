@@ -181,7 +181,7 @@ export default function ProjectDetail() {
               <button
                 onClick={() => saveTemplateMutation.mutate()}
                 disabled={saveTemplateMutation.isPending}
-                className="flex items-center gap-2 px-3.5 py-2 bg-[--exec-surface-alt] border border-[--exec-border] text-[--exec-text-secondary] rounded-xl hover:bg-[--exec-surface] hover:text-[--exec-text] hover:border-[--exec-accent]/30 transition-all duration-200 text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center gap-2 px-3.5 py-2 bg-[--exec-surface-alt] border border-[--exec-border] text-[--exec-text-secondary] rounded-xl hover:bg-stone-600/40 hover:text-[--exec-text] hover:border-[--exec-accent]/40 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 transition-all duration-200 text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                 title="Save as Template"
               >
                 <FileText className="w-3.5 h-3.5" />
@@ -396,6 +396,80 @@ function OverviewTab({ project }: { project: Project }) {
   );
 }
 
+function FilterDropdown({ value, onChange, options, label }: {
+  value: string;
+  onChange: (val: string) => void;
+  options: { value: string; label: string; dot?: string }[];
+  label: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const selected = options.find(o => o.value === value);
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        onClick={() => setOpen(!open)}
+        className={cn(
+          'inline-flex items-center gap-2 px-4 py-2 border rounded-xl text-sm font-medium cursor-pointer',
+          'transition-all duration-200 hover:bg-stone-600/30 hover:border-[--exec-accent]/30',
+          'focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20',
+          value !== 'all'
+            ? 'bg-stone-700/40 border-[--exec-accent]/30 text-[--exec-text]'
+            : 'bg-[--exec-surface] border-[--exec-border-subtle] text-[--exec-text-secondary]'
+        )}
+      >
+        {selected?.dot && <span className={cn('w-2 h-2 rounded-full', selected.dot)} />}
+        {selected?.label || label}
+        <ChevronDown className={cn('w-3.5 h-3.5 transition-transform', open && 'rotate-180')} />
+      </button>
+      {open && (
+        <div className="absolute left-0 top-full mt-2 w-48 bg-stone-800 border border-stone-600/50 rounded-xl shadow-xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-1 duration-150">
+          {options.map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => { onChange(opt.value); setOpen(false); }}
+              className={cn(
+                'w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium transition-colors',
+                opt.value === value
+                  ? 'bg-stone-700/50 text-[--exec-text]'
+                  : 'text-stone-300 hover:bg-stone-700/30'
+              )}
+            >
+              {opt.dot && <span className={cn('w-2 h-2 rounded-full', opt.dot)} />}
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+const statusFilterOptions = [
+  { value: 'all', label: 'All Status' },
+  { value: TaskStatus.PENDING, label: 'Pending', dot: 'bg-stone-400' },
+  { value: TaskStatus.IN_PROGRESS, label: 'In Progress', dot: 'bg-blue-400' },
+  { value: TaskStatus.COMPLETED, label: 'Completed', dot: 'bg-emerald-400' },
+];
+
+const priorityFilterOptions = [
+  { value: 'all', label: 'All Priority' },
+  { value: TaskPriority.URGENT, label: 'Urgent', dot: 'bg-red-400' },
+  { value: TaskPriority.HIGH, label: 'High', dot: 'bg-orange-400' },
+  { value: TaskPriority.MEDIUM, label: 'Medium', dot: 'bg-blue-400' },
+  { value: TaskPriority.LOW, label: 'Low', dot: 'bg-stone-400' },
+];
+
 function ListTab({ projectId }: { projectId: number }) {
   const queryClient = useQueryClient();
   const [showAddTask, setShowAddTask] = useState(false);
@@ -473,38 +547,22 @@ function ListTab({ projectId }: { projectId: number }) {
     return true;
   });
 
-  const selectClasses = cn(
-    "px-4 py-2 rounded-lg text-sm font-medium cursor-pointer appearance-none",
-    "bg-[--exec-surface] border border-[--exec-border-subtle]",
-    "text-[--exec-text-secondary]",
-    "focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]/50",
-    "transition-all"
-  );
-
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex justify-between items-center">
         <div className="flex gap-3">
-          <select
+          <FilterDropdown
             value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
-            className={selectClasses}
-          >
-            <option value="all">All Status</option>
-            <option value={TaskStatus.PENDING}>Pending</option>
-            <option value={TaskStatus.IN_PROGRESS}>In Progress</option>
-            <option value={TaskStatus.COMPLETED}>Completed</option>
-          </select>
-          <select
+            onChange={setFilterStatus}
+            options={statusFilterOptions}
+            label="All Status"
+          />
+          <FilterDropdown
             value={filterPriority}
-            onChange={(e) => setFilterPriority(e.target.value)}
-            className={selectClasses}
-          >
-            <option value="all">All Priority</option>
-            <option value={TaskPriority.HIGH}>High</option>
-            <option value={TaskPriority.MEDIUM}>Medium</option>
-            <option value={TaskPriority.LOW}>Low</option>
-          </select>
+            onChange={setFilterPriority}
+            options={priorityFilterOptions}
+            label="All Priority"
+          />
         </div>
         <div className="flex items-center gap-2">
           {templates.length > 0 && (
