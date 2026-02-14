@@ -29,8 +29,15 @@ export default function ProjectCard({ project, onDelete }: ProjectCardProps) {
   const navigate = useNavigate();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
+  const handleCardClick = (e: React.MouseEvent) => {
+    // Don't navigate if clicking the delete button or if confirm modal is open
+    if ((e.target as HTMLElement).closest('button') || showDeleteConfirm) return;
+    navigate(`/projects/${project.id}`);
+  };
+
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation();
+    e.preventDefault();
     setShowDeleteConfirm(true);
   };
 
@@ -42,7 +49,7 @@ export default function ProjectCard({ project, onDelete }: ProjectCardProps) {
 
   return (
     <div
-      onClick={() => navigate(`/projects/${project.id}`)}
+      onClick={handleCardClick}
       className="bento-card p-5 cursor-pointer group"
     >
       {/* Header */}
