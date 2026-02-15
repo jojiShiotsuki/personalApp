@@ -23,6 +23,9 @@ class SearchPlannerCombinationResponse(BaseModel):
     is_searched: bool
     searched_at: Optional[datetime] = None
     leads_found: int
+    linkedin_searched: bool = False
+    linkedin_searched_at: Optional[datetime] = None
+    linkedin_leads_found: int = 0
     created_at: datetime
 
     class Config:
@@ -40,6 +43,9 @@ class SearchPlannerStatsResponse(BaseModel):
     searched: int
     not_searched: int
     total_leads_found: int
+    linkedin_searched: int = 0
+    linkedin_not_searched: int = 0
+    linkedin_leads_found: int = 0
 
 
 class MarkSearchedRequest(BaseModel):

@@ -924,6 +924,9 @@ export interface SearchPlannerCombination {
   is_searched: boolean;
   searched_at: string | null;
   leads_found: number;
+  linkedin_searched: boolean;
+  linkedin_searched_at: string | null;
+  linkedin_leads_found: number;
   created_at: string;
 }
 
@@ -938,6 +941,9 @@ export interface SearchPlannerStats {
   searched: number;
   not_searched: number;
   total_leads_found: number;
+  linkedin_searched: number;
+  linkedin_not_searched: number;
+  linkedin_leads_found: number;
 }
 
 export interface LeadImportRequest {

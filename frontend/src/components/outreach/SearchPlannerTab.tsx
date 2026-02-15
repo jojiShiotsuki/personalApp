@@ -8,6 +8,8 @@ import {
   RotateCcw,
   Sparkles,
   Circle,
+  Linkedin,
+  Search,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -19,7 +21,7 @@ export default function SearchPlannerTab() {
   const [selectedCountry, setSelectedCountry] = useState('Australia');
   const [plannerNiche, setPlannerNiche] = useState('');
   const [activeNiche, setActiveNiche] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'not_searched' | 'searched'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'not_searched' | 'searched' | 'linkedin_not_searched' | 'linkedin_searched'>('all');
 
   // Fetch countries
   const { data: countries = [] } = useQuery({
@@ -70,6 +72,8 @@ export default function SearchPlannerTab() {
   const filteredCombos = useMemo(() => {
     if (statusFilter === 'searched') return combinations.filter(c => c.is_searched);
     if (statusFilter === 'not_searched') return combinations.filter(c => !c.is_searched);
+    if (statusFilter === 'linkedin_searched') return combinations.filter(c => c.linkedin_searched);
+    if (statusFilter === 'linkedin_not_searched') return combinations.filter(c => !c.linkedin_searched);
     return combinations;
   }, [combinations, statusFilter]);
 
@@ -94,7 +98,7 @@ export default function SearchPlannerTab() {
     },
   });
 
-  // Mark as searched mutation
+  // Google mark as searched mutation
   const markSearchedMutation = useMutation({
     mutationFn: (comboId: number) => searchPlannerApi.markSearched(comboId, 0),
     onSuccess: () => {
@@ -103,9 +107,27 @@ export default function SearchPlannerTab() {
     },
   });
 
-  // Reset mutation
+  // Google reset mutation
   const resetMutation = useMutation({
     mutationFn: searchPlannerApi.resetCombination,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['planner-combinations'] });
+      queryClient.invalidateQueries({ queryKey: ['planner-stats'] });
+    },
+  });
+
+  // LinkedIn mark as searched mutation
+  const markLinkedinSearchedMutation = useMutation({
+    mutationFn: (comboId: number) => searchPlannerApi.markLinkedinSearched(comboId, 0),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['planner-combinations'] });
+      queryClient.invalidateQueries({ queryKey: ['planner-stats'] });
+    },
+  });
+
+  // LinkedIn reset mutation
+  const resetLinkedinMutation = useMutation({
+    mutationFn: searchPlannerApi.resetLinkedinCombination,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['planner-combinations'] });
       queryClient.invalidateQueries({ queryKey: ['planner-stats'] });
@@ -121,7 +143,8 @@ export default function SearchPlannerTab() {
     generateMutation.mutate({ country: selectedCountry, niche: plannerNiche.trim() });
   };
 
-  const progressPercent = stats ? Math.round((stats.searched / Math.max(stats.total, 1)) * 100) : 0;
+  const googlePercent = stats ? Math.round((stats.searched / Math.max(stats.total, 1)) * 100) : 0;
+  const linkedinPercent = stats ? Math.round((stats.linkedin_searched / Math.max(stats.total, 1)) * 100) : 0;
 
   return (
     <div>
@@ -221,46 +244,86 @@ export default function SearchPlannerTab() {
         </div>
       )}
 
-      {/* Stats + Progress */}
+      {/* Stats + Progress - dual bars for Google and LinkedIn */}
       {stats && stats.total > 0 && (
         <div className="bento-card p-5 mb-4">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-4">
-              <span className="text-sm font-medium text-[--exec-text]">
-                {stats.searched} / {stats.total} searched
-              </span>
-              <span className="text-sm text-[--exec-text-muted]">
-                ({progressPercent}%)
-              </span>
+          <div className="space-y-3">
+            {/* Google progress */}
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <div className="flex items-center gap-2">
+                  <Search className="w-3.5 h-3.5 text-blue-400" />
+                  <span className="text-sm font-medium text-[--exec-text]">
+                    Google: {stats.searched} / {stats.total}
+                  </span>
+                  <span className="text-xs text-[--exec-text-muted]">
+                    ({googlePercent}%)
+                  </span>
+                </div>
+                <span className={cn(
+                  'text-xs font-medium px-2 py-0.5 rounded-full',
+                  googlePercent === 100
+                    ? 'bg-green-900/30 text-green-400'
+                    : 'bg-blue-900/30 text-blue-400'
+                )}>
+                  {stats.not_searched} remaining
+                </span>
+              </div>
+              <div className="w-full h-2 bg-stone-700/50 rounded-full overflow-hidden">
+                <div
+                  className={cn(
+                    'h-full rounded-full transition-all duration-500',
+                    googlePercent === 100 ? 'bg-green-500' : 'bg-blue-500'
+                  )}
+                  style={{ width: `${googlePercent}%` }}
+                />
+              </div>
             </div>
-            <span className={cn(
-              'text-xs font-medium px-2.5 py-1 rounded-full',
-              progressPercent === 100
-                ? 'bg-green-900/30 text-green-400'
-                : 'bg-blue-900/30 text-blue-400'
-            )}>
-              {stats.not_searched} remaining
-            </span>
-          </div>
-          <div className="w-full h-2 bg-stone-700/50 rounded-full overflow-hidden">
-            <div
-              className={cn(
-                'h-full rounded-full transition-all duration-500',
-                progressPercent === 100 ? 'bg-green-500' : 'bg-blue-500'
-              )}
-              style={{ width: `${progressPercent}%` }}
-            />
+
+            {/* LinkedIn progress */}
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <div className="flex items-center gap-2">
+                  <Linkedin className="w-3.5 h-3.5 text-sky-400" />
+                  <span className="text-sm font-medium text-[--exec-text]">
+                    LinkedIn: {stats.linkedin_searched} / {stats.total}
+                  </span>
+                  <span className="text-xs text-[--exec-text-muted]">
+                    ({linkedinPercent}%)
+                  </span>
+                </div>
+                <span className={cn(
+                  'text-xs font-medium px-2 py-0.5 rounded-full',
+                  linkedinPercent === 100
+                    ? 'bg-green-900/30 text-green-400'
+                    : 'bg-sky-900/30 text-sky-400'
+                )}>
+                  {stats.linkedin_not_searched} remaining
+                </span>
+              </div>
+              <div className="w-full h-2 bg-stone-700/50 rounded-full overflow-hidden">
+                <div
+                  className={cn(
+                    'h-full rounded-full transition-all duration-500',
+                    linkedinPercent === 100 ? 'bg-green-500' : 'bg-sky-500'
+                  )}
+                  style={{ width: `${linkedinPercent}%` }}
+                />
+              </div>
+            </div>
           </div>
         </div>
       )}
 
       {/* Filter Pills */}
       {activeNiche && combinations.length > 0 && (
-        <div className="flex items-center gap-2 mb-4">
+        <div className="flex items-center gap-2 mb-4 flex-wrap">
           {([
             { key: 'all' as const, label: 'All', count: combinations.length },
-            { key: 'not_searched' as const, label: 'Not Searched', count: combinations.filter(c => !c.is_searched).length },
-            { key: 'searched' as const, label: 'Searched', count: combinations.filter(c => c.is_searched).length },
+            { key: 'not_searched' as const, label: 'Google: Not Searched', count: combinations.filter(c => !c.is_searched).length },
+            { key: 'searched' as const, label: 'Google: Searched', count: combinations.filter(c => c.is_searched).length },
+            { key: 'linkedin_not_searched' as const, label: 'LinkedIn: Not Searched', count: combinations.filter(c => !c.linkedin_searched).length },
+            { key: 'linkedin_searched' as const, label: 'LinkedIn: Searched', count: combinations.filter(c => c.linkedin_searched).length },
           ]).map((filter) => (
             <button
               key={filter.key}
@@ -294,14 +357,20 @@ export default function SearchPlannerTab() {
                     <th className="px-6 py-3 text-left text-xs font-medium text-[--exec-text-muted] uppercase tracking-wider">
                       City
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-[--exec-text-muted] uppercase tracking-wider">
-                      Status
+                    <th className="px-4 py-3 text-left text-xs font-medium text-[--exec-text-muted] uppercase tracking-wider">
+                      <div className="flex items-center gap-1">
+                        <Search className="w-3 h-3" />
+                        Google
+                      </div>
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-[--exec-text-muted] uppercase tracking-wider">
-                      Date
+                    <th className="px-4 py-3 text-left text-xs font-medium text-[--exec-text-muted] uppercase tracking-wider">
+                      <div className="flex items-center gap-1">
+                        <Linkedin className="w-3 h-3" />
+                        LinkedIn
+                      </div>
                     </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-[--exec-text-muted] uppercase tracking-wider">
-                      Action
+                    <th className="px-4 py-3 text-right text-xs font-medium text-[--exec-text-muted] uppercase tracking-wider">
+                      Actions
                     </th>
                   </tr>
                 </thead>
@@ -316,53 +385,106 @@ export default function SearchPlannerTab() {
                           {combo.city}
                         </span>
                       </td>
-                      <td className="px-6 py-3 whitespace-nowrap">
+
+                      {/* Google Status */}
+                      <td className="px-4 py-3 whitespace-nowrap">
                         {combo.is_searched ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-green-900/30 text-green-400 border border-green-800">
-                            <CheckCircle className="w-3 h-3" />
-                            Searched
-                          </span>
+                          <div>
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-green-900/30 text-green-400 border border-green-800">
+                              <CheckCircle className="w-3 h-3" />
+                              Done
+                            </span>
+                            {combo.searched_at && (
+                              <span className="block text-[10px] text-[--exec-text-muted] mt-0.5">
+                                {new Date(combo.searched_at).toLocaleDateString()}
+                              </span>
+                            )}
+                          </div>
                         ) : (
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-stone-700/50 text-[--exec-text-muted] border border-stone-600/40">
                             <Circle className="w-3 h-3" />
-                            Not Searched
+                            Pending
                           </span>
                         )}
                       </td>
-                      <td className="px-6 py-3 whitespace-nowrap">
-                        {combo.searched_at ? (
-                          <span className="text-xs text-[--exec-text-muted]">
-                            {new Date(combo.searched_at).toLocaleDateString()}
-                          </span>
-                        ) : (
-                          <span className="text-sm text-[--exec-text-muted]">—</span>
-                        )}
-                      </td>
-                      <td className="px-6 py-3 whitespace-nowrap text-right">
-                        {combo.is_searched ? (
-                          <button
-                            onClick={() => resetMutation.mutate(combo.id)}
-                            disabled={resetMutation.isPending}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[--exec-text-muted] hover:text-[--exec-text] hover:bg-stone-700/50 rounded-lg transition-colors"
-                            title="Mark as not searched"
-                          >
-                            <RotateCcw className="w-3.5 h-3.5" />
-                            Undo
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => markSearchedMutation.mutate(combo.id)}
-                            disabled={markSearchedMutation.isPending}
-                            className={cn(
-                              'inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-all',
-                              'bg-green-600 text-white hover:bg-green-700',
-                              'disabled:opacity-50 disabled:cursor-not-allowed'
+
+                      {/* LinkedIn Status */}
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        {combo.linkedin_searched ? (
+                          <div>
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-green-900/30 text-green-400 border border-green-800">
+                              <CheckCircle className="w-3 h-3" />
+                              Done
+                            </span>
+                            {combo.linkedin_searched_at && (
+                              <span className="block text-[10px] text-[--exec-text-muted] mt-0.5">
+                                {new Date(combo.linkedin_searched_at).toLocaleDateString()}
+                              </span>
                             )}
-                          >
-                            <CheckCircle className="w-3.5 h-3.5" />
-                            Mark Searched
-                          </button>
+                          </div>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-stone-700/50 text-[--exec-text-muted] border border-stone-600/40">
+                            <Circle className="w-3 h-3" />
+                            Pending
+                          </span>
                         )}
+                      </td>
+
+                      {/* Actions */}
+                      <td className="px-4 py-3 whitespace-nowrap text-right">
+                        <div className="flex items-center justify-end gap-1.5">
+                          {/* Google action */}
+                          {combo.is_searched ? (
+                            <button
+                              onClick={() => resetMutation.mutate(combo.id)}
+                              disabled={resetMutation.isPending}
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 text-[10px] font-medium text-[--exec-text-muted] hover:text-[--exec-text] hover:bg-stone-700/50 rounded-lg transition-colors"
+                              title="Reset Google search"
+                            >
+                              <RotateCcw className="w-3 h-3" />
+                              Google
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => markSearchedMutation.mutate(combo.id)}
+                              disabled={markSearchedMutation.isPending}
+                              className={cn(
+                                'inline-flex items-center gap-1 px-2.5 py-1.5 text-[10px] font-medium rounded-lg transition-all',
+                                'bg-blue-600 text-white hover:bg-blue-700',
+                                'disabled:opacity-50 disabled:cursor-not-allowed'
+                              )}
+                            >
+                              <Search className="w-3 h-3" />
+                              Google
+                            </button>
+                          )}
+
+                          {/* LinkedIn action */}
+                          {combo.linkedin_searched ? (
+                            <button
+                              onClick={() => resetLinkedinMutation.mutate(combo.id)}
+                              disabled={resetLinkedinMutation.isPending}
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 text-[10px] font-medium text-[--exec-text-muted] hover:text-[--exec-text] hover:bg-stone-700/50 rounded-lg transition-colors"
+                              title="Reset LinkedIn search"
+                            >
+                              <RotateCcw className="w-3 h-3" />
+                              LinkedIn
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => markLinkedinSearchedMutation.mutate(combo.id)}
+                              disabled={markLinkedinSearchedMutation.isPending}
+                              className={cn(
+                                'inline-flex items-center gap-1 px-2.5 py-1.5 text-[10px] font-medium rounded-lg transition-all',
+                                'bg-sky-600 text-white hover:bg-sky-700',
+                                'disabled:opacity-50 disabled:cursor-not-allowed'
+                              )}
+                            >
+                              <Linkedin className="w-3 h-3" />
+                              LinkedIn
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -373,12 +495,14 @@ export default function SearchPlannerTab() {
             <div className="p-12 text-center">
               <Globe className="w-12 h-12 text-[--exec-text-muted] mx-auto mb-4" />
               <h3 className="text-lg font-medium text-[--exec-text] mb-2">
-                {statusFilter === 'not_searched' ? 'All combinations searched!' : 'No combinations found'}
+                {statusFilter === 'not_searched' || statusFilter === 'linkedin_not_searched'
+                  ? 'All combinations searched!'
+                  : 'No combinations found'}
               </h3>
               <p className="text-[--exec-text-muted]">
-                {statusFilter === 'not_searched'
+                {statusFilter === 'not_searched' || statusFilter === 'linkedin_not_searched'
                   ? 'You\'ve searched all combinations. Try a different niche.'
-                  : statusFilter === 'searched'
+                  : statusFilter === 'searched' || statusFilter === 'linkedin_searched'
                   ? 'No searched combinations yet. Start searching!'
                   : 'Enter a niche and generate combinations to get started.'}
               </p>

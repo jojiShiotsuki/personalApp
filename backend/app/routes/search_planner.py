@@ -125,11 +125,19 @@ def get_planner_stats(
         func.coalesce(func.sum(SearchPlannerCombination.leads_found), 0)
     ).scalar()
 
+    linkedin_searched = query.filter(SearchPlannerCombination.linkedin_searched == True).count()
+    linkedin_leads = query.with_entities(
+        func.coalesce(func.sum(SearchPlannerCombination.linkedin_leads_found), 0)
+    ).scalar()
+
     return SearchPlannerStatsResponse(
         total=total,
         searched=searched,
         not_searched=total - searched,
         total_leads_found=total_leads or 0,
+        linkedin_searched=linkedin_searched,
+        linkedin_not_searched=total - linkedin_searched,
+        linkedin_leads_found=linkedin_leads or 0,
     )
 
 
@@ -167,6 +175,45 @@ def reset_combination(
     combo.is_searched = False
     combo.searched_at = None
     combo.leads_found = 0
+    db.commit()
+    db.refresh(combo)
+    return combo
+
+
+@router.patch("/combinations/{combination_id}/mark-linkedin-searched")
+def mark_linkedin_searched(
+    combination_id: int,
+    data: MarkSearchedRequest,
+    db: Session = Depends(get_db),
+):
+    combo = db.query(SearchPlannerCombination).filter(
+        SearchPlannerCombination.id == combination_id
+    ).first()
+    if not combo:
+        raise HTTPException(status_code=404, detail="Combination not found")
+
+    combo.linkedin_searched = True
+    combo.linkedin_searched_at = datetime.utcnow()
+    combo.linkedin_leads_found = data.leads_found
+    db.commit()
+    db.refresh(combo)
+    return combo
+
+
+@router.patch("/combinations/{combination_id}/reset-linkedin")
+def reset_linkedin_combination(
+    combination_id: int,
+    db: Session = Depends(get_db),
+):
+    combo = db.query(SearchPlannerCombination).filter(
+        SearchPlannerCombination.id == combination_id
+    ).first()
+    if not combo:
+        raise HTTPException(status_code=404, detail="Combination not found")
+
+    combo.linkedin_searched = False
+    combo.linkedin_searched_at = None
+    combo.linkedin_leads_found = 0
     db.commit()
     db.refresh(combo)
     return combo

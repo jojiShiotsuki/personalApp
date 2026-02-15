@@ -206,6 +206,9 @@ class SearchPlannerCombination(Base):
     is_searched = Column(Boolean, default=False, nullable=False, server_default='0')
     searched_at = Column(DateTime, nullable=True)
     leads_found = Column(Integer, default=0, nullable=False, server_default='0')
+    linkedin_searched = Column(Boolean, default=False, nullable=False, server_default='0')
+    linkedin_searched_at = Column(DateTime, nullable=True)
+    linkedin_leads_found = Column(Integer, default=0, nullable=False, server_default='0')
     created_at = Column(DateTime, default=datetime.utcnow)
 
     __table_args__ = (

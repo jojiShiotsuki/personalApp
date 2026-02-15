@@ -963,6 +963,16 @@ export const searchPlannerApi = {
     return response.data;
   },
 
+  markLinkedinSearched: async (combinationId: number, leadsFound: number): Promise<SearchPlannerCombination> => {
+    const response = await api.patch(`/api/lead-discovery/planner/combinations/${combinationId}/mark-linkedin-searched`, { leads_found: leadsFound });
+    return response.data;
+  },
+
+  resetLinkedinCombination: async (combinationId: number): Promise<SearchPlannerCombination> => {
+    const response = await api.patch(`/api/lead-discovery/planner/combinations/${combinationId}/reset-linkedin`);
+    return response.data;
+  },
+
   deleteCombinations: async (country: string, niche: string): Promise<{ deleted: number }> => {
     const response = await api.delete('/api/lead-discovery/planner/combinations', { params: { country, niche } });
     return response.data;
