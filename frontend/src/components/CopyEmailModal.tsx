@@ -206,7 +206,7 @@ export default function CopyEmailModal({
           </div>
 
           {/* Issue Quick-Select */}
-          {hasIssuePlaceholder && (
+          {availableIssues.length > 0 && (
             <div className="mb-4">
               <label className="block text-xs font-medium text-[--exec-text-muted] uppercase tracking-wider mb-2 flex items-center gap-1.5">
                 <AlertTriangle className="w-3 h-3" />
@@ -220,7 +220,18 @@ export default function CopyEmailModal({
                   return (
                     <button
                       key={issue}
-                      onClick={() => setSelectedIssue(isSelected ? null : issue)}
+                      onClick={() => {
+                        if (isSelected) {
+                          setSelectedIssue(null);
+                        } else {
+                          setSelectedIssue(issue);
+                          if (!hasIssuePlaceholder) {
+                            navigator.clipboard.writeText(info.description).then(() => {
+                              toast.success(`Copied: "${info.description}"`);
+                            });
+                          }
+                        }
+                      }}
                       className={cn(
                         'px-3 py-1.5 rounded-lg text-xs font-medium border transition-all duration-200',
                         isSelected
@@ -233,9 +244,19 @@ export default function CopyEmailModal({
                   );
                 })}
               </div>
-              {!selectedIssue && (
+              {selectedIssue && !hasIssuePlaceholder && (
+                <p className="text-xs text-green-400/70 mt-1.5">
+                  Copied to clipboard — paste into your email where needed
+                </p>
+              )}
+              {!selectedIssue && hasIssuePlaceholder && (
                 <p className="text-xs text-amber-400/70 mt-1.5">
                   Select an issue to fill the {'{issue}'} placeholder in the email
+                </p>
+              )}
+              {!selectedIssue && !hasIssuePlaceholder && (
+                <p className="text-xs text-[--exec-text-muted] mt-1.5">
+                  Click an issue to copy it — or add {'{issue}'} to your template for auto-fill
                 </p>
               )}
             </div>
