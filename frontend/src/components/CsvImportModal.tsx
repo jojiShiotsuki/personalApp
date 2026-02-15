@@ -10,6 +10,7 @@ interface CsvImportModalProps {
   isOpen: boolean;
   onClose: () => void;
   campaignId: number;
+  isLinkedIn?: boolean;
 }
 
 type Step = 'upload' | 'map' | 'preview';
@@ -107,10 +108,20 @@ function autoDetectMapping(headers: string[]): Partial<CsvColumnMapping> {
     }
   }
 
+  // LinkedIn URL detection
+  const linkedinPatterns = ['linkedin_url', 'linkedin url', 'linkedin', 'linkedin_profile', 'linkedin profile', 'li_url'];
+  for (const pattern of linkedinPatterns) {
+    const idx = lowerHeaders.findIndex((h) => h === pattern || h.includes(pattern));
+    if (idx !== -1) {
+      mapping.linkedin_url = headers[idx];
+      break;
+    }
+  }
+
   return mapping;
 }
 
-export default function CsvImportModal({ isOpen, onClose, campaignId }: CsvImportModalProps) {
+export default function CsvImportModal({ isOpen, onClose, campaignId, isLinkedIn = false }: CsvImportModalProps) {
   const [step, setStep] = useState<Step>('upload');
   const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
   const [csvData, setCsvData] = useState<Record<string, any>[]>([]);
@@ -130,6 +141,9 @@ export default function CsvImportModal({ isOpen, onClose, campaignId }: CsvImpor
       queryClient.invalidateQueries({ queryKey: ['outreach-prospects', campaignId] });
       queryClient.invalidateQueries({ queryKey: ['outreach-today-queue', campaignId] });
       queryClient.invalidateQueries({ queryKey: ['outreach-campaign', campaignId] });
+      queryClient.invalidateQueries({ queryKey: ['linkedin-prospects', campaignId] });
+      queryClient.invalidateQueries({ queryKey: ['linkedin-today-queue', campaignId] });
+      queryClient.invalidateQueries({ queryKey: ['linkedin-campaign', campaignId] });
       handleClose();
     },
     onError: () => {
@@ -224,11 +238,19 @@ export default function CsvImportModal({ isOpen, onClose, campaignId }: CsvImpor
     }));
   };
 
-  const canProceedToPreview = mapping.agency_name && mapping.email;
+  const canProceedToPreview = mapping.agency_name && (isLinkedIn ? mapping.linkedin_url : mapping.email);
 
   const handleImport = () => {
-    if (!mapping.agency_name || !mapping.email) {
-      toast.error('Agency name and email are required');
+    if (!mapping.agency_name) {
+      toast.error('Agency name is required');
+      return;
+    }
+    if (isLinkedIn && !mapping.linkedin_url) {
+      toast.error('LinkedIn URL is required for LinkedIn campaigns');
+      return;
+    }
+    if (!isLinkedIn && !mapping.email) {
+      toast.error('Email is required');
       return;
     }
 
@@ -245,6 +267,7 @@ export default function CsvImportModal({ isOpen, onClose, campaignId }: CsvImpor
     contact_name: mapping.contact_name ? row[mapping.contact_name] : '',
     website: mapping.website ? row[mapping.website] : '',
     niche: mapping.niche ? row[mapping.niche] : '',
+    linkedin_url: mapping.linkedin_url ? row[mapping.linkedin_url] : '',
   }));
 
   if (!isOpen) return null;
@@ -355,9 +378,9 @@ export default function CsvImportModal({ isOpen, onClose, campaignId }: CsvImpor
               </p>
               <div className="text-xs text-[--exec-text-muted]">
                 Required columns: <span className="font-medium text-[--exec-text-secondary]">agency_name</span>,{' '}
-                <span className="font-medium text-[--exec-text-secondary]">email</span>
+                <span className="font-medium text-[--exec-text-secondary]">{isLinkedIn ? 'linkedin_url' : 'email'}</span>
                 <br />
-                Optional: <span className="text-[--exec-text-secondary]">contact_name, website, niche</span>
+                Optional: <span className="text-[--exec-text-secondary]">contact_name, website, niche{isLinkedIn ? ', email' : ', linkedin_url'}</span>
               </div>
             </div>
           )}
@@ -396,10 +419,38 @@ export default function CsvImportModal({ isOpen, onClose, campaignId }: CsvImpor
                   </select>
                 </div>
 
-                {/* Email - Required */}
+                {/* LinkedIn URL - Required for LinkedIn campaigns */}
+                {isLinkedIn && (
+                  <div className="flex items-center gap-4">
+                    <label className="w-32 text-sm font-medium text-[--exec-text]">
+                      LinkedIn URL *
+                    </label>
+                    <select
+                      value={mapping.linkedin_url || ''}
+                      onChange={(e) => handleMappingChange('linkedin_url', e.target.value)}
+                      className={cn(
+                        'flex-1 px-4 py-2.5 rounded-xl',
+                        'bg-[--exec-surface-alt] border border-[--exec-border]',
+                        'text-[--exec-text] text-sm',
+                        'focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]',
+                        'transition-all duration-200',
+                        !mapping.linkedin_url && 'border-red-400'
+                      )}
+                    >
+                      <option value="">Select column...</option>
+                      {csvHeaders.map((header) => (
+                        <option key={header} value={header}>
+                          {header}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {/* Email - Required for email campaigns, optional for LinkedIn */}
                 <div className="flex items-center gap-4">
-                  <label className="w-32 text-sm font-medium text-[--exec-text]">
-                    Email *
+                  <label className={cn('w-32 text-sm font-medium', isLinkedIn ? 'text-[--exec-text-secondary]' : 'text-[--exec-text]')}>
+                    Email {!isLinkedIn && '*'}
                   </label>
                   <select
                     value={mapping.email || ''}
@@ -410,10 +461,10 @@ export default function CsvImportModal({ isOpen, onClose, campaignId }: CsvImpor
                       'text-[--exec-text] text-sm',
                       'focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]',
                       'transition-all duration-200',
-                      !mapping.email && 'border-red-400'
+                      !isLinkedIn && !mapping.email && 'border-red-400'
                     )}
                   >
-                    <option value="">Select column...</option>
+                    <option value="">{isLinkedIn ? 'Not mapped' : 'Select column...'}</option>
                     {csvHeaders.map((header) => (
                       <option key={header} value={header}>
                         {header}
@@ -502,7 +553,7 @@ export default function CsvImportModal({ isOpen, onClose, campaignId }: CsvImpor
                 <div className="flex items-center gap-2 p-3 bg-[--exec-warning-bg] rounded-xl mt-4">
                   <AlertCircle className="w-4 h-4 text-[--exec-warning]" />
                   <p className="text-sm text-[--exec-warning]">
-                    Please map both Agency Name and Email columns to continue.
+                    Please map Agency Name and {isLinkedIn ? 'LinkedIn URL' : 'Email'} columns to continue.
                   </p>
                 </div>
               )}
@@ -522,21 +573,14 @@ export default function CsvImportModal({ isOpen, onClose, campaignId }: CsvImpor
                 <table className="min-w-full divide-y divide-[--exec-border]">
                   <thead className="bg-[--exec-surface-alt]">
                     <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-[--exec-text-muted] uppercase tracking-wider">
-                        Agency
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-[--exec-text-muted] uppercase tracking-wider">
-                        Email
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-[--exec-text-muted] uppercase tracking-wider">
-                        Contact
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-[--exec-text-muted] uppercase tracking-wider">
-                        Website
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-[--exec-text-muted] uppercase tracking-wider">
-                        Niche
-                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-[--exec-text-muted] uppercase tracking-wider">Agency</th>
+                      {isLinkedIn && (
+                        <th className="px-4 py-3 text-left text-xs font-medium text-[--exec-text-muted] uppercase tracking-wider">LinkedIn</th>
+                      )}
+                      <th className="px-4 py-3 text-left text-xs font-medium text-[--exec-text-muted] uppercase tracking-wider">Email</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-[--exec-text-muted] uppercase tracking-wider">Contact</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-[--exec-text-muted] uppercase tracking-wider">Website</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-[--exec-text-muted] uppercase tracking-wider">Niche</th>
                     </tr>
                   </thead>
                   <tbody className="bg-[--exec-surface] divide-y divide-[--exec-border-subtle]">
@@ -545,6 +589,11 @@ export default function CsvImportModal({ isOpen, onClose, campaignId }: CsvImpor
                         <td className="px-4 py-3 text-sm text-[--exec-text] whitespace-nowrap">
                           {row.agency_name || <span className="text-[--exec-text-muted]">-</span>}
                         </td>
+                        {isLinkedIn && (
+                          <td className="px-4 py-3 text-sm text-blue-400 whitespace-nowrap truncate max-w-[150px]">
+                            {row.linkedin_url || <span className="text-[--exec-text-muted]">-</span>}
+                          </td>
+                        )}
                         <td className="px-4 py-3 text-sm text-[--exec-text-secondary] whitespace-nowrap">
                           {row.email || <span className="text-[--exec-text-muted]">-</span>}
                         </td>
@@ -566,7 +615,7 @@ export default function CsvImportModal({ isOpen, onClose, campaignId }: CsvImpor
               <div className="flex items-center gap-2 p-3 bg-[--exec-info-bg] rounded-xl">
                 <AlertCircle className="w-4 h-4 text-[--exec-info]" />
                 <p className="text-sm text-[--exec-info]">
-                  Ready to import {csvData.length} prospects. Duplicates (by email) will be skipped.
+                  Ready to import {csvData.length} prospects. Duplicates (by {isLinkedIn ? 'LinkedIn URL' : 'email'}) will be skipped.
                 </p>
               </div>
             </div>

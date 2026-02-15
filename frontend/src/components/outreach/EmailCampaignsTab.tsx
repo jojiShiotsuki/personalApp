@@ -1019,8 +1019,8 @@ export default function EmailCampaignsTab() {
 
   // Queries
   const { data: campaigns = [] } = useQuery<OutreachCampaign[]>({
-    queryKey: ['outreach-campaigns'],
-    queryFn: coldOutreachApi.getCampaigns,
+    queryKey: ['email-campaigns'],
+    queryFn: () => coldOutreachApi.getCampaigns('EMAIL'),
   });
 
   const { data: campaignWithStats } = useQuery<CampaignWithStats>({
@@ -1059,6 +1059,7 @@ export default function EmailCampaignsTab() {
     mutationFn: (campaignId: number) => coldOutreachApi.deleteCampaign(campaignId),
     onSuccess: () => {
       toast.success('Campaign deleted');
+      queryClient.invalidateQueries({ queryKey: ['email-campaigns'] });
       queryClient.invalidateQueries({ queryKey: ['outreach-campaigns'] });
       if (selectedCampaignId === deleteCampaignMutation.variables) {
         setSelectedCampaignId(null);

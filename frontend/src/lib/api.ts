@@ -696,13 +696,15 @@ export const outreachApi = {
 // Cold Outreach API
 export const coldOutreachApi = {
   // Campaigns
-  getCampaigns: async (): Promise<OutreachCampaign[]> => {
-    const response = await api.get('/api/outreach/campaigns/');
+  getCampaigns: async (campaignType?: string): Promise<OutreachCampaign[]> => {
+    const params: Record<string, string> = {};
+    if (campaignType) params.campaign_type = campaignType;
+    const response = await api.get('/api/outreach/campaigns/', { params });
     return response.data;
   },
 
   getCampaign: async (id: number): Promise<CampaignWithStats> => {
-    const response = await api.get(`/api/outreach/campaigns/${id}/`);
+    const response = await api.get(`/api/outreach/campaigns/${id}`);
     return response.data;
   },
 
@@ -712,74 +714,90 @@ export const coldOutreachApi = {
   },
 
   updateCampaign: async (id: number, data: Partial<CampaignCreate>): Promise<OutreachCampaign> => {
-    const response = await api.put(`/api/outreach/campaigns/${id}/`, data);
+    const response = await api.put(`/api/outreach/campaigns/${id}`, data);
     return response.data;
   },
 
   deleteCampaign: async (id: number): Promise<void> => {
-    await api.delete(`/api/outreach/campaigns/${id}/`);
+    await api.delete(`/api/outreach/campaigns/${id}`);
   },
 
   // Prospects
   getProspects: async (campaignId: number): Promise<OutreachProspect[]> => {
-    const response = await api.get(`/api/outreach/campaigns/${campaignId}/prospects/`);
+    const response = await api.get(`/api/outreach/campaigns/${campaignId}/prospects`);
     return response.data;
   },
 
   getTodayQueue: async (campaignId: number): Promise<OutreachProspect[]> => {
-    const response = await api.get(`/api/outreach/campaigns/${campaignId}/prospects/today/`);
+    const response = await api.get(`/api/outreach/campaigns/${campaignId}/prospects/today`);
     return response.data;
   },
 
   createProspect: async (campaignId: number, data: ProspectCreate): Promise<OutreachProspect> => {
-    const response = await api.post(`/api/outreach/campaigns/${campaignId}/prospects/`, data);
+    const response = await api.post(`/api/outreach/campaigns/${campaignId}/prospects`, data);
     return response.data;
   },
 
   importProspects: async (campaignId: number, data: CsvImportRequest): Promise<CsvImportResponse> => {
-    const response = await api.post(`/api/outreach/campaigns/${campaignId}/prospects/import/`, data);
+    const response = await api.post(`/api/outreach/campaigns/${campaignId}/prospects/import`, data);
     return response.data;
   },
 
   updateProspect: async (prospectId: number, data: Partial<OutreachProspect>): Promise<OutreachProspect> => {
-    const response = await api.put(`/api/outreach/campaigns/prospects/${prospectId}/`, data);
+    const response = await api.put(`/api/outreach/campaigns/prospects/${prospectId}`, data);
     return response.data;
   },
 
   deleteProspect: async (prospectId: number): Promise<void> => {
-    await api.delete(`/api/outreach/campaigns/prospects/${prospectId}/`);
+    await api.delete(`/api/outreach/campaigns/prospects/${prospectId}`);
   },
 
   markSent: async (prospectId: number): Promise<{ prospect: OutreachProspect; next_action_date?: string; message: string }> => {
-    const response = await api.post(`/api/outreach/campaigns/prospects/${prospectId}/mark-sent/`);
+    const response = await api.post(`/api/outreach/campaigns/prospects/${prospectId}/mark-sent`);
     return response.data;
   },
 
   markReplied: async (prospectId: number, data: MarkRepliedRequest): Promise<MarkRepliedResponse> => {
-    const response = await api.post(`/api/outreach/campaigns/prospects/${prospectId}/mark-replied/`, data);
+    const response = await api.post(`/api/outreach/campaigns/prospects/${prospectId}/mark-replied`, data);
     return response.data;
   },
 
   // Email Templates
   getTemplates: async (campaignId: number): Promise<OutreachEmailTemplate[]> => {
-    const response = await api.get(`/api/outreach/campaigns/${campaignId}/templates/`);
+    const response = await api.get(`/api/outreach/campaigns/${campaignId}/templates`);
     return response.data;
   },
 
   createTemplate: async (campaignId: number, data: EmailTemplateCreate): Promise<OutreachEmailTemplate> => {
-    const response = await api.post(`/api/outreach/campaigns/${campaignId}/templates/`, data);
+    const response = await api.post(`/api/outreach/campaigns/${campaignId}/templates`, data);
     return response.data;
   },
 
   deleteTemplate: async (templateId: number): Promise<void> => {
-    await api.delete(`/api/outreach/campaigns/templates/${templateId}/`);
+    await api.delete(`/api/outreach/campaigns/templates/${templateId}`);
   },
 
   // Render email for prospect
   renderEmail: async (prospectId: number, templateType?: string): Promise<RenderedEmail> => {
     const params: Record<string, string> = {};
     if (templateType) params.template_type = templateType;
-    const response = await api.get(`/api/outreach/campaigns/prospects/${prospectId}/render-email/`, { params });
+    const response = await api.get(`/api/outreach/campaigns/prospects/${prospectId}/render-email`, { params });
+    return response.data;
+  },
+
+  // LinkedIn-specific actions
+  markConnectionSent: async (prospectId: number): Promise<{ prospect: OutreachProspect; next_action_date?: string; message: string }> => {
+    const response = await api.post(`/api/outreach/campaigns/prospects/${prospectId}/mark-connection-sent`);
+    return response.data;
+  },
+
+  markConnected: async (prospectId: number): Promise<{ prospect: OutreachProspect; next_action_date?: string; message: string }> => {
+    const response = await api.post(`/api/outreach/campaigns/prospects/${prospectId}/mark-connected`);
+    return response.data;
+  },
+
+  markMessageSent: async (prospectId: number): Promise<{ prospect: OutreachProspect; next_action_date?: string; message: string }> => {
+    const response = await api.post(`/api/outreach/campaigns/prospects/${prospectId}/mark-message-sent`);
     return response.data;
   },
 };

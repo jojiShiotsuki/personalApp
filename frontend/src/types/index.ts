@@ -727,6 +727,9 @@ export enum ProspectStatus {
   REPLIED = "REPLIED",
   NOT_INTERESTED = "NOT_INTERESTED",
   CONVERTED = "CONVERTED",
+  // LinkedIn-specific
+  PENDING_CONNECTION = "PENDING_CONNECTION",
+  CONNECTED = "CONNECTED",
 }
 
 export enum ResponseType {
@@ -740,9 +743,15 @@ export enum CampaignStatus {
   ARCHIVED = "ARCHIVED",
 }
 
+export enum CampaignType {
+  EMAIL = "EMAIL",
+  LINKEDIN = "LINKEDIN",
+}
+
 export interface OutreachCampaign {
   id: number;
   name: string;
+  campaign_type: CampaignType;
   status: CampaignStatus;
   step_1_delay: number;
   step_2_delay: number;
@@ -763,6 +772,9 @@ export interface CampaignStats {
   to_contact_today: number;
   response_rate: number;
   total_pipeline_value: number;
+  // LinkedIn-specific
+  pending_connection: number;
+  connected: number;
 }
 
 export interface CampaignWithStats extends OutreachCampaign {
@@ -771,6 +783,7 @@ export interface CampaignWithStats extends OutreachCampaign {
 
 export interface CampaignCreate {
   name: string;
+  campaign_type?: CampaignType;
   step_1_delay?: number;
   step_2_delay?: number;
   step_3_delay?: number;
@@ -807,18 +820,20 @@ export interface OutreachProspect {
 export interface ProspectCreate {
   agency_name: string;
   contact_name?: string;
-  email: string;
+  email?: string;
   website?: string;
   niche?: string;
+  linkedin_url?: string;
   custom_fields?: Record<string, any>;
 }
 
 export interface CsvColumnMapping {
   agency_name: string;
   contact_name?: string;
-  email: string;
+  email?: string;
   website?: string;
   niche?: string;
+  linkedin_url?: string;
 }
 
 export interface CsvImportRequest {

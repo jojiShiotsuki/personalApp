@@ -97,6 +97,9 @@ class ProspectStatus(str, Enum):
     REPLIED = "REPLIED"
     NOT_INTERESTED = "NOT_INTERESTED"
     CONVERTED = "CONVERTED"
+    # LinkedIn-specific statuses
+    PENDING_CONNECTION = "PENDING_CONNECTION"
+    CONNECTED = "CONNECTED"
 
 
 class ResponseType(str, Enum):
@@ -110,9 +113,15 @@ class CampaignStatus(str, Enum):
     ARCHIVED = "ARCHIVED"
 
 
+class CampaignType(str, Enum):
+    EMAIL = "EMAIL"
+    LINKEDIN = "LINKEDIN"
+
+
 # Campaign Schemas
 class CampaignBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=255)
+    campaign_type: CampaignType = CampaignType.EMAIL
     step_1_delay: int = Field(default=0, ge=0)
     step_2_delay: int = Field(default=3, ge=0)
     step_3_delay: int = Field(default=5, ge=0)
@@ -127,6 +136,7 @@ class CampaignCreate(CampaignBase):
 class CampaignUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=255)
     status: Optional[CampaignStatus] = None
+    campaign_type: Optional[CampaignType] = None
     step_1_delay: Optional[int] = Field(None, ge=0)
     step_2_delay: Optional[int] = Field(None, ge=0)
     step_3_delay: Optional[int] = Field(None, ge=0)
@@ -137,6 +147,7 @@ class CampaignUpdate(BaseModel):
 class CampaignResponse(CampaignBase):
     id: int
     status: CampaignStatus
+    campaign_type: CampaignType
     created_at: datetime
     updated_at: datetime
 
@@ -154,6 +165,9 @@ class CampaignStats(BaseModel):
     to_contact_today: int
     response_rate: float
     total_pipeline_value: float
+    # LinkedIn-specific stats
+    pending_connection: int = 0
+    connected: int = 0
 
 
 class CampaignWithStats(CampaignResponse):
@@ -171,7 +185,7 @@ class ProspectBase(BaseModel):
 
 
 class ProspectCreate(ProspectBase):
-    pass
+    linkedin_url: Optional[str] = Field(None, max_length=500)
 
 
 class ProspectUpdate(BaseModel):
@@ -217,9 +231,10 @@ class ProspectResponse(ProspectBase):
 class CsvColumnMapping(BaseModel):
     agency_name: str
     contact_name: Optional[str] = None
-    email: str
+    email: Optional[str] = None
     website: Optional[str] = None
     niche: Optional[str] = None
+    linkedin_url: Optional[str] = None
 
 
 class CsvImportRequest(BaseModel):

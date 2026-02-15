@@ -8,15 +8,17 @@ import {
   Search,
   MessageCircle,
   Database,
+  Linkedin,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 // Import tab content components
 import DMScriptsTab from '@/components/outreach/DMScriptsTab';
 import EmailCampaignsTab from '@/components/outreach/EmailCampaignsTab';
+import LinkedInCampaignsTab from '@/components/outreach/LinkedInCampaignsTab';
 import LeadDiscoveryTab from '@/components/outreach/LeadDiscoveryTab';
 
-type TabType = 'dm-scripts' | 'email-campaigns' | 'lead-discovery';
+type TabType = 'dm-scripts' | 'email-campaigns' | 'linkedin-campaigns' | 'lead-discovery';
 
 const tabs = [
   {
@@ -30,6 +32,12 @@ const tabs = [
     name: 'Email Campaigns',
     icon: Mail,
     description: 'Cold email sequences',
+  },
+  {
+    id: 'linkedin-campaigns' as TabType,
+    name: 'LinkedIn Campaigns',
+    icon: Linkedin,
+    description: 'LinkedIn outreach sequences',
   },
   {
     id: 'lead-discovery' as TabType,
@@ -47,7 +55,7 @@ export default function OutreachHub() {
   // Fetch stats for unified header
   const { data: campaigns = [] } = useQuery({
     queryKey: ['outreach-campaigns'],
-    queryFn: coldOutreachApi.getCampaigns,
+    queryFn: () => coldOutreachApi.getCampaigns(),
   });
 
   const { data: leadStats } = useQuery({
@@ -144,6 +152,7 @@ export default function OutreachHub() {
       <div className="animate-fade-slide-up delay-5">
         {activeTab === 'dm-scripts' && <DMScriptsTab />}
         {activeTab === 'email-campaigns' && <EmailCampaignsTab />}
+        {activeTab === 'linkedin-campaigns' && <LinkedInCampaignsTab />}
         {activeTab === 'lead-discovery' && <LeadDiscoveryTab />}
       </div>
     </div>

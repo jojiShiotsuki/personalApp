@@ -6,12 +6,20 @@ from app.database import Base
 
 
 # Enums for Cold Email Outreach
+class CampaignType(str, enum.Enum):
+    EMAIL = "EMAIL"
+    LINKEDIN = "LINKEDIN"
+
+
 class ProspectStatus(str, enum.Enum):
     QUEUED = "QUEUED"
     IN_SEQUENCE = "IN_SEQUENCE"
     REPLIED = "REPLIED"
     NOT_INTERESTED = "NOT_INTERESTED"
     CONVERTED = "CONVERTED"
+    # LinkedIn-specific statuses
+    PENDING_CONNECTION = "PENDING_CONNECTION"
+    CONNECTED = "CONNECTED"
 
 
 class ResponseType(str, enum.Enum):
@@ -81,6 +89,7 @@ class OutreachCampaign(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(255), nullable=False)
+    campaign_type = Column(Enum(CampaignType), default=CampaignType.EMAIL, nullable=False)
     status = Column(Enum(CampaignStatus), default=CampaignStatus.ACTIVE)
     step_1_delay = Column(Integer, default=0)
     step_2_delay = Column(Integer, default=3)

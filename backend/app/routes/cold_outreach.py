@@ -8,7 +8,7 @@ from app.database import get_db
 from app.models.outreach import (
     OutreachCampaign, OutreachProspect, OutreachEmailTemplate,
     OutreachTemplate, OutreachNiche,
-    ProspectStatus, ResponseType, CampaignStatus
+    ProspectStatus, ResponseType, CampaignStatus, CampaignType
 )
 from app.models.crm import Contact, Deal, ContactStatus, DealStage, Interaction, InteractionType
 from app.schemas.outreach import (
@@ -35,17 +35,21 @@ def get_campaign_stats(campaign: OutreachCampaign, db: Session) -> CampaignStats
     replied = sum(1 for p in prospects if p.status == ProspectStatus.REPLIED)
     not_interested = sum(1 for p in prospects if p.status == ProspectStatus.NOT_INTERESTED)
     converted = sum(1 for p in prospects if p.status == ProspectStatus.CONVERTED)
+    pending_connection = sum(1 for p in prospects if p.status == ProspectStatus.PENDING_CONNECTION)
+    connected = sum(1 for p in prospects if p.status == ProspectStatus.CONNECTED)
 
     # Count prospects to contact today
     today = date.today()
+    # For LinkedIn campaigns, also include CONNECTED status (ready to message)
+    actionable_statuses = [ProspectStatus.QUEUED, ProspectStatus.IN_SEQUENCE, ProspectStatus.CONNECTED]
     to_contact_today = sum(
         1 for p in prospects
         if p.next_action_date and p.next_action_date <= today
-        and p.status in (ProspectStatus.QUEUED, ProspectStatus.IN_SEQUENCE)
+        and p.status in actionable_statuses
     )
 
     # Response rate: (replied + not_interested + converted) / total contacted
-    contacted = total - queued
+    contacted = total - queued - pending_connection
     response_rate = ((replied + not_interested + converted) / contacted * 100) if contacted > 0 else 0.0
 
     # Total pipeline value from converted prospects
@@ -69,7 +73,9 @@ def get_campaign_stats(campaign: OutreachCampaign, db: Session) -> CampaignStats
         converted=converted,
         to_contact_today=to_contact_today,
         response_rate=round(response_rate, 1),
-        total_pipeline_value=total_pipeline_value
+        total_pipeline_value=total_pipeline_value,
+        pending_connection=pending_connection,
+        connected=connected,
     )
 
 
@@ -90,9 +96,10 @@ def get_step_delay(campaign: OutreachCampaign, step: int) -> int:
 @router.get("/", response_model=List[CampaignResponse])
 def list_campaigns(
     status: Optional[str] = "ACTIVE",
+    campaign_type: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
-    """List all campaigns, optionally filtered by status."""
+    """List all campaigns, optionally filtered by status and campaign_type."""
     query = db.query(OutreachCampaign)
 
     if status:
@@ -102,6 +109,13 @@ def list_campaigns(
         except ValueError:
             pass  # Invalid status, return all
 
+    if campaign_type:
+        try:
+            ct = CampaignType(campaign_type)
+            query = query.filter(OutreachCampaign.campaign_type == ct)
+        except ValueError:
+            pass
+
     return query.order_by(OutreachCampaign.created_at.desc()).all()
 
 
@@ -110,6 +124,7 @@ def create_campaign(data: CampaignCreate, db: Session = Depends(get_db)):
     """Create a new campaign."""
     campaign = OutreachCampaign(
         name=data.name.strip(),
+        campaign_type=data.campaign_type,
         step_1_delay=data.step_1_delay,
         step_2_delay=data.step_2_delay,
         step_3_delay=data.step_3_delay,
@@ -135,6 +150,7 @@ def get_campaign(campaign_id: int, db: Session = Depends(get_db)):
         id=campaign.id,
         name=campaign.name,
         status=campaign.status,
+        campaign_type=campaign.campaign_type,
         step_1_delay=campaign.step_1_delay,
         step_2_delay=campaign.step_2_delay,
         step_3_delay=campaign.step_3_delay,
@@ -212,7 +228,9 @@ def get_todays_queue(campaign_id: int, db: Session = Depends(get_db)):
     prospects = db.query(OutreachProspect).filter(
         OutreachProspect.campaign_id == campaign_id,
         OutreachProspect.next_action_date <= today,
-        OutreachProspect.status.in_([ProspectStatus.QUEUED, ProspectStatus.IN_SEQUENCE])
+        OutreachProspect.status.in_([
+            ProspectStatus.QUEUED, ProspectStatus.IN_SEQUENCE, ProspectStatus.CONNECTED
+        ])
     ).order_by(OutreachProspect.next_action_date.asc()).all()
 
     return prospects
@@ -229,9 +247,10 @@ def create_prospect(campaign_id: int, data: ProspectCreate, db: Session = Depend
         campaign_id=campaign_id,
         agency_name=data.agency_name.strip(),
         contact_name=data.contact_name.strip() if data.contact_name else None,
-        email=data.email.strip(),
+        email=data.email.strip() if data.email else None,
         website=data.website.strip() if data.website else None,
         niche=data.niche.strip() if data.niche else None,
+        linkedin_url=data.linkedin_url.strip() if data.linkedin_url else None,
         custom_fields=data.custom_fields,
         status=ProspectStatus.QUEUED,
         current_step=1,
@@ -254,28 +273,50 @@ def import_prospects(campaign_id: int, data: CsvImportRequest, db: Session = Dep
     skipped_count = 0
     errors = []
 
+    is_linkedin = campaign.campaign_type == CampaignType.LINKEDIN
+
     for idx, row in enumerate(data.data, start=1):
         try:
             # Extract values using column mapping
             mapping = data.column_mapping
             agency_name = row.get(mapping.agency_name, "").strip()
-            email = row.get(mapping.email, "").strip()
+            email = row.get(mapping.email, "").strip() if mapping.email else ""
+            linkedin_url = row.get(mapping.linkedin_url, "").strip() if mapping.linkedin_url else ""
 
-            if not agency_name or not email:
+            if not agency_name:
                 skipped_count += 1
-                errors.append(f"Row {idx}: Missing required field (agency_name or email)")
+                errors.append(f"Row {idx}: Missing required field (agency_name)")
                 continue
 
-            # Check for duplicate email in this campaign
-            existing = db.query(OutreachProspect).filter(
-                OutreachProspect.campaign_id == campaign_id,
-                OutreachProspect.email == email
-            ).first()
-
-            if existing:
+            # For email campaigns, require email. For LinkedIn, require linkedin_url.
+            if is_linkedin and not linkedin_url:
                 skipped_count += 1
-                errors.append(f"Row {idx}: Duplicate email '{email}'")
+                errors.append(f"Row {idx}: Missing LinkedIn URL")
                 continue
+            elif not is_linkedin and not email:
+                skipped_count += 1
+                errors.append(f"Row {idx}: Missing email")
+                continue
+
+            # Check for duplicates
+            if is_linkedin and linkedin_url:
+                existing = db.query(OutreachProspect).filter(
+                    OutreachProspect.campaign_id == campaign_id,
+                    OutreachProspect.linkedin_url == linkedin_url
+                ).first()
+                if existing:
+                    skipped_count += 1
+                    errors.append(f"Row {idx}: Duplicate LinkedIn URL '{linkedin_url}'")
+                    continue
+            elif email:
+                existing = db.query(OutreachProspect).filter(
+                    OutreachProspect.campaign_id == campaign_id,
+                    OutreachProspect.email == email
+                ).first()
+                if existing:
+                    skipped_count += 1
+                    errors.append(f"Row {idx}: Duplicate email '{email}'")
+                    continue
 
             # Extract optional fields
             contact_name = None
@@ -294,9 +335,10 @@ def import_prospects(campaign_id: int, data: CsvImportRequest, db: Session = Dep
                 campaign_id=campaign_id,
                 agency_name=agency_name,
                 contact_name=contact_name,
-                email=email,
+                email=email or None,
                 website=website,
                 niche=niche,
+                linkedin_url=linkedin_url or None,
                 status=ProspectStatus.QUEUED,
                 current_step=1,
                 next_action_date=date.today(),
@@ -434,12 +476,13 @@ def mark_replied(prospect_id: int, data: MarkRepliedRequest, db: Session = Depen
         prospect.converted_contact_id = contact.id
         prospect.converted_deal_id = deal.id
 
-        # Create Interaction
+        # Create Interaction - use appropriate type based on campaign
+        is_linkedin = prospect.campaign.campaign_type == CampaignType.LINKEDIN
         interaction = Interaction(
             contact_id=contact.id,
-            type=InteractionType.EMAIL,
-            subject="Cold Outreach Response",
-            notes=data.notes or f"Responded interested to cold outreach campaign",
+            type=InteractionType.SOCIAL_MEDIA if is_linkedin else InteractionType.EMAIL,
+            subject="LinkedIn Outreach Response" if is_linkedin else "Cold Outreach Response",
+            notes=data.notes or f"Responded interested to {'LinkedIn' if is_linkedin else 'cold outreach'} campaign",
             interaction_date=datetime.utcnow()
         )
         db.add(interaction)
@@ -461,6 +504,88 @@ def mark_replied(prospect_id: int, data: MarkRepliedRequest, db: Session = Depen
         prospect=prospect,
         contact_id=contact_id,
         deal_id=deal_id,
+        message=message
+    )
+
+
+# ============== LINKEDIN-SPECIFIC ENDPOINTS ==============
+
+@router.post("/prospects/{prospect_id}/mark-connection-sent", response_model=MarkSentResponse)
+def mark_connection_sent(prospect_id: int, db: Session = Depends(get_db)):
+    """Mark a LinkedIn connection request as sent."""
+    prospect = db.query(OutreachProspect).filter(OutreachProspect.id == prospect_id).first()
+    if not prospect:
+        raise HTTPException(status_code=404, detail="Prospect not found")
+
+    prospect.status = ProspectStatus.PENDING_CONNECTION
+    prospect.last_contacted_at = datetime.utcnow()
+    prospect.next_action_date = None  # Wait for them to accept
+
+    db.commit()
+    db.refresh(prospect)
+
+    return MarkSentResponse(
+        prospect=prospect,
+        next_action_date=None,
+        message="Connection request sent. Waiting for acceptance."
+    )
+
+
+@router.post("/prospects/{prospect_id}/mark-connected", response_model=MarkSentResponse)
+def mark_connected(prospect_id: int, db: Session = Depends(get_db)):
+    """Mark that a LinkedIn prospect accepted the connection."""
+    prospect = db.query(OutreachProspect).filter(OutreachProspect.id == prospect_id).first()
+    if not prospect:
+        raise HTTPException(status_code=404, detail="Prospect not found")
+
+    campaign = prospect.campaign
+
+    prospect.status = ProspectStatus.CONNECTED
+    # Set current_step to 2 (first message after connection) and schedule for today
+    prospect.current_step = 2
+    prospect.next_action_date = date.today()
+
+    db.commit()
+    db.refresh(prospect)
+
+    return MarkSentResponse(
+        prospect=prospect,
+        next_action_date=prospect.next_action_date,
+        message="Connection accepted! Ready to send first message."
+    )
+
+
+@router.post("/prospects/{prospect_id}/mark-message-sent", response_model=MarkSentResponse)
+def mark_message_sent(prospect_id: int, db: Session = Depends(get_db)):
+    """Mark a LinkedIn message as sent (for connected prospects)."""
+    prospect = db.query(OutreachProspect).filter(OutreachProspect.id == prospect_id).first()
+    if not prospect:
+        raise HTTPException(status_code=404, detail="Prospect not found")
+
+    campaign = prospect.campaign
+
+    prospect.last_contacted_at = datetime.utcnow()
+    prospect.status = ProspectStatus.IN_SEQUENCE
+
+    current_step = prospect.current_step
+
+    if current_step >= 5:
+        prospect.status = ProspectStatus.NOT_INTERESTED
+        prospect.next_action_date = None
+        message = f"Sequence complete. Prospect marked as not interested after {current_step} messages."
+    else:
+        next_step = current_step + 1
+        delay = get_step_delay(campaign, next_step)
+        prospect.current_step = next_step
+        prospect.next_action_date = date.today() + timedelta(days=delay)
+        message = f"Message {current_step} sent. Next follow-up scheduled for {prospect.next_action_date}."
+
+    db.commit()
+    db.refresh(prospect)
+
+    return MarkSentResponse(
+        prospect=prospect,
+        next_action_date=prospect.next_action_date,
         message=message
     )
 

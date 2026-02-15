@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { coldOutreachApi } from '@/lib/api';
 import type { OutreachCampaign } from '@/types';
+import { CampaignType } from '@/types';
 import { X } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -11,6 +12,7 @@ interface NewCampaignModalProps {
   onClose: () => void;
   onCreated: (campaignId: number) => void;
   editCampaign?: OutreachCampaign | null;
+  defaultCampaignType?: CampaignType;
 }
 
 export default function NewCampaignModal({
@@ -18,6 +20,7 @@ export default function NewCampaignModal({
   onClose,
   onCreated,
   editCampaign,
+  defaultCampaignType = CampaignType.EMAIL,
 }: NewCampaignModalProps) {
   const [name, setName] = useState('');
   const queryClient = useQueryClient();
@@ -33,9 +36,12 @@ export default function NewCampaignModal({
   }, [editCampaign]);
 
   const createMutation = useMutation({
-    mutationFn: (data: { name: string }) => coldOutreachApi.createCampaign(data),
+    mutationFn: (data: { name: string; campaign_type: CampaignType }) =>
+      coldOutreachApi.createCampaign(data),
     onSuccess: (campaign) => {
       queryClient.invalidateQueries({ queryKey: ['outreach-campaigns'] });
+      queryClient.invalidateQueries({ queryKey: ['email-campaigns'] });
+      queryClient.invalidateQueries({ queryKey: ['linkedin-campaigns'] });
       toast.success(`Campaign "${campaign.name}" created`);
       onCreated(campaign.id);
       handleClose();
@@ -50,7 +56,10 @@ export default function NewCampaignModal({
       coldOutreachApi.updateCampaign(data.id, { name: data.name }),
     onSuccess: (campaign) => {
       queryClient.invalidateQueries({ queryKey: ['outreach-campaigns'] });
+      queryClient.invalidateQueries({ queryKey: ['email-campaigns'] });
+      queryClient.invalidateQueries({ queryKey: ['linkedin-campaigns'] });
       queryClient.invalidateQueries({ queryKey: ['outreach-campaign', campaign.id] });
+      queryClient.invalidateQueries({ queryKey: ['linkedin-campaign', campaign.id] });
       toast.success(`Campaign "${campaign.name}" updated`);
       handleClose();
     },
@@ -73,11 +82,14 @@ export default function NewCampaignModal({
     if (isEditing && editCampaign) {
       updateMutation.mutate({ id: editCampaign.id, name: name.trim() });
     } else {
-      createMutation.mutate({ name: name.trim() });
+      createMutation.mutate({ name: name.trim(), campaign_type: defaultCampaignType });
     }
   };
 
   const isPending = createMutation.isPending || updateMutation.isPending;
+  const isLinkedIn = isEditing
+    ? editCampaign?.campaign_type === CampaignType.LINKEDIN
+    : defaultCampaignType === CampaignType.LINKEDIN;
 
   if (!isOpen) return null;
 
@@ -87,7 +99,7 @@ export default function NewCampaignModal({
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-[--exec-border-subtle]">
           <h2 className="text-lg font-semibold text-[--exec-text]">
-            {isEditing ? 'Edit Campaign' : 'New Campaign'}
+            {isEditing ? 'Edit Campaign' : isLinkedIn ? 'New LinkedIn Campaign' : 'New Campaign'}
           </h2>
           <button
             onClick={handleClose}
@@ -111,7 +123,7 @@ export default function NewCampaignModal({
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g., Q1 Agency Outreach"
+              placeholder={isLinkedIn ? 'e.g., LinkedIn Agency Outreach' : 'e.g., Q1 Agency Outreach'}
               autoFocus
               className={cn(
                 'w-full px-4 py-2.5 rounded-xl',
@@ -124,7 +136,9 @@ export default function NewCampaignModal({
             <p className="mt-2 text-xs text-[--exec-text-muted]">
               {isEditing
                 ? 'Update the campaign name.'
-                : 'You can configure follow-up delays in campaign settings later.'}
+                : isLinkedIn
+                  ? 'LinkedIn campaign: Connection Request → Message → Follow-ups'
+                  : 'You can configure follow-up delays in campaign settings later.'}
             </p>
           </div>
 
