@@ -126,6 +126,21 @@ export default function CopyEmailModal({
     toast.success('Issue descriptions saved');
   };
 
+  // Tag issue on prospect
+  const tagIssueMutation = useMutation({
+    mutationFn: (issueKey: string) => {
+      const currentIssues = prospect.website_issues || [];
+      const updatedIssues = currentIssues.includes(issueKey)
+        ? currentIssues
+        : [...currentIssues, issueKey];
+      return coldOutreachApi.updateProspect(prospect.id, { website_issues: updatedIssues });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['outreach-today-queue'] });
+      queryClient.invalidateQueries({ queryKey: ['outreach-prospects'] });
+    },
+  });
+
   // Mark sent mutation
   const markSentMutation = useMutation({
     mutationFn: () => coldOutreachApi.markSent(prospect.id),
@@ -339,7 +354,12 @@ export default function CopyEmailModal({
                     return (
                       <button
                         key={issue}
-                        onClick={() => setSelectedIssue(isSelected ? null : issue)}
+                        onClick={() => {
+                          setSelectedIssue(isSelected ? null : issue);
+                          if (!isSelected) {
+                            tagIssueMutation.mutate(issue);
+                          }
+                        }}
                         className={cn(
                           'px-3 py-1.5 rounded-lg text-xs font-medium border transition-all duration-200',
                           isSelected
