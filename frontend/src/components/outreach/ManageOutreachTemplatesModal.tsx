@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { X, Plus, Trash2, Edit3, Mail, Linkedin, Video, Building2, FileText, ChevronDown } from 'lucide-react';
+import { X, Plus, Trash2, Edit3, Mail, Linkedin, Video, Building2, FileText } from 'lucide-react';
 import { outreachApi } from '@/lib/api';
 import type { OutreachNiche, OutreachSituation, OutreachTemplate, TemplateType } from '@/types';
 import { cn } from '@/lib/utils';
@@ -70,11 +70,6 @@ const allTemplateTypes = TEMPLATE_CATEGORIES.flatMap(c => c.types);
 
 function getTemplateTypeLabel(type: string): string {
   return allTemplateTypes.find(t => t.value === type)?.label || type;
-}
-
-function getTemplateTypeIcon(type: string) {
-  const cat = TEMPLATE_CATEGORIES.find(c => c.types.some(t => t.value === type));
-  return cat?.icon || FileText;
 }
 
 export default function ManageOutreachTemplatesModal({ isOpen, onClose }: ManageOutreachTemplatesModalProps) {
