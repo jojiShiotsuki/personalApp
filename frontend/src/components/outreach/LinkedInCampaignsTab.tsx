@@ -27,12 +27,14 @@ import {
   X,
   AlertTriangle,
   ExternalLink,
+  FileText,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import CsvImportModal from '@/components/CsvImportModal';
 import ResponseOutcomeModal from '@/components/ResponseOutcomeModal';
 import NewCampaignModal from '@/components/NewCampaignModal';
+import ManageOutreachTemplatesModal from '@/components/outreach/ManageOutreachTemplatesModal';
 
 type TabType = 'today' | 'pending' | 'connected' | 'sent' | 'all' | 'replied';
 
@@ -873,6 +875,7 @@ export default function LinkedInCampaignsTab() {
   const [activeTab, setActiveTab] = useState<TabType>('today');
   const [isNewCampaignOpen, setIsNewCampaignOpen] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
+  const [isTemplatesOpen, setIsTemplatesOpen] = useState(false);
   const [isCampaignDropdownOpen, setIsCampaignDropdownOpen] = useState(false);
   const [editingCampaign, setEditingCampaign] = useState<OutreachCampaign | null>(null);
   const [editingProspect, setEditingProspect] = useState<OutreachProspect | null>(null);
@@ -1084,6 +1087,19 @@ export default function LinkedInCampaignsTab() {
             <Upload className="w-4 h-4" />
             Import CSV
           </button>
+
+          <button
+            onClick={() => setIsTemplatesOpen(true)}
+            className={cn(
+              'flex items-center gap-2 px-4 py-2.5 rounded-xl',
+              'bg-slate-600/50 text-slate-300 border border-slate-500/30',
+              'transition-all duration-200 font-medium text-sm',
+              'hover:bg-slate-500 hover:text-white hover:border-slate-400 hover:scale-105 active:scale-95'
+            )}
+          >
+            <FileText className="w-4 h-4" />
+            Templates
+          </button>
         </div>
       </div>
 
@@ -1255,6 +1271,11 @@ export default function LinkedInCampaignsTab() {
           isSaving={updateProspectMutation.isPending}
         />
       )}
+
+      <ManageOutreachTemplatesModal
+        isOpen={isTemplatesOpen}
+        onClose={() => setIsTemplatesOpen(false)}
+      />
     </>
   );
 }
