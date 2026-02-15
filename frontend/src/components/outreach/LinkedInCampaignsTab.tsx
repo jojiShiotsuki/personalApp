@@ -5,6 +5,7 @@ import type {
   OutreachCampaign,
   CampaignWithStats,
   OutreachProspect,
+  ProspectCreate,
 } from '@/types';
 import { ProspectStatus, CampaignType } from '@/types';
 import {
@@ -262,6 +263,114 @@ function EditProspectModal({
                   {isSaving ? 'Saving...' : 'Save Changes'}
                 </button>
               </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Add Prospect Modal (LinkedIn)
+function AddProspectModal({
+  isOpen,
+  onClose,
+  onSave,
+  isSaving,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onSave: (data: ProspectCreate) => void;
+  isSaving: boolean;
+}) {
+  const [form, setForm] = useState({
+    agency_name: '',
+    contact_name: '',
+    email: '',
+    website: '',
+    niche: '',
+    linkedin_url: '',
+  });
+
+  if (!isOpen) return null;
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSave({
+      agency_name: form.agency_name,
+      contact_name: form.contact_name || undefined,
+      email: form.email || undefined,
+      website: form.website || undefined,
+      niche: form.niche || undefined,
+      linkedin_url: form.linkedin_url || undefined,
+    });
+  };
+
+  const inputClasses = cn(
+    'w-full px-4 py-2.5 rounded-lg',
+    'bg-stone-800/50 border border-stone-600/40',
+    'text-[--exec-text] placeholder:text-[--exec-text-muted]',
+    'focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]/50',
+    'transition-all text-sm'
+  );
+
+  return (
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 animate-in fade-in duration-200">
+      <div className="bg-[--exec-surface] rounded-2xl shadow-2xl w-full max-w-lg mx-4 border border-stone-600/40 transform transition-all animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
+        <div className="p-6">
+          <div className="flex justify-between items-center mb-6">
+            <div>
+              <h2 className="text-xl font-semibold text-[--exec-text]">Add LinkedIn Lead</h2>
+              <p className="text-sm text-[--exec-text-muted] mt-1">Manually add a prospect to this campaign</p>
+            </div>
+            <button onClick={onClose} className="text-[--exec-text-muted] hover:text-[--exec-text] p-1.5 hover:bg-stone-700/50 rounded-lg transition-colors">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-[--exec-text-secondary] mb-1.5">
+                Agency / Company Name <span className="text-red-400">*</span>
+              </label>
+              <input type="text" required value={form.agency_name} onChange={(e) => setForm({ ...form, agency_name: e.target.value })} className={inputClasses} autoFocus placeholder="e.g. Smith's Plumbing" />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-[--exec-text-secondary] mb-1.5">Contact Name</label>
+                <input type="text" value={form.contact_name} onChange={(e) => setForm({ ...form, contact_name: e.target.value })} className={inputClasses} placeholder="John Smith" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-[--exec-text-secondary] mb-1.5">Email</label>
+                <input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className={inputClasses} placeholder="Optional" />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-[--exec-text-secondary] mb-1.5">
+                <Linkedin className="w-3.5 h-3.5 inline mr-1" />
+                LinkedIn Profile URL
+              </label>
+              <input type="url" value={form.linkedin_url} onChange={(e) => setForm({ ...form, linkedin_url: e.target.value })} className={inputClasses} placeholder="https://linkedin.com/in/..." />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-[--exec-text-secondary] mb-1.5">Website</label>
+                <input type="url" value={form.website} onChange={(e) => setForm({ ...form, website: e.target.value })} className={inputClasses} placeholder="https://..." />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-[--exec-text-secondary] mb-1.5">Niche</label>
+                <input type="text" value={form.niche} onChange={(e) => setForm({ ...form, niche: e.target.value })} className={inputClasses} placeholder="Roofing, Plumbing, etc." />
+              </div>
+            </div>
+
+            <div className="flex gap-3 justify-end pt-4 border-t border-stone-700/30 mt-6">
+              <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-medium text-[--exec-text-secondary] bg-stone-700/50 rounded-lg hover:bg-stone-600/50 transition-colors">Cancel</button>
+              <button type="submit" disabled={isSaving} className="px-4 py-2 text-sm font-medium text-white bg-[--exec-accent] rounded-lg hover:bg-[--exec-accent-dark] shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+                {isSaving ? 'Adding...' : 'Add Lead'}
+              </button>
             </div>
           </form>
         </div>
@@ -879,6 +988,7 @@ export default function LinkedInCampaignsTab() {
   const [isCampaignDropdownOpen, setIsCampaignDropdownOpen] = useState(false);
   const [editingCampaign, setEditingCampaign] = useState<OutreachCampaign | null>(null);
   const [editingProspect, setEditingProspect] = useState<OutreachProspect | null>(null);
+  const [isAddProspectOpen, setIsAddProspectOpen] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -965,6 +1075,16 @@ export default function LinkedInCampaignsTab() {
       setEditingProspect(null);
     },
     onError: () => toast.error('Failed to delete prospect'),
+  });
+
+  const createProspectMutation = useMutation({
+    mutationFn: (data: ProspectCreate) => coldOutreachApi.createProspect(selectedCampaignId!, data),
+    onSuccess: () => {
+      toast.success('Lead added to campaign');
+      invalidateAll();
+      setIsAddProspectOpen(false);
+    },
+    onError: () => toast.error('Failed to add lead'),
   });
 
   function invalidateAll() {
@@ -1067,6 +1187,25 @@ export default function LinkedInCampaignsTab() {
           >
             <Plus className="w-4 h-4" />
             New
+          </button>
+
+          <button
+            onClick={() => {
+              if (!selectedCampaignId) { toast.error('Please select a campaign first'); return; }
+              setIsAddProspectOpen(true);
+            }}
+            disabled={!selectedCampaignId}
+            className={cn(
+              'flex items-center gap-2 px-4 py-2.5 rounded-xl',
+              'bg-slate-600/50 text-slate-300 border border-slate-500/30',
+              'transition-all duration-200 font-medium text-sm',
+              selectedCampaignId
+                ? 'hover:bg-slate-500 hover:text-white hover:border-slate-400 hover:scale-105 active:scale-95'
+                : 'opacity-50 cursor-not-allowed'
+            )}
+          >
+            <UserPlus className="w-4 h-4" />
+            Add Lead
           </button>
 
           <button
@@ -1271,6 +1410,13 @@ export default function LinkedInCampaignsTab() {
           isSaving={updateProspectMutation.isPending}
         />
       )}
+
+      <AddProspectModal
+        isOpen={isAddProspectOpen}
+        onClose={() => setIsAddProspectOpen(false)}
+        onSave={(data) => createProspectMutation.mutate(data)}
+        isSaving={createProspectMutation.isPending}
+      />
 
       <ManageOutreachTemplatesModal
         isOpen={isTemplatesOpen}
