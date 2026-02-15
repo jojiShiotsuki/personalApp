@@ -5,7 +5,7 @@ import { outreachApi, dailyOutreachApi, contactApi } from '@/lib/api';
 import type { OutreachNiche, OutreachSituation, OutreachTemplate, TemplateType } from '@/types';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import ManageTemplatesModal from '@/components/ManageTemplatesModal';
+import ManageOutreachTemplatesModal from '@/components/outreach/ManageOutreachTemplatesModal';
 
 // Source data interface - works for both leads and contacts
 export interface SendDMSource {
@@ -552,7 +552,7 @@ export default function SendDMPanel({ isOpen, onClose, source, onSuccess }: Send
       </div>
 
       {/* Manage Templates Modal */}
-      <ManageTemplatesModal
+      <ManageOutreachTemplatesModal
         isOpen={isManageTemplatesOpen}
         onClose={() => setIsManageTemplatesOpen(false)}
       />

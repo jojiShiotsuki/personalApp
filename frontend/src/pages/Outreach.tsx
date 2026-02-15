@@ -4,7 +4,7 @@ import { outreachApi } from '@/lib/api';
 import type { OutreachNiche, OutreachSituation, OutreachTemplate, TemplateType } from '@/types';
 import { Copy, Check, UserPlus, Settings2, Send, MessageCircle, Zap, Mail, Linkedin, Video, Building2 } from 'lucide-react';
 import { toast } from 'sonner';
-import ManageTemplatesModal from '@/components/ManageTemplatesModal';
+import ManageOutreachTemplatesModal from '@/components/outreach/ManageOutreachTemplatesModal';
 import { cn } from '@/lib/utils';
 
 const TEMPLATE_CATEGORIES = [
@@ -397,7 +397,7 @@ export default function Outreach() {
       </div>
 
       {/* Manage Templates Modal */}
-      <ManageTemplatesModal
+      <ManageOutreachTemplatesModal
         isOpen={isManageOpen}
         onClose={() => setIsManageOpen(false)}
       />

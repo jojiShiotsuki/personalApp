@@ -28,7 +28,7 @@ import CsvImportModal from '@/components/CsvImportModal';
 import CopyEmailModal from '@/components/CopyEmailModal';
 import ResponseOutcomeModal from '@/components/ResponseOutcomeModal';
 import NewCampaignModal from '@/components/NewCampaignModal';
-import ManageTemplatesModal from '@/components/ManageTemplatesModal';
+import ManageOutreachTemplatesModal from '@/components/outreach/ManageOutreachTemplatesModal';
 
 type TabType = 'today' | 'all' | 'replied';
 
@@ -816,7 +816,7 @@ export default function ColdOutreach() {
         />
       )}
 
-      <ManageTemplatesModal
+      <ManageOutreachTemplatesModal
         isOpen={isTemplatesOpen}
         onClose={() => setIsTemplatesOpen(false)}
       />
