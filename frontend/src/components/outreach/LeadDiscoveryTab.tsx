@@ -358,7 +358,7 @@ export default function LeadDiscoveryTab() {
   // Fetch campaigns for the modal
   const { data: campaigns = [] } = useQuery<OutreachCampaign[]>({
     queryKey: ['outreach-campaigns'],
-    queryFn: coldOutreachApi.getCampaigns,
+    queryFn: () => coldOutreachApi.getCampaigns(),
   });
 
   // Fetch stored leads
