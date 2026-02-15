@@ -11,7 +11,6 @@ import {
   Linkedin,
   Plus,
   Upload,
-  FileText,
   Send,
   MessageSquare,
   Users,
@@ -734,7 +733,7 @@ function SentProspects({ prospects, onEdit }: { prospects: OutreachProspect[]; o
 // All Prospects table
 function AllProspects({
   prospects,
-  onAction,
+  onAction: _onAction,
   onEdit,
 }: {
   prospects: OutreachProspect[];

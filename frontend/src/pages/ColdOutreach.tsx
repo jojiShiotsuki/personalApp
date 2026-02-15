@@ -68,6 +68,16 @@ function StatusBadge({ status }: { status: ProspectStatus }) {
       text: 'text-purple-600 dark:text-purple-400',
       label: 'Converted',
     },
+    [ProspectStatus.PENDING_CONNECTION]: {
+      bg: 'bg-yellow-100 dark:bg-yellow-900/30',
+      text: 'text-yellow-600 dark:text-yellow-400',
+      label: 'Pending Connection',
+    },
+    [ProspectStatus.CONNECTED]: {
+      bg: 'bg-emerald-100 dark:bg-emerald-900/30',
+      text: 'text-emerald-600 dark:text-emerald-400',
+      label: 'Connected',
+    },
   };
 
   const { bg, text, label } = config[status] || config[ProspectStatus.QUEUED];
@@ -408,7 +418,7 @@ export default function ColdOutreach() {
   // Queries
   const { data: campaigns = [] } = useQuery<OutreachCampaign[]>({
     queryKey: ['outreach-campaigns'],
-    queryFn: coldOutreachApi.getCampaigns,
+    queryFn: () => coldOutreachApi.getCampaigns(),
   });
 
   const { data: campaignWithStats } = useQuery<CampaignWithStats>({
