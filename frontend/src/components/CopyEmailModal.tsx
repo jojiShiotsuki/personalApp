@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { coldOutreachApi } from '@/lib/api';
 import type { OutreachProspect, RenderedEmail } from '@/types';
-import { X, Mail, Copy, Check, Send, Loader2, ChevronDown } from 'lucide-react';
+import { X, Mail, Copy, Check, Send, Loader2, ChevronDown, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -26,6 +26,14 @@ const STEP_TO_TYPE: Record<number, string> = {
   1: 'email_1', 2: 'email_2', 3: 'email_3', 4: 'email_4', 5: 'email_5',
 };
 
+const ISSUE_DESCRIPTIONS: Record<string, { label: string; description: string; color: string }> = {
+  slow_load: { label: 'Slow Load', description: 'a slow-loading website', color: 'text-red-400 bg-red-900/30 border-red-800' },
+  not_mobile_friendly: { label: 'Not Mobile', description: 'a website that isn\'t mobile-friendly', color: 'text-orange-400 bg-orange-900/30 border-orange-800' },
+  no_google_presence: { label: 'No Google', description: 'limited Google presence', color: 'text-yellow-400 bg-yellow-900/30 border-yellow-800' },
+  no_clear_cta: { label: 'No CTA', description: 'no clear call-to-action on their website', color: 'text-blue-400 bg-blue-900/30 border-blue-800' },
+  outdated_design: { label: 'Outdated', description: 'an outdated website design', color: 'text-purple-400 bg-purple-900/30 border-purple-800' },
+};
+
 export default function CopyEmailModal({
   isOpen,
   onClose,
@@ -34,14 +42,38 @@ export default function CopyEmailModal({
   const defaultType = STEP_TO_TYPE[prospect.current_step] || 'email_1';
   const [selectedTemplate, setSelectedTemplate] = useState(defaultType);
   const [copiedField, setCopiedField] = useState<'to' | 'subject' | 'body' | 'all' | null>(null);
+  const [selectedIssue, setSelectedIssue] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
   // Query rendered email with selected template type
-  const { data: email, isLoading, error } = useQuery<RenderedEmail>({
+  const { data: rawEmail, isLoading, error } = useQuery<RenderedEmail>({
     queryKey: ['rendered-email', prospect.id, selectedTemplate],
     queryFn: () => coldOutreachApi.renderEmail(prospect.id, selectedTemplate),
     enabled: isOpen,
   });
+
+  // Apply {issue} replacement client-side
+  const email = useMemo(() => {
+    if (!rawEmail) return null;
+    const issueText = selectedIssue
+      ? ISSUE_DESCRIPTIONS[selectedIssue]?.description || selectedIssue
+      : '{issue}';
+    return {
+      ...rawEmail,
+      subject: rawEmail.subject.replace(/\{issue\}/g, issueText),
+      body: rawEmail.body.replace(/\{issue\}/g, issueText),
+    };
+  }, [rawEmail, selectedIssue]);
+
+  // Available issues: prospect's detected issues, or all if none
+  const availableIssues = prospect.website_issues && prospect.website_issues.length > 0
+    ? prospect.website_issues
+    : Object.keys(ISSUE_DESCRIPTIONS);
+
+  // Check if the template contains {issue}
+  const hasIssuePlaceholder = rawEmail
+    ? rawEmail.subject.includes('{issue}') || rawEmail.body.includes('{issue}')
+    : false;
 
   // Mark sent mutation
   const markSentMutation = useMutation({
@@ -172,6 +204,42 @@ export default function CopyEmailModal({
               <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[--exec-text-muted] pointer-events-none" />
             </div>
           </div>
+
+          {/* Issue Quick-Select */}
+          {hasIssuePlaceholder && (
+            <div className="mb-4">
+              <label className="block text-xs font-medium text-[--exec-text-muted] uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                <AlertTriangle className="w-3 h-3" />
+                Website Issue
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {availableIssues.map((issue) => {
+                  const info = ISSUE_DESCRIPTIONS[issue];
+                  if (!info) return null;
+                  const isSelected = selectedIssue === issue;
+                  return (
+                    <button
+                      key={issue}
+                      onClick={() => setSelectedIssue(isSelected ? null : issue)}
+                      className={cn(
+                        'px-3 py-1.5 rounded-lg text-xs font-medium border transition-all duration-200',
+                        isSelected
+                          ? cn(info.color, 'ring-2 ring-white/20 scale-105')
+                          : 'bg-stone-800/50 border-stone-600/40 text-[--exec-text-muted] hover:border-stone-500 hover:text-[--exec-text]'
+                      )}
+                    >
+                      {info.label}
+                    </button>
+                  );
+                })}
+              </div>
+              {!selectedIssue && (
+                <p className="text-xs text-amber-400/70 mt-1.5">
+                  Select an issue to fill the {'{issue}'} placeholder in the email
+                </p>
+              )}
+            </div>
+          )}
 
           {/* Content */}
           {isLoading ? (

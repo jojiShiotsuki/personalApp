@@ -640,7 +640,7 @@ function TodayQueue({
 }
 
 // Single sent prospect card with its own modal state
-function SentProspectCard({ prospect, onEdit }: { prospect: OutreachProspect; onEdit: () => void }) {
+function SentProspectCard({ prospect, onEdit, onSkip }: { prospect: OutreachProspect; onEdit: () => void; onSkip: () => void }) {
   const [isResponseModalOpen, setIsResponseModalOpen] = useState(false);
 
   const daysUntilNext = prospect.next_action_date
@@ -748,6 +748,19 @@ function SentProspectCard({ prospect, onEdit }: { prospect: OutreachProspect; on
             <MessageSquare className="w-4 h-4" />
             They Replied
           </button>
+
+          <button
+            onClick={onSkip}
+            className={cn(
+              'flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200',
+              'bg-slate-600/30 text-slate-400 border border-slate-600/30',
+              'hover:bg-slate-600/50 hover:text-slate-200 hover:scale-105',
+              'active:scale-95 ml-auto'
+            )}
+          >
+            <SkipForward className="w-4 h-4" />
+            Skip
+          </button>
         </div>
       </div>
 
@@ -761,7 +774,7 @@ function SentProspectCard({ prospect, onEdit }: { prospect: OutreachProspect; on
 }
 
 // Sent / Waiting Prospects component - shows IN_SEQUENCE prospects
-function SentProspects({ prospects, onEdit }: { prospects: OutreachProspect[]; onEdit: (prospect: OutreachProspect) => void }) {
+function SentProspects({ prospects, onEdit, onSkip }: { prospects: OutreachProspect[]; onEdit: (prospect: OutreachProspect) => void; onSkip: (prospectId: number) => void }) {
   const sentProspects = prospects.filter(
     (p) => p.status === ProspectStatus.IN_SEQUENCE
   );
@@ -783,7 +796,7 @@ function SentProspects({ prospects, onEdit }: { prospects: OutreachProspect[]; o
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
       {sentProspects.map((prospect) => (
-        <SentProspectCard key={prospect.id} prospect={prospect} onEdit={() => onEdit(prospect)} />
+        <SentProspectCard key={prospect.id} prospect={prospect} onEdit={() => onEdit(prospect)} onSkip={() => onSkip(prospect.id)} />
       ))}
     </div>
   );
@@ -1510,7 +1523,7 @@ export default function EmailCampaignsTab() {
                 onEdit={setEditingProspect}
               />
             )}
-            {activeTab === 'sent' && <SentProspects prospects={allProspects} onEdit={setEditingProspect} />}
+            {activeTab === 'sent' && <SentProspects prospects={allProspects} onEdit={setEditingProspect} onSkip={(id) => skipMutation.mutate(id)} />}
             {activeTab === 'all' && (
               <AllProspects prospects={allProspects} onMarkSent={handleMarkSent} onEdit={setEditingProspect} />
             )}
