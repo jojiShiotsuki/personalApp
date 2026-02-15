@@ -76,16 +76,16 @@ export default function CopyEmailModal({
     enabled: isOpen,
   });
 
-  // Apply {issue} replacement client-side
+  // Apply {issue}/{issue1}/etc replacement client-side
   const email = useMemo(() => {
     if (!rawEmail) return null;
-    const issueText = selectedIssue
-      ? getDescription(selectedIssue)
-      : '{issue}';
+    if (!selectedIssue) return rawEmail;
+    const issueText = getDescription(selectedIssue);
+    const issueRegex = /\{issue\d*\}/g;
     return {
       ...rawEmail,
-      subject: rawEmail.subject.replace(/\{issue\}/g, issueText),
-      body: rawEmail.body.replace(/\{issue\}/g, issueText),
+      subject: rawEmail.subject.replace(issueRegex, issueText),
+      body: rawEmail.body.replace(issueRegex, issueText),
     };
   }, [rawEmail, selectedIssue, customDescriptions]);
 
@@ -94,9 +94,9 @@ export default function CopyEmailModal({
     ? prospect.website_issues
     : Object.keys(DEFAULT_ISSUE_DESCRIPTIONS);
 
-  // Check if the template contains {issue}
+  // Check if the template contains {issue} or {issue1} etc
   const hasIssuePlaceholder = rawEmail
-    ? rawEmail.subject.includes('{issue}') || rawEmail.body.includes('{issue}')
+    ? /\{issue\d*\}/.test(rawEmail.subject) || /\{issue\d*\}/.test(rawEmail.body)
     : false;
 
   // Initialize edit drafts when entering edit mode
