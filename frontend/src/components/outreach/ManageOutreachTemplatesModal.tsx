@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { X, Plus, Trash2, Edit3, Mail, Linkedin, Video, Building2, FileText } from 'lucide-react';
 import { outreachApi } from '@/lib/api';
@@ -203,7 +204,7 @@ export default function ManageOutreachTemplatesModal({ isOpen, onClose }: Manage
     return situations.find(s => s.id === id)?.name || `Situation #${id}`;
   };
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 animate-in fade-in duration-200" onClick={(e) => e.stopPropagation()}>
       <div className="bg-[--exec-surface] rounded-2xl shadow-2xl w-full max-w-2xl mx-4 border border-stone-600/40 transform transition-all animate-in zoom-in-95 duration-200 max-h-[85vh] flex flex-col">
         <div className="p-6 flex-shrink-0">
@@ -475,6 +476,7 @@ export default function ManageOutreachTemplatesModal({ isOpen, onClose }: Manage
         variant="danger"
         isLoading={deleteMutation.isPending}
       />
-    </div>
+    </div>,
+    document.body
   );
 }
