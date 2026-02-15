@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { searchPlannerApi } from '@/lib/api';
 import {
@@ -10,7 +10,10 @@ import {
   Circle,
   Linkedin,
   Search,
+  X,
+  Users,
 } from 'lucide-react';
+import { createPortal } from 'react-dom';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -22,6 +25,11 @@ export default function SearchPlannerTab() {
   const [plannerNiche, setPlannerNiche] = useState('');
   const [activeNiche, setActiveNiche] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'not_searched' | 'searched' | 'linkedin_not_searched' | 'linkedin_searched'>('all');
+
+  // Mark searched modal state
+  const [markModal, setMarkModal] = useState<{ comboId: number; city: string; platform: 'google' | 'linkedin' } | null>(null);
+  const [leadsCount, setLeadsCount] = useState('0');
+  const leadsInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch countries
   const { data: countries = [] } = useQuery({
@@ -100,7 +108,8 @@ export default function SearchPlannerTab() {
 
   // Google mark as searched mutation
   const markSearchedMutation = useMutation({
-    mutationFn: (comboId: number) => searchPlannerApi.markSearched(comboId, 0),
+    mutationFn: ({ comboId, leadsFound }: { comboId: number; leadsFound: number }) =>
+      searchPlannerApi.markSearched(comboId, leadsFound),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['planner-combinations'] });
       queryClient.invalidateQueries({ queryKey: ['planner-stats'] });
@@ -118,7 +127,8 @@ export default function SearchPlannerTab() {
 
   // LinkedIn mark as searched mutation
   const markLinkedinSearchedMutation = useMutation({
-    mutationFn: (comboId: number) => searchPlannerApi.markLinkedinSearched(comboId, 0),
+    mutationFn: ({ comboId, leadsFound }: { comboId: number; leadsFound: number }) =>
+      searchPlannerApi.markLinkedinSearched(comboId, leadsFound),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['planner-combinations'] });
       queryClient.invalidateQueries({ queryKey: ['planner-stats'] });
@@ -133,6 +143,23 @@ export default function SearchPlannerTab() {
       queryClient.invalidateQueries({ queryKey: ['planner-stats'] });
     },
   });
+
+  const openMarkModal = (comboId: number, city: string, platform: 'google' | 'linkedin') => {
+    setMarkModal({ comboId, city, platform });
+    setLeadsCount('0');
+    setTimeout(() => leadsInputRef.current?.select(), 50);
+  };
+
+  const handleMarkSearched = () => {
+    if (!markModal) return;
+    const count = parseInt(leadsCount) || 0;
+    if (markModal.platform === 'google') {
+      markSearchedMutation.mutate({ comboId: markModal.comboId, leadsFound: count });
+    } else {
+      markLinkedinSearchedMutation.mutate({ comboId: markModal.comboId, leadsFound: count });
+    }
+    setMarkModal(null);
+  };
 
   const handleGenerate = (e: React.FormEvent) => {
     e.preventDefault();
@@ -260,14 +287,21 @@ export default function SearchPlannerTab() {
                     ({googlePercent}%)
                   </span>
                 </div>
-                <span className={cn(
-                  'text-xs font-medium px-2 py-0.5 rounded-full',
-                  googlePercent === 100
-                    ? 'bg-green-900/30 text-green-400'
-                    : 'bg-blue-900/30 text-blue-400'
-                )}>
-                  {stats.not_searched} remaining
-                </span>
+                <div className="flex items-center gap-2">
+                  {stats.total_leads_found > 0 && (
+                    <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-blue-900/30 text-blue-400">
+                      <Users className="w-3 h-3 inline mr-1" />{stats.total_leads_found} leads
+                    </span>
+                  )}
+                  <span className={cn(
+                    'text-xs font-medium px-2 py-0.5 rounded-full',
+                    googlePercent === 100
+                      ? 'bg-green-900/30 text-green-400'
+                      : 'bg-blue-900/30 text-blue-400'
+                  )}>
+                    {stats.not_searched} remaining
+                  </span>
+                </div>
               </div>
               <div className="w-full h-2 bg-stone-700/50 rounded-full overflow-hidden">
                 <div
@@ -292,14 +326,21 @@ export default function SearchPlannerTab() {
                     ({linkedinPercent}%)
                   </span>
                 </div>
-                <span className={cn(
-                  'text-xs font-medium px-2 py-0.5 rounded-full',
-                  linkedinPercent === 100
-                    ? 'bg-green-900/30 text-green-400'
-                    : 'bg-sky-900/30 text-sky-400'
-                )}>
-                  {stats.linkedin_not_searched} remaining
-                </span>
+                <div className="flex items-center gap-2">
+                  {stats.linkedin_leads_found > 0 && (
+                    <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-sky-900/30 text-sky-400">
+                      <Users className="w-3 h-3 inline mr-1" />{stats.linkedin_leads_found} leads
+                    </span>
+                  )}
+                  <span className={cn(
+                    'text-xs font-medium px-2 py-0.5 rounded-full',
+                    linkedinPercent === 100
+                      ? 'bg-green-900/30 text-green-400'
+                      : 'bg-sky-900/30 text-sky-400'
+                  )}>
+                    {stats.linkedin_not_searched} remaining
+                  </span>
+                </div>
               </div>
               <div className="w-full h-2 bg-stone-700/50 rounded-full overflow-hidden">
                 <div
@@ -392,7 +433,7 @@ export default function SearchPlannerTab() {
                           <div>
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-green-900/30 text-green-400 border border-green-800">
                               <CheckCircle className="w-3 h-3" />
-                              Done
+                              {combo.leads_found > 0 ? `${combo.leads_found} leads` : 'Done'}
                             </span>
                             {combo.searched_at && (
                               <span className="block text-[10px] text-[--exec-text-muted] mt-0.5">
@@ -414,7 +455,7 @@ export default function SearchPlannerTab() {
                           <div>
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-green-900/30 text-green-400 border border-green-800">
                               <CheckCircle className="w-3 h-3" />
-                              Done
+                              {combo.linkedin_leads_found > 0 ? `${combo.linkedin_leads_found} leads` : 'Done'}
                             </span>
                             {combo.linkedin_searched_at && (
                               <span className="block text-[10px] text-[--exec-text-muted] mt-0.5">
@@ -446,12 +487,10 @@ export default function SearchPlannerTab() {
                             </button>
                           ) : (
                             <button
-                              onClick={() => markSearchedMutation.mutate(combo.id)}
-                              disabled={markSearchedMutation.isPending}
+                              onClick={() => openMarkModal(combo.id, combo.city, 'google')}
                               className={cn(
                                 'inline-flex items-center gap-1 px-2.5 py-1.5 text-[10px] font-medium rounded-lg transition-all',
                                 'bg-blue-600 text-white hover:bg-blue-700',
-                                'disabled:opacity-50 disabled:cursor-not-allowed'
                               )}
                             >
                               <Search className="w-3 h-3" />
@@ -472,12 +511,10 @@ export default function SearchPlannerTab() {
                             </button>
                           ) : (
                             <button
-                              onClick={() => markLinkedinSearchedMutation.mutate(combo.id)}
-                              disabled={markLinkedinSearchedMutation.isPending}
+                              onClick={() => openMarkModal(combo.id, combo.city, 'linkedin')}
                               className={cn(
                                 'inline-flex items-center gap-1 px-2.5 py-1.5 text-[10px] font-medium rounded-lg transition-all',
                                 'bg-sky-600 text-white hover:bg-sky-700',
-                                'disabled:opacity-50 disabled:cursor-not-allowed'
                               )}
                             >
                               <Linkedin className="w-3 h-3" />
@@ -523,6 +560,96 @@ export default function SearchPlannerTab() {
             Then work through them systematically.
           </p>
         </div>
+      )}
+
+      {/* Mark as Searched Modal */}
+      {markModal && createPortal(
+        <div
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 animate-in fade-in duration-200"
+          onClick={() => setMarkModal(null)}
+        >
+          <div
+            className="bg-[--exec-surface] rounded-2xl shadow-2xl w-full max-w-sm mx-4 border border-stone-600/40 transform transition-all animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <div>
+                  <h2 className="text-lg font-semibold text-[--exec-text]">
+                    Mark as Searched
+                  </h2>
+                  <p className="text-sm text-[--exec-text-muted] mt-1">
+                    {markModal.city} — {markModal.platform === 'google' ? 'Google' : 'LinkedIn'}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setMarkModal(null)}
+                  className="text-[--exec-text-muted] hover:text-[--exec-text] p-1.5 hover:bg-stone-700/50 rounded-lg transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <form onSubmit={(e) => { e.preventDefault(); handleMarkSearched(); }} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-[--exec-text-secondary] mb-1.5">
+                    Leads Found
+                  </label>
+                  <input
+                    ref={leadsInputRef}
+                    type="number"
+                    min="0"
+                    value={leadsCount}
+                    onChange={(e) => setLeadsCount(e.target.value)}
+                    className={cn(
+                      'w-full px-4 py-2.5 rounded-lg',
+                      'bg-stone-800/50 border border-stone-600/40',
+                      'text-[--exec-text] placeholder:text-[--exec-text-muted]',
+                      'focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]/50',
+                      'transition-all text-sm'
+                    )}
+                    placeholder="0"
+                  />
+                  <p className="text-xs text-[--exec-text-muted] mt-1">
+                    How many leads did you find from this search?
+                  </p>
+                </div>
+
+                <div className="flex gap-3 justify-end pt-4 border-t border-stone-700/30">
+                  <button
+                    type="button"
+                    onClick={() => setMarkModal(null)}
+                    className="px-4 py-2 text-sm font-medium text-[--exec-text-secondary] bg-stone-700/50 rounded-lg hover:bg-stone-600/50 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className={cn(
+                      'px-4 py-2 text-sm font-medium text-white rounded-lg shadow-sm hover:shadow-md transition-all',
+                      markModal.platform === 'google'
+                        ? 'bg-blue-600 hover:bg-blue-700'
+                        : 'bg-sky-600 hover:bg-sky-700'
+                    )}
+                  >
+                    {markModal.platform === 'google' ? (
+                      <span className="inline-flex items-center gap-1.5">
+                        <Search className="w-3.5 h-3.5" />
+                        Mark Google Searched
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1.5">
+                        <Linkedin className="w-3.5 h-3.5" />
+                        Mark LinkedIn Searched
+                      </span>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
     </div>
   );
