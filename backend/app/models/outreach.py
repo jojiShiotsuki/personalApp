@@ -17,6 +17,7 @@ class ProspectStatus(str, enum.Enum):
     REPLIED = "REPLIED"
     NOT_INTERESTED = "NOT_INTERESTED"
     CONVERTED = "CONVERTED"
+    SKIPPED = "SKIPPED"
     # LinkedIn-specific statuses
     PENDING_CONNECTION = "PENDING_CONNECTION"
     CONNECTED = "CONNECTED"

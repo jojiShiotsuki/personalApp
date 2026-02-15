@@ -727,6 +727,7 @@ export enum ProspectStatus {
   REPLIED = "REPLIED",
   NOT_INTERESTED = "NOT_INTERESTED",
   CONVERTED = "CONVERTED",
+  SKIPPED = "SKIPPED",
   // LinkedIn-specific
   PENDING_CONNECTION = "PENDING_CONNECTION",
   CONNECTED = "CONNECTED",
@@ -772,6 +773,7 @@ export interface CampaignStats {
   to_contact_today: number;
   response_rate: number;
   total_pipeline_value: number;
+  skipped: number;
   // LinkedIn-specific
   pending_connection: number;
   connected: number;

@@ -37,6 +37,7 @@ def get_campaign_stats(campaign: OutreachCampaign, db: Session) -> CampaignStats
     converted = sum(1 for p in prospects if p.status == ProspectStatus.CONVERTED)
     pending_connection = sum(1 for p in prospects if p.status == ProspectStatus.PENDING_CONNECTION)
     connected = sum(1 for p in prospects if p.status == ProspectStatus.CONNECTED)
+    skipped = sum(1 for p in prospects if p.status == ProspectStatus.SKIPPED)
 
     # Count prospects to contact today
     today = date.today()
@@ -74,6 +75,7 @@ def get_campaign_stats(campaign: OutreachCampaign, db: Session) -> CampaignStats
         to_contact_today=to_contact_today,
         response_rate=round(response_rate, 1),
         total_pipeline_value=total_pipeline_value,
+        skipped=skipped,
         pending_connection=pending_connection,
         connected=connected,
     )
@@ -588,6 +590,35 @@ def mark_message_sent(prospect_id: int, db: Session = Depends(get_db)):
         next_action_date=prospect.next_action_date,
         message=message
     )
+
+
+@router.post("/prospects/{prospect_id}/skip")
+def skip_prospect(prospect_id: int, db: Session = Depends(get_db)):
+    """Skip/reject a prospect — removes from active queue but keeps for reference."""
+    prospect = db.query(OutreachProspect).filter(OutreachProspect.id == prospect_id).first()
+    if not prospect:
+        raise HTTPException(status_code=404, detail="Prospect not found")
+
+    prospect.status = ProspectStatus.SKIPPED
+    prospect.next_action_date = None
+    db.commit()
+    db.refresh(prospect)
+    return {"message": f"Skipped {prospect.agency_name}", "prospect": prospect}
+
+
+@router.post("/prospects/{prospect_id}/unskip")
+def unskip_prospect(prospect_id: int, db: Session = Depends(get_db)):
+    """Restore a skipped prospect back to the queue."""
+    prospect = db.query(OutreachProspect).filter(OutreachProspect.id == prospect_id).first()
+    if not prospect:
+        raise HTTPException(status_code=404, detail="Prospect not found")
+
+    prospect.status = ProspectStatus.QUEUED
+    prospect.current_step = 1
+    prospect.next_action_date = date.today()
+    db.commit()
+    db.refresh(prospect)
+    return {"message": f"Restored {prospect.agency_name} to queue", "prospect": prospect}
 
 
 # ============== EMAIL TEMPLATES ==============

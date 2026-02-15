@@ -78,6 +78,11 @@ function StatusBadge({ status }: { status: ProspectStatus }) {
       text: 'text-emerald-600 dark:text-emerald-400',
       label: 'Connected',
     },
+    [ProspectStatus.SKIPPED]: {
+      bg: 'bg-slate-100 dark:bg-slate-700/50',
+      text: 'text-slate-500 dark:text-slate-400',
+      label: 'Skipped',
+    },
   };
 
   const { bg, text, label } = config[status] || config[ProspectStatus.QUEUED];

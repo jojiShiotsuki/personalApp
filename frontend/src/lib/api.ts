@@ -800,6 +800,16 @@ export const coldOutreachApi = {
     const response = await api.post(`/api/outreach/campaigns/prospects/${prospectId}/mark-message-sent`);
     return response.data;
   },
+
+  skipProspect: async (prospectId: number): Promise<{ message: string }> => {
+    const response = await api.post(`/api/outreach/campaigns/prospects/${prospectId}/skip`);
+    return response.data;
+  },
+
+  unskipProspect: async (prospectId: number): Promise<{ message: string }> => {
+    const response = await api.post(`/api/outreach/campaigns/prospects/${prospectId}/unskip`);
+    return response.data;
+  },
 };
 
 // Lead Discovery API

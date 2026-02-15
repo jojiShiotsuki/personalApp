@@ -27,6 +27,8 @@ import {
   Clock,
   X,
   AlertTriangle,
+  SkipForward,
+  RotateCcw,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -36,7 +38,7 @@ import ResponseOutcomeModal from '@/components/ResponseOutcomeModal';
 import NewCampaignModal from '@/components/NewCampaignModal';
 import ManageOutreachTemplatesModal from '@/components/outreach/ManageOutreachTemplatesModal';
 
-type TabType = 'today' | 'sent' | 'all' | 'replied';
+type TabType = 'today' | 'sent' | 'all' | 'replied' | 'skipped';
 
 const WEBSITE_ISSUE_LABELS: Record<string, { label: string; color: string }> = {
   slow_load: { label: 'Slow Load', color: 'text-red-400 bg-red-900/30 border-red-800' },
@@ -83,6 +85,11 @@ function StatusBadge({ status }: { status: ProspectStatus }) {
       bg: 'bg-emerald-100 dark:bg-emerald-900/30',
       text: 'text-emerald-600 dark:text-emerald-400',
       label: 'Connected',
+    },
+    [ProspectStatus.SKIPPED]: {
+      bg: 'bg-slate-100 dark:bg-slate-700/50',
+      text: 'text-slate-500 dark:text-slate-400',
+      label: 'Skipped',
     },
   };
 
@@ -400,10 +407,12 @@ function EditProspectModal({
 function ProspectCard({
   prospect,
   onMarkSent,
+  onSkip,
   onEdit,
 }: {
   prospect: OutreachProspect;
   onMarkSent: () => void;
+  onSkip: () => void;
   onEdit: () => void;
 }) {
   const [isCopyModalOpen, setIsCopyModalOpen] = useState(false);
@@ -558,6 +567,19 @@ function ProspectCard({
               They Replied
             </button>
           )}
+
+          <button
+            onClick={onSkip}
+            className={cn(
+              'flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200',
+              'bg-slate-600/30 text-slate-400 border border-slate-600/30',
+              'hover:bg-slate-600/50 hover:text-slate-200 hover:scale-105',
+              'active:scale-95 ml-auto'
+            )}
+          >
+            <SkipForward className="w-4 h-4" />
+            Skip
+          </button>
         </div>
       </div>
 
@@ -580,10 +602,12 @@ function ProspectCard({
 function TodayQueue({
   prospects,
   onMarkSent,
+  onSkip,
   onEdit,
 }: {
   prospects: OutreachProspect[];
   onMarkSent: (prospectId: number) => void;
+  onSkip: (prospectId: number) => void;
   onEdit: (prospect: OutreachProspect) => void;
 }) {
   if (prospects.length === 0) {
@@ -607,6 +631,7 @@ function TodayQueue({
           key={prospect.id}
           prospect={prospect}
           onMarkSent={() => onMarkSent(prospect.id)}
+          onSkip={() => onSkip(prospect.id)}
           onEdit={() => onEdit(prospect)}
         />
       ))}
@@ -1014,6 +1039,84 @@ function RepliedProspects({ prospects, onEdit }: { prospects: OutreachProspect[]
   );
 }
 
+// Skipped Prospects
+function SkippedProspects({
+  prospects,
+  onRestore,
+  onEdit,
+}: {
+  prospects: OutreachProspect[];
+  onRestore: (prospectId: number) => void;
+  onEdit: (prospect: OutreachProspect) => void;
+}) {
+  const skipped = prospects.filter((p) => p.status === ProspectStatus.SKIPPED);
+
+  if (skipped.length === 0) {
+    return (
+      <div className="bento-card p-12 text-center">
+        <SkipForward className="w-12 h-12 text-[--exec-text-muted] mx-auto mb-4" />
+        <h3 className="text-lg font-medium text-[--exec-text] mb-2">No skipped prospects</h3>
+        <p className="text-[--exec-text-muted]">Prospects you skip will appear here for reference.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      {skipped.map((prospect) => (
+        <div key={prospect.id} className="bento-card p-5 opacity-75 hover:opacity-100 transition-opacity">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1">
+                <h3 className="font-semibold text-[--exec-text] truncate">{prospect.agency_name}</h3>
+              </div>
+              {prospect.contact_name && (
+                <p className="text-xs text-[--exec-text-muted] mb-1">{prospect.contact_name}</p>
+              )}
+              <p className="text-sm text-[--exec-text-secondary] truncate mb-1">
+                {prospect.email || <span className="text-amber-400 italic">Via contact form</span>}
+              </p>
+              {prospect.niche && <p className="text-xs text-[--exec-text-muted] mb-1">{prospect.niche}</p>}
+              <ProspectLinks prospect={prospect} size="sm" />
+              {prospect.website_issues && prospect.website_issues.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-1.5">
+                  <AlertTriangle className="w-3 h-3 text-amber-400 flex-shrink-0 mt-0.5" />
+                  {prospect.website_issues.map((issue) => {
+                    const info = WEBSITE_ISSUE_LABELS[issue];
+                    return info ? (
+                      <span key={issue} className={cn('px-1.5 py-0.5 text-[10px] font-medium rounded border', info.color)}>{info.label}</span>
+                    ) : null;
+                  })}
+                </div>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <button onClick={() => onEdit(prospect)} className="p-1.5 text-[--exec-text-muted] hover:text-[--exec-text] hover:bg-[--exec-surface-alt] rounded-lg transition-colors" title="Edit">
+                <Edit2 className="w-3.5 h-3.5" />
+              </button>
+              <StatusBadge status={prospect.status} />
+            </div>
+          </div>
+          <div className="flex items-center gap-2 mt-4 pt-4 border-t border-[--exec-border-subtle]">
+            <button
+              onClick={() => onRestore(prospect.id)}
+              className={cn(
+                'flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200',
+                'bg-emerald-600/30 text-emerald-300 border border-emerald-500/30',
+                'hover:bg-emerald-500 hover:text-white hover:scale-105',
+                'active:scale-95'
+              )}
+            >
+              <RotateCcw className="w-4 h-4" />
+              Restore
+            </button>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function EmailCampaignsTab() {
   // State
   const [selectedCampaignId, setSelectedCampaignId] = useState<number | null>(null);
@@ -1048,7 +1151,7 @@ export default function EmailCampaignsTab() {
   const { data: allProspects = [] } = useQuery<OutreachProspect[]>({
     queryKey: ['outreach-prospects', selectedCampaignId],
     queryFn: () => coldOutreachApi.getProspects(selectedCampaignId!),
-    enabled: !!selectedCampaignId && (activeTab === 'all' || activeTab === 'replied' || activeTab === 'sent'),
+    enabled: !!selectedCampaignId && (activeTab === 'all' || activeTab === 'replied' || activeTab === 'sent' || activeTab === 'skipped'),
   });
 
   // Mutations
@@ -1063,6 +1166,28 @@ export default function EmailCampaignsTab() {
     onError: () => {
       toast.error('Failed to mark as sent');
     },
+  });
+
+  const skipMutation = useMutation({
+    mutationFn: (prospectId: number) => coldOutreachApi.skipProspect(prospectId),
+    onSuccess: (data) => {
+      toast.success(data.message);
+      queryClient.invalidateQueries({ queryKey: ['outreach-today-queue'] });
+      queryClient.invalidateQueries({ queryKey: ['outreach-prospects'] });
+      queryClient.invalidateQueries({ queryKey: ['outreach-campaign'] });
+    },
+    onError: () => toast.error('Failed to skip prospect'),
+  });
+
+  const unskipMutation = useMutation({
+    mutationFn: (prospectId: number) => coldOutreachApi.unskipProspect(prospectId),
+    onSuccess: (data) => {
+      toast.success(data.message);
+      queryClient.invalidateQueries({ queryKey: ['outreach-today-queue'] });
+      queryClient.invalidateQueries({ queryKey: ['outreach-prospects'] });
+      queryClient.invalidateQueries({ queryKey: ['outreach-campaign'] });
+    },
+    onError: () => toast.error('Failed to restore prospect'),
   });
 
   const deleteCampaignMutation = useMutation({
@@ -1351,7 +1476,7 @@ export default function EmailCampaignsTab() {
         {selectedCampaignId && (
           <div className="mb-6">
             <div className="flex items-center gap-1">
-              {(['today', 'sent', 'all', 'replied'] as const).map((tab) => (
+              {(['today', 'sent', 'all', 'replied', 'skipped'] as const).map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
@@ -1367,6 +1492,7 @@ export default function EmailCampaignsTab() {
                   {tab === 'sent' && 'Sent'}
                   {tab === 'all' && 'All Prospects'}
                   {tab === 'replied' && 'Replied'}
+                  {tab === 'skipped' && `Skipped${stats?.skipped ? ` (${stats.skipped})` : ''}`}
                 </button>
               ))}
             </div>
@@ -1380,6 +1506,7 @@ export default function EmailCampaignsTab() {
               <TodayQueue
                 prospects={todayQueue}
                 onMarkSent={handleMarkSent}
+                onSkip={(id) => skipMutation.mutate(id)}
                 onEdit={setEditingProspect}
               />
             )}
@@ -1388,6 +1515,7 @@ export default function EmailCampaignsTab() {
               <AllProspects prospects={allProspects} onMarkSent={handleMarkSent} onEdit={setEditingProspect} />
             )}
             {activeTab === 'replied' && <RepliedProspects prospects={allProspects} onEdit={setEditingProspect} />}
+            {activeTab === 'skipped' && <SkippedProspects prospects={allProspects} onRestore={(id) => unskipMutation.mutate(id)} onEdit={setEditingProspect} />}
           </div>
         ) : (
           <div className="bento-card p-12 text-center">

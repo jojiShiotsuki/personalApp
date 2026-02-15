@@ -97,6 +97,7 @@ class ProspectStatus(str, Enum):
     REPLIED = "REPLIED"
     NOT_INTERESTED = "NOT_INTERESTED"
     CONVERTED = "CONVERTED"
+    SKIPPED = "SKIPPED"
     # LinkedIn-specific statuses
     PENDING_CONNECTION = "PENDING_CONNECTION"
     CONNECTED = "CONNECTED"
@@ -165,6 +166,7 @@ class CampaignStats(BaseModel):
     to_contact_today: int
     response_rate: float
     total_pipeline_value: float
+    skipped: int = 0
     # LinkedIn-specific stats
     pending_connection: int = 0
     connected: int = 0
