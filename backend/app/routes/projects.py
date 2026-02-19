@@ -10,6 +10,7 @@ from app.database import get_db
 from app.models.project import Project, ProjectStatus
 from app.models.task import Task, TaskStatus
 from app.models.project_template import ProjectTemplate, ProjectTemplateTask
+from app.models.crm import Contact
 from app.schemas.project import ProjectCreate, ProjectUpdate, ProjectResponse
 from app.schemas.task import TaskCreate, TaskResponse
 from app.services.project_service import recalculate_project_progress
@@ -31,10 +32,17 @@ def get_projects(db: Session = Depends(get_db)):
         func.sum(case((Task.status == TaskStatus.COMPLETED, 1), else_=0)).label("completed")
     ).filter(Task.project_id.in_(project_ids)).group_by(Task.project_id).all()
     counts_map = {tc.project_id: {"total": tc.total, "completed": int(tc.completed or 0)} for tc in task_counts}
+    # Batch-fetch contact names
+    contact_ids = [p.contact_id for p in projects if p.contact_id]
+    contact_map = {}
+    if contact_ids:
+        contacts = db.query(Contact).filter(Contact.id.in_(contact_ids)).all()
+        contact_map = {c.id: c.name for c in contacts}
     for project in projects:
         counts = counts_map.get(project.id, {"total": 0, "completed": 0})
         project.task_count = counts["total"]
         project.completed_task_count = counts["completed"]
+        project.contact_name = contact_map.get(project.contact_id) if project.contact_id else None
     return projects
 
 
@@ -49,12 +57,17 @@ def get_project(project_id: int, db: Session = Depends(get_db)):
     ).filter(Task.project_id == project_id).first()
     project.task_count = task_counts.total if task_counts else 0
     project.completed_task_count = int(task_counts.completed or 0) if task_counts else 0
+    if project.contact_id:
+        contact = db.query(Contact).filter(Contact.id == project.contact_id).first()
+        project.contact_name = contact.name if contact else None
+    else:
+        project.contact_name = None
     return project
 
 
 @router.post("/", response_model=ProjectResponse, status_code=201)
 def create_project(project: ProjectCreate, db: Session = Depends(get_db)):
-    db_project = Project(name=project.name, description=project.description)
+    db_project = Project(name=project.name, description=project.description, contact_id=project.contact_id)
     db.add(db_project)
     db.flush()
 
@@ -81,6 +94,11 @@ def create_project(project: ProjectCreate, db: Session = Depends(get_db)):
     db.refresh(db_project)
     db_project.task_count = task_count
     db_project.completed_task_count = 0
+    if db_project.contact_id:
+        contact = db.query(Contact).filter(Contact.id == db_project.contact_id).first()
+        db_project.contact_name = contact.name if contact else None
+    else:
+        db_project.contact_name = None
     return db_project
 
 
@@ -107,6 +125,11 @@ def update_project(project_id: int, project_update: ProjectUpdate, db: Session =
     ).filter(Task.project_id == project_id).first()
     db_project.task_count = task_counts.total if task_counts else 0
     db_project.completed_task_count = int(task_counts.completed or 0) if task_counts else 0
+    if db_project.contact_id:
+        contact = db.query(Contact).filter(Contact.id == db_project.contact_id).first()
+        db_project.contact_name = contact.name if contact else None
+    else:
+        db_project.contact_name = None
     return db_project
 
 

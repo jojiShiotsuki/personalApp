@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { X, FileText, ChevronDown, Calendar } from 'lucide-react';
+import { X, FileText, ChevronDown, Calendar, User } from 'lucide-react';
 import { Project, ProjectCreate } from '@/types';
 import type { ProjectTemplate } from '@/types';
-import { projectTemplateApi } from '@/lib/api';
+import { projectTemplateApi, contactApi } from '@/lib/api';
 import { cn } from '@/lib/utils';
 
 interface ProjectModalProps {
@@ -31,12 +31,19 @@ export default function ProjectModal({
     enabled: isOpen && !project,
   });
 
+  const { data: contacts = [] } = useQuery({
+    queryKey: ['contacts'],
+    queryFn: () => contactApi.getAll(),
+    enabled: isOpen,
+  });
+
   useEffect(() => {
     if (project) {
       setFormData({
         name: project.name,
         description: project.description || '',
         deadline: project.deadline || '',
+        contact_id: project.contact_id,
       });
       setSelectedTemplate(null);
     } else {
@@ -200,6 +207,33 @@ export default function ProjectModal({
                 onChange={(e) => setFormData({ ...formData, deadline: e.target.value })}
                 className={cn(inputClasses, 'cursor-pointer')}
               />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-[--exec-text-secondary] mb-1.5">
+                <span className="flex items-center gap-1.5">
+                  <User className="w-3.5 h-3.5" />
+                  Client
+                </span>
+              </label>
+              <div className="relative">
+                <select
+                  value={formData.contact_id || ''}
+                  onChange={(e) => setFormData({
+                    ...formData,
+                    contact_id: e.target.value ? parseInt(e.target.value) : undefined,
+                  })}
+                  className={cn(inputClasses, 'appearance-none cursor-pointer pr-10')}
+                >
+                  <option value="">No client linked</option>
+                  {contacts.map(c => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}{c.company ? ` — ${c.company}` : ''}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[--exec-text-muted] pointer-events-none" />
+              </div>
             </div>
 
             <div className="flex gap-3 justify-end pt-4 border-t border-stone-700/30 mt-6">

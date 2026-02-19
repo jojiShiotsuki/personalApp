@@ -1,17 +1,20 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Search, Folder, Briefcase, FileText } from 'lucide-react';
+import { Plus, Search, Folder, Briefcase, FileText, LayoutGrid, Kanban } from 'lucide-react';
 import { projectApi } from '@/lib/api';
 import { ProjectCreate } from '@/types';
 import ProjectCard from '@/components/ProjectCard';
 import ProjectModal from '@/components/ProjectModal';
 import ManageTemplatesModal from '@/components/ManageTemplatesModal';
+import ProjectDeliveryBoard from '@/components/ProjectDeliveryBoard';
+import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
 export default function Projects() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isTemplatesOpen, setIsTemplatesOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [viewMode, setViewMode] = useState<'grid' | 'board'>('board');
   const queryClient = useQueryClient();
 
   // Fetch projects
@@ -89,6 +92,33 @@ export default function Projects() {
             </div>
 
             <div className="flex items-center gap-3 animate-fade-slide-up delay-3">
+              {/* View toggle */}
+              <div className="flex items-center bg-[--exec-surface-alt] border border-[--exec-border] rounded-xl p-1">
+                <button
+                  onClick={() => setViewMode('grid')}
+                  className={cn(
+                    'p-2 rounded-lg transition-all duration-200',
+                    viewMode === 'grid'
+                      ? 'bg-[--exec-surface] text-[--exec-text] shadow-sm'
+                      : 'text-[--exec-text-muted] hover:text-[--exec-text]'
+                  )}
+                  title="Grid view"
+                >
+                  <LayoutGrid className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => setViewMode('board')}
+                  className={cn(
+                    'p-2 rounded-lg transition-all duration-200',
+                    viewMode === 'board'
+                      ? 'bg-[--exec-surface] text-[--exec-text] shadow-sm'
+                      : 'text-[--exec-text-muted] hover:text-[--exec-text]'
+                  )}
+                  title="Board view"
+                >
+                  <Kanban className="w-4 h-4" />
+                </button>
+              </div>
               <button
                 onClick={() => setIsTemplatesOpen(true)}
                 className="flex items-center gap-2 px-4 py-2.5 bg-[--exec-surface-alt] border border-[--exec-border] text-[--exec-text-secondary] rounded-2xl hover:bg-[--exec-surface] hover:text-[--exec-text] hover:border-[--exec-accent]/30 transition-all duration-200 font-medium text-sm"
@@ -136,6 +166,10 @@ export default function Projects() {
             >
               Try again
             </button>
+          </div>
+        ) : viewMode === 'board' ? (
+          <div style={{ height: 'calc(100vh - 280px)' }}>
+            <ProjectDeliveryBoard projects={filteredProjects} />
           </div>
         ) : filteredProjects.length === 0 ? (
           <div className="bento-card-static p-16 text-center animate-fade-slide-up delay-5">

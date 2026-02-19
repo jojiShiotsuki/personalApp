@@ -22,7 +22,10 @@ export enum RecurrenceType {
 
 export enum ProjectStatus {
   TODO = "todo",
+  SCOPING = "scoping",
   IN_PROGRESS = "in_progress",
+  REVIEW = "review",
+  REVISIONS = "revisions",
   COMPLETED = "completed",
   RETAINER = "retainer",
 }
@@ -40,6 +43,8 @@ export type Project = {
   completed_task_count?: number;
   hourly_rate?: number;
   deadline?: string;
+  contact_id?: number;
+  contact_name?: string;
 }
 
 export type ProjectCreate = {
@@ -48,6 +53,7 @@ export type ProjectCreate = {
   hourly_rate?: number;
   deadline?: string;
   template_id?: number;
+  contact_id?: number;
 }
 
 export type ProjectUpdate = {
@@ -56,6 +62,7 @@ export type ProjectUpdate = {
   status?: ProjectStatus;
   hourly_rate?: number;
   deadline?: string | null;
+  contact_id?: number | null;
 }
 
 export type ProjectTemplateTask = {

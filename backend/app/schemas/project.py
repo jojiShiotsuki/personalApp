@@ -10,6 +10,7 @@ class ProjectBase(BaseModel):
     description: Optional[str] = Field(None, max_length=2000)
     hourly_rate: Optional[Decimal] = Field(None, ge=0)  # For time tracking billing
     deadline: Optional[date] = None
+    contact_id: Optional[int] = None
 
 
 class ProjectCreate(ProjectBase):
@@ -22,6 +23,7 @@ class ProjectUpdate(BaseModel):
     status: Optional[ProjectStatus] = None
     hourly_rate: Optional[Decimal] = Field(None, ge=0)  # For time tracking billing
     deadline: Optional[date] = None
+    contact_id: Optional[int] = None
 
 
 class ProjectResponse(ProjectBase):
@@ -33,6 +35,7 @@ class ProjectResponse(ProjectBase):
     completed_at: Optional[datetime] = None
     task_count: Optional[int] = None
     completed_task_count: Optional[int] = None
+    contact_name: Optional[str] = None
 
     class Config:
         from_attributes = True

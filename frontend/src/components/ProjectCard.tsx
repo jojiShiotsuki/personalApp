@@ -17,10 +17,25 @@ const statusConfig = {
     dot: 'bg-amber-400',
     label: 'To Do',
   },
+  [ProjectStatus.SCOPING]: {
+    badge: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20',
+    dot: 'bg-indigo-400',
+    label: 'Scoping',
+  },
   [ProjectStatus.IN_PROGRESS]: {
     badge: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
     dot: 'bg-blue-400',
     label: 'In Progress',
+  },
+  [ProjectStatus.REVIEW]: {
+    badge: 'bg-violet-500/10 text-violet-400 border-violet-500/20',
+    dot: 'bg-violet-400',
+    label: 'Review',
+  },
+  [ProjectStatus.REVISIONS]: {
+    badge: 'bg-orange-500/10 text-orange-400 border-orange-500/20',
+    dot: 'bg-orange-400',
+    label: 'Revisions',
   },
   [ProjectStatus.COMPLETED]: {
     badge: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
