@@ -95,7 +95,7 @@ def get_step_delay(campaign: OutreachCampaign, step: int) -> int:
 
 # ============== CAMPAIGNS ==============
 
-@router.get("/", response_model=List[CampaignResponse])
+@router.get("", response_model=List[CampaignResponse])
 def list_campaigns(
     status: Optional[str] = "ACTIVE",
     campaign_type: Optional[str] = None,
@@ -121,7 +121,7 @@ def list_campaigns(
     return query.order_by(OutreachCampaign.created_at.desc()).all()
 
 
-@router.post("/", response_model=CampaignResponse, status_code=201)
+@router.post("", response_model=CampaignResponse, status_code=201)
 def create_campaign(data: CampaignCreate, db: Session = Depends(get_db)):
     """Create a new campaign."""
     campaign = OutreachCampaign(

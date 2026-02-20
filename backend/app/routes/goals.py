@@ -10,7 +10,7 @@ from app.schemas.goal import GoalCreate, GoalUpdate, GoalResponse, KeyResult
 
 router = APIRouter(prefix="/api/goals", tags=["goals"])
 
-@router.get("/", response_model=List[GoalResponse])
+@router.get("", response_model=List[GoalResponse])
 def get_goals(
     quarter: Optional[Quarter] = None,
     year: Optional[int] = None,
@@ -56,7 +56,7 @@ def get_goal(goal_id: int, db: Session = Depends(get_db)):
 
     return goal
 
-@router.post("/", response_model=GoalResponse, status_code=201)
+@router.post("", response_model=GoalResponse, status_code=201)
 def create_goal(goal: GoalCreate, db: Session = Depends(get_db)):
     """Create a new goal"""
     goal_data = goal.model_dump()

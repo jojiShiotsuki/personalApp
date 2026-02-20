@@ -12,7 +12,7 @@ from app.services.project_service import recalculate_project_progress
 router = APIRouter(prefix="/api/project-templates", tags=["project-templates"])
 
 
-@router.get("/", response_model=List[ProjectTemplateResponse])
+@router.get("", response_model=List[ProjectTemplateResponse])
 def get_templates(db: Session = Depends(get_db)):
     return db.query(ProjectTemplate).order_by(ProjectTemplate.created_at.desc()).all()
 
@@ -25,7 +25,7 @@ def get_template(template_id: int, db: Session = Depends(get_db)):
     return template
 
 
-@router.post("/", response_model=ProjectTemplateResponse, status_code=201)
+@router.post("", response_model=ProjectTemplateResponse, status_code=201)
 def create_template(data: ProjectTemplateCreate, db: Session = Depends(get_db)):
     template = ProjectTemplate(name=data.name, description=data.description)
     db.add(template)

@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/projects", tags=["projects"])
 
 
-@router.get("/", response_model=List[ProjectResponse])
+@router.get("", response_model=List[ProjectResponse])
 def get_projects(db: Session = Depends(get_db)):
     projects = db.query(Project).order_by(Project.updated_at.desc()).all()
     if not projects:
@@ -65,7 +65,7 @@ def get_project(project_id: int, db: Session = Depends(get_db)):
     return project
 
 
-@router.post("/", response_model=ProjectResponse, status_code=201)
+@router.post("", response_model=ProjectResponse, status_code=201)
 def create_project(project: ProjectCreate, db: Session = Depends(get_db)):
     db_project = Project(name=project.name, description=project.description, contact_id=project.contact_id, service_type=project.service_type)
     db.add(db_project)

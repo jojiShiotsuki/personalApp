@@ -48,7 +48,7 @@ def get_iso_week_dates(year: int, week: int):
     return target_monday, target_sunday
 
 
-@router.get("/")
+@router.get("")
 def list_content(
     skip: int = 0,
     limit: int = 100,
@@ -104,7 +104,7 @@ def get_content(content_id: int, db: Session = Depends(get_db)):
     return content_to_dict(content)
 
 
-@router.post("/", status_code=status.HTTP_201_CREATED)
+@router.post("", status_code=status.HTTP_201_CREATED)
 def create_content(
     content: SocialContentCreate,
     db: Session = Depends(get_db),

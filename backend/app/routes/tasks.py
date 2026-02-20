@@ -24,7 +24,7 @@ def prepare_task_for_response(task: Task) -> Task:
     return task
 
 
-@router.get("/", response_model=List[TaskResponse])
+@router.get("", response_model=List[TaskResponse])
 def get_tasks(
     status: Optional[TaskStatus] = None,
     priority: Optional[TaskPriority] = None,
@@ -67,7 +67,7 @@ def get_task(task_id: int, db: Session = Depends(get_db)):
     return prepare_task_for_response(task)
 
 
-@router.post("/", response_model=TaskResponse, status_code=201)
+@router.post("", response_model=TaskResponse, status_code=201)
 def create_task(task: TaskCreate, db: Session = Depends(get_db)):
     """Create a new task, and if it's recurring, create future occurrences"""
     task_data = task.model_dump()
