@@ -11,6 +11,7 @@ class ProjectBase(BaseModel):
     hourly_rate: Optional[Decimal] = Field(None, ge=0)  # For time tracking billing
     deadline: Optional[date] = None
     contact_id: Optional[int] = None
+    service_type: Optional[str] = None
 
 
 class ProjectCreate(ProjectBase):
@@ -24,6 +25,7 @@ class ProjectUpdate(BaseModel):
     hourly_rate: Optional[Decimal] = Field(None, ge=0)  # For time tracking billing
     deadline: Optional[date] = None
     contact_id: Optional[int] = None
+    service_type: Optional[str] = None
 
 
 class ProjectResponse(ProjectBase):

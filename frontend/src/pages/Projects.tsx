@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Search, Folder, Briefcase, FileText, LayoutGrid, Kanban } from 'lucide-react';
+import { Plus, Search, Folder, Briefcase, FileText, LayoutGrid, Kanban, Tag } from 'lucide-react';
 import { projectApi } from '@/lib/api';
 import { ProjectCreate } from '@/types';
 import ProjectCard from '@/components/ProjectCard';
@@ -10,10 +10,18 @@ import ProjectDeliveryBoard from '@/components/ProjectDeliveryBoard';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
+const SERVICE_FILTERS = [
+  { value: 'wordpress', label: 'WordPress' },
+  { value: 'ghl', label: 'GHL' },
+  { value: 'graphic_design', label: 'Design' },
+  { value: 'seo', label: 'SEO' },
+];
+
 export default function Projects() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isTemplatesOpen, setIsTemplatesOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [serviceFilter, setServiceFilter] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'board'>('board');
   const queryClient = useQueryClient();
 
@@ -56,12 +64,14 @@ export default function Projects() {
     deleteMutation.mutate(id);
   };
 
-  // Filter projects by search query
-  const filteredProjects = projects.filter(
-    (project) =>
+  // Filter projects by search query and service type
+  const filteredProjects = projects.filter((project) => {
+    const matchesSearch =
       project.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      project.description?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+      project.description?.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesService = !serviceFilter || project.service_type === serviceFilter;
+    return matchesSearch && matchesService;
+  });
 
   return (
     <div className="min-h-full bg-[--exec-bg] grain">
@@ -136,17 +146,46 @@ export default function Projects() {
             </div>
           </div>
 
-          {/* Search Bar */}
-          <div className="mt-6 relative max-w-md animate-fade-slide-up delay-4">
-            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-[--exec-text-muted] w-5 h-5" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search projects..."
-              aria-label="Search projects"
-              className="w-full pl-12 pr-4 py-3 bg-[--exec-surface] border border-[--exec-border] rounded-2xl focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent] transition-all duration-200 text-[--exec-text] placeholder:text-[--exec-text-muted]"
-            />
+          {/* Search Bar + Service Filters */}
+          <div className="mt-6 flex items-center gap-4 animate-fade-slide-up delay-4">
+            <div className="relative max-w-md flex-1">
+              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-[--exec-text-muted] w-5 h-5" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search projects..."
+                aria-label="Search projects"
+                className="w-full pl-12 pr-4 py-3 bg-[--exec-surface] border border-[--exec-border] rounded-2xl focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent] transition-all duration-200 text-[--exec-text] placeholder:text-[--exec-text-muted]"
+              />
+            </div>
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => setServiceFilter(null)}
+                className={cn(
+                  'px-3 py-1.5 text-xs font-medium rounded-lg transition-all duration-200',
+                  !serviceFilter
+                    ? 'bg-[--exec-accent]/15 text-[--exec-accent] border border-[--exec-accent]/30'
+                    : 'text-[--exec-text-muted] hover:text-[--exec-text] hover:bg-[--exec-surface-alt]'
+                )}
+              >
+                All
+              </button>
+              {SERVICE_FILTERS.map(sf => (
+                <button
+                  key={sf.value}
+                  onClick={() => setServiceFilter(serviceFilter === sf.value ? null : sf.value)}
+                  className={cn(
+                    'px-3 py-1.5 text-xs font-medium rounded-lg transition-all duration-200',
+                    serviceFilter === sf.value
+                      ? 'bg-[--exec-accent]/15 text-[--exec-accent] border border-[--exec-accent]/30'
+                      : 'text-[--exec-text-muted] hover:text-[--exec-text] hover:bg-[--exec-surface-alt]'
+                  )}
+                >
+                  {sf.label}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </header>

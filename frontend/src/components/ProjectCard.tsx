@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Project, ProjectStatus } from '@/types';
-import { Folder, CheckCircle2, Trash2, Calendar, Clock } from 'lucide-react';
+import { Folder, CheckCircle2, Trash2, Calendar, Clock, Tag } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
 import ConfirmModal from './ConfirmModal';
@@ -47,6 +47,13 @@ const statusConfig = {
     dot: 'bg-purple-400',
     label: 'Retainer',
   },
+};
+
+const serviceTagConfig: Record<string, { label: string; bg: string; text: string; border: string }> = {
+  wordpress: { label: 'WordPress', bg: 'bg-blue-500/10', text: 'text-blue-400', border: 'border-blue-500/20' },
+  ghl: { label: 'GHL', bg: 'bg-emerald-500/10', text: 'text-emerald-400', border: 'border-emerald-500/20' },
+  graphic_design: { label: 'Design', bg: 'bg-violet-500/10', text: 'text-violet-400', border: 'border-violet-500/20' },
+  seo: { label: 'SEO', bg: 'bg-amber-500/10', text: 'text-amber-400', border: 'border-amber-500/20' },
 };
 
 export default function ProjectCard({ project, onDelete }: ProjectCardProps) {
@@ -121,9 +128,31 @@ export default function ProjectCard({ project, onDelete }: ProjectCardProps) {
       </div>
 
       {/* Description */}
-      <p className="text-sm text-[--exec-text-secondary] mb-6 line-clamp-2 min-h-[40px]">
+      <p className="text-sm text-[--exec-text-secondary] mb-4 line-clamp-2 min-h-[40px]">
         {project.description || "No description provided."}
       </p>
+
+      {/* Service type + client tags */}
+      {(project.service_type || project.contact_name) && (
+        <div className="flex flex-wrap items-center gap-2 mb-4">
+          {project.service_type && serviceTagConfig[project.service_type] && (
+            <span className={cn(
+              'inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wide border',
+              serviceTagConfig[project.service_type].bg,
+              serviceTagConfig[project.service_type].text,
+              serviceTagConfig[project.service_type].border,
+            )}>
+              <Tag className="w-2.5 h-2.5" />
+              {serviceTagConfig[project.service_type].label}
+            </span>
+          )}
+          {project.contact_name && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-medium text-[--exec-text-muted] bg-[--exec-surface-alt] border border-[--exec-border]">
+              {project.contact_name}
+            </span>
+          )}
+        </div>
+      )}
 
       {/* Progress Bar */}
       <div className="mb-4">

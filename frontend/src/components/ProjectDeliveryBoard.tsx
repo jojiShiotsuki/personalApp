@@ -4,7 +4,7 @@ import { projectApi } from '@/lib/api';
 import { Project, ProjectStatus } from '@/types';
 import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, CheckCircle2, User } from 'lucide-react';
+import { Calendar, CheckCircle2, User, Tag } from 'lucide-react';
 import { format, isPast, isToday } from 'date-fns';
 import { toast } from 'sonner';
 
@@ -47,6 +47,13 @@ const COLUMN_CONFIG: Record<string, { label: string; headerBg: string; headerTex
     headerText: 'text-emerald-400',
     headerBorder: 'border-emerald-500/20',
   },
+};
+
+const SERVICE_TAG_CONFIG: Record<string, { label: string; bg: string; text: string; border: string }> = {
+  wordpress: { label: 'WordPress', bg: 'bg-blue-500/10', text: 'text-blue-400', border: 'border-blue-500/20' },
+  ghl: { label: 'GHL', bg: 'bg-emerald-500/10', text: 'text-emerald-400', border: 'border-emerald-500/20' },
+  graphic_design: { label: 'Design', bg: 'bg-violet-500/10', text: 'text-violet-400', border: 'border-violet-500/20' },
+  seo: { label: 'SEO', bg: 'bg-amber-500/10', text: 'text-amber-400', border: 'border-amber-500/20' },
 };
 
 interface ProjectDeliveryBoardProps {
@@ -149,10 +156,22 @@ export default function ProjectDeliveryBoard({ projects }: ProjectDeliveryBoardP
                             )}
                             onClick={() => !snapshot.isDragging && navigate(`/projects/${project.id}`)}
                           >
-                            {/* Project name */}
-                            <h4 className="font-semibold text-[--exec-text] text-sm mb-1 line-clamp-2">
-                              {project.name}
-                            </h4>
+                            {/* Project name + service tag */}
+                            <div className="flex items-start justify-between gap-2 mb-1">
+                              <h4 className="font-semibold text-[--exec-text] text-sm line-clamp-2">
+                                {project.name}
+                              </h4>
+                              {project.service_type && SERVICE_TAG_CONFIG[project.service_type] && (
+                                <span className={cn(
+                                  'inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide border flex-shrink-0',
+                                  SERVICE_TAG_CONFIG[project.service_type].bg,
+                                  SERVICE_TAG_CONFIG[project.service_type].text,
+                                  SERVICE_TAG_CONFIG[project.service_type].border,
+                                )}>
+                                  {SERVICE_TAG_CONFIG[project.service_type].label}
+                                </span>
+                              )}
+                            </div>
 
                             {/* Client name */}
                             {project.contact_name && (

@@ -67,7 +67,7 @@ def get_project(project_id: int, db: Session = Depends(get_db)):
 
 @router.post("/", response_model=ProjectResponse, status_code=201)
 def create_project(project: ProjectCreate, db: Session = Depends(get_db)):
-    db_project = Project(name=project.name, description=project.description, contact_id=project.contact_id)
+    db_project = Project(name=project.name, description=project.description, contact_id=project.contact_id, service_type=project.service_type)
     db.add(db_project)
     db.flush()
 

@@ -1,10 +1,17 @@
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { X, FileText, ChevronDown, Calendar, User } from 'lucide-react';
+import { X, FileText, ChevronDown, Calendar, User, Tag } from 'lucide-react';
 import { Project, ProjectCreate } from '@/types';
 import type { ProjectTemplate } from '@/types';
 import { projectTemplateApi, contactApi } from '@/lib/api';
 import { cn } from '@/lib/utils';
+
+const SERVICE_TYPES = [
+  { value: 'wordpress', label: 'WordPress' },
+  { value: 'ghl', label: 'GHL' },
+  { value: 'graphic_design', label: 'Graphic Design' },
+  { value: 'seo', label: 'SEO' },
+];
 
 interface ProjectModalProps {
   isOpen: boolean;
@@ -44,6 +51,7 @@ export default function ProjectModal({
         description: project.description || '',
         deadline: project.deadline || '',
         contact_id: project.contact_id,
+        service_type: project.service_type,
       });
       setSelectedTemplate(null);
     } else {
@@ -229,6 +237,33 @@ export default function ProjectModal({
                   {contacts.map(c => (
                     <option key={c.id} value={c.id}>
                       {c.name}{c.company ? ` — ${c.company}` : ''}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[--exec-text-muted] pointer-events-none" />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-[--exec-text-secondary] mb-1.5">
+                <span className="flex items-center gap-1.5">
+                  <Tag className="w-3.5 h-3.5" />
+                  Service Type
+                </span>
+              </label>
+              <div className="relative">
+                <select
+                  value={formData.service_type || ''}
+                  onChange={(e) => setFormData({
+                    ...formData,
+                    service_type: e.target.value || undefined,
+                  })}
+                  className={cn(inputClasses, 'appearance-none cursor-pointer pr-10')}
+                >
+                  <option value="">No service type</option>
+                  {SERVICE_TYPES.map(st => (
+                    <option key={st.value} value={st.value}>
+                      {st.label}
                     </option>
                   ))}
                 </select>
