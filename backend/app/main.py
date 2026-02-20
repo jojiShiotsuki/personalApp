@@ -19,7 +19,7 @@ from app.routes import auth, tasks, crm, task_parser, export, goals, goal_parser
 app = FastAPI(
     title="Personal Productivity App",
     description="Task management and CRM system with AI assistant",
-    version="1.0.2",
+    version="1.0.3",
     redirect_slashes=False,
 )
 
@@ -45,6 +45,19 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def strip_trailing_slash(request: Request, call_next):
+    """Strip trailing slashes from API paths so both /api/x and /api/x/ match routes.
+
+    With redirect_slashes=False, FastAPI won't issue 307 redirects that break
+    CORS preflight requests. This middleware normalizes paths instead.
+    """
+    path = request.scope["path"]
+    if path.startswith("/api/") and path.endswith("/") and path != "/":
+        request.scope["path"] = path.rstrip("/")
+    return await call_next(request)
 
 # Register auth router (no auth dependency - public endpoints)
 app.include_router(auth.router)
