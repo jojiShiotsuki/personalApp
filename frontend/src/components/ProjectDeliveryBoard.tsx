@@ -4,7 +4,7 @@ import { projectApi } from '@/lib/api';
 import { Project, ProjectStatus } from '@/types';
 import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, CheckCircle2, User, Tag } from 'lucide-react';
+import { Calendar, CheckCircle2, User } from 'lucide-react';
 import { format, isPast, isToday } from 'date-fns';
 import { toast } from 'sonner';
 

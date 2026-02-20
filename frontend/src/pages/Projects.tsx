@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Search, Folder, Briefcase, FileText, LayoutGrid, Kanban, Tag } from 'lucide-react';
+import { Plus, Search, Folder, Briefcase, FileText, LayoutGrid, Kanban } from 'lucide-react';
 import { projectApi } from '@/lib/api';
 import { ProjectCreate } from '@/types';
 import ProjectCard from '@/components/ProjectCard';
