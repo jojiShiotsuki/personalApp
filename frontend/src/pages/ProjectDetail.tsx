@@ -610,6 +610,7 @@ const statusFilterOptions = [
   { value: TaskStatus.PENDING, label: 'Pending', dot: 'bg-stone-400' },
   { value: TaskStatus.IN_PROGRESS, label: 'In Progress', dot: 'bg-blue-400' },
   { value: TaskStatus.COMPLETED, label: 'Completed', dot: 'bg-emerald-400' },
+  { value: TaskStatus.SKIPPED, label: 'Skipped', dot: 'bg-stone-400' },
 ];
 
 const priorityFilterOptions = [
@@ -1114,7 +1115,7 @@ function ListTab({ projectId }: { projectId: number }) {
           groupedTasks.map(({ phase, tasks: phaseTasks }) => {
             if (phaseTasks.length === 0) return null;
             const isCollapsed = collapsedPhases.has(phase);
-            const phaseCompleted = phaseTasks.filter(t => t.status === TaskStatus.COMPLETED).length;
+            const phaseCompleted = phaseTasks.filter(t => t.status === TaskStatus.COMPLETED || t.status === TaskStatus.SKIPPED).length;
             const phaseIds = phaseTasks.map(t => t.id);
             const allPhaseSelected = phaseIds.every(id => selectedTasks.has(id));
             const somePhaseSelected = phaseIds.some(id => selectedTasks.has(id));
@@ -1388,6 +1389,7 @@ function ListTab({ projectId }: { projectId: number }) {
                     { value: TaskStatus.PENDING, label: 'Pending', dot: 'bg-stone-400' },
                     { value: TaskStatus.IN_PROGRESS, label: 'In Progress', dot: 'bg-blue-400' },
                     { value: TaskStatus.COMPLETED, label: 'Completed', dot: 'bg-emerald-400' },
+                    { value: TaskStatus.SKIPPED, label: 'Skipped', dot: 'bg-stone-400' },
                   ].map(opt => (
                     <button
                       key={opt.value}
@@ -1522,6 +1524,7 @@ function BoardTab({ projectId }: { projectId: number }) {
     { id: TaskStatus.PENDING, title: 'To Do', bg: 'bg-[--exec-surface-alt]' },
     { id: TaskStatus.IN_PROGRESS, title: 'In Progress', bg: 'bg-[--exec-info-bg]' },
     { id: TaskStatus.COMPLETED, title: 'Completed', bg: 'bg-[--exec-success-bg]' },
+    { id: TaskStatus.SKIPPED, title: 'Skipped', bg: 'bg-[--exec-surface-alt]' },
   ];
 
   const priorityBadge = (priority: TaskPriority) => {

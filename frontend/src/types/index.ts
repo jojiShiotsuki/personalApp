@@ -11,6 +11,7 @@ export enum TaskStatus {
   IN_PROGRESS = "in_progress",
   COMPLETED = "completed",
   DELAYED = "delayed",
+  SKIPPED = "skipped",
 }
 
 export enum RecurrenceType {

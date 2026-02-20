@@ -105,7 +105,7 @@ export default function TodayScorecard() {
     task.due_date && isToday(parseISO(task.due_date))
   );
   const completedToday = todayTasks.filter(
-    (task) => task.status === TaskStatus.COMPLETED
+    (task) => task.status === TaskStatus.COMPLETED || task.status === TaskStatus.SKIPPED
   );
 
   // Calculate outreach metrics (total touches across all channels)

@@ -34,12 +34,19 @@ const columns = [
     headerColor: 'border-t-4 border-t-green-500 dark:border-t-green-400',
     badgeColor: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
   },
-  { 
-    id: TaskStatus.DELAYED, 
-    title: 'Delayed', 
-    color: 'bg-yellow-50/30 dark:bg-yellow-900/10', 
+  {
+    id: TaskStatus.DELAYED,
+    title: 'Delayed',
+    color: 'bg-yellow-50/30 dark:bg-yellow-900/10',
     headerColor: 'border-t-4 border-t-yellow-500 dark:border-t-yellow-400',
     badgeColor: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400'
+  },
+  {
+    id: TaskStatus.SKIPPED,
+    title: 'Skipped',
+    color: 'bg-gray-50/30 dark:bg-gray-800/30',
+    headerColor: 'border-t-4 border-t-gray-400 dark:border-t-gray-500',
+    badgeColor: 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
   },
 ];
 
@@ -149,7 +156,7 @@ export default function TaskKanbanBoard({ tasks, projects = [], goals = [], onSt
                               {task.due_date && (
                                 <div className={cn(
                                   "flex items-center gap-1 text-xs font-medium",
-                                  isPast(new Date(task.due_date)) && !isToday(new Date(task.due_date)) && task.status !== TaskStatus.COMPLETED
+                                  isPast(new Date(task.due_date)) && !isToday(new Date(task.due_date)) && task.status !== TaskStatus.COMPLETED && task.status !== TaskStatus.SKIPPED
                                     ? "text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-900/30 px-1.5 py-0.5 rounded" 
                                     : "text-gray-400 dark:text-gray-500"
                                 )}>

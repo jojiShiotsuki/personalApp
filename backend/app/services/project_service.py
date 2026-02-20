@@ -14,8 +14,8 @@ def recalculate_project_progress(project_id: int, db: Session) -> int:
     if not tasks:
         return 0
 
-    completed_count = sum(1 for t in tasks if t.status == TaskStatus.COMPLETED)
-    progress = int((completed_count / len(tasks)) * 100)
+    resolved_count = sum(1 for t in tasks if t.status in (TaskStatus.COMPLETED, TaskStatus.SKIPPED))
+    progress = int((resolved_count / len(tasks)) * 100)
 
     # Update project
     project = db.query(Project).filter(Project.id == project_id).first()

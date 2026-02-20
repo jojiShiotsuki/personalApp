@@ -90,7 +90,7 @@ export default function Tasks() {
 
   // Only pass status filters to API, handle time filters on frontend
   const getApiFilter = (filter: FilterValue): TaskStatus | undefined => {
-    const statusFilters = [TaskStatus.PENDING, TaskStatus.IN_PROGRESS, TaskStatus.COMPLETED, TaskStatus.DELAYED];
+    const statusFilters = [TaskStatus.PENDING, TaskStatus.IN_PROGRESS, TaskStatus.COMPLETED, TaskStatus.DELAYED, TaskStatus.SKIPPED];
     return statusFilters.includes(filter as TaskStatus) ? (filter as TaskStatus) : undefined;
   };
 
@@ -323,13 +323,14 @@ export default function Tasks() {
       if (filterValue === 'today') return isDateStringToday(task.due_date);
       if (filterValue === 'this_week') return isDateStringThisWeek(task.due_date);
       if (filterValue === 'this_month') return isDateStringThisMonth(task.due_date);
-      if (filterValue === 'overdue') return isDateStringOverdue(task.due_date) && task.status !== TaskStatus.COMPLETED;
+      if (filterValue === 'overdue') return isDateStringOverdue(task.due_date) && task.status !== TaskStatus.COMPLETED && task.status !== TaskStatus.SKIPPED;
 
       // Status-based filters
       if (filterValue === TaskStatus.PENDING) return task.status === TaskStatus.PENDING;
       if (filterValue === TaskStatus.IN_PROGRESS) return task.status === TaskStatus.IN_PROGRESS;
       if (filterValue === TaskStatus.COMPLETED) return task.status === TaskStatus.COMPLETED;
       if (filterValue === TaskStatus.DELAYED) return task.status === TaskStatus.DELAYED;
+      if (filterValue === TaskStatus.SKIPPED) return task.status === TaskStatus.SKIPPED;
 
       return false;
     }).length;
@@ -344,6 +345,7 @@ export default function Tasks() {
     { label: 'Pending', value: TaskStatus.PENDING },
     { label: 'In Progress', value: TaskStatus.IN_PROGRESS },
     { label: 'Completed', value: TaskStatus.COMPLETED },
+    { label: 'Skipped', value: TaskStatus.SKIPPED },
   ];
 
   // Filter and sort tasks
@@ -356,13 +358,14 @@ export default function Tasks() {
           if (filter === 'today') return isDateStringToday(task.due_date);
           if (filter === 'this_week') return isDateStringThisWeek(task.due_date);
           if (filter === 'this_month') return isDateStringThisMonth(task.due_date);
-          if (filter === 'overdue') return isDateStringOverdue(task.due_date) && task.status !== TaskStatus.COMPLETED;
+          if (filter === 'overdue') return isDateStringOverdue(task.due_date) && task.status !== TaskStatus.COMPLETED && task.status !== TaskStatus.SKIPPED;
 
           // Status-based filters
           if (filter === TaskStatus.PENDING) return task.status === TaskStatus.PENDING;
           if (filter === TaskStatus.IN_PROGRESS) return task.status === TaskStatus.IN_PROGRESS;
           if (filter === TaskStatus.COMPLETED) return task.status === TaskStatus.COMPLETED;
           if (filter === TaskStatus.DELAYED) return task.status === TaskStatus.DELAYED;
+          if (filter === TaskStatus.SKIPPED) return task.status === TaskStatus.SKIPPED;
           return true;
         });
 
@@ -878,6 +881,7 @@ export default function Tasks() {
                     <option value={TaskStatus.IN_PROGRESS}>In Progress</option>
                     <option value={TaskStatus.COMPLETED}>Completed</option>
                     <option value={TaskStatus.DELAYED}>Delayed</option>
+                    <option value={TaskStatus.SKIPPED}>Skipped</option>
                   </select>
                 </div>
               </div>
@@ -1129,6 +1133,13 @@ export default function Tasks() {
                 className="w-full px-4 py-3 text-left border border-stone-700 rounded-xl bg-stone-800 hover:bg-[--exec-sage-bg] transition-colors disabled:opacity-50"
               >
                 <span className="font-medium text-[--exec-sage]">Completed</span>
+              </button>
+              <button
+                onClick={() => handleBulkStatusChange(TaskStatus.SKIPPED)}
+                disabled={bulkStatusUpdateMutation.isPending}
+                className="w-full px-4 py-3 text-left border border-stone-700 rounded-xl bg-stone-800 hover:bg-stone-700 transition-colors disabled:opacity-50"
+              >
+                <span className="font-medium text-stone-400">Skipped</span>
               </button>
             </div>
             <button

@@ -96,6 +96,7 @@ export default function Dashboard() {
     (task) =>
       task.due_date &&
       task.status !== TaskStatus.COMPLETED &&
+      task.status !== TaskStatus.SKIPPED &&
       isPast(parseISO(task.due_date)) &&
       !isToday(parseISO(task.due_date))
   );

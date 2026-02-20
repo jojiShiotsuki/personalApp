@@ -29,7 +29,7 @@ def get_projects(db: Session = Depends(get_db)):
     task_counts = db.query(
         Task.project_id,
         func.count(Task.id).label("total"),
-        func.sum(case((Task.status == TaskStatus.COMPLETED, 1), else_=0)).label("completed")
+        func.sum(case((Task.status.in_([TaskStatus.COMPLETED, TaskStatus.SKIPPED]), 1), else_=0)).label("completed")
     ).filter(Task.project_id.in_(project_ids)).group_by(Task.project_id).all()
     counts_map = {tc.project_id: {"total": tc.total, "completed": int(tc.completed or 0)} for tc in task_counts}
     # Batch-fetch contact names
@@ -53,7 +53,7 @@ def get_project(project_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Project not found")
     task_counts = db.query(
         func.count(Task.id).label("total"),
-        func.sum(case((Task.status == TaskStatus.COMPLETED, 1), else_=0)).label("completed")
+        func.sum(case((Task.status.in_([TaskStatus.COMPLETED, TaskStatus.SKIPPED]), 1), else_=0)).label("completed")
     ).filter(Task.project_id == project_id).first()
     project.task_count = task_counts.total if task_counts else 0
     project.completed_task_count = int(task_counts.completed or 0) if task_counts else 0
@@ -121,7 +121,7 @@ def update_project(project_id: int, project_update: ProjectUpdate, db: Session =
     db.refresh(db_project)
     task_counts = db.query(
         func.count(Task.id).label("total"),
-        func.sum(case((Task.status == TaskStatus.COMPLETED, 1), else_=0)).label("completed")
+        func.sum(case((Task.status.in_([TaskStatus.COMPLETED, TaskStatus.SKIPPED]), 1), else_=0)).label("completed")
     ).filter(Task.project_id == project_id).first()
     db_project.task_count = task_counts.total if task_counts else 0
     db_project.completed_task_count = int(task_counts.completed or 0) if task_counts else 0
@@ -218,10 +218,10 @@ def auto_schedule_tasks(project_id: int, db: Session = Depends(get_db)):
     if not project.deadline:
         raise HTTPException(status_code=400, detail="Project has no deadline set")
 
-    # Get incomplete tasks
+    # Get incomplete tasks (exclude completed and skipped)
     tasks = db.query(Task).filter(
         Task.project_id == project_id,
-        Task.status != TaskStatus.COMPLETED,
+        Task.status.notin_([TaskStatus.COMPLETED, TaskStatus.SKIPPED]),
     ).order_by(Task.created_at.asc()).all()
 
     if not tasks:

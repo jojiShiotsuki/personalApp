@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { Task, Goal } from '@/types';
 import { TaskStatus, TaskPriority } from '@/types';
 import { format, isPast, isToday, isTomorrow, parseISO, differenceInDays, startOfDay } from 'date-fns';
-import { Check, Clock, Trash2, Edit, Target, Repeat, Play, Square, Link2, StickyNote } from 'lucide-react';
+import { Check, Clock, Trash2, Edit, Target, Repeat, Play, Square, Link2, StickyNote, SkipForward } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import ConfirmModal from './ConfirmModal';
 import { useTimer, formatElapsedTime } from '@/contexts/TimerContext';
@@ -68,6 +68,12 @@ const statusConfig = {
     text: 'text-[--exec-warning]',
     label: 'Delayed',
     rowBg: 'bg-[--exec-warning]/10 hover:bg-[--exec-warning]/15'
+  },
+  [TaskStatus.SKIPPED]: {
+    dot: 'bg-stone-400',
+    text: 'text-stone-400',
+    label: 'Skipped',
+    rowBg: 'bg-stone-500/10 hover:bg-stone-500/15'
   }
 };
 
@@ -75,6 +81,8 @@ export default function TaskItem({ task, onStatusChange, onClick, onDelete, isUp
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const { currentTimer, startTimer, stopTimer, elapsedSeconds } = useTimer();
   const isCompleted = task.status === TaskStatus.COMPLETED;
+  const isSkipped = task.status === TaskStatus.SKIPPED;
+  const isResolved = isCompleted || isSkipped;
   const priority = priorityConfig[task.priority];
   const status = statusConfig[task.status];
   const isTimerRunningForThis = currentTimer?.task_id === task.id;
@@ -111,7 +119,7 @@ export default function TaskItem({ task, onStatusChange, onClick, onDelete, isUp
     const dueDate = parseISO(task.due_date);
     const isOverdue = isPast(dueDate) && !isToday(dueDate);
 
-    if (isOverdue && !isCompleted) return 'text-[--exec-danger]';
+    if (isOverdue && !isResolved) return 'text-[--exec-danger]';
     if (isToday(dueDate)) return 'text-[--exec-warning]';
     if (isTomorrow(dueDate)) return 'text-[--exec-info]';
     return 'text-[--exec-text-muted]';
@@ -123,7 +131,7 @@ export default function TaskItem({ task, onStatusChange, onClick, onDelete, isUp
     const dueDate = parseISO(task.due_date);
     const isOverdue = isPast(dueDate) && !isToday(dueDate);
 
-    if (isOverdue && !isCompleted) {
+    if (isOverdue && !isResolved) {
       const today = startOfDay(new Date());
       const daysOverdue = differenceInDays(today, dueDate);
       return daysOverdue === 1 ? '1 day overdue' : `${daysOverdue} days overdue`;
@@ -135,8 +143,13 @@ export default function TaskItem({ task, onStatusChange, onClick, onDelete, isUp
 
   const handleCheckbox = (e: React.MouseEvent) => {
     e.stopPropagation();
-    const newStatus = isCompleted ? TaskStatus.PENDING : TaskStatus.COMPLETED;
+    const newStatus = isResolved ? TaskStatus.PENDING : TaskStatus.COMPLETED;
     onStatusChange(task.id, newStatus);
+  };
+
+  const handleSkip = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onStatusChange(task.id, isSkipped ? TaskStatus.PENDING : TaskStatus.SKIPPED);
   };
 
   const handleTimerClick = async (e: React.MouseEvent) => {
@@ -193,11 +206,14 @@ export default function TaskItem({ task, onStatusChange, onClick, onDelete, isUp
             'transition-all duration-200',
             isCompleted
               ? 'bg-[--exec-sage] border-[--exec-sage]'
+              : isSkipped
+              ? 'bg-stone-500 border-stone-500'
               : 'border-stone-600 hover:border-[--exec-sage] hover:scale-110',
             isUpdating && 'opacity-50 cursor-not-allowed'
           )}
         >
           {isCompleted && <Check className="w-3.5 h-3.5 text-white" />}
+          {isSkipped && <SkipForward className="w-3 h-3 text-white" />}
         </button>
 
         {/* Main content */}
@@ -208,7 +224,7 @@ export default function TaskItem({ task, onStatusChange, onClick, onDelete, isUp
               <h3
                 className={cn(
                   'font-medium text-[--exec-text] text-left transition-colors',
-                  isCompleted && 'line-through text-[--exec-text-muted]'
+                  isResolved && 'line-through text-[--exec-text-muted]'
                 )}
               >
                 {task.title}
@@ -297,8 +313,33 @@ export default function TaskItem({ task, onStatusChange, onClick, onDelete, isUp
 
         {/* Action Buttons - Always visible */}
         <div className="flex gap-1 ml-2">
-          {/* Timer Button */}
+          {/* Skip Button */}
           {!isCompleted && (
+            <button
+              onClick={handleSkip}
+              className={cn(
+                "p-1.5 rounded-md transition-all duration-200",
+                "hover:scale-110 active:scale-95",
+                isSkipped
+                  ? "text-stone-400 bg-stone-500/10"
+                  : "text-stone-500"
+              )}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = '#a8a29e';
+                e.currentTarget.style.backgroundColor = 'rgba(168,162,158,0.2)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = isSkipped ? '#a8a29e' : '#78716c';
+                e.currentTarget.style.backgroundColor = isSkipped ? 'rgba(120,113,108,0.1)' : 'transparent';
+              }}
+              title={isSkipped ? "Unskip task" : "Skip task"}
+            >
+              <SkipForward className="w-4 h-4" />
+            </button>
+          )}
+
+          {/* Timer Button */}
+          {!isResolved && (
             <button
               onClick={handleTimerClick}
               className={cn(

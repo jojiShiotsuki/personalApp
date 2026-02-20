@@ -15,6 +15,7 @@ class TaskStatus(str, enum.Enum):
     IN_PROGRESS = "in_progress"
     COMPLETED = "completed"
     DELAYED = "delayed"
+    SKIPPED = "skipped"
 
 class RecurrenceType(str, enum.Enum):
     DAILY = "daily"
