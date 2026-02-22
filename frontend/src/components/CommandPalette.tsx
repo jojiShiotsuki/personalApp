@@ -15,8 +15,6 @@ import {
   Plus,
   Search,
   Clock,
-  Briefcase,
-  Mail,
   User,
 } from 'lucide-react';
 

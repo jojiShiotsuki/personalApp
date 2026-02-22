@@ -26,7 +26,7 @@ import {
   Bell,
   BarChart3,
 } from 'lucide-react';
-import { isPast, isToday, parseISO, format, addDays, subDays, startOfDay, isBefore, isAfter, isSameDay } from 'date-fns';
+import { isPast, isToday, parseISO, format, addDays, subDays, startOfDay, isBefore, isSameDay } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 import { formatDateForApi } from '@/lib/dateUtils';
 import { cn } from '@/lib/utils';
@@ -76,7 +76,7 @@ export default function Dashboard() {
 
   const today = new Date();
   const nextWeek = addDays(today, 7);
-  const { data: upcomingContent = [], isError: contentError } = useQuery({
+  const { data: upcomingContent = [] } = useQuery({
     queryKey: ['social-content', 'upcoming'],
     queryFn: () => socialContentApi.list({
       start_date: formatDateForApi(today),
@@ -84,12 +84,11 @@ export default function Dashboard() {
     }),
   });
 
-  const { data: goals = [], isError: goalsError } = useQuery({
+  const { data: goals = [] } = useQuery({
     queryKey: ['goals', currentYear],
     queryFn: () => goalApi.getAll(undefined, currentYear),
   });
 
-  const hasErrors = tasksError || dealsError || contentError || goalsError;
 
   const activeGoals = goals.filter(g => g.progress < 100).slice(0, 3);
 

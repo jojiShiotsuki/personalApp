@@ -337,6 +337,7 @@ export type Deal = {
   created_at: string;
   updated_at: string;
   followup_count: number;
+  contact_name?: string;
 }
 
 export type DealCreate = {
