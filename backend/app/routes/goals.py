@@ -32,7 +32,7 @@ def get_goals(
             try:
                 parsed_results = json.loads(goal.key_results)
                 goal.key_results = [KeyResult(**kr) for kr in parsed_results]
-            except:
+            except (json.JSONDecodeError, ValueError, TypeError):
                 goal.key_results = []
         else:
             goal.key_results = []
@@ -51,7 +51,7 @@ def get_goal(goal_id: int, db: Session = Depends(get_db)):
         try:
             parsed_results = json.loads(goal.key_results)
             goal.key_results = [KeyResult(**kr) for kr in parsed_results]
-        except:
+        except (json.JSONDecodeError, ValueError, TypeError):
             goal.key_results = []
 
     return goal
@@ -75,7 +75,7 @@ def create_goal(goal: GoalCreate, db: Session = Depends(get_db)):
         try:
             parsed_results = json.loads(db_goal.key_results)
             db_goal.key_results = [KeyResult(**kr) for kr in parsed_results]
-        except:
+        except (json.JSONDecodeError, ValueError, TypeError):
             db_goal.key_results = []
 
     return db_goal
@@ -105,7 +105,7 @@ def update_goal(goal_id: int, goal_update: GoalUpdate, db: Session = Depends(get
         try:
             parsed_results = json.loads(db_goal.key_results)
             db_goal.key_results = [KeyResult(**kr) for kr in parsed_results]
-        except:
+        except (json.JSONDecodeError, ValueError, TypeError):
             db_goal.key_results = []
 
     return db_goal
@@ -145,7 +145,7 @@ def update_goal_progress(
         try:
             parsed_results = json.loads(db_goal.key_results)
             db_goal.key_results = [KeyResult(**kr) for kr in parsed_results]
-        except:
+        except (json.JSONDecodeError, ValueError, TypeError):
             db_goal.key_results = []
 
     return db_goal

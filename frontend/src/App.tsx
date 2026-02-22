@@ -1,23 +1,25 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import Layout from './components/Layout';
-import Dashboard from './pages/Dashboard';
-import Tasks from './pages/Tasks';
-import Contacts from './pages/Contacts';
-import Deals from './pages/Deals';
-import Goals from './pages/Goals';
-import Projects from './pages/Projects';
-import ProjectDetail from './pages/ProjectDetail';
-import Export from './pages/Export';
-import SocialCalendar from './pages/SocialCalendar';
-import Time from './pages/Time';
-import OutreachHub from './pages/OutreachHub';
-import Services from './pages/Services';
-import Settings from './pages/Settings';
-import Sprint from './pages/Sprint';
 import Login from './pages/Login';
+
+// Lazy-loaded pages
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Tasks = lazy(() => import('./pages/Tasks'));
+const Contacts = lazy(() => import('./pages/Contacts'));
+const Deals = lazy(() => import('./pages/Deals'));
+const Goals = lazy(() => import('./pages/Goals'));
+const Projects = lazy(() => import('./pages/Projects'));
+const ProjectDetail = lazy(() => import('./pages/ProjectDetail'));
+const Export = lazy(() => import('./pages/Export'));
+const SocialCalendar = lazy(() => import('./pages/SocialCalendar'));
+const Time = lazy(() => import('./pages/Time'));
+const OutreachHub = lazy(() => import('./pages/OutreachHub'));
+const Services = lazy(() => import('./pages/Services'));
+const Settings = lazy(() => import('./pages/Settings'));
+const Sprint = lazy(() => import('./pages/Sprint'));
 import QuickAddModal from './components/QuickAddModal';
 import CommandPalette from './components/CommandPalette';
 import { ThemeProvider } from './components/ThemeProvider';
@@ -50,6 +52,7 @@ function AuthenticatedApp() {
   return (
     <TimerProvider>
       <Layout>
+        <Suspense fallback={<div className="min-h-screen bg-[--exec-bg] flex items-center justify-center"><div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[--exec-accent]" /></div>}>
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/tasks" element={<Tasks />} />
@@ -68,6 +71,7 @@ function AuthenticatedApp() {
           <Route path="/login" element={<Navigate to="/" replace />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+        </Suspense>
       </Layout>
       <CommandPalette
         open={isCommandPaletteOpen}

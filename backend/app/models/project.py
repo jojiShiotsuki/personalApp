@@ -25,7 +25,7 @@ class Project(Base):
     progress = Column(Integer, default=0)  # 0-100
     hourly_rate = Column(Numeric(10, 2), nullable=True)  # For time tracking billing
     deadline = Column(Date, nullable=True)
-    contact_id = Column(Integer, ForeignKey("crm_contacts.id"), nullable=True)
+    contact_id = Column(Integer, ForeignKey("crm_contacts.id"), nullable=True, index=True)
     service_type = Column(String(50), nullable=True)  # wordpress, ghl, graphic_design, seo
     notes = Column(Text, nullable=True)
     completed_at = Column(DateTime, nullable=True)

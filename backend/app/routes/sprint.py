@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from sqlalchemy import func, desc
 from typing import List, Optional
 from pydantic import BaseModel
 import logging
@@ -19,7 +20,7 @@ from app.schemas.sprint import (
     UpdateNotesResponse,
 )
 from app.services import sprint_service
-from app.models.sprint import SPRINT_DAY_TASKS
+from app.models.sprint import Sprint, SprintDay, SPRINT_DAY_TASKS
 
 
 class PlaybookSuggestion(BaseModel):
@@ -54,7 +55,18 @@ def get_active_sprint(db: Session = Depends(get_db)):
 def get_all_sprints(db: Session = Depends(get_db)):
     """Get all sprints."""
     try:
-        sprints = sprint_service.get_all_sprints(db)
+        from sqlalchemy import text as sql_text
+        # Normalize any uppercase status values (legacy data fix)
+        db.execute(sql_text("UPDATE sprints SET status = LOWER(status) WHERE status != LOWER(status)"))
+
+        # Calculate completed day counts in a single aggregate query
+        day_counts = dict(
+            db.query(SprintDay.sprint_id, func.count(SprintDay.id))
+            .filter(SprintDay.is_complete == True)
+            .group_by(SprintDay.sprint_id)
+            .all()
+        )
+        sprints = db.query(Sprint).order_by(desc(Sprint.created_at)).all()
         return [
             SprintListResponse(
                 id=s.id,
@@ -62,7 +74,7 @@ def get_all_sprints(db: Session = Depends(get_db)):
                 start_date=s.start_date,
                 end_date=s.end_date,
                 status=s.status,
-                progress_percentage=s.progress_percentage,
+                progress_percentage=round((day_counts.get(s.id, 0) / 30) * 100, 1),
                 created_at=s.created_at,
             )
             for s in sprints

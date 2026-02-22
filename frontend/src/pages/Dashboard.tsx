@@ -224,7 +224,7 @@ export default function Dashboard() {
         </div>
 
         {/* Stats Grid - More visual impact */}
-        <div className="grid grid-cols-4 gap-4 mt-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
           {/* Pipeline Value - Hero metric */}
           <div className="bento-card p-6 animate-fade-slide-up delay-1 card-glow">
             <div className="flex items-start justify-between">
@@ -281,10 +281,10 @@ export default function Dashboard() {
         </div>
 
         {/* Main Grid */}
-        <div className="grid grid-cols-12 gap-5 mt-6">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-5 mt-6">
 
           {/* Priority Tasks - Large Card */}
-          <div className="col-span-7 bento-card overflow-hidden animate-fade-slide-up delay-5">
+          <div className="col-span-1 md:col-span-7 bento-card overflow-hidden animate-fade-slide-up delay-5">
             <div className="flex items-center justify-between px-6 py-5 border-b border-[--exec-border-subtle]">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[--exec-accent-bg] to-[--exec-accent-bg-subtle] flex items-center justify-center">
@@ -367,7 +367,7 @@ export default function Dashboard() {
           </div>
 
           {/* Goals Card */}
-          <div className="col-span-5 bento-card overflow-hidden animate-fade-slide-up delay-6">
+          <div className="col-span-1 md:col-span-5 bento-card overflow-hidden animate-fade-slide-up delay-6">
             <div className="flex items-center justify-between px-6 py-5 border-b border-[--exec-border-subtle]">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-[--exec-sage-bg] flex items-center justify-center">
@@ -420,7 +420,7 @@ export default function Dashboard() {
           </div>
 
           {/* Deals Card */}
-          <div className="col-span-6 bento-card overflow-hidden animate-fade-slide-up delay-7">
+          <div className="col-span-1 md:col-span-6 bento-card overflow-hidden animate-fade-slide-up delay-7">
             <div className="flex items-center justify-between px-6 py-5 border-b border-[--exec-border-subtle]">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-[--exec-success-bg] flex items-center justify-center">
@@ -488,7 +488,7 @@ export default function Dashboard() {
 
           {/* Content Calendar */}
           {upcomingContent.length > 0 && (
-            <div className="col-span-6 bento-card overflow-hidden animate-fade-slide-up delay-8">
+            <div className="col-span-1 md:col-span-6 bento-card overflow-hidden animate-fade-slide-up delay-8">
               <div className="flex items-center justify-between px-6 py-5 border-b border-[--exec-border-subtle]">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-[--exec-info-bg] flex items-center justify-center">
@@ -505,7 +505,7 @@ export default function Dashboard() {
                 </button>
               </div>
 
-              <div className="p-4 grid grid-cols-2 gap-3">
+              <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {upcomingContent.slice(0, 4).map((content) => (
                   <div
                     key={content.id}

@@ -38,7 +38,7 @@ export default function Services() {
   const [editingService, setEditingService] = useState<Deal | null>(null);
   const queryClient = useQueryClient();
 
-  const { data: deals = [] } = useQuery({
+  const { data: deals = [], isLoading, isError } = useQuery({
     queryKey: ['deals'],
     queryFn: () => dealApi.getAll(),
   });
@@ -57,8 +57,9 @@ export default function Services() {
       setEditingService(null);
       toast.success('Service updated successfully');
     },
-    onError: () => {
-      toast.error('Failed to update service. Please try again.');
+    onError: (error: any) => {
+      const message = error?.response?.data?.detail || 'Failed to update service. Please try again.';
+      toast.error(message);
     },
   });
 
@@ -188,7 +189,7 @@ export default function Services() {
       {/* Main Content */}
       <div className="px-8 py-6">
         {/* Stats Grid */}
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* MRR - Hero metric */}
           <div className="bento-card p-6 animate-fade-slide-up delay-1 card-glow">
             <div className="flex items-start justify-between">
@@ -269,7 +270,21 @@ export default function Services() {
         </div>
 
         {/* Services List */}
-        {sortedServices.length === 0 ? (
+        {isLoading ? (
+          <div className="flex justify-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[--exec-accent]"></div>
+          </div>
+        ) : isError ? (
+          <div className="bento-card-static p-12 text-center">
+            <p className="text-[--exec-danger] mb-4">Failed to load services</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="text-[--exec-text-muted] hover:text-[--exec-accent] underline"
+            >
+              Try again
+            </button>
+          </div>
+        ) : sortedServices.length === 0 ? (
           <div className="bento-card-static p-12 text-center animate-fade-slide-up delay-6">
             <div className="w-14 h-14 bg-[--exec-surface-alt] rounded-2xl flex items-center justify-center mx-auto mb-4">
               <RefreshCw className="w-7 h-7 text-[--exec-text-muted]" />

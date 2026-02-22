@@ -32,17 +32,6 @@ def get_briefing(db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail="Failed to generate briefing")
 
 
-@router.get("/briefing/simple")
-def get_simple_briefing(db: Session = Depends(get_db)):
-    """Get basic briefing without AI analysis (faster, fallback)."""
-    try:
-        result = DashboardService.get_briefing(db)
-        return result
-    except Exception as e:
-        logger.error(f"Error in simple briefing: {e}")
-        raise HTTPException(status_code=500, detail="Failed to generate briefing")
-
-
 # Quick action endpoints for briefing cards
 
 @router.post("/actions/task/{task_id}/complete")

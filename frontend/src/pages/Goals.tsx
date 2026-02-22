@@ -58,7 +58,7 @@ export default function Goals() {
   });
 
   // Fetch goals
-  const { data: goals = [], isLoading } = useQuery({
+  const { data: goals = [], isLoading, isError } = useQuery({
     queryKey: ['goals', selectedYear],
     queryFn: () => goalApi.getAll(undefined, selectedYear),
   });
@@ -72,9 +72,9 @@ export default function Goals() {
       resetForm();
       toast.success('Goal created successfully');
     },
-    onError: (error) => {
-      console.error('Failed to create goal:', error);
-      toast.error('Failed to create goal');
+    onError: (error: any) => {
+      const message = error?.response?.data?.detail || 'Failed to create goal';
+      toast.error(message);
     },
   });
 
@@ -88,9 +88,9 @@ export default function Goals() {
       resetForm();
       toast.success('Goal updated successfully');
     },
-    onError: (error) => {
-      console.error('Failed to update goal:', error);
-      toast.error('Failed to update goal');
+    onError: (error: any) => {
+      const message = error?.response?.data?.detail || 'Failed to update goal';
+      toast.error(message);
     },
   });
 
@@ -101,8 +101,9 @@ export default function Goals() {
       queryClient.invalidateQueries({ queryKey: ['goals'] });
       toast.success('Goal deleted');
     },
-    onError: () => {
-      toast.error('Failed to delete goal. Please try again.');
+    onError: (error: any) => {
+      const message = error?.response?.data?.detail || 'Failed to delete goal. Please try again.';
+      toast.error(message);
     },
   });
 
@@ -321,6 +322,16 @@ export default function Goals() {
       {isLoading ? (
         <div className="flex justify-center py-12">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[--exec-accent]"></div>
+        </div>
+      ) : isError ? (
+        <div className="bento-card-static p-12 text-center">
+          <p className="text-[--exec-danger] mb-4">Failed to load goals</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="text-[--exec-text-muted] hover:text-[--exec-accent] underline"
+          >
+            Try again
+          </button>
         </div>
       ) : (
         <DragDropContext onDragEnd={handleDragEnd}>

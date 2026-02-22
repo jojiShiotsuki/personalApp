@@ -22,7 +22,7 @@ export default function Time() {
     queryFn: timeApi.getSummary,
   });
 
-  const { data: entries = [], isLoading: entriesLoading } = useQuery({
+  const { data: entries = [], isLoading: entriesLoading, isError: entriesError } = useQuery({
     queryKey: ['time-entries'],
     queryFn: () => timeApi.listEntries({ limit: 50 }),
   });
@@ -231,6 +231,16 @@ export default function Time() {
             <div className="flex items-center justify-center h-32">
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[--exec-accent]" />
             </div>
+          ) : entriesError ? (
+            <div className="bento-card-static p-12 text-center">
+              <p className="text-[--exec-danger] mb-4">Failed to load time entries</p>
+              <button
+                onClick={() => window.location.reload()}
+                className="text-[--exec-text-muted] hover:text-[--exec-accent] underline"
+              >
+                Try again
+              </button>
+            </div>
           ) : entries.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-[--exec-text-muted]">
               <div className="w-16 h-16 rounded-2xl bg-[--exec-surface-alt] flex items-center justify-center mb-4">
@@ -421,8 +431,9 @@ function ManualEntryModal({
       toast.success('Time entry created');
       onClose();
     },
-    onError: () => {
-      toast.error('Failed to create time entry');
+    onError: (error: any) => {
+      const message = error?.response?.data?.detail || 'Failed to create time entry';
+      toast.error(message);
     },
   });
 

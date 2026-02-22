@@ -18,6 +18,7 @@ interface ProjectModalProps {
   onClose: () => void;
   onSubmit: (data: ProjectCreate) => void;
   project?: Project;
+  isLoading?: boolean;
 }
 
 export default function ProjectModal({
@@ -25,6 +26,7 @@ export default function ProjectModal({
   onClose,
   onSubmit,
   project,
+  isLoading = false,
 }: ProjectModalProps) {
   const [formData, setFormData] = useState<ProjectCreate>({
     name: '',
@@ -281,10 +283,10 @@ export default function ProjectModal({
               </button>
               <button
                 type="submit"
-                disabled={!formData.name.trim()}
+                disabled={!formData.name.trim() || isLoading}
                 className="px-4 py-2 text-sm font-medium text-white bg-[--exec-accent] rounded-lg hover:bg-[--exec-accent-dark] shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {project ? 'Save Changes' : 'Create Project'}
+                {isLoading ? 'Saving...' : project ? 'Save Changes' : 'Create Project'}
               </button>
             </div>
           </form>

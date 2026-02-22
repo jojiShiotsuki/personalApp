@@ -195,7 +195,7 @@ class Sprint(Base):
         """Get week themes as a list."""
         try:
             return json.loads(self.week_themes) if self.week_themes else WEEK_THEMES
-        except:
+        except (json.JSONDecodeError, ValueError, TypeError):
             return WEEK_THEMES
 
     def __repr__(self):
@@ -207,14 +207,14 @@ class SprintDay(Base):
     __tablename__ = "sprint_days"
 
     id = Column(Integer, primary_key=True, index=True)
-    sprint_id = Column(Integer, ForeignKey("sprints.id"), nullable=False)
+    sprint_id = Column(Integer, ForeignKey("sprints.id"), nullable=False, index=True)
 
     day_number = Column(Integer, nullable=False)  # 1-30
     week_number = Column(Integer, nullable=False)  # 1-4
     log_date = Column(Date, nullable=False)
 
     # Link to daily outreach log for that date
-    outreach_log_id = Column(Integer, ForeignKey("daily_outreach_logs.id"), nullable=True)
+    outreach_log_id = Column(Integer, ForeignKey("daily_outreach_logs.id"), nullable=True, index=True)
 
     # Day-specific tasks as JSON
     tasks = Column(Text, nullable=True)  # [{"title": "...", "completed": bool}]
@@ -228,13 +228,13 @@ class SprintDay(Base):
 
     # Relationships
     sprint = relationship("Sprint", back_populates="days")
-    sprint_tasks = relationship("Task", back_populates="sprint_day", lazy="joined")
+    sprint_tasks = relationship("Task", back_populates="sprint_day", lazy="selectin")
 
     def get_tasks_list(self) -> list:
         """Get tasks as a list of dicts."""
         try:
             return json.loads(self.tasks) if self.tasks else []
-        except:
+        except (json.JSONDecodeError, ValueError, TypeError):
             return []
 
     def set_tasks_list(self, tasks: list):

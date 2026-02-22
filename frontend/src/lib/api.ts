@@ -628,28 +628,10 @@ export const outreachApi = {
     return response.data;
   },
 
-  createNiche: async (data: { name: string }) => {
-    const response = await api.post('/api/outreach/niches', data);
-    return response.data;
-  },
-
-  deleteNiche: async (id: number) => {
-    await api.delete(`/api/outreach/niches/${id}`);
-  },
-
   // Situations
   getSituations: async () => {
     const response = await api.get('/api/outreach/situations');
     return response.data;
-  },
-
-  createSituation: async (data: { name: string }) => {
-    const response = await api.post('/api/outreach/situations', data);
-    return response.data;
-  },
-
-  deleteSituation: async (id: number) => {
-    await api.delete(`/api/outreach/situations/${id}`);
   },
 
   // Templates
@@ -669,17 +651,6 @@ export const outreachApi = {
   updateTemplate: async (id: number, data: { niche_id: number | null; situation_id: number | null; template_type: string; subject?: string | null; content: string }) => {
     const response = await api.put(`/api/outreach/templates/${id}`, data);
     return response.data;
-  },
-
-  createOrUpdateTemplate: async (data: { id?: number; niche_id: number | null; situation_id: number | null; template_type: string; subject?: string | null; content: string }) => {
-    if (data.id) {
-      const { id, ...rest } = data;
-      const response = await api.put(`/api/outreach/templates/${id}`, rest);
-      return response.data;
-    } else {
-      const response = await api.post('/api/outreach/templates', data);
-      return response.data;
-    }
   },
 
   deleteTemplate: async (id: number) => {
@@ -943,11 +914,6 @@ export const searchPlannerApi = {
     return response.data;
   },
 
-  getCities: async (country: string): Promise<string[]> => {
-    const response = await api.get(`/api/lead-discovery/planner/cities/${encodeURIComponent(country)}`);
-    return response.data;
-  },
-
   generateCombinations: async (data: { country: string; niche: string }): Promise<{ created: number; already_existed: number; total: number }> => {
     const response = await api.post('/api/lead-discovery/planner/generate', data);
     return response.data;
@@ -983,10 +949,6 @@ export const searchPlannerApi = {
     return response.data;
   },
 
-  deleteCombinations: async (country: string, niche: string): Promise<{ deleted: number }> => {
-    const response = await api.delete('/api/lead-discovery/planner/combinations', { params: { country, niche } });
-    return response.data;
-  },
 };
 
 // Daily Outreach Tracking API

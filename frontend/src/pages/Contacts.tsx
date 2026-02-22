@@ -58,7 +58,7 @@ export default function Contacts() {
     }
     return colors[Math.abs(hash) % colors.length];
   };
-  const { data: contacts = [], isLoading } = useQuery({
+  const { data: contacts = [], isLoading, isError } = useQuery({
     queryKey: ['contacts', searchTerm],
     queryFn: () => contactApi.getAll(searchTerm || undefined),
   });
@@ -85,8 +85,9 @@ export default function Contacts() {
       setEditingContact(null);
       toast.success('Contact created successfully');
     },
-    onError: () => {
-      toast.error('Failed to create contact. Please try again.');
+    onError: (error: any) => {
+      const message = error?.response?.data?.detail || 'Failed to create contact. Please try again.';
+      toast.error(message);
     },
   });
 
@@ -99,8 +100,9 @@ export default function Contacts() {
       setEditingContact(null);
       toast.success('Contact updated successfully');
     },
-    onError: () => {
-      toast.error('Failed to update contact. Please try again.');
+    onError: (error: any) => {
+      const message = error?.response?.data?.detail || 'Failed to update contact. Please try again.';
+      toast.error(message);
     },
   });
 
@@ -110,8 +112,9 @@ export default function Contacts() {
       queryClient.invalidateQueries({ queryKey: ['contacts'] });
       toast.success('Contact deleted');
     },
-    onError: () => {
-      toast.error('Failed to delete contact. Please try again.');
+    onError: (error: any) => {
+      const message = error?.response?.data?.detail || 'Failed to delete contact. Please try again.';
+      toast.error(message);
     },
   });
 
@@ -228,6 +231,16 @@ export default function Contacts() {
             {isLoading ? (
               <div className="flex justify-center py-12">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[--exec-text-muted]"></div>
+              </div>
+            ) : isError ? (
+              <div className="bento-card-static p-12 text-center">
+                <p className="text-[--exec-danger] mb-4">Failed to load contacts</p>
+                <button
+                  onClick={() => window.location.reload()}
+                  className="text-[--exec-text-muted] hover:text-[--exec-accent] underline"
+                >
+                  Try again
+                </button>
               </div>
             ) : contacts.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 animate-in fade-in duration-500">

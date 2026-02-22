@@ -90,7 +90,7 @@ class SocialContent(Base):
     notes = Column(Text, nullable=True)
 
     # Optional integration with existing features
-    project_id = Column(Integer, ForeignKey("projects.id"), nullable=True)
+    project_id = Column(Integer, ForeignKey("projects.id"), nullable=True, index=True)
 
     # Timestamps
     created_at = Column(DateTime, default=datetime.utcnow)

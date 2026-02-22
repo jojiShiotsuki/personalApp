@@ -1,12 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
-from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func
 from typing import List, Optional
 from datetime import datetime, date, timedelta, timezone
 from decimal import Decimal
-import csv
-import io
 
 from app.database import get_db
 from app.models.time_entry import TimeEntry, TimeEntryCategory
@@ -323,15 +320,6 @@ def create_entry(data: TimeEntryCreate, db: Session = Depends(get_db)):
     return enrich_time_entry(entry)
 
 
-@router.get("/entries/{entry_id}", response_model=TimeEntryResponse)
-def get_entry(entry_id: int, db: Session = Depends(get_db)):
-    """Get a single time entry"""
-    entry = get_entry_with_relations(db, entry_id=entry_id)
-    if not entry:
-        raise HTTPException(status_code=404, detail="Time entry not found")
-    return enrich_time_entry(entry)
-
-
 @router.put("/entries/{entry_id}", response_model=TimeEntryResponse)
 def update_entry(entry_id: int, data: TimeEntryUpdate, db: Session = Depends(get_db)):
     """Update a time entry"""
@@ -454,78 +442,3 @@ def get_task_summary(task_id: int, db: Session = Depends(get_db)):
     return calculate_summary(entries)
 
 
-# ============ Export ============
-
-@router.get("/export/csv")
-def export_entries_csv(
-    start_date: Optional[date] = Query(None, description="Filter entries starting from this date"),
-    end_date: Optional[date] = Query(None, description="Filter entries ending on this date"),
-    task_id: Optional[int] = Query(None),
-    project_id: Optional[int] = Query(None),
-    deal_id: Optional[int] = Query(None),
-    is_billable: Optional[bool] = Query(None, description="Filter by billable status"),
-    category: Optional[TimeEntryCategorySchema] = Query(None, description="Filter by category"),
-    db: Session = Depends(get_db)
-):
-    """Export time entries to CSV format for invoicing"""
-    query = db.query(TimeEntry).filter(TimeEntry.is_running == False)
-
-    if start_date:
-        query = query.filter(TimeEntry.start_time >= datetime.combine(start_date, datetime.min.time()))
-    if end_date:
-        query = query.filter(TimeEntry.start_time <= datetime.combine(end_date, datetime.max.time()))
-    if task_id:
-        query = query.filter(TimeEntry.task_id == task_id)
-    if project_id:
-        query = query.filter(TimeEntry.project_id == project_id)
-    if deal_id:
-        query = query.filter(TimeEntry.deal_id == deal_id)
-    if is_billable is not None:
-        query = query.filter(TimeEntry.is_billable == is_billable)
-    if category:
-        query = query.filter(TimeEntry.category == category)
-
-    # Use eager loading
-    query = get_entries_with_relations(db, query)
-    entries = query.order_by(TimeEntry.start_time.desc()).all()
-
-    # Create CSV in memory
-    output = io.StringIO()
-    writer = csv.writer(output)
-
-    # Header row
-    writer.writerow([
-        'Date', 'Start Time', 'End Time', 'Duration (hours)', 'Description',
-        'Project', 'Task', 'Deal', 'Category', 'Billable', 'Hourly Rate', 'Amount'
-    ])
-
-    # Data rows
-    for entry in entries:
-        enriched = enrich_time_entry(entry)
-        hours = (entry.duration_seconds or 0) / SECONDS_PER_HOUR
-        amount = enriched.get('billable_amount') or 0
-
-        writer.writerow([
-            entry.start_time.strftime('%Y-%m-%d') if entry.start_time else '',
-            entry.start_time.strftime('%H:%M') if entry.start_time else '',
-            entry.end_time.strftime('%H:%M') if entry.end_time else '',
-            round(hours, 2),
-            entry.description or '',
-            enriched.get('project_name') or '',
-            enriched.get('task_title') or '',
-            enriched.get('deal_title') or '',
-            entry.category.value if entry.category else '',
-            'Yes' if entry.is_billable else 'No',
-            float(entry.hourly_rate) if entry.hourly_rate else '',
-            round(amount, 2) if amount else ''
-        ])
-
-    # Return CSV response
-    output.seek(0)
-    filename = f"time_entries_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
-
-    return StreamingResponse(
-        iter([output.getvalue()]),
-        media_type="text/csv",
-        headers={"Content-Disposition": f"attachment; filename={filename}"}
-    )

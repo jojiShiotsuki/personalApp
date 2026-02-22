@@ -63,6 +63,16 @@ def check_duplicate_email(email: str, db: Session) -> bool:
     return existing is not None
 
 
+def get_duplicate_emails(emails: list[str], db: Session) -> set[str]:
+    """Batch check which emails already exist in any campaign."""
+    if not emails:
+        return set()
+    existing = db.query(OutreachProspect.email).filter(
+        OutreachProspect.email.in_(emails)
+    ).all()
+    return {row[0].lower() for row in existing if row[0]}
+
+
 def check_duplicate_website(website: str, db: Session) -> DiscoveredLeadModel | None:
     """Check if website already exists in discovered leads."""
     if not website:
@@ -312,6 +322,10 @@ async def get_stored_leads(
         ).all()
         imported_lead_ids = {row[0] for row in imported if row[0]}
 
+    # Batch duplicate check - single query instead of N per-lead queries
+    lead_emails = [lead.email for lead in leads if lead.email]
+    duplicate_emails = get_duplicate_emails(lead_emails, db)
+
     return {
         "total": total,
         "leads": [
@@ -325,7 +339,7 @@ async def get_stored_leads(
                 "location": lead.location,
                 "created_at": lead.created_at.isoformat() if lead.created_at else None,
                 "is_valid_email": is_valid_email(lead.email) if lead.email else False,
-                "is_duplicate": check_duplicate_email(lead.email, db) if lead.email else False,
+                "is_duplicate": lead.email.lower() in duplicate_emails if lead.email else False,
                 "in_campaign": lead.id in imported_lead_ids,
                 "confidence": lead.confidence,
                 "confidence_signals": lead.confidence_signals,
@@ -804,7 +818,7 @@ async def bulk_enrich_leads(
                     "email_found": bool(result["email"]),
                     "updated": updated,
                 })
-            except Exception:
+            except (ValueError, HTTPException, KeyError):
                 skipped += 1
 
     db.commit()

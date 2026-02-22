@@ -54,15 +54,15 @@ class Task(Base):
     recurrence_end_date = Column(Date, nullable=True)
     recurrence_count = Column(Integer, nullable=True)
     occurrences_created = Column(Integer, default=0, nullable=False)
-    parent_task_id = Column(Integer, ForeignKey("tasks.id"), nullable=True)
+    parent_task_id = Column(Integer, ForeignKey("tasks.id"), nullable=True, index=True)
     
     # Relationships
     project = relationship("Project", back_populates="tasks")
     goal = relationship("Goal", back_populates="tasks")
     parent_task = relationship("Task", remote_side=[id], foreign_keys=[parent_task_id], backref="child_tasks")
     sprint_day = relationship("SprintDay", back_populates="sprint_tasks")
-    links = relationship("TaskLink", backref="task", cascade="all, delete-orphan", lazy="joined")
-    notes = relationship("TaskNote", backref="task", cascade="all, delete-orphan", lazy="joined", order_by="TaskNote.created_at.desc()")
+    links = relationship("TaskLink", backref="task", cascade="all, delete-orphan", lazy="selectin")
+    notes = relationship("TaskNote", backref="task", cascade="all, delete-orphan", lazy="selectin", order_by="TaskNote.created_at.desc()")
 
     def __repr__(self):
         return f"<Task(id={self.id}, title='{self.title}', status={self.status})>"

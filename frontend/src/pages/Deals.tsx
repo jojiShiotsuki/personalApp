@@ -31,7 +31,7 @@ export default function Deals() {
   const [bulkStageTarget, setBulkStageTarget] = useState<DealStage | null>(null);
   const queryClient = useQueryClient();
 
-  const { data: deals = [] } = useQuery({
+  const { data: deals = [], isLoading, isError } = useQuery({
     queryKey: ['deals'],
     queryFn: () => dealApi.getAll(),
   });
@@ -49,8 +49,9 @@ export default function Deals() {
       setEditingDeal(null);
       toast.success('Deal created successfully');
     },
-    onError: () => {
-      toast.error('Failed to create deal. Please try again.');
+    onError: (error: any) => {
+      const message = error?.response?.data?.detail || 'Failed to create deal. Please try again.';
+      toast.error(message);
     },
   });
 
@@ -63,8 +64,9 @@ export default function Deals() {
       setEditingDeal(null);
       toast.success('Deal updated successfully');
     },
-    onError: () => {
-      toast.error('Failed to update deal. Please try again.');
+    onError: (error: any) => {
+      const message = error?.response?.data?.detail || 'Failed to update deal. Please try again.';
+      toast.error(message);
     },
   });
 
@@ -74,8 +76,9 @@ export default function Deals() {
       queryClient.invalidateQueries({ queryKey: ['deals'] });
       toast.success('Deal deleted');
     },
-    onError: () => {
-      toast.error('Failed to delete deal. Please try again.');
+    onError: (error: any) => {
+      const message = error?.response?.data?.detail || 'Failed to delete deal. Please try again.';
+      toast.error(message);
     },
   });
 
@@ -87,8 +90,9 @@ export default function Deals() {
       setShowBulkDeleteConfirm(false);
       toast.success(data.message);
     },
-    onError: () => {
-      toast.error('Failed to delete deals');
+    onError: (error: any) => {
+      const message = error?.response?.data?.detail || 'Failed to delete deals';
+      toast.error(message);
     },
   });
 
@@ -101,8 +105,9 @@ export default function Deals() {
       setBulkStageTarget(null);
       toast.success(data.message);
     },
-    onError: () => {
-      toast.error('Failed to update deal stages');
+    onError: (error: any) => {
+      const message = error?.response?.data?.detail || 'Failed to update deal stages';
+      toast.error(message);
     },
   });
 
@@ -274,6 +279,21 @@ export default function Deals() {
 
         {/* Kanban Board */}
         <div className="flex-1 overflow-hidden">
+          {isLoading ? (
+            <div className="flex justify-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[--exec-accent]"></div>
+            </div>
+          ) : isError ? (
+            <div className="bento-card-static p-12 text-center">
+              <p className="text-[--exec-danger] mb-4">Failed to load deals</p>
+              <button
+                onClick={() => window.location.reload()}
+                className="text-[--exec-text-muted] hover:text-[--exec-accent] underline"
+              >
+                Try again
+              </button>
+            </div>
+          ) : (
           <KanbanBoard
             deals={deals}
             contacts={contacts}
@@ -289,6 +309,7 @@ export default function Deals() {
             selectedDealIds={selectedDealIds}
             onToggleSelect={handleToggleSelect}
           />
+          )}
         </div>
       </div>
 

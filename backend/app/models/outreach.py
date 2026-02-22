@@ -64,8 +64,8 @@ class OutreachTemplate(Base):
     __tablename__ = "outreach_templates"
 
     id = Column(Integer, primary_key=True, index=True)
-    niche_id = Column(Integer, ForeignKey("outreach_niches.id", ondelete="CASCADE"), nullable=True)
-    situation_id = Column(Integer, ForeignKey("outreach_situations.id", ondelete="CASCADE"), nullable=True)
+    niche_id = Column(Integer, ForeignKey("outreach_niches.id", ondelete="CASCADE"), nullable=True, index=True)
+    situation_id = Column(Integer, ForeignKey("outreach_situations.id", ondelete="CASCADE"), nullable=True, index=True)
     template_type = Column(String(50), nullable=False, default='email_1')  # e.g. email_1, linkedin_direct, loom_video_audit
     subject = Column(String(500), nullable=True)  # Email subject line (used for email template types)
     content = Column(Text, nullable=False)
@@ -111,7 +111,7 @@ class OutreachProspect(Base):
     __tablename__ = "outreach_prospects"
 
     id = Column(Integer, primary_key=True, index=True)
-    campaign_id = Column(Integer, ForeignKey("outreach_campaigns.id", ondelete="CASCADE"), nullable=False)
+    campaign_id = Column(Integer, ForeignKey("outreach_campaigns.id", ondelete="CASCADE"), nullable=False, index=True)
     agency_name = Column(String(255), nullable=False)
     contact_name = Column(String(255), nullable=True)
     email = Column(String(255), nullable=True)
@@ -136,9 +136,9 @@ class OutreachProspect(Base):
     instagram_url = Column(String(500), nullable=True)
 
     # Link back to discovered lead and conversion tracking
-    discovered_lead_id = Column(Integer, ForeignKey("discovered_leads.id", ondelete="SET NULL"), nullable=True)
-    converted_contact_id = Column(Integer, ForeignKey("crm_contacts.id", ondelete="SET NULL"), nullable=True)
-    converted_deal_id = Column(Integer, ForeignKey("crm_deals.id", ondelete="SET NULL"), nullable=True)
+    discovered_lead_id = Column(Integer, ForeignKey("discovered_leads.id", ondelete="SET NULL"), nullable=True, index=True)
+    converted_contact_id = Column(Integer, ForeignKey("crm_contacts.id", ondelete="SET NULL"), nullable=True, index=True)
+    converted_deal_id = Column(Integer, ForeignKey("crm_deals.id", ondelete="SET NULL"), nullable=True, index=True)
 
     campaign = relationship("OutreachCampaign", back_populates="prospects")
     discovered_lead = relationship("DiscoveredLead", foreign_keys=[discovered_lead_id])
@@ -151,7 +151,7 @@ class OutreachEmailTemplate(Base):
     __tablename__ = "outreach_email_templates"
 
     id = Column(Integer, primary_key=True, index=True)
-    campaign_id = Column(Integer, ForeignKey("outreach_campaigns.id", ondelete="CASCADE"), nullable=False)
+    campaign_id = Column(Integer, ForeignKey("outreach_campaigns.id", ondelete="CASCADE"), nullable=False, index=True)
     step_number = Column(Integer, nullable=False)  # 1-5 for email sequence
     subject = Column(String(500), nullable=False)
     body = Column(Text, nullable=False)

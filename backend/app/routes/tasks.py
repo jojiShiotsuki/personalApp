@@ -32,7 +32,7 @@ def get_tasks(
     project_id: Optional[int] = Query(None, description="Filter tasks by project ID"),
     search: Optional[str] = Query(None, description="Search in task title"),
     skip: int = 0,
-    limit: int = 1000,
+    limit: int = 100,
     db: Session = Depends(get_db)
 ):
     """Get all tasks with optional filtering"""

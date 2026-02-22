@@ -49,3 +49,22 @@ Thumbs.db
 .env
 .env.local
 .env.*.local
+
+# Screenshots and test artifacts
+*.png
+*.jpg
+*.jpeg
+
+# Temporary/debug files
+nul
+*.log
+response.txt
+*_response.txt
+*_response.json
+*_temp.json
+
+# Database backups
+*.backup-*
+
+# One-off scripts
+check_port.ps1

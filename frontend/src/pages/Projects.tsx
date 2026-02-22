@@ -39,8 +39,9 @@ export default function Projects() {
       setIsModalOpen(false);
       toast.success('Project created successfully');
     },
-    onError: () => {
-      toast.error('Failed to create project');
+    onError: (error: any) => {
+      const message = error?.response?.data?.detail || 'Failed to create project';
+      toast.error(message);
     },
   });
 
@@ -51,8 +52,9 @@ export default function Projects() {
       queryClient.invalidateQueries({ queryKey: ['projects'] });
       toast.success('Project deleted');
     },
-    onError: () => {
-      toast.error('Failed to delete project');
+    onError: (error: any) => {
+      const message = error?.response?.data?.detail || 'Failed to delete project';
+      toast.error(message);
     },
   });
 
@@ -246,6 +248,7 @@ export default function Projects() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSubmit={handleCreate}
+        isLoading={createMutation.isPending}
       />
 
       {/* Manage Templates Modal */}

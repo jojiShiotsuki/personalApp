@@ -94,8 +94,8 @@ export default function Tasks() {
     return statusFilters.includes(filter as TaskStatus) ? (filter as TaskStatus) : undefined;
   };
 
-  const { data: tasks = [], isLoading } = useQuery({
-    queryKey: ['tasks'],
+  const { data: tasks = [], isLoading, isError } = useQuery({
+    queryKey: ['tasks', filter],
     queryFn: () => taskApi.getAll(getApiFilter(filter)),
   });
 
@@ -117,8 +117,9 @@ export default function Tasks() {
       setEditingTask(null);
       toast.success('Task created successfully');
     },
-    onError: () => {
-      toast.error('Failed to create task. Please try again.');
+    onError: (error: any) => {
+      const message = error?.response?.data?.detail || 'Failed to create task. Please try again.';
+      toast.error(message);
     },
   });
 
@@ -132,8 +133,9 @@ export default function Tasks() {
       setApplyToAllRecurring(false);
       toast.success('Task updated successfully');
     },
-    onError: () => {
-      toast.error('Failed to update task. Please try again.');
+    onError: (error: any) => {
+      const message = error?.response?.data?.detail || 'Failed to update task. Please try again.';
+      toast.error(message);
     },
   });
 
@@ -147,8 +149,9 @@ export default function Tasks() {
       setApplyToAllRecurring(false);
       toast.success(`Updated ${result.updated_count} recurring task(s)`);
     },
-    onError: () => {
-      toast.error('Failed to update recurring tasks. Please try again.');
+    onError: (error: any) => {
+      const message = error?.response?.data?.detail || 'Failed to update recurring tasks. Please try again.';
+      toast.error(message);
     },
   });
 
@@ -161,8 +164,9 @@ export default function Tasks() {
       setShowDeleteAllRecurringConfirm(false);
       toast.success(`Deleted ${result.deleted_count} recurring task(s)`);
     },
-    onError: () => {
-      toast.error('Failed to delete recurring tasks. Please try again.');
+    onError: (error: any) => {
+      const message = error?.response?.data?.detail || 'Failed to delete recurring tasks. Please try again.';
+      toast.error(message);
     },
   });
 
@@ -172,8 +176,9 @@ export default function Tasks() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
     },
-    onError: () => {
-      toast.error('Failed to update task status. Please try again.');
+    onError: (error: any) => {
+      const message = error?.response?.data?.detail || 'Failed to update task status. Please try again.';
+      toast.error(message);
     },
   });
 
@@ -182,8 +187,9 @@ export default function Tasks() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
     },
-    onError: () => {
-      toast.error('Failed to delete task. Please try again.');
+    onError: (error: any) => {
+      const message = error?.response?.data?.detail || 'Failed to delete task. Please try again.';
+      toast.error(message);
     },
   });
 
@@ -196,8 +202,9 @@ export default function Tasks() {
       setIsEditMode(false);
       toast.success(`Deleted ${ids.length} task${ids.length !== 1 ? 's' : ''} successfully`);
     },
-    onError: () => {
-      toast.error('Failed to delete tasks. Please try again.');
+    onError: (error: any) => {
+      const message = error?.response?.data?.detail || 'Failed to delete tasks. Please try again.';
+      toast.error(message);
     },
   });
 
@@ -211,8 +218,9 @@ export default function Tasks() {
       setShowBulkStatusChange(false);
       toast.success(`Updated ${ids.length} task${ids.length !== 1 ? 's' : ''} successfully`);
     },
-    onError: () => {
-      toast.error('Failed to update tasks. Please try again.');
+    onError: (error: any) => {
+      const message = error?.response?.data?.detail || 'Failed to update tasks. Please try again.';
+      toast.error(message);
     },
   });
 
@@ -726,6 +734,16 @@ export default function Tasks() {
             {isLoading ? (
               <div className="flex justify-center py-12">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[--exec-accent]"></div>
+              </div>
+            ) : isError ? (
+              <div className="bento-card-static p-12 text-center">
+                <p className="text-[--exec-danger] mb-4">Failed to load tasks</p>
+                <button
+                  onClick={() => window.location.reload()}
+                  className="text-[--exec-text-muted] hover:text-[--exec-accent] underline"
+                >
+                  Try again
+                </button>
               </div>
             ) : filteredAndSortedTasks.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16">

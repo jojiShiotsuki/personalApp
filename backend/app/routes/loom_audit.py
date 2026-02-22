@@ -42,18 +42,6 @@ def get_stats(db: Session = Depends(get_db)):
     return loom_audit_service.get_loom_audit_stats(db)
 
 
-@router.get("/pending", response_model=List[LoomAuditResponse])
-def get_pending_audits(
-    limit: int = Query(20, ge=1, le=50),
-    db: Session = Depends(get_db),
-):
-    """Get audits pending response."""
-    audits = loom_audit_service.get_all_loom_audits(
-        db, pending_only=True, limit=limit
-    )
-    return [loom_audit_service.build_loom_audit_response(a) for a in audits]
-
-
 @router.get("/needs-follow-up", response_model=List[LoomAuditResponse])
 def get_needs_follow_up(
     limit: int = Query(20, ge=1, le=50),

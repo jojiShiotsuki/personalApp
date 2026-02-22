@@ -17,14 +17,6 @@ def get_templates(db: Session = Depends(get_db)):
     return db.query(ProjectTemplate).order_by(ProjectTemplate.created_at.desc()).all()
 
 
-@router.get("/{template_id}", response_model=ProjectTemplateResponse)
-def get_template(template_id: int, db: Session = Depends(get_db)):
-    template = db.query(ProjectTemplate).filter(ProjectTemplate.id == template_id).first()
-    if not template:
-        raise HTTPException(status_code=404, detail="Template not found")
-    return template
-
-
 @router.post("", response_model=ProjectTemplateResponse, status_code=201)
 def create_template(data: ProjectTemplateCreate, db: Session = Depends(get_db)):
     template = ProjectTemplate(name=data.name, description=data.description)

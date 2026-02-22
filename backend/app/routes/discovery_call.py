@@ -60,15 +60,6 @@ def create_discovery_call(data: DiscoveryCallCreate, db: Session = Depends(get_d
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.get("/{call_id}", response_model=DiscoveryCallResponse)
-def get_discovery_call(call_id: int, db: Session = Depends(get_db)):
-    """Get a discovery call by ID."""
-    call = discovery_call_service.get_discovery_call(db, call_id)
-    if not call:
-        raise HTTPException(status_code=404, detail="Discovery call not found")
-    return discovery_call_service.build_discovery_call_response(call)
-
-
 @router.put("/{call_id}", response_model=DiscoveryCallResponse)
 def update_discovery_call(
     call_id: int,
@@ -93,27 +84,3 @@ def delete_discovery_call(call_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.get("/contact/{contact_id}", response_model=List[DiscoveryCallResponse])
-def get_contact_calls(
-    contact_id: int,
-    limit: int = Query(20, ge=1, le=50),
-    db: Session = Depends(get_db),
-):
-    """Get all discovery calls for a specific contact."""
-    calls = discovery_call_service.get_all_discovery_calls(
-        db, contact_id=contact_id, limit=limit
-    )
-    return [discovery_call_service.build_discovery_call_response(c) for c in calls]
-
-
-@router.get("/deal/{deal_id}", response_model=List[DiscoveryCallResponse])
-def get_deal_calls(
-    deal_id: int,
-    limit: int = Query(20, ge=1, le=50),
-    db: Session = Depends(get_db),
-):
-    """Get all discovery calls for a specific deal."""
-    calls = discovery_call_service.get_all_discovery_calls(
-        db, deal_id=deal_id, limit=limit
-    )
-    return [discovery_call_service.build_discovery_call_response(c) for c in calls]
