@@ -6,7 +6,7 @@ import { BillingFrequency, DealStage, ServiceStatus } from '@/types';
 import type { Project } from '@/types';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import { format, addMonths, addDays } from 'date-fns';
+import { format, addMonths } from 'date-fns';
 
 const inputClasses = cn(
   "w-full px-4 py-2.5 rounded-lg",
