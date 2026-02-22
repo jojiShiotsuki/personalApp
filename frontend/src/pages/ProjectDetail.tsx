@@ -730,6 +730,7 @@ const statusFilterOptions = [
   { value: TaskStatus.IN_PROGRESS, label: 'In Progress', dot: 'bg-blue-400' },
   { value: TaskStatus.COMPLETED, label: 'Completed', dot: 'bg-emerald-400' },
   { value: TaskStatus.SKIPPED, label: 'Skipped', dot: 'bg-stone-400' },
+  { value: TaskStatus.WAITING_ON_CLIENT, label: 'Waiting on Client', dot: 'bg-amber-400' },
 ];
 
 const priorityFilterOptions = [
@@ -1509,6 +1510,7 @@ function ListTab({ projectId }: { projectId: number }) {
                     { value: TaskStatus.IN_PROGRESS, label: 'In Progress', dot: 'bg-blue-400' },
                     { value: TaskStatus.COMPLETED, label: 'Completed', dot: 'bg-emerald-400' },
                     { value: TaskStatus.SKIPPED, label: 'Skipped', dot: 'bg-stone-400' },
+                    { value: TaskStatus.WAITING_ON_CLIENT, label: 'Waiting on Client', dot: 'bg-amber-400' },
                   ].map(opt => (
                     <button
                       key={opt.value}
@@ -1644,6 +1646,7 @@ function BoardTab({ projectId }: { projectId: number }) {
     { id: TaskStatus.IN_PROGRESS, title: 'In Progress', bg: 'bg-[--exec-info-bg]' },
     { id: TaskStatus.COMPLETED, title: 'Completed', bg: 'bg-[--exec-success-bg]' },
     { id: TaskStatus.SKIPPED, title: 'Skipped', bg: 'bg-[--exec-surface-alt]' },
+    { id: TaskStatus.WAITING_ON_CLIENT, title: 'Waiting on Client', bg: 'bg-amber-900/20' },
   ];
 
   const priorityBadge = (priority: TaskPriority) => {

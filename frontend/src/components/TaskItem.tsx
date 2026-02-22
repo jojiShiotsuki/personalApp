@@ -74,6 +74,12 @@ const statusConfig = {
     text: 'text-stone-400',
     label: 'Skipped',
     rowBg: 'bg-stone-500/10 hover:bg-stone-500/15'
+  },
+  [TaskStatus.WAITING_ON_CLIENT]: {
+    dot: 'bg-amber-400',
+    text: 'text-amber-400',
+    label: 'Waiting on Client',
+    rowBg: 'bg-amber-500/10 hover:bg-amber-500/15'
   }
 };
 

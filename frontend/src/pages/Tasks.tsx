@@ -90,7 +90,7 @@ export default function Tasks() {
 
   // Only pass status filters to API, handle time filters on frontend
   const getApiFilter = (filter: FilterValue): TaskStatus | undefined => {
-    const statusFilters = [TaskStatus.PENDING, TaskStatus.IN_PROGRESS, TaskStatus.COMPLETED, TaskStatus.DELAYED, TaskStatus.SKIPPED];
+    const statusFilters = [TaskStatus.PENDING, TaskStatus.IN_PROGRESS, TaskStatus.COMPLETED, TaskStatus.DELAYED, TaskStatus.SKIPPED, TaskStatus.WAITING_ON_CLIENT];
     return statusFilters.includes(filter as TaskStatus) ? (filter as TaskStatus) : undefined;
   };
 
@@ -331,6 +331,7 @@ export default function Tasks() {
       if (filterValue === TaskStatus.COMPLETED) return task.status === TaskStatus.COMPLETED;
       if (filterValue === TaskStatus.DELAYED) return task.status === TaskStatus.DELAYED;
       if (filterValue === TaskStatus.SKIPPED) return task.status === TaskStatus.SKIPPED;
+      if (filterValue === TaskStatus.WAITING_ON_CLIENT) return task.status === TaskStatus.WAITING_ON_CLIENT;
 
       return false;
     }).length;
@@ -346,6 +347,7 @@ export default function Tasks() {
     { label: 'In Progress', value: TaskStatus.IN_PROGRESS },
     { label: 'Completed', value: TaskStatus.COMPLETED },
     { label: 'Skipped', value: TaskStatus.SKIPPED },
+    { label: 'Waiting on Client', value: TaskStatus.WAITING_ON_CLIENT },
   ];
 
   // Filter and sort tasks
@@ -366,6 +368,7 @@ export default function Tasks() {
           if (filter === TaskStatus.COMPLETED) return task.status === TaskStatus.COMPLETED;
           if (filter === TaskStatus.DELAYED) return task.status === TaskStatus.DELAYED;
           if (filter === TaskStatus.SKIPPED) return task.status === TaskStatus.SKIPPED;
+          if (filter === TaskStatus.WAITING_ON_CLIENT) return task.status === TaskStatus.WAITING_ON_CLIENT;
           return true;
         });
 
@@ -882,6 +885,7 @@ export default function Tasks() {
                     <option value={TaskStatus.COMPLETED}>Completed</option>
                     <option value={TaskStatus.DELAYED}>Delayed</option>
                     <option value={TaskStatus.SKIPPED}>Skipped</option>
+                    <option value={TaskStatus.WAITING_ON_CLIENT}>Waiting on Client</option>
                   </select>
                 </div>
               </div>
@@ -1140,6 +1144,13 @@ export default function Tasks() {
                 className="w-full px-4 py-3 text-left border border-stone-700 rounded-xl bg-stone-800 hover:bg-stone-700 transition-colors disabled:opacity-50"
               >
                 <span className="font-medium text-stone-400">Skipped</span>
+              </button>
+              <button
+                onClick={() => handleBulkStatusChange(TaskStatus.WAITING_ON_CLIENT)}
+                disabled={bulkStatusUpdateMutation.isPending}
+                className="w-full px-4 py-3 text-left border border-stone-700 rounded-xl bg-stone-800 hover:bg-amber-900/20 transition-colors disabled:opacity-50"
+              >
+                <span className="font-medium text-amber-400">Waiting on Client</span>
               </button>
             </div>
             <button

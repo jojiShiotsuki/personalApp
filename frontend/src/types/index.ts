@@ -12,6 +12,7 @@ export enum TaskStatus {
   COMPLETED = "completed",
   DELAYED = "delayed",
   SKIPPED = "skipped",
+  WAITING_ON_CLIENT = "waiting_on_client",
 }
 
 export enum RecurrenceType {
