@@ -26,12 +26,14 @@ class ProjectUpdate(BaseModel):
     deadline: Optional[date] = None
     contact_id: Optional[int] = None
     service_type: Optional[str] = None
+    notes: Optional[str] = None
 
 
 class ProjectResponse(ProjectBase):
     id: int
     status: ProjectStatus
     progress: int
+    notes: Optional[str] = None
     created_at: datetime
     updated_at: datetime
     completed_at: Optional[datetime] = None

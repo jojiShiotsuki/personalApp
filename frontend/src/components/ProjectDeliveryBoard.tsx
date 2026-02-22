@@ -4,7 +4,7 @@ import { projectApi } from '@/lib/api';
 import { Project, ProjectStatus } from '@/types';
 import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, CheckCircle2, User } from 'lucide-react';
+import { Calendar, CheckCircle2, StickyNote, User } from 'lucide-react';
 import { format, isPast, isToday } from 'date-fns';
 import { toast } from 'sonner';
 
@@ -186,6 +186,14 @@ export default function ProjectDeliveryBoard({ projects }: ProjectDeliveryBoardP
                               <p className="text-xs text-[--exec-text-secondary] mb-3 line-clamp-2">
                                 {project.description}
                               </p>
+                            )}
+
+                            {/* Notes preview */}
+                            {project.notes && (
+                              <div className="flex items-start gap-1.5 text-xs text-[--exec-text-muted] mb-3 bg-stone-700/30 rounded-lg px-2.5 py-2">
+                                <StickyNote className="w-3 h-3 mt-0.5 flex-shrink-0 text-amber-400/70" />
+                                <p className="line-clamp-2 leading-relaxed">{project.notes}</p>
+                              </div>
                             )}
 
                             {/* Task progress bar */}

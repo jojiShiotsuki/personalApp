@@ -27,6 +27,7 @@ class Project(Base):
     deadline = Column(Date, nullable=True)
     contact_id = Column(Integer, ForeignKey("crm_contacts.id"), nullable=True)
     service_type = Column(String(50), nullable=True)  # wordpress, ghl, graphic_design, seo
+    notes = Column(Text, nullable=True)
     completed_at = Column(DateTime, nullable=True)
 
     created_at = Column(DateTime, default=datetime.utcnow)

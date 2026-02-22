@@ -349,6 +349,42 @@ export default function ProjectDetail() {
 
 function OverviewTab({ project, projectId }: { project: Project; projectId: number }) {
   const queryClient = useQueryClient();
+  const [isEditingNotes, setIsEditingNotes] = useState(false);
+  const [notesValue, setNotesValue] = useState(project.notes || '');
+  const notesTextareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    setNotesValue(project.notes || '');
+  }, [project.notes]);
+
+  useEffect(() => {
+    if (isEditingNotes && notesTextareaRef.current) {
+      notesTextareaRef.current.focus();
+      notesTextareaRef.current.setSelectionRange(notesTextareaRef.current.value.length, notesTextareaRef.current.value.length);
+    }
+  }, [isEditingNotes]);
+
+  const notesMutation = useMutation({
+    mutationFn: (notes: string) => projectApi.update(projectId, { notes } as any),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['projects', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
+      setIsEditingNotes(false);
+      toast.success('Notes saved');
+    },
+    onError: () => {
+      toast.error('Failed to save notes');
+    },
+  });
+
+  const handleSaveNotes = () => {
+    notesMutation.mutate(notesValue);
+  };
+
+  const handleCancelNotes = () => {
+    setNotesValue(project.notes || '');
+    setIsEditingNotes(false);
+  };
 
   const autoScheduleMutation = useMutation({
     mutationFn: () => projectApi.autoSchedule(projectId),
@@ -531,6 +567,66 @@ function OverviewTab({ project, projectId }: { project: Project; projectId: numb
           </div>
         );
       })()}
+
+      {/* Notes */}
+      <div className="bento-card p-5">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <StickyNote className="w-4 h-4 text-[--exec-accent]" />
+            <h3 className="text-sm font-bold text-[--exec-text] uppercase tracking-wider">Notes</h3>
+          </div>
+          {!isEditingNotes && (
+            <button
+              onClick={() => setIsEditingNotes(true)}
+              className="p-1.5 text-[--exec-text-muted] hover:text-[--exec-text] hover:bg-stone-700/50 rounded-lg transition-colors"
+            >
+              <Pencil className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+        {isEditingNotes ? (
+          <div className="space-y-3">
+            <textarea
+              ref={notesTextareaRef}
+              value={notesValue}
+              onChange={(e) => setNotesValue(e.target.value)}
+              placeholder="Add project notes..."
+              rows={5}
+              className={cn(inputClasses, 'resize-none')}
+            />
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={handleCancelNotes}
+                className="px-3 py-1.5 text-sm font-medium text-[--exec-text-secondary] bg-stone-700/50 rounded-lg hover:bg-stone-600/50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveNotes}
+                disabled={notesMutation.isPending}
+                className="px-3 py-1.5 text-sm font-medium text-white bg-[--exec-accent] rounded-lg hover:bg-[--exec-accent-dark] shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {notesMutation.isPending ? 'Saving...' : 'Save'}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div
+            onClick={() => setIsEditingNotes(true)}
+            className="cursor-pointer group"
+          >
+            {project.notes ? (
+              <p className="text-sm text-[--exec-text-secondary] whitespace-pre-wrap leading-relaxed group-hover:text-[--exec-text] transition-colors">
+                {project.notes}
+              </p>
+            ) : (
+              <p className="text-sm text-[--exec-text-muted] italic">
+                Click to add project notes...
+              </p>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* Completion Celebration */}
       {project.progress === 100 && (

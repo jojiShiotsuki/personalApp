@@ -47,6 +47,7 @@ export type Project = {
   contact_id?: number;
   contact_name?: string;
   service_type?: string;
+  notes?: string;
 }
 
 export type ProjectCreate = {
@@ -67,6 +68,7 @@ export type ProjectUpdate = {
   deadline?: string | null;
   contact_id?: number | null;
   service_type?: string | null;
+  notes?: string | null;
 }
 
 export type ProjectTemplateTask = {
