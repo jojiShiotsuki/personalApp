@@ -5,7 +5,7 @@ import { goalApi } from '@/lib/api';
 import type { Goal, GoalCreate, GoalUpdate, KeyResult } from '@/types';
 import { Quarter, Month, GoalPriority } from '@/types';
 import { ChevronDown, ChevronRight, Plus, Target, Trash2, Edit, Calendar, CheckCircle2, Crosshair, X } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, getErrorMessage } from '@/lib/utils';
 import QuickAddGoalModal from '@/components/QuickAddGoalModal';
 import ConfirmModal from '@/components/ConfirmModal';
 import { toast } from 'sonner';
@@ -72,9 +72,8 @@ export default function Goals() {
       resetForm();
       toast.success('Goal created successfully');
     },
-    onError: (error: any) => {
-      const message = error?.response?.data?.detail || 'Failed to create goal';
-      toast.error(message);
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error, 'Failed to create goal'));
     },
   });
 
@@ -88,9 +87,8 @@ export default function Goals() {
       resetForm();
       toast.success('Goal updated successfully');
     },
-    onError: (error: any) => {
-      const message = error?.response?.data?.detail || 'Failed to update goal';
-      toast.error(message);
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error, 'Failed to update goal'));
     },
   });
 
@@ -101,9 +99,8 @@ export default function Goals() {
       queryClient.invalidateQueries({ queryKey: ['goals'] });
       toast.success('Goal deleted');
     },
-    onError: (error: any) => {
-      const message = error?.response?.data?.detail || 'Failed to delete goal. Please try again.';
-      toast.error(message);
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error, 'Failed to delete goal. Please try again.'));
     },
   });
 

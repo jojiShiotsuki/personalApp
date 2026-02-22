@@ -37,70 +37,10 @@ import CopyEmailModal from '@/components/CopyEmailModal';
 import ResponseOutcomeModal from '@/components/ResponseOutcomeModal';
 import NewCampaignModal from '@/components/NewCampaignModal';
 import ManageOutreachTemplatesModal from '@/components/outreach/ManageOutreachTemplatesModal';
+import ProspectStatusBadge from '@/components/outreach/ProspectStatusBadge';
+import { WEBSITE_ISSUE_LABELS } from '@/lib/outreachConstants';
 
 type TabType = 'today' | 'sent' | 'all' | 'replied' | 'skipped';
-
-const WEBSITE_ISSUE_LABELS: Record<string, { label: string; color: string }> = {
-  slow_load: { label: 'Slow Load', color: 'text-red-400 bg-red-900/30 border-red-800' },
-  not_mobile_friendly: { label: 'Not Mobile', color: 'text-orange-400 bg-orange-900/30 border-orange-800' },
-  no_google_presence: { label: 'No Google', color: 'text-yellow-400 bg-yellow-900/30 border-yellow-800' },
-  no_clear_cta: { label: 'No CTA', color: 'text-blue-400 bg-blue-900/30 border-blue-800' },
-  outdated_design: { label: 'Outdated', color: 'text-purple-400 bg-purple-900/30 border-purple-800' },
-};
-
-// Status badge component for prospects
-function StatusBadge({ status }: { status: ProspectStatus }) {
-  const config: Record<ProspectStatus, { bg: string; text: string; label: string }> = {
-    [ProspectStatus.QUEUED]: {
-      bg: 'bg-gray-100 dark:bg-gray-700/50',
-      text: 'text-gray-600 dark:text-gray-400',
-      label: 'Queued',
-    },
-    [ProspectStatus.IN_SEQUENCE]: {
-      bg: 'bg-blue-100 dark:bg-blue-900/30',
-      text: 'text-blue-600 dark:text-blue-400',
-      label: 'In Sequence',
-    },
-    [ProspectStatus.REPLIED]: {
-      bg: 'bg-green-100 dark:bg-green-900/30',
-      text: 'text-green-600 dark:text-green-400',
-      label: 'Replied',
-    },
-    [ProspectStatus.NOT_INTERESTED]: {
-      bg: 'bg-red-100 dark:bg-red-900/30',
-      text: 'text-red-600 dark:text-red-400',
-      label: 'Not Interested',
-    },
-    [ProspectStatus.CONVERTED]: {
-      bg: 'bg-purple-100 dark:bg-purple-900/30',
-      text: 'text-purple-600 dark:text-purple-400',
-      label: 'Converted',
-    },
-    [ProspectStatus.PENDING_CONNECTION]: {
-      bg: 'bg-yellow-100 dark:bg-yellow-900/30',
-      text: 'text-yellow-600 dark:text-yellow-400',
-      label: 'Pending Connection',
-    },
-    [ProspectStatus.CONNECTED]: {
-      bg: 'bg-emerald-100 dark:bg-emerald-900/30',
-      text: 'text-emerald-600 dark:text-emerald-400',
-      label: 'Connected',
-    },
-    [ProspectStatus.SKIPPED]: {
-      bg: 'bg-slate-100 dark:bg-slate-700/50',
-      text: 'text-slate-500 dark:text-slate-400',
-      label: 'Skipped',
-    },
-  };
-
-  const { bg, text, label } = config[status] || config[ProspectStatus.QUEUED];
-
-  return (
-    <span className={cn('px-2.5 py-1 rounded-full text-xs font-medium', bg, text)}>
-      {label}
-    </span>
-  );
-}
 
 // Shared icon links for prospects (website, GMB, social)
 function ProspectLinks({ prospect, size = 'sm' }: { prospect: OutreachProspect; size?: 'sm' | 'xs' }) {
@@ -504,7 +444,7 @@ function ProspectCard({
             >
               <Edit2 className="w-3.5 h-3.5" />
             </button>
-            <StatusBadge status={prospect.status} />
+            <ProspectStatusBadge status={prospect.status} />
           </div>
         </div>
 
@@ -731,7 +671,7 @@ function SentProspectCard({ prospect, onEdit, onSkip }: { prospect: OutreachPros
             >
               <Edit2 className="w-3.5 h-3.5" />
             </button>
-            <StatusBadge status={prospect.status} />
+            <ProspectStatusBadge status={prospect.status} />
           </div>
         </div>
 
@@ -908,7 +848,7 @@ function AllProspects({
                 {prospect.current_step}/5
               </td>
               <td className="px-6 py-4 whitespace-nowrap">
-                <StatusBadge status={prospect.status} />
+                <ProspectStatusBadge status={prospect.status} />
               </td>
               <td className="px-6 py-4 whitespace-nowrap">
                 <div className="text-sm text-[--exec-text-muted]">
@@ -1043,7 +983,7 @@ function RepliedProspects({ prospects, onEdit }: { prospects: OutreachProspect[]
               >
                 <Edit2 className="w-3.5 h-3.5" />
               </button>
-              <StatusBadge status={prospect.status} />
+              <ProspectStatusBadge status={prospect.status} />
             </div>
           </div>
         </div>
@@ -1107,7 +1047,7 @@ function SkippedProspects({
               <button onClick={() => onEdit(prospect)} className="p-1.5 text-[--exec-text-muted] hover:text-[--exec-text] hover:bg-[--exec-surface-alt] rounded-lg transition-colors" title="Edit">
                 <Edit2 className="w-3.5 h-3.5" />
               </button>
-              <StatusBadge status={prospect.status} />
+              <ProspectStatusBadge status={prospect.status} />
             </div>
           </div>
           <div className="flex items-center gap-2 mt-4 pt-4 border-t border-[--exec-border-subtle]">

@@ -6,6 +6,7 @@ import { useTimer, formatElapsedTime } from '@/contexts/TimerContext';
 import { Clock, Play, Plus, Trash2, DollarSign, Calendar, Timer, X, Hourglass } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
+import { getErrorMessage } from '@/lib/utils';
 
 export default function Time() {
   const queryClient = useQueryClient();
@@ -431,9 +432,8 @@ function ManualEntryModal({
       toast.success('Time entry created');
       onClose();
     },
-    onError: (error: any) => {
-      const message = error?.response?.data?.detail || 'Failed to create time entry';
-      toast.error(message);
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error, 'Failed to create time entry'));
     },
   });
 

@@ -9,6 +9,7 @@ interface TaskListProps {
   onStatusChange: (id: number, status: TaskStatus) => void;
   onTaskClick: (task: Task) => void;
   onDelete?: (id: number) => void;
+  onSnooze?: (id: number) => void;
   isUpdating?: boolean;
   searchQuery?: string;
   selectedTaskIds?: Set<number>;
@@ -16,7 +17,7 @@ interface TaskListProps {
   goals?: Goal[];
 }
 
-export default function TaskList({ tasks, onStatusChange, onTaskClick, onDelete, isUpdating, searchQuery, selectedTaskIds, onToggleSelect, goals }: TaskListProps) {
+export default function TaskList({ tasks, onStatusChange, onTaskClick, onDelete, onSnooze, isUpdating, searchQuery, selectedTaskIds, onToggleSelect, goals }: TaskListProps) {
   if (tasks.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16">
@@ -55,6 +56,7 @@ export default function TaskList({ tasks, onStatusChange, onTaskClick, onDelete,
           onStatusChange={onStatusChange}
           onClick={() => onTaskClick(task)}
           onDelete={onDelete}
+          onSnooze={onSnooze}
           isUpdating={isUpdating}
           isSelected={selectedTaskIds?.has(task.id)}
           onToggleSelect={onToggleSelect}

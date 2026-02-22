@@ -36,6 +36,7 @@ def get_tasks(
     db: Session = Depends(get_db)
 ):
     """Get all tasks with optional filtering"""
+    limit = min(limit, 500)
     query = db.query(Task)
 
     if status:
@@ -283,16 +284,16 @@ def update_all_recurring_tasks(
     # Fields to apply to all tasks (exclude date-specific fields for children)
     shared_fields = ["title", "description", "priority", "project_id", "goal_id", "due_time"]
 
-    updated_count = 0
-    for tid in related_task_ids:
-        task = db.query(Task).filter(Task.id == tid).first()
-        if task:
-            for field in shared_fields:
-                if field in update_data:
-                    setattr(task, field, update_data[field])
-            task.updated_at = datetime.utcnow()
-            updated_count += 1
+    # Batch fetch all related tasks in a single query
+    related_tasks = db.query(Task).filter(Task.id.in_(related_task_ids)).all()
 
+    for task in related_tasks:
+        for field in shared_fields:
+            if field in update_data:
+                setattr(task, field, update_data[field])
+        task.updated_at = datetime.utcnow()
+
+    updated_count = len(related_tasks)
     db.commit()
 
     return {
@@ -331,14 +332,8 @@ def delete_all_recurring_tasks(
     # Remove duplicates
     related_task_ids = list(set(related_task_ids))
 
-    # Delete all related tasks
-    deleted_count = 0
-    for tid in related_task_ids:
-        task = db.query(Task).filter(Task.id == tid).first()
-        if task:
-            db.delete(task)
-            deleted_count += 1
-
+    # Batch delete all related tasks in a single query
+    deleted_count = db.query(Task).filter(Task.id.in_(related_task_ids)).delete(synchronize_session='fetch')
     db.commit()
 
     return {

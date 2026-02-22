@@ -140,6 +140,9 @@ class OutreachProspect(Base):
     converted_contact_id = Column(Integer, ForeignKey("crm_contacts.id", ondelete="SET NULL"), nullable=True, index=True)
     converted_deal_id = Column(Integer, ForeignKey("crm_deals.id", ondelete="SET NULL"), nullable=True, index=True)
 
+    # Unique constraint on (campaign_id, email) enforced via partial index in migration
+    # (only applies when email IS NOT NULL)
+
     campaign = relationship("OutreachCampaign", back_populates="prospects")
     discovered_lead = relationship("DiscoveredLead", foreign_keys=[discovered_lead_id])
 

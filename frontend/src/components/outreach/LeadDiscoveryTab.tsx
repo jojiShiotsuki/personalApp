@@ -41,18 +41,17 @@ import {
   MapPinned,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
+import { cn, getErrorMessage } from '@/lib/utils';
 import SendDMPanel, { type SendDMSource } from '@/components/outreach/SendDMPanel';
 import SearchPlannerTab from '@/components/outreach/SearchPlannerTab';
+import { WEBSITE_ISSUE_LABELS } from '@/lib/outreachConstants';
 
-// Website issue categories
-const WEBSITE_ISSUES = [
-  { key: 'slow_load', label: 'Slow Load', color: 'text-red-400 bg-red-900/30 border-red-800' },
-  { key: 'not_mobile_friendly', label: 'Not Mobile', color: 'text-orange-400 bg-orange-900/30 border-orange-800' },
-  { key: 'no_google_presence', label: 'No Google', color: 'text-yellow-400 bg-yellow-900/30 border-yellow-800' },
-  { key: 'no_clear_cta', label: 'No CTA', color: 'text-blue-400 bg-blue-900/30 border-blue-800' },
-  { key: 'outdated_design', label: 'Outdated', color: 'text-purple-400 bg-purple-900/30 border-purple-800' },
-] as const;
+// Derive array format from shared constant
+const WEBSITE_ISSUES = Object.entries(WEBSITE_ISSUE_LABELS).map(([key, { label, color }]) => ({
+  key,
+  label,
+  color,
+}));
 
 // Loading messages that rotate
 const LOADING_MESSAGES = [
@@ -439,8 +438,8 @@ export default function LeadDiscoveryTab() {
       queryClient.invalidateQueries({ queryKey: ['stored-leads'] });
       queryClient.invalidateQueries({ queryKey: ['contacts'] });
     },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.detail || 'Failed to convert lead');
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error, 'Failed to convert lead'));
     },
   });
 
@@ -518,8 +517,8 @@ export default function LeadDiscoveryTab() {
       queryClient.invalidateQueries({ queryKey: ['outreach-campaigns'] });
       queryClient.invalidateQueries({ queryKey: ['outreach-prospects'] });
     },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.detail || 'Failed to import leads');
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error, 'Failed to import leads'));
     },
   });
 
@@ -531,8 +530,8 @@ export default function LeadDiscoveryTab() {
       queryClient.invalidateQueries({ queryKey: ['stored-leads'] });
       queryClient.invalidateQueries({ queryKey: ['lead-discovery-stats'] });
     },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.detail || 'Re-verification failed');
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error, 'Re-verification failed'));
     },
   });
 
@@ -550,8 +549,8 @@ export default function LeadDiscoveryTab() {
       queryClient.invalidateQueries({ queryKey: ['stored-leads'] });
       queryClient.invalidateQueries({ queryKey: ['lead-discovery-stats'] });
     },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.detail || 'Bulk enrichment failed');
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error, 'Bulk enrichment failed'));
     },
   });
 
@@ -580,8 +579,8 @@ export default function LeadDiscoveryTab() {
       queryClient.invalidateQueries({ queryKey: ['stored-leads'] });
       queryClient.invalidateQueries({ queryKey: ['stored-leads-stats'] });
     },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.detail || 'Failed to add lead');
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error, 'Failed to add lead'));
     },
   });
 
@@ -689,8 +688,8 @@ export default function LeadDiscoveryTab() {
         toast.success(msg);
       }
     },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.detail || 'Search failed. Please try again.');
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error, 'Search failed. Please try again.'));
     },
   });
 
@@ -704,8 +703,8 @@ export default function LeadDiscoveryTab() {
       setNiche('');
       setLocation('');
     },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.detail || 'Import failed. Please try again.');
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error, 'Import failed. Please try again.'));
     },
   });
 

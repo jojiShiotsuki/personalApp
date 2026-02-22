@@ -1,5 +1,5 @@
 import { useState, useEffect, lazy, Suspense } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import Layout from './components/Layout';
@@ -22,27 +22,78 @@ const Settings = lazy(() => import('./pages/Settings'));
 const Sprint = lazy(() => import('./pages/Sprint'));
 import QuickAddModal from './components/QuickAddModal';
 import CommandPalette from './components/CommandPalette';
+import ShortcutsModal from './components/ShortcutsModal';
 import { ThemeProvider } from './components/ThemeProvider';
 import { TimerProvider } from './contexts/TimerContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 
+const NAV_SHORTCUTS: Record<string, string> = {
+  '1': '/',
+  '2': '/tasks',
+  '3': '/sprint',
+  '4': '/contacts',
+  '5': '/deals',
+  '6': '/projects',
+  '7': '/goals',
+  '8': '/time',
+  '9': '/settings',
+};
+
 function AuthenticatedApp() {
   const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+  const [showShortcuts, setShowShortcuts] = useState(false);
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
-  // Global Ctrl+K / Cmd+K keyboard listener
+  // Global keyboard shortcuts listener
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      const isInput = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable;
+
+      // Ctrl+K — command palette
       if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
         e.preventDefault();
         setIsCommandPaletteOpen((prev) => !prev);
+        return;
+      }
+
+      // Ctrl+N — quick add task
+      if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+        e.preventDefault();
+        setIsQuickAddOpen(true);
+        return;
+      }
+
+      // Skip remaining shortcuts if focused on an input
+      if (isInput) return;
+
+      // ? — show shortcuts
+      if (e.key === '?' && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault();
+        setShowShortcuts((prev) => !prev);
+        return;
+      }
+
+      // / — focus search (open command palette)
+      if (e.key === '/' && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault();
+        setIsCommandPaletteOpen(true);
+        return;
+      }
+
+      // Alt+1 through Alt+9 — navigate
+      if (e.altKey && NAV_SHORTCUTS[e.key]) {
+        e.preventDefault();
+        navigate(NAV_SHORTCUTS[e.key]);
+        return;
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [navigate]);
 
   const handleQuickAddSuccess = (count: number) => {
     queryClient.invalidateQueries({ queryKey: ['tasks'] });
@@ -82,6 +133,10 @@ function AuthenticatedApp() {
         isOpen={isQuickAddOpen}
         onClose={() => setIsQuickAddOpen(false)}
         onSuccess={handleQuickAddSuccess}
+      />
+      <ShortcutsModal
+        open={showShortcuts}
+        onClose={() => setShowShortcuts(false)}
       />
     </TimerProvider>
   );

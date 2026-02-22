@@ -26,44 +26,49 @@ router = APIRouter(prefix="/api/outreach/campaigns", tags=["cold-outreach"])
 # ============== HELPER FUNCTIONS ==============
 
 def get_campaign_stats(campaign: OutreachCampaign, db: Session) -> CampaignStats:
-    """Calculate statistics for a campaign."""
-    prospects = campaign.prospects
-    total = len(prospects)
+    """Calculate statistics for a campaign using aggregate queries (avoids loading all prospects)."""
+    campaign_id = campaign.id
 
-    queued = sum(1 for p in prospects if p.status == ProspectStatus.QUEUED)
-    in_sequence = sum(1 for p in prospects if p.status == ProspectStatus.IN_SEQUENCE)
-    replied = sum(1 for p in prospects if p.status == ProspectStatus.REPLIED)
-    not_interested = sum(1 for p in prospects if p.status == ProspectStatus.NOT_INTERESTED)
-    converted = sum(1 for p in prospects if p.status == ProspectStatus.CONVERTED)
-    pending_connection = sum(1 for p in prospects if p.status == ProspectStatus.PENDING_CONNECTION)
-    connected = sum(1 for p in prospects if p.status == ProspectStatus.CONNECTED)
-    skipped = sum(1 for p in prospects if p.status == ProspectStatus.SKIPPED)
+    # Single aggregate query for all status counts
+    status_counts = dict(
+        db.query(OutreachProspect.status, func.count(OutreachProspect.id))
+        .filter(OutreachProspect.campaign_id == campaign_id)
+        .group_by(OutreachProspect.status)
+        .all()
+    )
+
+    queued = status_counts.get(ProspectStatus.QUEUED, 0)
+    in_sequence = status_counts.get(ProspectStatus.IN_SEQUENCE, 0)
+    replied = status_counts.get(ProspectStatus.REPLIED, 0)
+    not_interested = status_counts.get(ProspectStatus.NOT_INTERESTED, 0)
+    converted = status_counts.get(ProspectStatus.CONVERTED, 0)
+    pending_connection = status_counts.get(ProspectStatus.PENDING_CONNECTION, 0)
+    connected = status_counts.get(ProspectStatus.CONNECTED, 0)
+    skipped = status_counts.get(ProspectStatus.SKIPPED, 0)
+    total = sum(status_counts.values())
 
     # Count prospects to contact today
     today = date.today()
-    # For LinkedIn campaigns, also include CONNECTED status (ready to message)
     actionable_statuses = [ProspectStatus.QUEUED, ProspectStatus.IN_SEQUENCE, ProspectStatus.CONNECTED]
-    to_contact_today = sum(
-        1 for p in prospects
-        if p.next_action_date and p.next_action_date <= today
-        and p.status in actionable_statuses
-    )
+    to_contact_today = db.query(func.count(OutreachProspect.id)).filter(
+        OutreachProspect.campaign_id == campaign_id,
+        OutreachProspect.next_action_date <= today,
+        OutreachProspect.status.in_(actionable_statuses)
+    ).scalar() or 0
 
     # Response rate: (replied + not_interested + converted) / total contacted
     contacted = total - queued - pending_connection
     response_rate = ((replied + not_interested + converted) / contacted * 100) if contacted > 0 else 0.0
 
-    # Total pipeline value from converted prospects
+    # Total pipeline value from converted prospects (single join query)
     total_pipeline_value = 0.0
-    converted_deal_ids = [
-        p.converted_deal_id for p in prospects
-        if p.converted_deal_id is not None
-    ]
-    if converted_deal_ids:
-        pipeline_sum = db.query(func.coalesce(func.sum(Deal.value), 0)).filter(
-            Deal.id.in_(converted_deal_ids)
-        ).scalar()
-        total_pipeline_value = float(pipeline_sum or 0)
+    pipeline_sum = db.query(func.coalesce(func.sum(Deal.value), 0)).join(
+        OutreachProspect, OutreachProspect.converted_deal_id == Deal.id
+    ).filter(
+        OutreachProspect.campaign_id == campaign_id,
+        OutreachProspect.converted_deal_id.isnot(None)
+    ).scalar()
+    total_pipeline_value = float(pipeline_sum or 0)
 
     return CampaignStats(
         total_prospects=total,

@@ -55,10 +55,6 @@ def get_active_sprint(db: Session = Depends(get_db)):
 def get_all_sprints(db: Session = Depends(get_db)):
     """Get all sprints."""
     try:
-        from sqlalchemy import text as sql_text
-        # Normalize any uppercase status values (legacy data fix)
-        db.execute(sql_text("UPDATE sprints SET status = LOWER(status) WHERE status != LOWER(status)"))
-
         # Calculate completed day counts in a single aggregate query
         day_counts = dict(
             db.query(SprintDay.sprint_id, func.count(SprintDay.id))

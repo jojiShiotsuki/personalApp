@@ -5,6 +5,8 @@ from datetime import datetime, timedelta
 
 from app.database import get_db
 from app.models.crm import Contact, Deal, Interaction, ContactStatus, DealStage, InteractionType
+from app.models.project import Project, ProjectStatus
+from app.models.task import Task, TaskPriority, TaskStatus
 from app.schemas.crm import (
     ContactCreate, ContactUpdate, ContactResponse,
     DealCreate, DealUpdate, DealResponse,
@@ -239,10 +241,85 @@ def update_deal_stage(
         if not db_deal.actual_close_date:
             db_deal.actual_close_date = datetime.utcnow().date()
 
+    # Auto-create follow-up task when stage changes
+    contact_name = db_deal.contact.name if db_deal.contact else "client"
+    if stage == DealStage.CLOSED_WON:
+        follow_up = Task(
+            title=f"Onboard {contact_name} — {db_deal.title}",
+            description=f"Deal closed won. Set up project and begin onboarding for {contact_name}.",
+            priority=TaskPriority.HIGH,
+            status=TaskStatus.PENDING,
+            due_date=(datetime.utcnow() + timedelta(days=1)).date(),
+        )
+        db.add(follow_up)
+    elif stage == DealStage.PROPOSAL:
+        follow_up = Task(
+            title=f"Follow up on proposal — {db_deal.title}",
+            description=f"Proposal sent to {contact_name}. Follow up in 3 days.",
+            priority=TaskPriority.MEDIUM,
+            status=TaskStatus.PENDING,
+            due_date=(datetime.utcnow() + timedelta(days=3)).date(),
+        )
+        db.add(follow_up)
+    elif stage == DealStage.NEGOTIATION:
+        follow_up = Task(
+            title=f"Negotiation follow-up — {db_deal.title}",
+            description=f"Deal in negotiation with {contact_name}. Check in within 2 days.",
+            priority=TaskPriority.HIGH,
+            status=TaskStatus.PENDING,
+            due_date=(datetime.utcnow() + timedelta(days=2)).date(),
+        )
+        db.add(follow_up)
+
     db_deal.updated_at = datetime.utcnow()
     db.commit()
     db.refresh(db_deal)
     return DealResponse.model_validate(db_deal)
+
+
+@router.post("/deals/{deal_id}/convert-to-project")
+def convert_deal_to_project(deal_id: int, db: Session = Depends(get_db)):
+    """Convert a closed-won deal into a new project."""
+    db_deal = db.query(Deal).options(joinedload(Deal.contact)).filter(Deal.id == deal_id).first()
+    if not db_deal:
+        raise HTTPException(status_code=404, detail="Deal not found")
+
+    if db_deal.stage != DealStage.CLOSED_WON:
+        raise HTTPException(status_code=400, detail="Only closed-won deals can be converted to projects")
+
+    # Create project from deal data
+    project = Project(
+        name=db_deal.title,
+        description=db_deal.description or f"Project created from deal: {db_deal.title}",
+        status=ProjectStatus.SCOPING,
+        hourly_rate=db_deal.hourly_rate,
+        deadline=db_deal.expected_close_date,
+        contact_id=db_deal.contact_id,
+    )
+    db.add(project)
+    db.flush()  # Get project.id
+
+    # Create initial tasks for the project
+    contact_name = db_deal.contact.name if db_deal.contact else "client"
+    setup_task = Task(
+        title=f"Project setup — {db_deal.title}",
+        description=f"Initial setup for {contact_name}. Define scope, milestones, and deliverables.",
+        priority=TaskPriority.HIGH,
+        status=TaskStatus.PENDING,
+        project_id=project.id,
+        due_date=(datetime.utcnow() + timedelta(days=1)).date(),
+    )
+    db.add(setup_task)
+
+    db.commit()
+    db.refresh(project)
+
+    return {
+        "project_id": project.id,
+        "project_name": project.name,
+        "message": f"Deal converted to project: {project.name}",
+    }
+
 
 @router.post("/deals/bulk-delete", status_code=200)
 def bulk_delete_deals(deal_ids: List[int], db: Session = Depends(get_db)):

@@ -1,4 +1,4 @@
-import { ReactNode, useState } from 'react';
+import { ReactNode, useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -18,6 +18,8 @@ import {
   ArrowUpRight,
   Rocket,
   LogOut,
+  Menu,
+  X,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
@@ -65,7 +67,13 @@ const bottomNav = [
 export default function Layout({ children }: LayoutProps) {
   const location = useLocation();
   const [isExpanded, setIsExpanded] = useState(true);
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
   const { logout } = useAuth();
+
+  // Close mobile sidebar on navigation
+  useEffect(() => {
+    setIsMobileOpen(false);
+  }, [location.pathname]);
 
   const toggleSidebar = () => {
     setIsExpanded(!isExpanded);
@@ -73,21 +81,47 @@ export default function Layout({ children }: LayoutProps) {
 
   return (
     <div className="flex h-screen bg-[--exec-bg]">
+      {/* Mobile Header Bar */}
+      <div className="fixed top-0 left-0 right-0 z-40 flex items-center h-14 px-4 bg-[--sidebar-bg] border-b border-[--sidebar-border] sm:hidden">
+        <button
+          onClick={() => setIsMobileOpen(true)}
+          className="p-2 text-[--sidebar-text] hover:text-white hover:bg-stone-600 rounded-lg transition-colors"
+          aria-label="Open navigation menu"
+        >
+          <Menu className="w-5 h-5" />
+        </button>
+        <span className="ml-3 text-lg font-bold text-white tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>
+          Vertex
+        </span>
+      </div>
+
+      {/* Mobile backdrop */}
+      {isMobileOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm sm:hidden"
+          onClick={() => setIsMobileOpen(false)}
+        />
+      )}
+
       {/* Indie Command Center Sidebar */}
       <aside
         className={cn(
           "relative flex flex-col h-full transition-sidebar overflow-hidden",
           "bg-[--sidebar-bg]",
-          isExpanded ? "sidebar-expanded" : "sidebar-collapsed"
+          // Desktop: normal sidebar
+          "hidden sm:flex",
+          isExpanded ? "sidebar-expanded" : "sidebar-collapsed",
+          // Mobile: slide-in overlay
+          isMobileOpen && "!flex fixed inset-y-0 left-0 z-50 w-64 shadow-2xl"
         )}
       >
         {/* Brand Mark */}
         <div className={cn(
           "flex items-center h-[72px]",
-          isExpanded ? "px-6" : "px-0 justify-center"
+          isExpanded || isMobileOpen ? "px-6" : "px-0 justify-center"
         )}>
-          <Link to="/" className="group">
-            {isExpanded ? (
+          <Link to="/" className="group flex-1">
+            {isExpanded || isMobileOpen ? (
               <div className="flex flex-col">
                 <span className="text-xl font-bold text-white tracking-tight group-hover:text-[--exec-accent] transition-colors" style={{ fontFamily: 'var(--font-display)' }}>
                   Vertex
@@ -102,6 +136,16 @@ export default function Layout({ children }: LayoutProps) {
               </span>
             )}
           </Link>
+          {/* Mobile close button */}
+          {isMobileOpen && (
+            <button
+              onClick={() => setIsMobileOpen(false)}
+              className="p-2 text-[--sidebar-text] hover:text-white hover:bg-stone-600 rounded-lg transition-colors sm:hidden"
+              aria-label="Close navigation menu"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          )}
         </div>
 
         {/* Navigation */}
@@ -230,15 +274,16 @@ export default function Layout({ children }: LayoutProps) {
               "flex items-center gap-1.5 mt-3",
               isExpanded ? "justify-start" : "justify-center flex-col"
             )}>
-              {/* Collapse Sidebar */}
+              {/* Collapse Sidebar (desktop only) */}
               <button
                 onClick={toggleSidebar}
                 className={cn(
-                  "p-2 rounded-lg transition-all duration-200",
+                  "p-2 rounded-lg transition-all duration-200 hidden sm:block",
                   "text-[--sidebar-text]",
                   "hover:text-white hover:bg-stone-600"
                 )}
                 title={isExpanded ? 'Collapse sidebar' : 'Expand sidebar'}
+                aria-label={isExpanded ? 'Collapse sidebar' : 'Expand sidebar'}
               >
                 {isExpanded ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
               </button>
@@ -252,6 +297,7 @@ export default function Layout({ children }: LayoutProps) {
                   "hover:text-red-400 hover:bg-red-500/10"
                 )}
                 title="Sign out"
+                aria-label="Sign out"
               >
                 <LogOut className="w-4 h-4" />
               </button>
@@ -261,7 +307,7 @@ export default function Layout({ children }: LayoutProps) {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto bg-[--exec-bg]">
+      <main className="flex-1 overflow-y-auto bg-[--exec-bg] pt-14 sm:pt-0">
         {children}
       </main>
 

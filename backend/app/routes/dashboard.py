@@ -1,5 +1,5 @@
 import logging
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
@@ -42,7 +42,7 @@ def complete_task(task_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Task not found")
 
     task.status = TaskStatus.COMPLETED
-    task.completed_at = date.today()
+    task.completed_at = datetime.utcnow()
     db.commit()
 
     return {"success": True, "message": f"Task '{task.title}' marked as complete"}

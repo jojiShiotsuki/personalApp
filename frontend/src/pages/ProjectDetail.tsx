@@ -8,7 +8,7 @@ import { ProjectStatus, TaskStatus, TaskCreate as TaskCreateType, TaskPriority }
 import ProjectModal from '@/components/ProjectModal';
 import RetainerModal from '@/components/RetainerModal';
 import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
+import { cn, getErrorMessage } from '@/lib/utils';
 import TaskItem from '@/components/TaskItem';
 import ConfirmModal from '@/components/ConfirmModal';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
@@ -184,16 +184,18 @@ export default function ProjectDetail() {
         </div>
 
         <div className="relative px-8 pt-6 pb-0">
-          {/* Back button */}
-          <button
-            onClick={() => navigate('/projects')}
-            className="flex items-center gap-2 text-[--exec-text-muted] hover:text-[--exec-accent] mb-5 transition-colors group"
-          >
-            <div className="p-1 rounded-full group-hover:bg-[--exec-accent-bg] transition-colors">
-              <ArrowLeft className="w-4 h-4" />
-            </div>
-            <span className="text-sm font-medium">Back to Projects</span>
-          </button>
+          {/* Breadcrumb */}
+          <div className="flex items-center gap-2 text-sm text-[--exec-text-muted] mb-5">
+            <button
+              onClick={() => navigate('/projects')}
+              className="hover:text-[--exec-accent] transition-colors flex items-center gap-1.5"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              Projects
+            </button>
+            <ChevronRight className="w-4 h-4" />
+            <span className="text-[--exec-text] font-medium truncate max-w-xs">{project.name}</span>
+          </div>
 
           <div className="flex justify-between items-start">
             <div>
@@ -416,9 +418,8 @@ function OverviewTab({ project, projectId }: { project: Project; projectId: numb
       queryClient.invalidateQueries({ queryKey: ['projects', projectId] });
       toast.success(data.message);
     },
-    onError: (error: any) => {
-      const detail = error?.response?.data?.detail || 'Failed to auto-schedule tasks';
-      toast.error(detail);
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error, 'Failed to auto-schedule tasks'));
     },
   });
 

@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
+import { cn, getErrorMessage } from '@/lib/utils';
 
 export default function SearchPlannerTab() {
   const queryClient = useQueryClient();
@@ -101,8 +101,8 @@ export default function SearchPlannerTab() {
       queryClient.invalidateQueries({ queryKey: ['planner-combinations'] });
       queryClient.invalidateQueries({ queryKey: ['planner-stats'] });
     },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.detail || 'Failed to generate combinations');
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error, 'Failed to generate combinations'));
     },
   });
 

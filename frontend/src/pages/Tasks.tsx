@@ -1,14 +1,14 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { taskApi, goalApi, projectApi } from '@/lib/api';
+import { taskApi, goalApi, projectApi, dashboardApi, timeApi } from '@/lib/api';
 import type { Task, TaskCreate, TaskUpdate } from '@/types';
 import { TaskStatus, TaskPriority, RecurrenceType } from '@/types';
 import TaskList from '@/components/TaskList';
 import TaskKanbanBoard from '@/components/TaskKanbanBoard';
 import RecurrenceCustomModal from '@/components/RecurrenceCustomModal';
 import ConfirmModal from '@/components/ConfirmModal';
-import { Filter, Plus, X, Repeat, LayoutList, Kanban } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Filter, Plus, X, Repeat, LayoutList, Kanban, Clock, Bookmark, Save, Trash2 } from 'lucide-react';
+import { cn, getErrorMessage } from '@/lib/utils';
 import { getNextOccurrences, getRecurrenceText } from '@/lib/recurrence';
 import { useRecurrence } from '@/hooks/useRecurrence';
 import { isDateStringToday, isDateStringThisWeek, isDateStringThisMonth, isDateStringOverdue } from '@/lib/dateUtils';
@@ -16,6 +16,28 @@ import { toast } from 'sonner';
 
 type FilterValue = TaskStatus | 'all' | 'today' | 'this_week' | 'this_month' | 'overdue';
 type SortOption = 'dueDate' | 'priority' | 'createdDate' | 'title';
+
+interface FilterPreset {
+  name: string;
+  filter: FilterValue;
+  sortBy: SortOption;
+  projectFilter: string;
+}
+
+const PRESETS_KEY = 'vertex-task-filter-presets';
+
+function loadPresets(): FilterPreset[] {
+  try {
+    const raw = localStorage.getItem(PRESETS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function savePresetsToStorage(presets: FilterPreset[]) {
+  localStorage.setItem(PRESETS_KEY, JSON.stringify(presets));
+}
 
 // Sort comparison functions
 const sortFunctions: Record<SortOption, (a: Task, b: Task) => number> = {
@@ -74,6 +96,9 @@ export default function Tasks() {
   } = useRecurrence();
   const [dueDate, setDueDate] = useState('');
   const [viewMode, setViewMode] = useState<'list' | 'board'>('list');
+  const [savedPresets, setSavedPresets] = useState<FilterPreset[]>(loadPresets);
+  const [showPresetMenu, setShowPresetMenu] = useState(false);
+  const [presetName, setPresetName] = useState('');
   const queryClient = useQueryClient();
 
 
@@ -109,6 +134,13 @@ export default function Tasks() {
     queryFn: projectApi.getAll,
   });
 
+  // Fetch time entries for the task being edited
+  const { data: taskTimeEntries = [] } = useQuery({
+    queryKey: ['time-entries', 'task', editingTask?.id],
+    queryFn: () => timeApi.listEntries({ task_id: editingTask!.id }),
+    enabled: !!editingTask,
+  });
+
   const createMutation = useMutation({
     mutationFn: (task: TaskCreate) => taskApi.create(task),
     onSuccess: () => {
@@ -117,8 +149,8 @@ export default function Tasks() {
       setEditingTask(null);
       toast.success('Task created successfully');
     },
-    onError: (error: any) => {
-      const message = error?.response?.data?.detail || 'Failed to create task. Please try again.';
+    onError: (error: unknown) => {
+      const message = getErrorMessage(error, 'Failed to create task. Please try again.');
       toast.error(message);
     },
   });
@@ -133,8 +165,8 @@ export default function Tasks() {
       setApplyToAllRecurring(false);
       toast.success('Task updated successfully');
     },
-    onError: (error: any) => {
-      const message = error?.response?.data?.detail || 'Failed to update task. Please try again.';
+    onError: (error: unknown) => {
+      const message = getErrorMessage(error, 'Failed to update task. Please try again.');
       toast.error(message);
     },
   });
@@ -149,8 +181,8 @@ export default function Tasks() {
       setApplyToAllRecurring(false);
       toast.success(`Updated ${result.updated_count} recurring task(s)`);
     },
-    onError: (error: any) => {
-      const message = error?.response?.data?.detail || 'Failed to update recurring tasks. Please try again.';
+    onError: (error: unknown) => {
+      const message = getErrorMessage(error, 'Failed to update recurring tasks. Please try again.');
       toast.error(message);
     },
   });
@@ -164,8 +196,8 @@ export default function Tasks() {
       setShowDeleteAllRecurringConfirm(false);
       toast.success(`Deleted ${result.deleted_count} recurring task(s)`);
     },
-    onError: (error: any) => {
-      const message = error?.response?.data?.detail || 'Failed to delete recurring tasks. Please try again.';
+    onError: (error: unknown) => {
+      const message = getErrorMessage(error, 'Failed to delete recurring tasks. Please try again.');
       toast.error(message);
     },
   });
@@ -176,8 +208,8 @@ export default function Tasks() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
     },
-    onError: (error: any) => {
-      const message = error?.response?.data?.detail || 'Failed to update task status. Please try again.';
+    onError: (error: unknown) => {
+      const message = getErrorMessage(error, 'Failed to update task status. Please try again.');
       toast.error(message);
     },
   });
@@ -187,8 +219,8 @@ export default function Tasks() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
     },
-    onError: (error: any) => {
-      const message = error?.response?.data?.detail || 'Failed to delete task. Please try again.';
+    onError: (error: unknown) => {
+      const message = getErrorMessage(error, 'Failed to delete task. Please try again.');
       toast.error(message);
     },
   });
@@ -202,8 +234,8 @@ export default function Tasks() {
       setIsEditMode(false);
       toast.success(`Deleted ${ids.length} task${ids.length !== 1 ? 's' : ''} successfully`);
     },
-    onError: (error: any) => {
-      const message = error?.response?.data?.detail || 'Failed to delete tasks. Please try again.';
+    onError: (error: unknown) => {
+      const message = getErrorMessage(error, 'Failed to delete tasks. Please try again.');
       toast.error(message);
     },
   });
@@ -218,11 +250,27 @@ export default function Tasks() {
       setShowBulkStatusChange(false);
       toast.success(`Updated ${ids.length} task${ids.length !== 1 ? 's' : ''} successfully`);
     },
-    onError: (error: any) => {
-      const message = error?.response?.data?.detail || 'Failed to update tasks. Please try again.';
+    onError: (error: unknown) => {
+      const message = getErrorMessage(error, 'Failed to update tasks. Please try again.');
       toast.error(message);
     },
   });
+
+  const snoozeMutation = useMutation({
+    mutationFn: (taskId: number) => dashboardApi.rescheduleTask(taskId, 1),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      toast.success('Task snoozed to tomorrow');
+    },
+    onError: (error: unknown) => {
+      const message = getErrorMessage(error, 'Failed to snooze task. Please try again.');
+      toast.error(message);
+    },
+  });
+
+  const handleSnooze = (id: number) => {
+    snoozeMutation.mutate(id);
+  };
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -320,6 +368,34 @@ export default function Tasks() {
   const handleToggleEditMode = () => {
     setIsEditMode(!isEditMode);
     setSelectedTaskIds(new Set()); // Clear selections when toggling
+  };
+
+  const handleSavePreset = () => {
+    const name = presetName.trim();
+    if (!name) return;
+    const preset: FilterPreset = { name, filter, sortBy, projectFilter };
+    const updated = [...savedPresets.filter(p => p.name !== name), preset];
+    setSavedPresets(updated);
+    savePresetsToStorage(updated);
+    setPresetName('');
+    setShowPresetMenu(false);
+    toast.success(`Filter preset "${name}" saved`);
+  };
+
+  const handleLoadPreset = (preset: FilterPreset) => {
+    setFilter(preset.filter);
+    setSortBy(preset.sortBy);
+    setProjectFilter(preset.projectFilter);
+    setShowPresetMenu(false);
+    toast.success(`Loaded "${preset.name}"`);
+  };
+
+  const handleDeletePreset = (name: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const updated = savedPresets.filter(p => p.name !== name);
+    setSavedPresets(updated);
+    savePresetsToStorage(updated);
+    toast.success(`Preset "${name}" deleted`);
   };
 
   // Get count for a specific filter
@@ -623,6 +699,86 @@ export default function Tasks() {
                   );
                 })}
               </div>
+
+              {/* Saved Filter Presets */}
+              <div className="relative ml-auto flex-shrink-0">
+                <button
+                  onClick={() => setShowPresetMenu(!showPresetMenu)}
+                  className={cn(
+                    'flex items-center gap-1.5 px-3 py-2 text-sm rounded-lg transition-all duration-200',
+                    showPresetMenu
+                      ? 'bg-stone-600 text-white'
+                      : 'text-stone-400 hover:text-white hover:bg-stone-700'
+                  )}
+                  title="Filter presets"
+                  aria-label="Filter presets"
+                >
+                  <Bookmark className="w-4 h-4" />
+                  {savedPresets.length > 0 && (
+                    <span className="text-xs opacity-60">({savedPresets.length})</span>
+                  )}
+                </button>
+                {showPresetMenu && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setShowPresetMenu(false)} />
+                    <div className="absolute right-0 top-full mt-2 z-50 w-64 bg-stone-800 border border-stone-600/50 rounded-xl shadow-xl overflow-hidden">
+                      {/* Save current */}
+                      <div className="p-3 border-b border-stone-700/50">
+                        <p className="text-xs font-medium text-stone-400 mb-2">Save current filters</p>
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={presetName}
+                            onChange={(e) => setPresetName(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleSavePreset()}
+                            placeholder="Preset name..."
+                            className="flex-1 px-3 py-1.5 text-sm bg-stone-900/50 border border-stone-600/40 rounded-lg text-white placeholder-stone-500 focus:outline-none focus:ring-1 focus:ring-orange-500/30"
+                          />
+                          <button
+                            onClick={handleSavePreset}
+                            disabled={!presetName.trim()}
+                            className="p-1.5 bg-orange-600 text-white rounded-lg hover:bg-orange-500 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                            aria-label="Save preset"
+                          >
+                            <Save className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                      {/* Preset list */}
+                      {savedPresets.length > 0 ? (
+                        <div className="max-h-48 overflow-y-auto">
+                          {savedPresets.map((preset) => (
+                            <button
+                              key={preset.name}
+                              onClick={() => handleLoadPreset(preset)}
+                              className="w-full flex items-center justify-between px-3 py-2.5 text-sm text-stone-200 hover:bg-stone-700/50 transition-colors group"
+                            >
+                              <div className="flex flex-col items-start">
+                                <span className="font-medium">{preset.name}</span>
+                                <span className="text-xs text-stone-500">
+                                  {filters.find(f => f.value === preset.filter)?.label || preset.filter}
+                                  {preset.sortBy !== 'dueDate' && ` · ${preset.sortBy}`}
+                                </span>
+                              </div>
+                              <button
+                                onClick={(e) => handleDeletePreset(preset.name, e)}
+                                className="p-1 opacity-0 group-hover:opacity-100 text-stone-500 hover:text-red-400 rounded transition-all"
+                                aria-label={`Delete preset ${preset.name}`}
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </button>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="px-3 py-4 text-center text-xs text-stone-500">
+                          No saved presets yet
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
           </div>
 
@@ -787,6 +943,7 @@ export default function Tasks() {
                     onStatusChange={handleStatusChange}
                     onTaskClick={handleTaskClick}
                     onDelete={(id) => setTaskToDelete(id)}
+                    onSnooze={handleSnooze}
                     isUpdating={updateStatusMutation.isPending}
                     searchQuery={searchQuery}
                     selectedTaskIds={isEditMode ? selectedTaskIds : undefined}
@@ -1031,6 +1188,48 @@ export default function Tasks() {
                   </select>
                 </div>
               </div>
+
+              {/* Time Entries for this task */}
+              {editingTask && taskTimeEntries.length > 0 && (
+                <div className="border-t border-[--exec-border] pt-5">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Clock className="w-4 h-4 text-[--exec-text-muted]" />
+                    <span className="text-sm font-semibold text-[--exec-text]">
+                      Time Tracked
+                    </span>
+                    <span className="text-xs text-[--exec-text-muted] ml-auto">
+                      {(() => {
+                        const totalSeconds = taskTimeEntries.reduce((sum, e) => sum + (e.duration_seconds || 0), 0);
+                        const hours = Math.floor(totalSeconds / 3600);
+                        const mins = Math.floor((totalSeconds % 3600) / 60);
+                        return hours > 0 ? `${hours}h ${mins}m total` : `${mins}m total`;
+                      })()}
+                    </span>
+                  </div>
+                  <div className="space-y-2 max-h-32 overflow-y-auto">
+                    {taskTimeEntries.slice(0, 5).map((entry) => (
+                      <div key={entry.id} className="flex items-center justify-between py-1.5 px-3 rounded-lg bg-stone-800/50 text-xs">
+                        <span className="text-[--exec-text-secondary] truncate flex-1">
+                          {entry.description || 'No description'}
+                        </span>
+                        <span className="text-[--exec-text-muted] ml-2 shrink-0">
+                          {(() => {
+                            const secs = entry.duration_seconds || 0;
+                            const h = Math.floor(secs / 3600);
+                            const m = Math.floor((secs % 3600) / 60);
+                            return h > 0 ? `${h}h ${m}m` : `${m}m`;
+                          })()}
+                        </span>
+                      </div>
+                    ))}
+                    {taskTimeEntries.length > 5 && (
+                      <p className="text-xs text-[--exec-text-muted] text-center">
+                        +{taskTimeEntries.length - 5} more entries
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {/* Apply to all recurring tasks option */}
               {editingTask && (editingTask.is_recurring || editingTask.parent_task_id) && (

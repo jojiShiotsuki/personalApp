@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { exportApi } from '@/lib/api';
-import { Copy, Download, Check } from 'lucide-react';
+import { Copy, Download, Check, Users, Handshake, ListTodo, FileSpreadsheet } from 'lucide-react';
 import { subDays, format } from 'date-fns';
+import { toast } from 'sonner';
 
 export default function Export() {
   const [dateRange, setDateRange] = useState({
@@ -10,6 +11,7 @@ export default function Export() {
     end: format(new Date(), 'yyyy-MM-dd'),
   });
   const [copied, setCopied] = useState(false);
+  const [downloading, setDownloading] = useState<string | null>(null);
 
   const { data: exportData, isLoading } = useQuery({
     queryKey: ['export', dateRange],
@@ -21,6 +23,18 @@ export default function Export() {
       await navigator.clipboard.writeText(exportData.markdown);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  const handleCsvDownload = async (entity: 'contacts' | 'deals' | 'tasks') => {
+    setDownloading(entity);
+    try {
+      await exportApi.downloadCsv(entity);
+      toast.success(`${entity}.csv downloaded`);
+    } catch {
+      toast.error(`Failed to download ${entity}.csv`);
+    } finally {
+      setDownloading(null);
     }
   };
 
@@ -129,6 +143,45 @@ export default function Export() {
             <p>No data available for the selected range.</p>
           </div>
         )}
+
+        {/* CSV Data Exports */}
+        <div className="max-w-4xl mx-auto mt-8">
+          <div className="flex items-center gap-2 mb-4">
+            <FileSpreadsheet className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Data Exports</h2>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {([
+              { entity: 'contacts' as const, label: 'Contacts', icon: Users, desc: 'All contacts with status, company, and source' },
+              { entity: 'deals' as const, label: 'Deals', icon: Handshake, desc: 'All deals with value, stage, and dates' },
+              { entity: 'tasks' as const, label: 'Tasks', icon: ListTodo, desc: 'All tasks with priority, status, and due dates' },
+            ]).map(({ entity, label, icon: Icon, desc }) => (
+              <button
+                key={entity}
+                onClick={() => handleCsvDownload(entity)}
+                disabled={downloading === entity}
+                className="flex flex-col items-start gap-3 p-5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-md transition-all text-left disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <div className="flex items-center gap-3 w-full">
+                  <div className="p-2 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
+                    <Icon className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <div className="flex-1">
+                    <span className="font-semibold text-gray-900 dark:text-white text-sm">{label}</span>
+                  </div>
+                  <Download className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+                </div>
+                <p className="text-xs text-gray-500 dark:text-gray-400">{desc}</p>
+                {downloading === entity && (
+                  <div className="w-full flex items-center gap-2 text-xs text-blue-600 dark:text-blue-400">
+                    <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600 dark:border-blue-400" />
+                    Downloading...
+                  </div>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );

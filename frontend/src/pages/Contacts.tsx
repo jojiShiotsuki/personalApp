@@ -1,20 +1,21 @@
 import { useState, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { contactApi } from '@/lib/api';
-import type { Contact, ContactCreate } from '@/types';
-import { ContactStatus } from '@/types';
-import { Plus, Search, User, Mail, Phone, Building2, MoreHorizontal, Trash2, Edit2, ExternalLink, MapPin, Wrench, Globe, MessageSquare } from 'lucide-react';
+import { contactApi, dealApi } from '@/lib/api';
+import type { Contact, ContactCreate, DealCreate } from '@/types';
+import { ContactStatus, DealStage } from '@/types';
+import { Plus, Search, User, Mail, Phone, Building2, MoreHorizontal, Trash2, Edit2, ExternalLink, MapPin, Wrench, Globe, MessageSquare, DollarSign } from 'lucide-react';
 import { toast } from 'sonner';
 import ContactDetailModal from '@/components/ContactDetailModal';
 import ContactModal from '@/components/ContactModal';
 import AddInteractionModal from '@/components/AddInteractionModal';
 import ConfirmModal from '@/components/ConfirmModal';
 import SendDMPanel, { type SendDMSource } from '@/components/outreach/SendDMPanel';
-import { cn } from '@/lib/utils';
+import { cn, getErrorMessage } from '@/lib/utils';
 
 export default function Contacts() {
   const location = useLocation();
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
@@ -85,9 +86,8 @@ export default function Contacts() {
       setEditingContact(null);
       toast.success('Contact created successfully');
     },
-    onError: (error: any) => {
-      const message = error?.response?.data?.detail || 'Failed to create contact. Please try again.';
-      toast.error(message);
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error, 'Failed to create contact. Please try again.'));
     },
   });
 
@@ -100,9 +100,8 @@ export default function Contacts() {
       setEditingContact(null);
       toast.success('Contact updated successfully');
     },
-    onError: (error: any) => {
-      const message = error?.response?.data?.detail || 'Failed to update contact. Please try again.';
-      toast.error(message);
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error, 'Failed to update contact. Please try again.'));
     },
   });
 
@@ -112,11 +111,30 @@ export default function Contacts() {
       queryClient.invalidateQueries({ queryKey: ['contacts'] });
       toast.success('Contact deleted');
     },
-    onError: (error: any) => {
-      const message = error?.response?.data?.detail || 'Failed to delete contact. Please try again.';
-      toast.error(message);
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error, 'Failed to delete contact. Please try again.'));
     },
   });
+
+  const createDealMutation = useMutation({
+    mutationFn: (data: DealCreate) => dealApi.create(data),
+    onSuccess: (deal) => {
+      queryClient.invalidateQueries({ queryKey: ['deals'] });
+      toast.success(`Deal "${deal.title}" created`);
+      navigate('/deals');
+    },
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error, 'Failed to create deal'));
+    },
+  });
+
+  const handleQuickDeal = (contact: Contact) => {
+    createDealMutation.mutate({
+      title: `${contact.name} - New Deal`,
+      contact_id: contact.id,
+      stage: DealStage.LEAD,
+    });
+  };
 
   const handleSubmit = (data: ContactCreate) => {
     if (editingContact) {
@@ -345,6 +363,13 @@ export default function Contacts() {
                       >
                         <ExternalLink className="w-3 h-3 mr-1.5" />
                         View
+                      </button>
+                      <button
+                        onClick={() => handleQuickDeal(contact)}
+                        className="flex items-center justify-center p-1.5 text-[--exec-text-muted] hover:text-amber-400 hover:bg-amber-500/10 rounded-lg transition-colors"
+                        title="New Deal"
+                      >
+                        <DollarSign className="w-3.5 h-3.5" />
                       </button>
                       <button
                         onClick={() => openSendDMPanel(contact)}

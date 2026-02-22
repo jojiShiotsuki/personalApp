@@ -7,7 +7,7 @@ import ProjectCard from '@/components/ProjectCard';
 import ProjectModal from '@/components/ProjectModal';
 import ManageTemplatesModal from '@/components/ManageTemplatesModal';
 import ProjectDeliveryBoard from '@/components/ProjectDeliveryBoard';
-import { cn } from '@/lib/utils';
+import { cn, getErrorMessage } from '@/lib/utils';
 import { toast } from 'sonner';
 
 const SERVICE_FILTERS = [
@@ -39,9 +39,8 @@ export default function Projects() {
       setIsModalOpen(false);
       toast.success('Project created successfully');
     },
-    onError: (error: any) => {
-      const message = error?.response?.data?.detail || 'Failed to create project';
-      toast.error(message);
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error, 'Failed to create project'));
     },
   });
 
@@ -52,9 +51,8 @@ export default function Projects() {
       queryClient.invalidateQueries({ queryKey: ['projects'] });
       toast.success('Project deleted');
     },
-    onError: (error: any) => {
-      const message = error?.response?.data?.detail || 'Failed to delete project';
-      toast.error(message);
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error, 'Failed to delete project'));
     },
   });
 

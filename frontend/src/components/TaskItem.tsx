@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { Task, Goal } from '@/types';
 import { TaskStatus, TaskPriority } from '@/types';
 import { format, isPast, isToday, isTomorrow, parseISO, differenceInDays, startOfDay } from 'date-fns';
-import { Check, Clock, Trash2, Edit, Target, Repeat, Play, Square, Link2, StickyNote, SkipForward } from 'lucide-react';
+import { Check, Clock, Trash2, Edit, Target, Repeat, Play, Square, Link2, StickyNote, SkipForward, CalendarClock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import ConfirmModal from './ConfirmModal';
 import { useTimer, formatElapsedTime } from '@/contexts/TimerContext';
@@ -13,6 +13,7 @@ interface TaskItemProps {
   onStatusChange: (id: number, status: TaskStatus) => void;
   onClick: () => void;
   onDelete?: (id: number) => void;
+  onSnooze?: (id: number) => void;
   isUpdating?: boolean;
   isSelected?: boolean;
   onToggleSelect?: (id: number) => void;
@@ -83,7 +84,7 @@ const statusConfig = {
   }
 };
 
-export default function TaskItem({ task, onStatusChange, onClick, onDelete, isUpdating, isSelected, onToggleSelect, goals }: TaskItemProps) {
+export default function TaskItem({ task, onStatusChange, onClick, onDelete, onSnooze, isUpdating, isSelected, onToggleSelect, goals }: TaskItemProps) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const { currentTimer, startTimer, stopTimer, elapsedSeconds } = useTimer();
   const isCompleted = task.status === TaskStatus.COMPLETED;
@@ -156,6 +157,11 @@ export default function TaskItem({ task, onStatusChange, onClick, onDelete, isUp
   const handleSkip = (e: React.MouseEvent) => {
     e.stopPropagation();
     onStatusChange(task.id, isSkipped ? TaskStatus.PENDING : TaskStatus.SKIPPED);
+  };
+
+  const handleSnooze = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onSnooze) onSnooze(task.id);
   };
 
   const handleTimerClick = async (e: React.MouseEvent) => {
@@ -339,8 +345,29 @@ export default function TaskItem({ task, onStatusChange, onClick, onDelete, isUp
                 e.currentTarget.style.backgroundColor = isSkipped ? 'rgba(120,113,108,0.1)' : 'transparent';
               }}
               title={isSkipped ? "Unskip task" : "Skip task"}
+              aria-label={isSkipped ? "Unskip task" : "Skip task"}
             >
               <SkipForward className="w-4 h-4" />
+            </button>
+          )}
+
+          {/* Snooze Button (Tomorrow) */}
+          {!isResolved && onSnooze && (
+            <button
+              onClick={handleSnooze}
+              className="p-1.5 text-stone-500 rounded-md transition-all duration-200 hover:scale-110 active:scale-95"
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = '#60a5fa';
+                e.currentTarget.style.backgroundColor = 'rgba(96,165,250,0.2)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = '#78716c';
+                e.currentTarget.style.backgroundColor = 'transparent';
+              }}
+              title="Snooze to tomorrow"
+              aria-label="Snooze task to tomorrow"
+            >
+              <CalendarClock className="w-4 h-4" />
             </button>
           )}
 
@@ -365,6 +392,7 @@ export default function TaskItem({ task, onStatusChange, onClick, onDelete, isUp
                 e.currentTarget.style.backgroundColor = isTimerRunningForThis ? 'rgba(239,68,68,0.1)' : 'transparent';
               }}
               title={isTimerRunningForThis ? "Stop timer" : "Start timer"}
+              aria-label={isTimerRunningForThis ? "Stop timer" : "Start timer"}
             >
               {isTimerRunningForThis ? <Square className="w-4 h-4" /> : <Play className="w-4 h-4" />}
             </button>
@@ -382,6 +410,7 @@ export default function TaskItem({ task, onStatusChange, onClick, onDelete, isUp
               e.currentTarget.style.backgroundColor = 'transparent';
             }}
             title="Edit task"
+            aria-label="Edit task"
           >
             <Edit className="w-4 h-4" />
           </button>
@@ -399,6 +428,7 @@ export default function TaskItem({ task, onStatusChange, onClick, onDelete, isUp
                 e.currentTarget.style.backgroundColor = 'transparent';
               }}
               title="Delete task"
+              aria-label="Delete task"
             >
               <Trash2 className="w-4 h-4" />
             </button>

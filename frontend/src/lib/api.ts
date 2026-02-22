@@ -315,6 +315,10 @@ export const dealApi = {
     const response = await api.patch(`/api/crm/deals/${id}/unsnooze`);
     return response.data;
   },
+  convertToProject: async (id: number): Promise<{ project_id: number; project_name: string; message: string }> => {
+    const response = await api.post(`/api/crm/deals/${id}/convert-to-project`);
+    return response.data;
+  },
 };
 
 // Interaction API
@@ -353,6 +357,28 @@ export const exportApi = {
     if (endDate) params.end_date = endDate;
     const response = await api.get('/api/export/context', { params });
     return response.data;
+  },
+  downloadCsv: async (entity: 'contacts' | 'deals' | 'tasks') => {
+    const response = await api.get(`/api/export/${entity}.csv`, { responseType: 'blob' });
+    const url = URL.createObjectURL(response.data);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${entity}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  },
+  downloadBackup: async () => {
+    const response = await api.get('/api/export/backup.json', { responseType: 'blob' });
+    const url = URL.createObjectURL(response.data);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `vertex-backup-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   },
 };
 

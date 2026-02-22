@@ -1,13 +1,15 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { dealApi, contactApi } from '@/lib/api';
 import type { Deal, DealCreate } from '@/types';
 import { DealStage, BillingFrequency, ServiceStatus } from '@/types';
-import { Plus, X, CheckSquare, Trash2, ArrowRightLeft } from 'lucide-react';
+import { Plus, X, CheckSquare, Trash2, ArrowRightLeft, Search, FolderPlus } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import KanbanBoard from '@/components/KanbanBoard';
 import AddInteractionModal from '@/components/AddInteractionModal';
 import ConfirmModal from '@/components/ConfirmModal';
 import { toast } from 'sonner';
+import { cn, getErrorMessage } from '@/lib/utils';
 
 const stages = [
   { id: DealStage.LEAD, title: 'Lead' },
@@ -29,7 +31,11 @@ export default function Deals() {
   const [selectedDealIds, setSelectedDealIds] = useState<Set<number>>(new Set());
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
   const [bulkStageTarget, setBulkStageTarget] = useState<DealStage | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [stageFilter, setStageFilter] = useState<string>('all');
   const queryClient = useQueryClient();
+
+  const navigate = useNavigate();
 
   const { data: deals = [], isLoading, isError } = useQuery({
     queryKey: ['deals'],
@@ -49,9 +55,8 @@ export default function Deals() {
       setEditingDeal(null);
       toast.success('Deal created successfully');
     },
-    onError: (error: any) => {
-      const message = error?.response?.data?.detail || 'Failed to create deal. Please try again.';
-      toast.error(message);
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error, 'Failed to create deal. Please try again.'));
     },
   });
 
@@ -64,9 +69,8 @@ export default function Deals() {
       setEditingDeal(null);
       toast.success('Deal updated successfully');
     },
-    onError: (error: any) => {
-      const message = error?.response?.data?.detail || 'Failed to update deal. Please try again.';
-      toast.error(message);
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error, 'Failed to update deal. Please try again.'));
     },
   });
 
@@ -76,9 +80,24 @@ export default function Deals() {
       queryClient.invalidateQueries({ queryKey: ['deals'] });
       toast.success('Deal deleted');
     },
-    onError: (error: any) => {
-      const message = error?.response?.data?.detail || 'Failed to delete deal. Please try again.';
-      toast.error(message);
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error, 'Failed to delete deal. Please try again.'));
+    },
+  });
+
+  const convertToProjectMutation = useMutation({
+    mutationFn: (dealId: number) => dealApi.convertToProject(dealId),
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ['deals'] });
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      setIsModalOpen(false);
+      setEditingDeal(null);
+      toast.success(result.message);
+      navigate(`/projects/${result.project_id}`);
+    },
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error, 'Failed to convert deal to project'));
     },
   });
 
@@ -90,9 +109,8 @@ export default function Deals() {
       setShowBulkDeleteConfirm(false);
       toast.success(data.message);
     },
-    onError: (error: any) => {
-      const message = error?.response?.data?.detail || 'Failed to delete deals';
-      toast.error(message);
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error, 'Failed to delete deals'));
     },
   });
 
@@ -105,9 +123,8 @@ export default function Deals() {
       setBulkStageTarget(null);
       toast.success(data.message);
     },
-    onError: (error: any) => {
-      const message = error?.response?.data?.detail || 'Failed to update deal stages';
-      toast.error(message);
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error, 'Failed to update deal stages'));
     },
   });
 
@@ -141,6 +158,20 @@ export default function Deals() {
     setIsAddInteractionOpen(true);
   };
 
+  const filteredDeals = useMemo(() => {
+    let result = deals;
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      result = result.filter(d =>
+        d.title.toLowerCase().includes(q) ||
+        (d.contact_name && d.contact_name.toLowerCase().includes(q))
+      );
+    }
+    if (stageFilter !== 'all') {
+      result = result.filter(d => d.stage === stageFilter);
+    }
+    return result;
+  }, [deals, searchQuery, stageFilter]);
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -202,6 +233,46 @@ export default function Deals() {
               </p>
             </div>
             <div className="flex items-center gap-3">
+              {/* Search & Filter */}
+              {!isEditMode && (
+                <>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[--exec-text-muted]" />
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Search deals..."
+                      className={cn(
+                        "pl-9 pr-4 py-2 w-64",
+                        "bg-[--exec-surface-alt] border border-stone-600/40 rounded-lg",
+                        "text-[--exec-text] placeholder:text-[--exec-text-muted]",
+                        "focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]/50",
+                        "text-sm transition-all"
+                      )}
+                    />
+                  </div>
+                  <select
+                    value={stageFilter}
+                    onChange={(e) => setStageFilter(e.target.value)}
+                    className={cn(
+                      "px-4 py-2",
+                      "bg-[--exec-surface-alt] border border-stone-600/40 rounded-lg",
+                      "text-[--exec-text]",
+                      "focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]/50",
+                      "text-sm transition-all cursor-pointer appearance-none pr-8"
+                    )}
+                  >
+                    <option value="all">All Stages</option>
+                    {stages.map((stage) => (
+                      <option key={stage.id} value={stage.id}>
+                        {stage.title}
+                      </option>
+                    ))}
+                  </select>
+                </>
+              )}
+
               {/* Edit mode toggle */}
               <button
                 onClick={() => isEditMode ? handleExitEditMode() : setIsEditMode(true)}
@@ -295,7 +366,7 @@ export default function Deals() {
             </div>
           ) : (
           <KanbanBoard
-            deals={deals}
+            deals={filteredDeals}
             contacts={contacts}
             onEditDeal={(deal) => {
               setEditingDeal(deal);
@@ -538,6 +609,18 @@ export default function Deals() {
                 )}
 
                 <div className="flex gap-3 justify-end pt-4 border-t border-stone-700/30 mt-6">
+                  {/* Convert to Project button — only for closed-won deals */}
+                  {editingDeal && editingDeal.stage === DealStage.CLOSED_WON && (
+                    <button
+                      type="button"
+                      onClick={() => convertToProjectMutation.mutate(editingDeal.id)}
+                      disabled={convertToProjectMutation.isPending}
+                      className="mr-auto flex items-center gap-2 px-4 py-2 text-sm font-medium text-[--exec-sage] bg-[--exec-sage-bg] border border-[--exec-sage]/30 rounded-lg hover:bg-[--exec-sage]/20 transition-colors disabled:opacity-50"
+                    >
+                      <FolderPlus className="w-4 h-4" />
+                      {convertToProjectMutation.isPending ? 'Converting...' : 'Convert to Project'}
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={() => {

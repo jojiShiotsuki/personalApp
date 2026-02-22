@@ -5,7 +5,7 @@ import type { Deal, Contact } from '@/types';
 import { BillingFrequency, ServiceStatus } from '@/types';
 import { RefreshCw, DollarSign, AlertCircle, CheckCircle, PauseCircle, Clock, X, Edit2, TrendingUp } from 'lucide-react';
 import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
+import { cn, getErrorMessage } from '@/lib/utils';
 
 const billingFrequencyLabels: Record<string, string> = {
   monthly: 'Monthly',
@@ -57,9 +57,8 @@ export default function Services() {
       setEditingService(null);
       toast.success('Service updated successfully');
     },
-    onError: (error: any) => {
-      const message = error?.response?.data?.detail || 'Failed to update service. Please try again.';
-      toast.error(message);
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error, 'Failed to update service. Please try again.'));
     },
   });
 

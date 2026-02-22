@@ -303,6 +303,7 @@ async def get_stored_leads(
 
     Useful for viewing lead history or re-importing leads.
     """
+    limit = min(limit, 500)
     query = db.query(DiscoveredLeadModel)
 
     if niche:
@@ -763,7 +764,8 @@ async def bulk_enrich_leads(
             (DiscoveredLeadModel.email.in_(['n/a', 'not listed', 'not found', 'none', 'unknown']))
         )
 
-    leads = query.all()
+    # Cap total leads to prevent excessively long requests
+    leads = query.limit(200).all()
 
     if not leads:
         return {"enriched": 0, "emails_found": 0, "skipped": 0, "results": []}

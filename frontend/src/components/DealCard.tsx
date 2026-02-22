@@ -125,6 +125,7 @@ export default function DealCard({ deal, index, contacts, onEdit, onDelete, onAd
                     : "text-green-400 hover:text-green-300 hover:bg-green-900/30"
                 )}
                 title={isTimerRunningForThis ? "Stop timer" : "Start timer"}
+                aria-label={isTimerRunningForThis ? "Stop timer" : "Start timer"}
               >
                 {isTimerRunningForThis ? <Square className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
               </button>
@@ -135,6 +136,7 @@ export default function DealCard({ deal, index, contacts, onEdit, onDelete, onAd
                 }}
                 className="p-1.5 hover:bg-stone-700/50 text-[--exec-text-muted] hover:text-[--exec-text] rounded-md transition-colors"
                 title="Edit deal"
+                aria-label="Edit deal"
               >
                 <Edit className="w-3.5 h-3.5" />
               </button>
@@ -145,6 +147,7 @@ export default function DealCard({ deal, index, contacts, onEdit, onDelete, onAd
                 }}
                 className="p-1.5 hover:bg-red-900/30 text-[--exec-text-muted] hover:text-red-400 rounded-md transition-colors"
                 title="Delete deal"
+                aria-label="Delete deal"
               >
                 <Trash2 className="w-3.5 h-3.5" />
               </button>
