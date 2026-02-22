@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { projectApi } from '@/lib/api';
@@ -7,6 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import { Calendar, CheckCircle2, StickyNote, User } from 'lucide-react';
 import { format, isPast, isToday } from 'date-fns';
 import { toast } from 'sonner';
+import RetainerModal from '@/components/RetainerModal';
 
 const DELIVERY_COLUMNS: ProjectStatus[] = [
   ProjectStatus.SCOPING,
@@ -14,6 +16,7 @@ const DELIVERY_COLUMNS: ProjectStatus[] = [
   ProjectStatus.REVIEW,
   ProjectStatus.REVISIONS,
   ProjectStatus.COMPLETED,
+  ProjectStatus.RETAINER,
 ];
 
 const COLUMN_CONFIG: Record<string, { label: string; headerBg: string; headerText: string; headerBorder: string }> = {
@@ -47,6 +50,12 @@ const COLUMN_CONFIG: Record<string, { label: string; headerBg: string; headerTex
     headerText: 'text-emerald-400',
     headerBorder: 'border-emerald-500/20',
   },
+  [ProjectStatus.RETAINER]: {
+    label: 'Retainer',
+    headerBg: 'bg-purple-500/10',
+    headerText: 'text-purple-400',
+    headerBorder: 'border-purple-500/20',
+  },
 };
 
 const SERVICE_TAG_CONFIG: Record<string, { label: string; bg: string; text: string; border: string }> = {
@@ -63,6 +72,7 @@ interface ProjectDeliveryBoardProps {
 export default function ProjectDeliveryBoard({ projects }: ProjectDeliveryBoardProps) {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const [retainerProject, setRetainerProject] = useState<Project | null>(null);
 
   const updateStatusMutation = useMutation({
     mutationFn: ({ id, status }: { id: number; status: ProjectStatus }) =>
@@ -91,6 +101,18 @@ export default function ProjectDeliveryBoard({ projects }: ProjectDeliveryBoardP
 
     const projectId = parseInt(draggableId.replace('project-', ''));
     const newStatus = destination.droppableId as ProjectStatus;
+
+    if (newStatus === ProjectStatus.RETAINER) {
+      const project = projects.find(p => p.id === projectId);
+      if (!project) return;
+      if (!project.contact_id) {
+        toast.error('Please assign a contact to this project before moving to Retainer');
+        return;
+      }
+      setRetainerProject(project);
+      return;
+    }
+
     updateStatusMutation.mutate({ id: projectId, status: newStatus });
   };
 
@@ -107,6 +129,7 @@ export default function ProjectDeliveryBoard({ projects }: ProjectDeliveryBoardP
   };
 
   return (
+    <>
     <DragDropContext onDragEnd={handleDragEnd}>
       <div className="flex gap-4 overflow-x-auto pb-4 pt-2 px-1 h-full [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-stone-600 [&::-webkit-scrollbar-track]:bg-transparent">
         {DELIVERY_COLUMNS.map((status) => {
@@ -245,5 +268,18 @@ export default function ProjectDeliveryBoard({ projects }: ProjectDeliveryBoardP
         })}
       </div>
     </DragDropContext>
+
+    {retainerProject && (
+      <RetainerModal
+        isOpen={!!retainerProject}
+        onClose={() => setRetainerProject(null)}
+        onSuccess={() => {
+          updateStatusMutation.mutate({ id: retainerProject.id, status: ProjectStatus.RETAINER });
+          setRetainerProject(null);
+        }}
+        project={retainerProject}
+      />
+    )}
+    </>
   );
 }

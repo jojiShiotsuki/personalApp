@@ -6,6 +6,7 @@ import { projectApi, taskApi, projectTemplateApi } from '@/lib/api';
 import type { Project, ProjectCreate } from '@/types';
 import { ProjectStatus, TaskStatus, TaskCreate as TaskCreateType, TaskPriority } from '@/types';
 import ProjectModal from '@/components/ProjectModal';
+import RetainerModal from '@/components/RetainerModal';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import TaskItem from '@/components/TaskItem';
@@ -76,6 +77,7 @@ export default function ProjectDetail() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
+  const [showRetainerModal, setShowRetainerModal] = useState(false);
   const statusDropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -257,6 +259,15 @@ export default function ProjectDetail() {
                         key={value}
                         onClick={() => {
                           if (value !== project.status) {
+                            if (value === ProjectStatus.RETAINER) {
+                              if (!project.contact_id) {
+                                toast.error('Please assign a contact to this project before moving to Retainer');
+                              } else {
+                                setShowRetainerModal(true);
+                              }
+                              setStatusDropdownOpen(false);
+                              return;
+                            }
                             updateMutation.mutate({ status: value as ProjectStatus });
                           }
                           setStatusDropdownOpen(false);
@@ -343,6 +354,18 @@ export default function ProjectDetail() {
         confirmText="Delete"
         variant="danger"
       />
+
+      {project && (
+        <RetainerModal
+          isOpen={showRetainerModal}
+          onClose={() => setShowRetainerModal(false)}
+          onSuccess={() => {
+            updateMutation.mutate({ status: ProjectStatus.RETAINER });
+            setShowRetainerModal(false);
+          }}
+          project={project}
+        />
+      )}
     </div>
   );
 }
