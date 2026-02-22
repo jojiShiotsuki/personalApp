@@ -19,7 +19,11 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    op.execute("UPDATE sprints SET status = LOWER(status) WHERE status != LOWER(status)")
+    # Only needed for SQLite where status is stored as plain text.
+    # PostgreSQL uses a proper enum type that already constrains values.
+    bind = op.get_bind()
+    if bind.dialect.name == 'sqlite':
+        op.execute("UPDATE sprints SET status = LOWER(status) WHERE status != LOWER(status)")
 
 
 def downgrade() -> None:
