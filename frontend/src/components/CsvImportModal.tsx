@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { coldOutreachApi } from '@/lib/api';
 import type { CsvColumnMapping } from '@/types';
@@ -290,9 +291,9 @@ export default function CsvImportModal({ isOpen, onClose, campaignId, isLinkedIn
 
   if (!isOpen) return null;
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 animate-in fade-in duration-200">
-      <div className="bg-[--exec-surface] rounded-2xl shadow-2xl w-full max-w-2xl mx-4 max-h-[85vh] flex flex-col border border-stone-600/40 transform transition-all animate-in zoom-in-95 duration-200">
+      <div className="bg-[--exec-surface] rounded-2xl shadow-2xl w-full max-w-2xl mx-4 max-h-[85vh] flex flex-col border border-stone-600/40 transition-all animate-in zoom-in-95 duration-200">
         {/* Header */}
         <div className="p-6 pb-0">
           <div className="flex items-center justify-between mb-6">
@@ -726,6 +727,7 @@ export default function CsvImportModal({ isOpen, onClose, campaignId, isLinkedIn
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

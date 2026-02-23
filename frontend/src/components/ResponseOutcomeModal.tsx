@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { coldOutreachApi } from '@/lib/api';
 import type { OutreachProspect, MarkRepliedResponse } from '@/types';
@@ -104,9 +105,9 @@ export default function ResponseOutcomeModal({
 
   // Success state - show link to deal
   if (successResult && successResult.contact_id) {
-    return (
+    return createPortal(
       <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 animate-in fade-in duration-200">
-        <div className="bg-[--exec-surface] rounded-2xl shadow-2xl w-full max-w-md mx-4 border border-stone-600/40 transform transition-all animate-in zoom-in-95 duration-200">
+        <div className="bg-[--exec-surface] rounded-2xl shadow-2xl w-full max-w-md mx-4 border border-stone-600/40 transition-all animate-in zoom-in-95 duration-200">
           <div className="p-6 text-center">
             {/* Success Icon */}
             <div className="w-16 h-16 rounded-full bg-green-500/20 flex items-center justify-center mx-auto mb-4">
@@ -146,13 +147,14 @@ export default function ResponseOutcomeModal({
             </div>
           </div>
         </div>
-      </div>
+      </div>,
+      document.body
     );
   }
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 animate-in fade-in duration-200">
-      <div className="bg-[--exec-surface] rounded-2xl shadow-2xl w-full max-w-md mx-4 border border-stone-600/40 transform transition-all animate-in zoom-in-95 duration-200">
+      <div className="bg-[--exec-surface] rounded-2xl shadow-2xl w-full max-w-md mx-4 border border-stone-600/40 transition-all animate-in zoom-in-95 duration-200">
         <div className="p-6">
           {/* Header */}
           <div className="flex justify-between items-start mb-6">
@@ -270,6 +272,7 @@ export default function ResponseOutcomeModal({
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
