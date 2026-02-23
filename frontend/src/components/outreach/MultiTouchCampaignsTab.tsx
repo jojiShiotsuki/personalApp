@@ -43,6 +43,7 @@ import { cn } from '@/lib/utils';
 import CsvImportModal from '@/components/CsvImportModal';
 import ResponseOutcomeModal from '@/components/ResponseOutcomeModal';
 import NewCampaignModal from '@/components/NewCampaignModal';
+import CopyEmailModal from '@/components/CopyEmailModal';
 import ProspectStatusBadge from '@/components/outreach/ProspectStatusBadge';
 import { WEBSITE_ISSUE_LABELS } from '@/lib/outreachConstants';
 
@@ -613,6 +614,7 @@ function MultiTouchProspectCard({
   onSkip: (prospectId: number) => void;
   onEdit: () => void;
   onUpdateIssues: (prospectId: number, issues: string[]) => void;
+  onViewMessage: (prospect: OutreachProspect) => void;
 }) {
   const [isResponseModalOpen, setIsResponseModalOpen] = useState(false);
   const stepDetail = prospect.current_step_detail;
@@ -726,6 +728,20 @@ function MultiTouchProspectCard({
             </a>
           )}
 
+          {/* View Email */}
+          {(channelType === StepChannelType.EMAIL || channelType === StepChannelType.FOLLOW_UP_EMAIL) && prospect.email && (
+            <button
+              onClick={() => onViewMessage(prospect)}
+              className={cn(
+                'flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200',
+                'bg-stone-700/50 text-[--exec-text-secondary] hover:bg-stone-600/50 hover:text-[--exec-text]'
+              )}
+            >
+              <Mail className="w-4 h-4" />
+              View Email
+            </button>
+          )}
+
           {/* Primary action */}
           <StepActionButton
             prospect={prospect}
@@ -791,6 +807,7 @@ function TodayQueue({
   onSkip: (prospectId: number) => void;
   onEdit: (prospect: OutreachProspect) => void;
   onUpdateIssues: (prospectId: number, issues: string[]) => void;
+  onViewMessage: (prospect: OutreachProspect) => void;
 }) {
   if (prospects.length === 0) {
     return (
@@ -817,6 +834,7 @@ function TodayQueue({
           onSkip={onSkip}
           onEdit={() => onEdit(prospect)}
           onUpdateIssues={onUpdateIssues}
+          onViewMessage={onViewMessage}
         />
       ))}
     </div>
@@ -834,6 +852,7 @@ function AllProspectsTable({
   campaignSteps: MultiTouchStep[];
   onEdit: (prospect: OutreachProspect) => void;
   onUpdateIssues: (prospectId: number, issues: string[]) => void;
+  onViewMessage: (prospect: OutreachProspect) => void;
 }) {
   if (prospects.length === 0) {
     return (
@@ -910,13 +929,24 @@ function AllProspectsTable({
                   )}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-right">
-                  <button
-                    onClick={() => onEdit(prospect)}
-                    className="p-1.5 text-[--exec-text-muted] hover:text-[--exec-text] hover:bg-[--exec-surface-alt] rounded-lg transition-colors"
-                    title="Edit prospect"
-                  >
-                    <Edit2 className="w-4 h-4" />
-                  </button>
+                  <div className="flex items-center justify-end gap-1">
+                    {(channelType === StepChannelType.EMAIL || channelType === StepChannelType.FOLLOW_UP_EMAIL) && prospect.email && (
+                      <button
+                        onClick={() => onViewMessage(prospect)}
+                        className="p-1.5 text-[--exec-text-muted] hover:text-blue-400 hover:bg-blue-500/15 rounded-lg transition-colors"
+                        title="View email"
+                      >
+                        <Mail className="w-4 h-4" />
+                      </button>
+                    )}
+                    <button
+                      onClick={() => onEdit(prospect)}
+                      className="p-1.5 text-[--exec-text-muted] hover:text-[--exec-text] hover:bg-[--exec-surface-alt] rounded-lg transition-colors"
+                      title="Edit prospect"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </td>
               </tr>
             );
@@ -1194,6 +1224,7 @@ export default function MultiTouchCampaignsTab() {
   const [editingCampaign, setEditingCampaign] = useState<OutreachCampaign | null>(null);
   const [editingProspect, setEditingProspect] = useState<OutreachProspect | null>(null);
   const [isAddProspectOpen, setIsAddProspectOpen] = useState(false);
+  const [emailModalProspect, setEmailModalProspect] = useState<OutreachProspect | null>(null);
 
   const queryClient = useQueryClient();
 
@@ -1675,6 +1706,7 @@ export default function MultiTouchCampaignsTab() {
                 onSkip={(prospectId) => skipMutation.mutate(prospectId)}
                 onEdit={setEditingProspect}
                 onUpdateIssues={handleUpdateIssues}
+                onViewMessage={setEmailModalProspect}
               />
             )}
             {activeTab === 'all' && (
@@ -1683,6 +1715,7 @@ export default function MultiTouchCampaignsTab() {
                 campaignSteps={campaignSteps}
                 onEdit={setEditingProspect}
                 onUpdateIssues={handleUpdateIssues}
+                onViewMessage={setEmailModalProspect}
               />
             )}
             {activeTab === 'replied' && (
@@ -1754,6 +1787,14 @@ export default function MultiTouchCampaignsTab() {
         onSave={(data) => createProspectMutation.mutate(data)}
         isSaving={createProspectMutation.isPending}
       />
+
+      {emailModalProspect && (
+        <CopyEmailModal
+          isOpen={!!emailModalProspect}
+          onClose={() => setEmailModalProspect(null)}
+          prospect={emailModalProspect}
+        />
+      )}
     </>
   );
 }
