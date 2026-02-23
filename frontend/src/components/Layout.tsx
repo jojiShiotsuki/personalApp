@@ -17,6 +17,7 @@ import {
   ChevronRight,
   ArrowUpRight,
   Rocket,
+  BarChart3,
   LogOut,
   Menu,
   X,
@@ -55,6 +56,7 @@ const navigationGroups = [
       { name: 'Goals', href: '/goals', icon: Target },
       { name: 'Time', href: '/time', icon: Clock },
       { name: 'Content', href: '/social-calendar', icon: Calendar },
+      { name: 'Reports', href: '/reports', icon: BarChart3 },
     ],
   },
 ];
