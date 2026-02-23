@@ -95,11 +95,17 @@ app.include_router(reports.router, dependencies=auth_dep)
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
-    """Catch unhandled exceptions so CORS headers are still applied."""
+    """Catch unhandled exceptions and ensure CORS headers are present."""
     logger.error(f"Unhandled error on {request.method} {request.url.path}: {exc}", exc_info=True)
+    origin = request.headers.get("origin", "")
+    headers = {}
+    if origin in allowed_origins:
+        headers["access-control-allow-origin"] = origin
+        headers["access-control-allow-credentials"] = "true"
     return JSONResponse(
         status_code=500,
         content={"detail": f"Internal server error: {str(exc)}"},
+        headers=headers,
     )
 
 @app.on_event("startup")
