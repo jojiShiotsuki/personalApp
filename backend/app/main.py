@@ -121,7 +121,7 @@ async def health_check():
 @app.get("/debug/db-enums")
 async def debug_db_enums():
     """Temporary diagnostic endpoint - check PostgreSQL enum values."""
-    from app.database import SessionLocal
+    from app.database.connection import SessionLocal
     db = SessionLocal()
     try:
         dialect = db.bind.dialect.name
