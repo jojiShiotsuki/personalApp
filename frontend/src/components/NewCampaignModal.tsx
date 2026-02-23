@@ -323,7 +323,7 @@ export default function NewCampaignModal({
                                 </select>
                               </div>
                               <div className="flex items-center gap-1.5">
-                                <span className="text-xs text-[--exec-text-muted] whitespace-nowrap">+</span>
+                                <span className="text-xs text-[--exec-text-muted] whitespace-nowrap">{index === 0 ? 'start:' : 'wait'}</span>
                                 <input
                                   type="number"
                                   min={0}
@@ -332,7 +332,7 @@ export default function NewCampaignModal({
                                   onChange={(e) => updateStep(index, { delay_days: parseInt(e.target.value) || 0 })}
                                   className={cn(inputClasses, 'w-16 py-1.5 text-center')}
                                 />
-                                <span className="text-xs text-[--exec-text-muted] whitespace-nowrap">days</span>
+                                <span className="text-xs text-[--exec-text-muted] whitespace-nowrap">{index === 0 ? (step.delay_days === 0 ? 'now' : step.delay_days === 1 ? 'day' : 'days') : step.delay_days === 1 ? 'day after' : 'days after'}</span>
                               </div>
                               <button
                                 type="button"
@@ -383,9 +383,12 @@ export default function NewCampaignModal({
                         <div className="flex items-center gap-1.5 mt-2 ml-10">
                           <Icon className={cn('w-3 h-3', config.color)} />
                           <span className={cn('text-[10px] font-medium', config.color)}>{config.label}</span>
-                          {index === 0 && step.delay_days === 0 && (
-                            <span className="text-[10px] text-[--exec-text-muted] ml-1">(starts immediately)</span>
-                          )}
+                          <span className="text-[10px] text-[--exec-text-muted] ml-1">
+                            {index === 0
+                              ? step.delay_days === 0 ? '(starts immediately)' : `(starts after ${step.delay_days}d)`
+                              : step.delay_days === 0 ? '(same day as prev step)' : `(${step.delay_days}d after prev step)`
+                            }
+                          </span>
                         </div>
                       </div>
                     );
