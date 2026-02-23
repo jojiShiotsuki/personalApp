@@ -101,6 +101,8 @@ class ProspectStatus(str, Enum):
     # LinkedIn-specific statuses
     PENDING_CONNECTION = "PENDING_CONNECTION"
     CONNECTED = "CONNECTED"
+    # Multi-touch specific
+    PENDING_ENGAGEMENT = "PENDING_ENGAGEMENT"
 
 
 class ResponseType(str, Enum):
@@ -117,6 +119,15 @@ class CampaignStatus(str, Enum):
 class CampaignType(str, Enum):
     EMAIL = "EMAIL"
     LINKEDIN = "LINKEDIN"
+    MULTI_TOUCH = "MULTI_TOUCH"
+
+
+class StepChannelType(str, Enum):
+    EMAIL = "email"
+    LINKEDIN_CONNECT = "linkedin_connect"
+    LINKEDIN_MESSAGE = "linkedin_message"
+    LINKEDIN_ENGAGE = "linkedin_engage"
+    FOLLOW_UP_EMAIL = "follow_up_email"
 
 
 # Campaign Schemas
@@ -130,8 +141,25 @@ class CampaignBase(BaseModel):
     step_5_delay: int = Field(default=7, ge=0)
 
 
+class MultiTouchStepCreate(BaseModel):
+    step_number: int = Field(..., ge=1, le=7)
+    channel_type: StepChannelType
+    delay_days: int = Field(default=1, ge=0)
+    template_subject: Optional[str] = Field(None, max_length=500)
+    template_content: Optional[str] = None
+    instruction_text: Optional[str] = Field(None, max_length=500)
+
+
+class MultiTouchStepResponse(MultiTouchStepCreate):
+    id: int
+    campaign_id: int
+
+    class Config:
+        from_attributes = True
+
+
 class CampaignCreate(CampaignBase):
-    pass
+    steps: Optional[List[MultiTouchStepCreate]] = None
 
 
 class CampaignUpdate(BaseModel):
@@ -149,6 +177,7 @@ class CampaignResponse(CampaignBase):
     id: int
     status: CampaignStatus
     campaign_type: CampaignType
+    multi_touch_steps: List[MultiTouchStepResponse] = []
     created_at: datetime
     updated_at: datetime
 
@@ -170,6 +199,8 @@ class CampaignStats(BaseModel):
     # LinkedIn-specific stats
     pending_connection: int = 0
     connected: int = 0
+    # Multi-touch specific
+    pending_engagement: int = 0
 
 
 class CampaignWithStats(CampaignResponse):
@@ -198,7 +229,7 @@ class ProspectUpdate(BaseModel):
     niche: Optional[str] = Field(None, max_length=500)
     custom_fields: Optional[dict] = None
     status: Optional[ProspectStatus] = None
-    current_step: Optional[int] = Field(None, ge=1, le=5)
+    current_step: Optional[int] = Field(None, ge=1, le=7)
     next_action_date: Optional[date] = None
     notes: Optional[str] = None
     linkedin_url: Optional[str] = Field(None, max_length=500)
@@ -223,6 +254,9 @@ class ProspectResponse(ProspectBase):
     linkedin_url: Optional[str] = None
     facebook_url: Optional[str] = None
     instagram_url: Optional[str] = None
+    # Multi-touch enrichment (populated by today queue endpoint)
+    current_step_detail: Optional[MultiTouchStepResponse] = None
+    missing_data_warnings: Optional[List[str]] = None
     created_at: datetime
     updated_at: datetime
 

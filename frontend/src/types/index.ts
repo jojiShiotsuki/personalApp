@@ -746,6 +746,8 @@ export enum ProspectStatus {
   // LinkedIn-specific
   PENDING_CONNECTION = "PENDING_CONNECTION",
   CONNECTED = "CONNECTED",
+  // Multi-touch specific
+  PENDING_ENGAGEMENT = "PENDING_ENGAGEMENT",
 }
 
 export enum ResponseType {
@@ -762,6 +764,35 @@ export enum CampaignStatus {
 export enum CampaignType {
   EMAIL = "EMAIL",
   LINKEDIN = "LINKEDIN",
+  MULTI_TOUCH = "MULTI_TOUCH",
+}
+
+export enum StepChannelType {
+  EMAIL = "email",
+  LINKEDIN_CONNECT = "linkedin_connect",
+  LINKEDIN_MESSAGE = "linkedin_message",
+  LINKEDIN_ENGAGE = "linkedin_engage",
+  FOLLOW_UP_EMAIL = "follow_up_email",
+}
+
+export interface MultiTouchStep {
+  id: number;
+  campaign_id: number;
+  step_number: number;
+  channel_type: StepChannelType;
+  delay_days: number;
+  template_subject?: string;
+  template_content?: string;
+  instruction_text?: string;
+}
+
+export interface MultiTouchStepCreate {
+  step_number: number;
+  channel_type: StepChannelType;
+  delay_days: number;
+  template_subject?: string;
+  template_content?: string;
+  instruction_text?: string;
 }
 
 export interface OutreachCampaign {
@@ -774,6 +805,7 @@ export interface OutreachCampaign {
   step_3_delay: number;
   step_4_delay: number;
   step_5_delay: number;
+  multi_touch_steps?: MultiTouchStep[];
   created_at: string;
   updated_at: string;
 }
@@ -792,6 +824,8 @@ export interface CampaignStats {
   // LinkedIn-specific
   pending_connection: number;
   connected: number;
+  // Multi-touch specific
+  pending_engagement: number;
 }
 
 export interface CampaignWithStats extends OutreachCampaign {
@@ -806,6 +840,7 @@ export interface CampaignCreate {
   step_3_delay?: number;
   step_4_delay?: number;
   step_5_delay?: number;
+  steps?: MultiTouchStepCreate[];
 }
 
 export interface OutreachProspect {
@@ -830,6 +865,9 @@ export interface OutreachProspect {
   linkedin_url?: string;
   facebook_url?: string;
   instagram_url?: string;
+  // Multi-touch enrichment
+  current_step_detail?: MultiTouchStep;
+  missing_data_warnings?: string[];
   created_at: string;
   updated_at: string;
 }

@@ -9,6 +9,7 @@ import {
   MessageCircle,
   Database,
   Linkedin,
+  Layers,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -17,8 +18,9 @@ import DMScriptsTab from '@/components/outreach/DMScriptsTab';
 import EmailCampaignsTab from '@/components/outreach/EmailCampaignsTab';
 import LinkedInCampaignsTab from '@/components/outreach/LinkedInCampaignsTab';
 import LeadDiscoveryTab from '@/components/outreach/LeadDiscoveryTab';
+import MultiTouchCampaignsTab from '@/components/outreach/MultiTouchCampaignsTab';
 
-type TabType = 'dm-scripts' | 'email-campaigns' | 'linkedin-campaigns' | 'lead-discovery';
+type TabType = 'dm-scripts' | 'email-campaigns' | 'linkedin-campaigns' | 'multi-touch' | 'lead-discovery';
 
 const tabs = [
   {
@@ -38,6 +40,12 @@ const tabs = [
     name: 'LinkedIn Campaigns',
     icon: Linkedin,
     description: 'LinkedIn outreach sequences',
+  },
+  {
+    id: 'multi-touch' as TabType,
+    name: 'Multi-Touch',
+    icon: Layers,
+    description: 'Cross-channel sequences',
   },
   {
     id: 'lead-discovery' as TabType,
@@ -153,6 +161,7 @@ export default function OutreachHub() {
         {activeTab === 'dm-scripts' && <DMScriptsTab />}
         {activeTab === 'email-campaigns' && <EmailCampaignsTab />}
         {activeTab === 'linkedin-campaigns' && <LinkedInCampaignsTab />}
+        {activeTab === 'multi-touch' && <MultiTouchCampaignsTab />}
         {activeTab === 'lead-discovery' && <LeadDiscoveryTab />}
       </div>
     </div>

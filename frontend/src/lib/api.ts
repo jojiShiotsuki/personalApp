@@ -79,6 +79,8 @@ import type {
   ProjectTemplateCreate,
   TaskLink,
   TaskNote,
+  MultiTouchStep,
+  MultiTouchStepCreate,
 } from '../types/index';
 import {
   TaskStatus,
@@ -805,6 +807,32 @@ export const coldOutreachApi = {
 
   unskipProspect: async (prospectId: number): Promise<{ message: string }> => {
     const response = await api.post(`/api/outreach/campaigns/prospects/${prospectId}/unskip`);
+    return response.data;
+  },
+
+  // Multi-touch endpoints
+  getCampaignSteps: async (campaignId: number): Promise<MultiTouchStep[]> => {
+    const response = await api.get(`/api/outreach/campaigns/${campaignId}/steps`);
+    return response.data;
+  },
+
+  updateCampaignSteps: async (campaignId: number, steps: MultiTouchStepCreate[]): Promise<MultiTouchStep[]> => {
+    const response = await api.put(`/api/outreach/campaigns/${campaignId}/steps`, steps);
+    return response.data;
+  },
+
+  advanceProspect: async (campaignId: number, prospectId: number): Promise<{ prospect: OutreachProspect; next_action_date?: string; message: string }> => {
+    const response = await api.post(`/api/outreach/campaigns/${campaignId}/prospects/${prospectId}/advance`);
+    return response.data;
+  },
+
+  markEngaged: async (campaignId: number, prospectId: number): Promise<{ prospect: OutreachProspect; next_action_date?: string; message: string }> => {
+    const response = await api.post(`/api/outreach/campaigns/${campaignId}/prospects/${prospectId}/mark-engaged`);
+    return response.data;
+  },
+
+  markMtConnected: async (campaignId: number, prospectId: number): Promise<{ prospect: OutreachProspect; next_action_date?: string; message: string }> => {
+    const response = await api.post(`/api/outreach/campaigns/${campaignId}/prospects/${prospectId}/mark-mt-connected`);
     return response.data;
   },
 };

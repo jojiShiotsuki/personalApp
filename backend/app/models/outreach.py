@@ -9,6 +9,15 @@ from app.database import Base
 class CampaignType(str, enum.Enum):
     EMAIL = "EMAIL"
     LINKEDIN = "LINKEDIN"
+    MULTI_TOUCH = "MULTI_TOUCH"
+
+
+class StepChannelType(str, enum.Enum):
+    EMAIL = "email"
+    LINKEDIN_CONNECT = "linkedin_connect"
+    LINKEDIN_MESSAGE = "linkedin_message"
+    LINKEDIN_ENGAGE = "linkedin_engage"
+    FOLLOW_UP_EMAIL = "follow_up_email"
 
 
 class ProspectStatus(str, enum.Enum):
@@ -21,6 +30,8 @@ class ProspectStatus(str, enum.Enum):
     # LinkedIn-specific statuses
     PENDING_CONNECTION = "PENDING_CONNECTION"
     CONNECTED = "CONNECTED"
+    # Multi-touch specific
+    PENDING_ENGAGEMENT = "PENDING_ENGAGEMENT"
 
 
 class ResponseType(str, enum.Enum):
@@ -102,6 +113,7 @@ class OutreachCampaign(Base):
 
     prospects = relationship("OutreachProspect", back_populates="campaign", cascade="all, delete-orphan")
     email_templates = relationship("OutreachEmailTemplate", back_populates="campaign", cascade="all, delete-orphan")
+    multi_touch_steps = relationship("MultiTouchStep", back_populates="campaign", cascade="all, delete-orphan", order_by="MultiTouchStep.step_number")
 
     def __repr__(self):
         return f"<OutreachCampaign(id={self.id}, name={self.name}, status={self.status})>"
@@ -165,6 +177,28 @@ class OutreachEmailTemplate(Base):
 
     def __repr__(self):
         return f"<OutreachEmailTemplate(id={self.id}, campaign_id={self.campaign_id}, step_number={self.step_number})>"
+
+
+class MultiTouchStep(Base):
+    __tablename__ = "multi_touch_steps"
+
+    id = Column(Integer, primary_key=True, index=True)
+    campaign_id = Column(Integer, ForeignKey("outreach_campaigns.id", ondelete="CASCADE"), nullable=False, index=True)
+    step_number = Column(Integer, nullable=False)  # 1-7
+    channel_type = Column(String(50), nullable=False)  # StepChannelType value
+    delay_days = Column(Integer, nullable=False, default=1)
+    template_subject = Column(String(500), nullable=True)  # for email steps
+    template_content = Column(Text, nullable=True)  # for email/message steps
+    instruction_text = Column(String(500), nullable=True)  # guidance shown in queue
+
+    campaign = relationship("OutreachCampaign", back_populates="multi_touch_steps")
+
+    __table_args__ = (
+        UniqueConstraint("campaign_id", "step_number", name="uq_campaign_step_number"),
+    )
+
+    def __repr__(self):
+        return f"<MultiTouchStep(id={self.id}, campaign_id={self.campaign_id}, step={self.step_number}, channel={self.channel_type})>"
 
 
 class DiscoveredLead(Base):

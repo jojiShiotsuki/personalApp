@@ -7,8 +7,8 @@ from datetime import datetime, date, timedelta
 from app.database import get_db
 from app.models.outreach import (
     OutreachCampaign, OutreachProspect, OutreachEmailTemplate,
-    OutreachTemplate, OutreachNiche,
-    ProspectStatus, ResponseType, CampaignStatus, CampaignType
+    OutreachTemplate, OutreachNiche, MultiTouchStep,
+    ProspectStatus, ResponseType, CampaignStatus, CampaignType, StepChannelType
 )
 from app.models.crm import Contact, Deal, ContactStatus, DealStage, Interaction, InteractionType
 from app.schemas.outreach import (
@@ -18,6 +18,7 @@ from app.schemas.outreach import (
     MarkSentResponse, MarkRepliedRequest, MarkRepliedResponse,
     EmailTemplateCreate, EmailTemplateResponse,
     RenderedEmail,
+    MultiTouchStepCreate, MultiTouchStepResponse,
 )
 
 router = APIRouter(prefix="/api/outreach/campaigns", tags=["cold-outreach"])
@@ -45,11 +46,12 @@ def get_campaign_stats(campaign: OutreachCampaign, db: Session) -> CampaignStats
     pending_connection = status_counts.get(ProspectStatus.PENDING_CONNECTION, 0)
     connected = status_counts.get(ProspectStatus.CONNECTED, 0)
     skipped = status_counts.get(ProspectStatus.SKIPPED, 0)
+    pending_engagement = status_counts.get(ProspectStatus.PENDING_ENGAGEMENT, 0)
     total = sum(status_counts.values())
 
     # Count prospects to contact today
     today = date.today()
-    actionable_statuses = [ProspectStatus.QUEUED, ProspectStatus.IN_SEQUENCE, ProspectStatus.CONNECTED]
+    actionable_statuses = [ProspectStatus.QUEUED, ProspectStatus.IN_SEQUENCE, ProspectStatus.CONNECTED, ProspectStatus.PENDING_ENGAGEMENT]
     to_contact_today = db.query(func.count(OutreachProspect.id)).filter(
         OutreachProspect.campaign_id == campaign_id,
         OutreachProspect.next_action_date <= today,
@@ -57,7 +59,7 @@ def get_campaign_stats(campaign: OutreachCampaign, db: Session) -> CampaignStats
     ).scalar() or 0
 
     # Response rate: (replied + not_interested + converted) / total contacted
-    contacted = total - queued - pending_connection
+    contacted = total - queued - pending_connection - pending_engagement
     response_rate = ((replied + not_interested + converted) / contacted * 100) if contacted > 0 else 0.0
 
     # Total pipeline value from converted prospects (single join query)
@@ -83,6 +85,7 @@ def get_campaign_stats(campaign: OutreachCampaign, db: Session) -> CampaignStats
         skipped=skipped,
         pending_connection=pending_connection,
         connected=connected,
+        pending_engagement=pending_engagement,
     )
 
 
@@ -139,6 +142,22 @@ def create_campaign(data: CampaignCreate, db: Session = Depends(get_db)):
         step_5_delay=data.step_5_delay,
     )
     db.add(campaign)
+    db.flush()
+
+    # Create multi-touch steps if provided
+    if data.steps and data.campaign_type == CampaignType.MULTI_TOUCH:
+        for step_data in data.steps:
+            step = MultiTouchStep(
+                campaign_id=campaign.id,
+                step_number=step_data.step_number,
+                channel_type=step_data.channel_type.value,
+                delay_days=step_data.delay_days,
+                template_subject=step_data.template_subject,
+                template_content=step_data.template_content,
+                instruction_text=step_data.instruction_text,
+            )
+            db.add(step)
+
     db.commit()
     db.refresh(campaign)
     return campaign
@@ -236,9 +255,30 @@ def get_todays_queue(campaign_id: int, db: Session = Depends(get_db)):
         OutreachProspect.campaign_id == campaign_id,
         OutreachProspect.next_action_date <= today,
         OutreachProspect.status.in_([
-            ProspectStatus.QUEUED, ProspectStatus.IN_SEQUENCE, ProspectStatus.CONNECTED
+            ProspectStatus.QUEUED, ProspectStatus.IN_SEQUENCE, ProspectStatus.CONNECTED, ProspectStatus.PENDING_ENGAGEMENT
         ])
     ).order_by(OutreachProspect.next_action_date.asc()).all()
+
+    # Enrich multi-touch prospects with step detail and warnings
+    if campaign.campaign_type == CampaignType.MULTI_TOUCH:
+        steps_map = {s.step_number: s for s in campaign.multi_touch_steps}
+        enriched = []
+        for p in prospects:
+            resp = ProspectResponse.model_validate(p)
+            step = steps_map.get(p.current_step)
+            if step:
+                resp.current_step_detail = MultiTouchStepResponse.model_validate(step)
+                # Check for missing data
+                warnings = []
+                if step.channel_type in (StepChannelType.LINKEDIN_CONNECT.value, StepChannelType.LINKEDIN_MESSAGE.value, StepChannelType.LINKEDIN_ENGAGE.value):
+                    if not p.linkedin_url:
+                        warnings.append("No LinkedIn URL")
+                if step.channel_type in (StepChannelType.EMAIL.value, StepChannelType.FOLLOW_UP_EMAIL.value):
+                    if not p.email:
+                        warnings.append("No email address")
+                resp.missing_data_warnings = warnings if warnings else None
+            enriched.append(resp)
+        return enriched
 
     return prospects
 
@@ -281,6 +321,7 @@ def import_prospects(campaign_id: int, data: CsvImportRequest, db: Session = Dep
     errors = []
 
     is_linkedin = campaign.campaign_type == CampaignType.LINKEDIN
+    is_multi_touch = campaign.campaign_type == CampaignType.MULTI_TOUCH
 
     for idx, row in enumerate(data.data, start=1):
         try:
@@ -296,13 +337,18 @@ def import_prospects(campaign_id: int, data: CsvImportRequest, db: Session = Dep
                 continue
 
             # For email campaigns, require email. For LinkedIn, require linkedin_url.
+            # Multi-touch is flexible: accept if either email or linkedin_url present.
             if is_linkedin and not linkedin_url:
                 skipped_count += 1
                 errors.append(f"Row {idx}: Missing LinkedIn URL")
                 continue
-            elif not is_linkedin and not email:
+            elif not is_linkedin and not is_multi_touch and not email:
                 skipped_count += 1
                 errors.append(f"Row {idx}: Missing email")
+                continue
+            elif is_multi_touch and not email and not linkedin_url:
+                skipped_count += 1
+                errors.append(f"Row {idx}: Missing email and LinkedIn URL (need at least one)")
                 continue
 
             # Check for duplicates
@@ -315,6 +361,26 @@ def import_prospects(campaign_id: int, data: CsvImportRequest, db: Session = Dep
                     skipped_count += 1
                     errors.append(f"Row {idx}: Duplicate LinkedIn URL '{linkedin_url}'")
                     continue
+            elif is_multi_touch:
+                # For multi-touch, check email OR linkedin_url
+                if email:
+                    existing = db.query(OutreachProspect).filter(
+                        OutreachProspect.campaign_id == campaign_id,
+                        OutreachProspect.email == email
+                    ).first()
+                    if existing:
+                        skipped_count += 1
+                        errors.append(f"Row {idx}: Duplicate email '{email}'")
+                        continue
+                if linkedin_url:
+                    existing = db.query(OutreachProspect).filter(
+                        OutreachProspect.campaign_id == campaign_id,
+                        OutreachProspect.linkedin_url == linkedin_url
+                    ).first()
+                    if existing:
+                        skipped_count += 1
+                        errors.append(f"Row {idx}: Duplicate LinkedIn URL '{linkedin_url}'")
+                        continue
             elif email:
                 existing = db.query(OutreachProspect).filter(
                     OutreachProspect.campaign_id == campaign_id,
@@ -631,6 +697,210 @@ def unskip_prospect(prospect_id: int, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(prospect)
     return {"message": f"Restored {prospect.agency_name} to queue", "prospect": prospect}
+
+
+# ============== MULTI-TOUCH ENDPOINTS ==============
+
+@router.get("/{campaign_id}/steps", response_model=List[MultiTouchStepResponse])
+def get_campaign_steps(campaign_id: int, db: Session = Depends(get_db)):
+    """Get the ordered list of multi-touch steps for a campaign."""
+    campaign = db.query(OutreachCampaign).filter(OutreachCampaign.id == campaign_id).first()
+    if not campaign:
+        raise HTTPException(status_code=404, detail="Campaign not found")
+    return db.query(MultiTouchStep).filter(
+        MultiTouchStep.campaign_id == campaign_id
+    ).order_by(MultiTouchStep.step_number).all()
+
+
+@router.put("/{campaign_id}/steps", response_model=List[MultiTouchStepResponse])
+def update_campaign_steps(campaign_id: int, steps: List[MultiTouchStepCreate], db: Session = Depends(get_db)):
+    """Replace all steps for a multi-touch campaign."""
+    campaign = db.query(OutreachCampaign).filter(OutreachCampaign.id == campaign_id).first()
+    if not campaign:
+        raise HTTPException(status_code=404, detail="Campaign not found")
+
+    if len(steps) > 7:
+        raise HTTPException(status_code=400, detail="Maximum 7 steps allowed")
+
+    # Delete existing steps
+    db.query(MultiTouchStep).filter(MultiTouchStep.campaign_id == campaign_id).delete()
+
+    # Create new steps
+    new_steps = []
+    for step_data in steps:
+        step = MultiTouchStep(
+            campaign_id=campaign_id,
+            step_number=step_data.step_number,
+            channel_type=step_data.channel_type.value,
+            delay_days=step_data.delay_days,
+            template_subject=step_data.template_subject,
+            template_content=step_data.template_content,
+            instruction_text=step_data.instruction_text,
+        )
+        db.add(step)
+        new_steps.append(step)
+
+    db.commit()
+    for s in new_steps:
+        db.refresh(s)
+    return new_steps
+
+
+@router.post("/{campaign_id}/prospects/{prospect_id}/advance", response_model=MarkSentResponse)
+def advance_multi_touch_prospect(campaign_id: int, prospect_id: int, db: Session = Depends(get_db)):
+    """Advance a multi-touch prospect to the next step."""
+    prospect = db.query(OutreachProspect).filter(
+        OutreachProspect.id == prospect_id,
+        OutreachProspect.campaign_id == campaign_id
+    ).first()
+    if not prospect:
+        raise HTTPException(status_code=404, detail="Prospect not found")
+
+    campaign = prospect.campaign
+    if campaign.campaign_type != CampaignType.MULTI_TOUCH:
+        raise HTTPException(status_code=400, detail="Not a multi-touch campaign")
+
+    steps = {s.step_number: s for s in campaign.multi_touch_steps}
+    current_step = prospect.current_step
+
+    prospect.last_contacted_at = datetime.utcnow()
+
+    # Check if there's a next step
+    next_step_num = current_step + 1
+    next_step = steps.get(next_step_num)
+
+    if not next_step:
+        # Sequence complete
+        prospect.status = ProspectStatus.NOT_INTERESTED
+        prospect.next_action_date = None
+        message = f"Sequence complete after step {current_step}."
+    else:
+        prospect.current_step = next_step_num
+        prospect.next_action_date = date.today() + timedelta(days=next_step.delay_days)
+
+        # Set status based on next step's channel type
+        channel = next_step.channel_type
+        if channel in (StepChannelType.EMAIL.value, StepChannelType.FOLLOW_UP_EMAIL.value):
+            prospect.status = ProspectStatus.IN_SEQUENCE
+        elif channel == StepChannelType.LINKEDIN_CONNECT.value:
+            prospect.status = ProspectStatus.PENDING_CONNECTION
+        elif channel == StepChannelType.LINKEDIN_MESSAGE.value:
+            prospect.status = ProspectStatus.CONNECTED
+        elif channel == StepChannelType.LINKEDIN_ENGAGE.value:
+            prospect.status = ProspectStatus.PENDING_ENGAGEMENT
+        else:
+            prospect.status = ProspectStatus.IN_SEQUENCE
+
+        message = f"Step {current_step} complete. Next: step {next_step_num} ({next_step.channel_type}) on {prospect.next_action_date}."
+
+    db.commit()
+    db.refresh(prospect)
+
+    return MarkSentResponse(
+        prospect=prospect,
+        next_action_date=prospect.next_action_date,
+        message=message
+    )
+
+
+@router.post("/{campaign_id}/prospects/{prospect_id}/mark-engaged", response_model=MarkSentResponse)
+def mark_engaged(campaign_id: int, prospect_id: int, db: Session = Depends(get_db)):
+    """Mark LinkedIn engagement step as complete for multi-touch campaigns."""
+    prospect = db.query(OutreachProspect).filter(
+        OutreachProspect.id == prospect_id,
+        OutreachProspect.campaign_id == campaign_id
+    ).first()
+    if not prospect:
+        raise HTTPException(status_code=404, detail="Prospect not found")
+
+    campaign = prospect.campaign
+    steps = {s.step_number: s for s in campaign.multi_touch_steps}
+    current_step = prospect.current_step
+
+    # Advance to next step
+    next_step_num = current_step + 1
+    next_step = steps.get(next_step_num)
+
+    if not next_step:
+        prospect.status = ProspectStatus.NOT_INTERESTED
+        prospect.next_action_date = None
+        message = f"Engagement logged. Sequence complete after step {current_step}."
+    else:
+        prospect.current_step = next_step_num
+        prospect.next_action_date = date.today() + timedelta(days=next_step.delay_days)
+
+        channel = next_step.channel_type
+        if channel in (StepChannelType.EMAIL.value, StepChannelType.FOLLOW_UP_EMAIL.value):
+            prospect.status = ProspectStatus.IN_SEQUENCE
+        elif channel == StepChannelType.LINKEDIN_CONNECT.value:
+            prospect.status = ProspectStatus.PENDING_CONNECTION
+        elif channel == StepChannelType.LINKEDIN_MESSAGE.value:
+            prospect.status = ProspectStatus.CONNECTED
+        elif channel == StepChannelType.LINKEDIN_ENGAGE.value:
+            prospect.status = ProspectStatus.PENDING_ENGAGEMENT
+        else:
+            prospect.status = ProspectStatus.IN_SEQUENCE
+
+        message = f"Engagement logged. Next: step {next_step_num} ({next_step.channel_type}) on {prospect.next_action_date}."
+
+    db.commit()
+    db.refresh(prospect)
+
+    return MarkSentResponse(
+        prospect=prospect,
+        next_action_date=prospect.next_action_date,
+        message=message
+    )
+
+
+@router.post("/{campaign_id}/prospects/{prospect_id}/mark-mt-connected", response_model=MarkSentResponse)
+def mark_mt_connected(campaign_id: int, prospect_id: int, db: Session = Depends(get_db)):
+    """Mark LinkedIn connection accepted for multi-touch campaigns, advance to next step."""
+    prospect = db.query(OutreachProspect).filter(
+        OutreachProspect.id == prospect_id,
+        OutreachProspect.campaign_id == campaign_id
+    ).first()
+    if not prospect:
+        raise HTTPException(status_code=404, detail="Prospect not found")
+
+    campaign = prospect.campaign
+    steps = {s.step_number: s for s in campaign.multi_touch_steps}
+    current_step = prospect.current_step
+
+    # Advance to next step
+    next_step_num = current_step + 1
+    next_step = steps.get(next_step_num)
+
+    if not next_step:
+        prospect.status = ProspectStatus.CONNECTED
+        prospect.next_action_date = None
+        message = f"Connected! Sequence complete after step {current_step}."
+    else:
+        prospect.current_step = next_step_num
+        prospect.next_action_date = date.today() + timedelta(days=next_step.delay_days)
+
+        channel = next_step.channel_type
+        if channel in (StepChannelType.EMAIL.value, StepChannelType.FOLLOW_UP_EMAIL.value):
+            prospect.status = ProspectStatus.IN_SEQUENCE
+        elif channel == StepChannelType.LINKEDIN_CONNECT.value:
+            prospect.status = ProspectStatus.PENDING_CONNECTION
+        elif channel == StepChannelType.LINKEDIN_MESSAGE.value:
+            prospect.status = ProspectStatus.CONNECTED
+        elif channel == StepChannelType.LINKEDIN_ENGAGE.value:
+            prospect.status = ProspectStatus.PENDING_ENGAGEMENT
+        else:
+            prospect.status = ProspectStatus.IN_SEQUENCE
+
+        message = f"Connected! Next: step {next_step_num} ({next_step.channel_type}) on {prospect.next_action_date}."
+
+    db.commit()
+    db.refresh(prospect)
+
+    return MarkSentResponse(
+        prospect=prospect,
+        next_action_date=prospect.next_action_date,
+        message=message
+    )
 
 
 # ============== EMAIL TEMPLATES ==============
