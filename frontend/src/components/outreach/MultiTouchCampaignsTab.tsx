@@ -603,6 +603,7 @@ function MultiTouchProspectCard({
   onSkip,
   onEdit,
   onUpdateIssues,
+  onViewMessage,
 }: {
   prospect: OutreachProspect;
   campaignId: number;
@@ -796,6 +797,7 @@ function TodayQueue({
   onSkip,
   onEdit,
   onUpdateIssues,
+  onViewMessage,
 }: {
   prospects: OutreachProspect[];
   campaignId: number;
@@ -847,6 +849,7 @@ function AllProspectsTable({
   campaignSteps,
   onEdit,
   onUpdateIssues,
+  onViewMessage,
 }: {
   prospects: OutreachProspect[];
   campaignSteps: MultiTouchStep[];
