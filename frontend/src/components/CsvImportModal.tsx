@@ -21,6 +21,14 @@ const STEP_CONFIG = [
   { key: 'preview' as const, label: 'Preview & Import', number: 3 },
 ];
 
+const selectClasses = cn(
+  "flex-1 px-4 py-2.5 rounded-lg",
+  "bg-stone-800/50 border border-stone-600/40",
+  "text-[--exec-text] text-sm",
+  "focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]/50",
+  "transition-all"
+);
+
 // Parse a CSV line, handling quoted fields correctly
 function parseCSVLine(line: string): string[] {
   const result: string[] = [];
@@ -283,76 +291,77 @@ export default function CsvImportModal({ isOpen, onClose, campaignId, isLinkedIn
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className="bg-[--exec-surface] rounded-2xl shadow-2xl w-full max-w-2xl mx-4 max-h-[85vh] flex flex-col border border-[--exec-border]">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 animate-in fade-in duration-200">
+      <div className="bg-[--exec-surface] rounded-2xl shadow-2xl w-full max-w-2xl mx-4 max-h-[85vh] flex flex-col border border-stone-600/40 transform transition-all animate-in zoom-in-95 duration-200">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[--exec-border]">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[--exec-accent-bg] flex items-center justify-center">
-              <FileSpreadsheet className="w-5 h-5 text-[--exec-accent]" />
+        <div className="p-6 pb-0">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-[--exec-accent-bg] flex items-center justify-center">
+                <FileSpreadsheet className="w-5 h-5 text-[--exec-accent]" />
+              </div>
+              <div>
+                <h2 className="text-xl font-semibold text-[--exec-text]">Import Prospects</h2>
+                <p className="text-sm text-[--exec-text-muted] mt-1">
+                  {step === 'upload' && 'Upload your CSV file'}
+                  {step === 'map' && 'Map your columns'}
+                  {step === 'preview' && 'Review and import'}
+                </p>
+              </div>
             </div>
-            <div>
-              <h2 className="text-lg font-semibold text-[--exec-text]">Import Prospects</h2>
-              <p className="text-xs text-[--exec-text-muted]">
-                {step === 'upload' && 'Upload your CSV file'}
-                {step === 'map' && 'Map your columns'}
-                {step === 'preview' && 'Review and import'}
-              </p>
-            </div>
+            <button
+              onClick={handleClose}
+              className="text-[--exec-text-muted] hover:text-[--exec-text] p-1.5 hover:bg-stone-700/50 rounded-lg transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
           </div>
-          <button
-            onClick={handleClose}
-            className="p-2 text-[--exec-text-muted] hover:text-[--exec-text] hover:bg-[--exec-surface-alt] rounded-xl transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
 
-        {/* Step indicators */}
-        <div className="flex items-center justify-center gap-3 px-6 py-4 border-b border-[--exec-border-subtle]" style={{ backgroundColor: '#1C1917' }}>
-          {STEP_CONFIG.map((s, idx) => {
-            const currentIdx = STEP_CONFIG.findIndex((c) => c.key === step);
-            const isCompleted = idx < currentIdx;
-            const isCurrent = step === s.key;
+          {/* Step indicators */}
+          <div className="flex items-center justify-center gap-3 px-4 py-3 rounded-lg bg-stone-800/50 border border-stone-600/40 mb-6">
+            {STEP_CONFIG.map((s, idx) => {
+              const currentIdx = STEP_CONFIG.findIndex((c) => c.key === step);
+              const isCompleted = idx < currentIdx;
+              const isCurrent = step === s.key;
 
-            return (
-              <div key={s.key} className="flex items-center">
-                <div
-                  className={cn(
-                    'flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200',
-                    isCurrent
-                      ? 'text-white shadow-lg'
-                      : isCompleted
-                        ? 'bg-green-500/20 text-green-400'
-                        : 'bg-slate-700/50 text-slate-400'
-                  )}
-                  style={isCurrent ? { backgroundColor: 'var(--exec-accent)' } : undefined}
-                >
-                  <span
-                    className={cn(
-                      'w-6 h-6 rounded-full flex items-center justify-center text-xs',
-                      isCurrent ? 'bg-black/20' : isCompleted ? 'bg-green-500/30' : 'bg-black/20'
-                    )}
-                  >
-                    {isCompleted ? <Check className="w-3.5 h-3.5" /> : s.number}
-                  </span>
-                  <span>{s.label}</span>
-                </div>
-                {idx < STEP_CONFIG.length - 1 && (
+              return (
+                <div key={s.key} className="flex items-center">
                   <div
                     className={cn(
-                      'w-8 h-0.5 mx-2',
-                      isCompleted ? 'bg-green-500' : 'bg-slate-600'
+                      'flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200',
+                      isCurrent
+                        ? 'bg-[--exec-accent] text-white shadow-sm'
+                        : isCompleted
+                          ? 'bg-green-500/20 text-green-400'
+                          : 'bg-stone-700/50 text-[--exec-text-muted]'
                     )}
-                  />
-                )}
-              </div>
-            );
-          })}
+                  >
+                    <span
+                      className={cn(
+                        'w-6 h-6 rounded-full flex items-center justify-center text-xs',
+                        isCurrent ? 'bg-black/20' : isCompleted ? 'bg-green-500/30' : 'bg-black/20'
+                      )}
+                    >
+                      {isCompleted ? <Check className="w-3.5 h-3.5" /> : s.number}
+                    </span>
+                    <span>{s.label}</span>
+                  </div>
+                  {idx < STEP_CONFIG.length - 1 && (
+                    <div
+                      className={cn(
+                        'w-8 h-0.5 mx-2',
+                        isCompleted ? 'bg-green-500' : 'bg-stone-600'
+                      )}
+                    />
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-auto p-6">
+        <div className="flex-1 overflow-auto px-6">
           {/* Upload Step */}
           {step === 'upload' && (
             <div
@@ -361,10 +370,10 @@ export default function CsvImportModal({ isOpen, onClose, campaignId, isLinkedIn
               onDragLeave={handleDragLeave}
               onClick={() => fileInputRef.current?.click()}
               className={cn(
-                'border-2 border-dashed rounded-2xl p-12 text-center cursor-pointer transition-all duration-200',
+                'border-2 border-dashed rounded-xl p-12 text-center cursor-pointer transition-all duration-200',
                 isDragging
                   ? 'border-[--exec-accent] bg-[--exec-accent-bg]'
-                  : 'border-[--exec-border] hover:border-[--exec-accent] hover:bg-[--exec-accent-bg-subtle]'
+                  : 'border-stone-600/40 hover:border-[--exec-accent] hover:bg-stone-800/30'
               )}
             >
               <input
@@ -400,27 +409,20 @@ export default function CsvImportModal({ isOpen, onClose, campaignId, isLinkedIn
           {/* Map Step */}
           {step === 'map' && (
             <div className="space-y-4">
-              <p className="text-sm text-[--exec-text-secondary] mb-6">
+              <p className="text-sm text-[--exec-text-secondary] mb-4">
                 Match your CSV columns to the prospect fields. Fields marked with * are required.
               </p>
 
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {/* Agency Name - Required */}
                 <div className="flex items-center gap-4">
-                  <label className="w-32 text-sm font-medium text-[--exec-text]">
-                    Agency Name *
+                  <label className="w-32 text-sm font-medium text-[--exec-text-secondary] shrink-0">
+                    Agency Name <span className="text-red-400">*</span>
                   </label>
                   <select
                     value={mapping.agency_name || ''}
                     onChange={(e) => handleMappingChange('agency_name', e.target.value)}
-                    className={cn(
-                      'flex-1 px-4 py-2.5 rounded-xl',
-                      'bg-[--exec-surface-alt] border border-[--exec-border]',
-                      'text-[--exec-text] text-sm',
-                      'focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]',
-                      'transition-all duration-200',
-                      !mapping.agency_name && 'border-red-400'
-                    )}
+                    className={cn(selectClasses, !mapping.agency_name && 'border-red-400/60')}
                   >
                     <option value="">Select column...</option>
                     {csvHeaders.map((header) => (
@@ -434,20 +436,13 @@ export default function CsvImportModal({ isOpen, onClose, campaignId, isLinkedIn
                 {/* LinkedIn URL - Required for LinkedIn campaigns */}
                 {isLinkedIn && (
                   <div className="flex items-center gap-4">
-                    <label className="w-32 text-sm font-medium text-[--exec-text]">
-                      LinkedIn URL *
+                    <label className="w-32 text-sm font-medium text-[--exec-text-secondary] shrink-0">
+                      LinkedIn URL <span className="text-red-400">*</span>
                     </label>
                     <select
                       value={mapping.linkedin_url || ''}
                       onChange={(e) => handleMappingChange('linkedin_url', e.target.value)}
-                      className={cn(
-                        'flex-1 px-4 py-2.5 rounded-xl',
-                        'bg-[--exec-surface-alt] border border-[--exec-border]',
-                        'text-[--exec-text] text-sm',
-                        'focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]',
-                        'transition-all duration-200',
-                        !mapping.linkedin_url && 'border-red-400'
-                      )}
+                      className={cn(selectClasses, !mapping.linkedin_url && 'border-red-400/60')}
                     >
                       <option value="">Select column...</option>
                       {csvHeaders.map((header) => (
@@ -461,20 +456,13 @@ export default function CsvImportModal({ isOpen, onClose, campaignId, isLinkedIn
 
                 {/* Email - Required for email campaigns, optional for LinkedIn */}
                 <div className="flex items-center gap-4">
-                  <label className={cn('w-32 text-sm font-medium', isLinkedIn ? 'text-[--exec-text-secondary]' : 'text-[--exec-text]')}>
-                    Email {!isLinkedIn && '*'}
+                  <label className="w-32 text-sm font-medium text-[--exec-text-secondary] shrink-0">
+                    Email {!isLinkedIn && <span className="text-red-400">*</span>}
                   </label>
                   <select
                     value={mapping.email || ''}
                     onChange={(e) => handleMappingChange('email', e.target.value)}
-                    className={cn(
-                      'flex-1 px-4 py-2.5 rounded-xl',
-                      'bg-[--exec-surface-alt] border border-[--exec-border]',
-                      'text-[--exec-text] text-sm',
-                      'focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]',
-                      'transition-all duration-200',
-                      !isLinkedIn && !mapping.email && 'border-red-400'
-                    )}
+                    className={cn(selectClasses, !isLinkedIn && !mapping.email && 'border-red-400/60')}
                   >
                     <option value="">{isLinkedIn ? 'Not mapped' : 'Select column...'}</option>
                     {csvHeaders.map((header) => (
@@ -485,9 +473,14 @@ export default function CsvImportModal({ isOpen, onClose, campaignId, isLinkedIn
                   </select>
                 </div>
 
+                {/* Divider for optional fields */}
+                <div className="pt-3 border-t border-stone-700/30">
+                  <p className="text-xs font-medium text-[--exec-text-muted] mb-3 uppercase tracking-wider">Optional Fields</p>
+                </div>
+
                 {/* Contact Name OR First+Last Name */}
                 <div className="flex items-center gap-4">
-                  <label className="w-32 text-sm font-medium text-[--exec-text-secondary]">
+                  <label className="w-32 text-sm font-medium text-[--exec-text-secondary] shrink-0">
                     Contact Name
                   </label>
                   <select
@@ -499,13 +492,7 @@ export default function CsvImportModal({ isOpen, onClose, campaignId, isLinkedIn
                         handleMappingChange('last_name', '');
                       }
                     }}
-                    className={cn(
-                      'flex-1 px-4 py-2.5 rounded-xl',
-                      'bg-[--exec-surface-alt] border border-[--exec-border]',
-                      'text-[--exec-text] text-sm',
-                      'focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]',
-                      'transition-all duration-200'
-                    )}
+                    className={selectClasses}
                   >
                     <option value="">Not mapped</option>
                     {csvHeaders.map((header) => (
@@ -519,19 +506,13 @@ export default function CsvImportModal({ isOpen, onClose, campaignId, isLinkedIn
                 {/* First Name + Last Name (alternative to Contact Name) */}
                 {!mapping.contact_name && (
                   <div className="flex items-center gap-4">
-                    <label className="w-32 text-sm font-medium text-[--exec-text-secondary]">
+                    <label className="w-32 text-sm font-medium text-[--exec-text-secondary] shrink-0">
                       First Name
                     </label>
                     <select
                       value={mapping.first_name || ''}
                       onChange={(e) => handleMappingChange('first_name', e.target.value)}
-                      className={cn(
-                        'flex-1 px-4 py-2.5 rounded-xl',
-                        'bg-[--exec-surface-alt] border border-[--exec-border]',
-                        'text-[--exec-text] text-sm',
-                        'focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]',
-                        'transition-all duration-200'
-                      )}
+                      className={selectClasses}
                     >
                       <option value="">Not mapped</option>
                       {csvHeaders.map((header) => (
@@ -543,13 +524,7 @@ export default function CsvImportModal({ isOpen, onClose, campaignId, isLinkedIn
                     <select
                       value={mapping.last_name || ''}
                       onChange={(e) => handleMappingChange('last_name', e.target.value)}
-                      className={cn(
-                        'flex-1 px-4 py-2.5 rounded-xl',
-                        'bg-[--exec-surface-alt] border border-[--exec-border]',
-                        'text-[--exec-text] text-sm',
-                        'focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]',
-                        'transition-all duration-200'
-                      )}
+                      className={selectClasses}
                     >
                       <option value="">Last Name (optional)</option>
                       {csvHeaders.map((header) => (
@@ -563,19 +538,13 @@ export default function CsvImportModal({ isOpen, onClose, campaignId, isLinkedIn
 
                 {/* Title / Job Title - Optional */}
                 <div className="flex items-center gap-4">
-                  <label className="w-32 text-sm font-medium text-[--exec-text-secondary]">
+                  <label className="w-32 text-sm font-medium text-[--exec-text-secondary] shrink-0">
                     Title
                   </label>
                   <select
                     value={mapping.title || ''}
                     onChange={(e) => handleMappingChange('title', e.target.value)}
-                    className={cn(
-                      'flex-1 px-4 py-2.5 rounded-xl',
-                      'bg-[--exec-surface-alt] border border-[--exec-border]',
-                      'text-[--exec-text] text-sm',
-                      'focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]',
-                      'transition-all duration-200'
-                    )}
+                    className={selectClasses}
                   >
                     <option value="">Not mapped</option>
                     {csvHeaders.map((header) => (
@@ -588,19 +557,13 @@ export default function CsvImportModal({ isOpen, onClose, campaignId, isLinkedIn
 
                 {/* Website - Optional */}
                 <div className="flex items-center gap-4">
-                  <label className="w-32 text-sm font-medium text-[--exec-text-secondary]">
+                  <label className="w-32 text-sm font-medium text-[--exec-text-secondary] shrink-0">
                     Website
                   </label>
                   <select
                     value={mapping.website || ''}
                     onChange={(e) => handleMappingChange('website', e.target.value)}
-                    className={cn(
-                      'flex-1 px-4 py-2.5 rounded-xl',
-                      'bg-[--exec-surface-alt] border border-[--exec-border]',
-                      'text-[--exec-text] text-sm',
-                      'focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]',
-                      'transition-all duration-200'
-                    )}
+                    className={selectClasses}
                   >
                     <option value="">Not mapped</option>
                     {csvHeaders.map((header) => (
@@ -613,19 +576,13 @@ export default function CsvImportModal({ isOpen, onClose, campaignId, isLinkedIn
 
                 {/* Niche - Optional */}
                 <div className="flex items-center gap-4">
-                  <label className="w-32 text-sm font-medium text-[--exec-text-secondary]">
+                  <label className="w-32 text-sm font-medium text-[--exec-text-secondary] shrink-0">
                     Niche
                   </label>
                   <select
                     value={mapping.niche || ''}
                     onChange={(e) => handleMappingChange('niche', e.target.value)}
-                    className={cn(
-                      'flex-1 px-4 py-2.5 rounded-xl',
-                      'bg-[--exec-surface-alt] border border-[--exec-border]',
-                      'text-[--exec-text] text-sm',
-                      'focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]',
-                      'transition-all duration-200'
-                    )}
+                    className={selectClasses}
                   >
                     <option value="">Not mapped</option>
                     {csvHeaders.map((header) => (
@@ -638,7 +595,7 @@ export default function CsvImportModal({ isOpen, onClose, campaignId, isLinkedIn
               </div>
 
               {!canProceedToPreview && (
-                <div className="flex items-center gap-2 p-3 bg-[--exec-warning-bg] rounded-xl mt-4">
+                <div className="flex items-center gap-2 p-3 bg-[--exec-warning-bg] rounded-lg mt-4">
                   <AlertCircle className="w-4 h-4 text-[--exec-warning]" />
                   <p className="text-sm text-[--exec-warning]">
                     Please map Agency Name and {isLinkedIn ? 'LinkedIn URL' : 'Email'} columns to continue.
@@ -657,9 +614,9 @@ export default function CsvImportModal({ isOpen, onClose, campaignId, isLinkedIn
                 </p>
               </div>
 
-              <div className="overflow-x-auto rounded-xl border border-[--exec-border]">
-                <table className="min-w-full divide-y divide-[--exec-border]">
-                  <thead className="bg-[--exec-surface-alt]">
+              <div className="overflow-x-auto rounded-lg border border-stone-600/40">
+                <table className="min-w-full divide-y divide-stone-700/30">
+                  <thead className="bg-stone-800/50">
                     <tr>
                       <th className="px-4 py-3 text-left text-xs font-medium text-[--exec-text-muted] uppercase tracking-wider">Agency</th>
                       {isLinkedIn && (
@@ -672,9 +629,9 @@ export default function CsvImportModal({ isOpen, onClose, campaignId, isLinkedIn
                       <th className="px-4 py-3 text-left text-xs font-medium text-[--exec-text-muted] uppercase tracking-wider">Niche</th>
                     </tr>
                   </thead>
-                  <tbody className="bg-[--exec-surface] divide-y divide-[--exec-border-subtle]">
+                  <tbody className="divide-y divide-stone-700/30">
                     {previewData.map((row, idx) => (
-                      <tr key={idx}>
+                      <tr key={idx} className="hover:bg-stone-800/30 transition-colors">
                         <td className="px-4 py-3 text-sm text-[--exec-text] whitespace-nowrap">
                           {row.agency_name || <span className="text-[--exec-text-muted]">-</span>}
                         </td>
@@ -704,7 +661,7 @@ export default function CsvImportModal({ isOpen, onClose, campaignId, isLinkedIn
                 </table>
               </div>
 
-              <div className="flex items-center gap-2 p-3 bg-[--exec-info-bg] rounded-xl">
+              <div className="flex items-center gap-2 p-3 bg-[--exec-info-bg] rounded-lg">
                 <AlertCircle className="w-4 h-4 text-[--exec-info]" />
                 <p className="text-sm text-[--exec-info]">
                   Ready to import {csvData.length} prospects. Duplicates (by {isLinkedIn ? 'LinkedIn URL' : 'email'}) will be skipped.
@@ -715,18 +672,12 @@ export default function CsvImportModal({ isOpen, onClose, campaignId, isLinkedIn
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between px-6 py-4 border-t border-[--exec-border]">
+        <div className="flex items-center justify-between px-6 py-4 mt-4 border-t border-stone-700/30">
           <div>
             {step !== 'upload' && (
               <button
                 onClick={() => setStep(step === 'preview' ? 'map' : 'upload')}
-                className={cn(
-                  'flex items-center gap-2 px-5 py-2.5 rounded-xl',
-                  'bg-slate-600/50 text-slate-300',
-                  'hover:bg-slate-500 hover:text-white hover:scale-105',
-                  'active:scale-95 transition-all duration-200',
-                  'font-medium text-sm'
-                )}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-[--exec-text-secondary] bg-stone-700/50 rounded-lg hover:bg-stone-600/50 transition-colors"
               >
                 <ChevronLeft className="w-4 h-4" />
                 Back
@@ -737,13 +688,7 @@ export default function CsvImportModal({ isOpen, onClose, campaignId, isLinkedIn
           <div className="flex items-center gap-3">
             <button
               onClick={handleClose}
-              className={cn(
-                'px-5 py-2.5 rounded-xl',
-                'bg-slate-600/50 text-slate-300',
-                'hover:bg-slate-500 hover:text-white hover:scale-105',
-                'active:scale-95 transition-all duration-200',
-                'font-medium text-sm'
-              )}
+              className="px-4 py-2 text-sm font-medium text-[--exec-text-secondary] bg-stone-700/50 rounded-lg hover:bg-stone-600/50 transition-colors"
             >
               Cancel
             </button>
@@ -752,14 +697,7 @@ export default function CsvImportModal({ isOpen, onClose, campaignId, isLinkedIn
               <button
                 onClick={() => setStep('preview')}
                 disabled={!canProceedToPreview}
-                className={cn(
-                  'flex items-center gap-2 px-5 py-2.5 rounded-xl',
-                  'bg-[--exec-accent] text-white',
-                  'hover:brightness-110 hover:scale-105 hover:shadow-lg',
-                  'active:scale-95 transition-all duration-200',
-                  'disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100',
-                  'font-medium text-sm'
-                )}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-[--exec-accent] rounded-lg hover:bg-[--exec-accent-dark] shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Continue
                 <ChevronRight className="w-4 h-4" />
@@ -770,14 +708,7 @@ export default function CsvImportModal({ isOpen, onClose, campaignId, isLinkedIn
               <button
                 onClick={handleImport}
                 disabled={importMutation.isPending}
-                className={cn(
-                  'flex items-center gap-2 px-5 py-2.5 rounded-xl',
-                  'bg-green-600 text-white',
-                  'hover:bg-green-500 hover:scale-105 hover:shadow-lg',
-                  'active:scale-95 transition-all duration-200',
-                  'disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100',
-                  'font-medium text-sm'
-                )}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-500 shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {importMutation.isPending ? (
                   <>
