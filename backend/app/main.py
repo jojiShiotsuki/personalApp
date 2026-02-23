@@ -120,25 +120,51 @@ async def health_check():
 
 @app.get("/debug/db-enums")
 async def debug_db_enums():
-    """Temporary diagnostic endpoint - check PostgreSQL enum values."""
+    """Temporary diagnostic endpoint - check PostgreSQL enum values and test creation."""
     from app.database.connection import SessionLocal
+    from app.models.outreach import OutreachCampaign, CampaignType, MultiTouchStep
+    import traceback
     db = SessionLocal()
     try:
         dialect = db.bind.dialect.name
+        info = {"dialect": dialect}
         if dialect == "postgresql":
-            result = db.execute(text("SELECT enum_range(NULL::campaigntype)")).scalar()
-            prospect_result = db.execute(text("SELECT enum_range(NULL::prospectstatus)")).scalar()
-            alembic_ver = db.execute(text("SELECT version_num FROM alembic_version")).scalar()
-            return {
-                "dialect": dialect,
-                "campaigntype_values": str(result),
-                "prospectstatus_values": str(prospect_result),
-                "alembic_version": alembic_ver,
-            }
-        else:
-            return {"dialect": dialect, "note": "SQLite - no native enums"}
+            info["campaigntype_values"] = str(db.execute(text("SELECT enum_range(NULL::campaigntype)")).scalar())
+            info["prospectstatus_values"] = str(db.execute(text("SELECT enum_range(NULL::prospectstatus)")).scalar())
+            info["alembic_version"] = db.execute(text("SELECT version_num FROM alembic_version")).scalar()
+            # Check if multi_touch_steps table exists
+            table_check = db.execute(text(
+                "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'multi_touch_steps')"
+            )).scalar()
+            info["multi_touch_steps_table_exists"] = table_check
+        # Try creating a test campaign
+        try:
+            campaign = OutreachCampaign(
+                name="__debug_test__",
+                campaign_type=CampaignType.MULTI_TOUCH,
+            )
+            db.add(campaign)
+            db.flush()
+            step = MultiTouchStep(
+                campaign_id=campaign.id,
+                step_number=1,
+                channel_type="email",
+                delay_days=0,
+                instruction_text="test",
+            )
+            db.add(step)
+            db.flush()
+            info["test_create"] = "SUCCESS"
+            info["test_campaign_id"] = campaign.id
+            db.rollback()  # Don't actually save
+        except Exception as e:
+            db.rollback()
+            info["test_create"] = "FAILED"
+            info["test_error"] = str(e)
+            info["test_traceback"] = traceback.format_exc()
+        return info
     except Exception as e:
-        return {"error": str(e)}
+        return {"error": str(e), "traceback": traceback.format_exc()}
     finally:
         db.close()
 
