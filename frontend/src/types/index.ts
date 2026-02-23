@@ -862,9 +862,6 @@ export interface OutreachProspect {
   converted_contact_id?: number;
   converted_deal_id?: number;
   website_issues?: string[];
-  website_speed_score?: number | null;
-  last_audited_at?: string | null;
-  audit_data?: { summary?: string; design_notes?: string; raw_data?: Record<string, any> } | null;
   linkedin_url?: string;
   facebook_url?: string;
   instagram_url?: string;

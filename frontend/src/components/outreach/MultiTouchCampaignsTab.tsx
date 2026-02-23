@@ -37,8 +37,6 @@ import {
   Reply,
   SkipForward,
   RotateCcw,
-  Search,
-  Loader2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -163,62 +161,6 @@ function ChannelBadge({ channelType }: { channelType: StepChannelType }) {
       {Icon && <Icon className="w-3 h-3" />}
       {label}
     </span>
-  );
-}
-
-// Speed score badge — colored by performance
-function SpeedScoreBadge({ score }: { score: number | null | undefined }) {
-  if (score == null) return null;
-  const color =
-    score >= 80
-      ? 'text-emerald-400 bg-emerald-900/30 border-emerald-800'
-      : score >= 50
-        ? 'text-yellow-400 bg-yellow-900/30 border-yellow-800'
-        : 'text-red-400 bg-red-900/30 border-red-800';
-  return (
-    <span className={cn('inline-flex items-center px-1.5 py-0.5 text-[10px] font-bold rounded border', color)}>
-      {score}/100
-    </span>
-  );
-}
-
-// Website audit button — triggers single-prospect audit
-function WebsiteAuditButton({
-  prospect,
-  isAuditing,
-  onAudit,
-}: {
-  prospect: OutreachProspect;
-  isAuditing: boolean;
-  onAudit: (prospectId: number) => void;
-}) {
-  if (!prospect.website) return null;
-  const hasBeenAudited = !!prospect.last_audited_at;
-
-  return (
-    <button
-      onClick={(e) => {
-        e.stopPropagation();
-        onAudit(prospect.id);
-      }}
-      disabled={isAuditing}
-      className={cn(
-        'inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium rounded border transition-all duration-150',
-        isAuditing
-          ? 'text-amber-400 bg-amber-900/30 border-amber-800 cursor-wait'
-          : hasBeenAudited
-            ? 'text-emerald-400 bg-emerald-900/20 border-emerald-800/50 hover:bg-emerald-900/40 hover:border-emerald-700'
-            : 'text-cyan-400 bg-cyan-900/20 border-cyan-800/50 hover:bg-cyan-900/40 hover:border-cyan-700'
-      )}
-      title={hasBeenAudited ? `Last audited: ${new Date(prospect.last_audited_at!).toLocaleDateString()}` : 'Run website audit'}
-    >
-      {isAuditing ? (
-        <Loader2 className="w-3 h-3 animate-spin" />
-      ) : (
-        <Search className="w-3 h-3" />
-      )}
-      {isAuditing ? 'Auditing...' : hasBeenAudited ? 'Re-audit' : 'Audit'}
-    </button>
   );
 }
 
@@ -660,8 +602,6 @@ function MultiTouchProspectCard({
   onSkip,
   onEdit,
   onUpdateIssues,
-  onAudit,
-  auditingProspectId,
 }: {
   prospect: OutreachProspect;
   campaignId: number;
@@ -673,8 +613,6 @@ function MultiTouchProspectCard({
   onSkip: (prospectId: number) => void;
   onEdit: () => void;
   onUpdateIssues: (prospectId: number, issues: string[]) => void;
-  onAudit: (prospectId: number) => void;
-  auditingProspectId: number | null;
 }) {
   const [isResponseModalOpen, setIsResponseModalOpen] = useState(false);
   const stepDetail = prospect.current_step_detail;
@@ -727,18 +665,6 @@ function MultiTouchProspectCard({
             )}
 
             <ProspectLinks prospect={prospect} />
-
-            {/* Speed score + audit button */}
-            {prospect.website && (
-              <div className="flex items-center gap-1.5 mt-1.5">
-                <SpeedScoreBadge score={prospect.website_speed_score} />
-                <WebsiteAuditButton
-                  prospect={prospect}
-                  isAuditing={auditingProspectId === prospect.id}
-                  onAudit={onAudit}
-                />
-              </div>
-            )}
 
             {/* Website issue tags */}
             <div className="mt-1.5">
@@ -854,8 +780,6 @@ function TodayQueue({
   onSkip,
   onEdit,
   onUpdateIssues,
-  onAudit,
-  auditingProspectId,
 }: {
   prospects: OutreachProspect[];
   campaignId: number;
@@ -867,8 +791,6 @@ function TodayQueue({
   onSkip: (prospectId: number) => void;
   onEdit: (prospect: OutreachProspect) => void;
   onUpdateIssues: (prospectId: number, issues: string[]) => void;
-  onAudit: (prospectId: number) => void;
-  auditingProspectId: number | null;
 }) {
   if (prospects.length === 0) {
     return (
@@ -895,8 +817,6 @@ function TodayQueue({
           onSkip={onSkip}
           onEdit={() => onEdit(prospect)}
           onUpdateIssues={onUpdateIssues}
-          onAudit={onAudit}
-          auditingProspectId={auditingProspectId}
         />
       ))}
     </div>
@@ -909,15 +829,11 @@ function AllProspectsTable({
   campaignSteps,
   onEdit,
   onUpdateIssues,
-  onAudit,
-  auditingProspectId,
 }: {
   prospects: OutreachProspect[];
   campaignSteps: MultiTouchStep[];
   onEdit: (prospect: OutreachProspect) => void;
   onUpdateIssues: (prospectId: number, issues: string[]) => void;
-  onAudit: (prospectId: number) => void;
-  auditingProspectId: number | null;
 }) {
   if (prospects.length === 0) {
     return (
@@ -966,14 +882,6 @@ function AllProspectsTable({
                   </div>
                 </td>
                 <td className="px-6 py-4">
-                  <div className="flex items-center gap-1.5 mb-1">
-                    <SpeedScoreBadge score={prospect.website_speed_score} />
-                    <WebsiteAuditButton
-                      prospect={prospect}
-                      isAuditing={auditingProspectId === prospect.id}
-                      onAudit={onAudit}
-                    />
-                  </div>
                   <WebsiteIssueTagger prospect={prospect} onUpdate={onUpdateIssues} />
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
@@ -1401,29 +1309,6 @@ export default function MultiTouchCampaignsTab() {
     onError: () => toast.error('Failed to update issues'),
   });
 
-  // Website audit mutations
-  const [auditingProspectId, setAuditingProspectId] = useState<number | null>(null);
-
-  const auditMutation = useMutation({
-    mutationFn: (prospectId: number) => coldOutreachApi.auditProspectWebsite(prospectId),
-    onSuccess: (data) => {
-      const issueCount = data.issues.length;
-      toast.success(`Audit complete — score: ${data.speed_score ?? 'N/A'}/100, ${issueCount} issue${issueCount !== 1 ? 's' : ''} found`);
-      invalidateAll();
-    },
-    onError: () => toast.error('Website audit failed'),
-    onSettled: () => setAuditingProspectId(null),
-  });
-
-  const bulkAuditMutation = useMutation({
-    mutationFn: () => coldOutreachApi.bulkAuditCampaign(selectedCampaignId!),
-    onSuccess: (data) => {
-      toast.success(`Bulk audit complete — ${data.audited} audited, ${data.skipped} skipped, ${data.failed} failed`);
-      invalidateAll();
-    },
-    onError: () => toast.error('Bulk audit failed'),
-  });
-
   const deleteProspectMutation = useMutation({
     mutationFn: (prospectId: number) => coldOutreachApi.deleteProspect(prospectId),
     onSuccess: () => {
@@ -1470,11 +1355,6 @@ export default function MultiTouchCampaignsTab() {
 
   const handleUpdateIssues = (prospectId: number, issues: string[]) => {
     updateIssuesMutation.mutate({ id: prospectId, data: { website_issues: issues } as Partial<OutreachProspect> });
-  };
-
-  const handleAuditProspect = (prospectId: number) => {
-    setAuditingProspectId(prospectId);
-    auditMutation.mutate(prospectId);
   };
 
   const handleDeleteCampaign = (e: React.MouseEvent, campaignId: number) => {
@@ -1658,32 +1538,6 @@ export default function MultiTouchCampaignsTab() {
             <Upload className="w-4 h-4" />
             Import CSV
           </button>
-
-          <button
-            onClick={() => {
-              if (!selectedCampaignId) {
-                toast.error('Please select a campaign first');
-                return;
-              }
-              bulkAuditMutation.mutate();
-            }}
-            disabled={!selectedCampaignId || bulkAuditMutation.isPending}
-            className={cn(
-              'flex items-center gap-2 px-4 py-2.5 rounded-xl',
-              'bg-cyan-600/30 text-cyan-300 border border-cyan-500/30',
-              'transition-all duration-200 font-medium text-sm',
-              selectedCampaignId && !bulkAuditMutation.isPending
-                ? 'hover:bg-cyan-500/40 hover:text-white hover:border-cyan-400 hover:scale-105 active:scale-95'
-                : 'opacity-50 cursor-not-allowed'
-            )}
-          >
-            {bulkAuditMutation.isPending ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Search className="w-4 h-4" />
-            )}
-            {bulkAuditMutation.isPending ? 'Auditing...' : 'Audit Unaudited'}
-          </button>
         </div>
       </div>
 
@@ -1821,8 +1675,6 @@ export default function MultiTouchCampaignsTab() {
                 onSkip={(prospectId) => skipMutation.mutate(prospectId)}
                 onEdit={setEditingProspect}
                 onUpdateIssues={handleUpdateIssues}
-                onAudit={handleAuditProspect}
-                auditingProspectId={auditingProspectId}
               />
             )}
             {activeTab === 'all' && (
@@ -1831,8 +1683,6 @@ export default function MultiTouchCampaignsTab() {
                 campaignSteps={campaignSteps}
                 onEdit={setEditingProspect}
                 onUpdateIssues={handleUpdateIssues}
-                onAudit={handleAuditProspect}
-                auditingProspectId={auditingProspectId}
               />
             )}
             {activeTab === 'replied' && (

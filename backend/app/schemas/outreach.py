@@ -254,10 +254,6 @@ class ProspectResponse(ProspectBase):
     linkedin_url: Optional[str] = None
     facebook_url: Optional[str] = None
     instagram_url: Optional[str] = None
-    # Website audit fields
-    website_speed_score: Optional[int] = None
-    last_audited_at: Optional[datetime] = None
-    audit_data: Optional[dict] = None
     # Multi-touch enrichment (populated by today queue endpoint)
     current_step_detail: Optional[MultiTouchStepResponse] = None
     missing_data_warnings: Optional[List[str]] = None
@@ -345,23 +341,3 @@ class RenderedEmail(BaseModel):
     body: str
     prospect_id: int
     step_number: int
-
-
-# Website Audit Schemas
-class WebsiteAuditResult(BaseModel):
-    prospect_id: int
-    speed_score: Optional[int] = None
-    issues: List[str] = []
-    summary: str = ""
-    design_notes: str = ""
-
-
-class BulkAuditRequest(BaseModel):
-    prospect_ids: Optional[List[int]] = None
-
-
-class BulkAuditResponse(BaseModel):
-    audited: int
-    skipped: int
-    failed: int
-    results: List[WebsiteAuditResult] = []

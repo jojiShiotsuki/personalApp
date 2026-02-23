@@ -835,17 +835,6 @@ export const coldOutreachApi = {
     const response = await api.post(`/api/outreach/campaigns/${campaignId}/prospects/${prospectId}/mark-mt-connected`);
     return response.data;
   },
-
-  // Website audit
-  auditProspectWebsite: async (prospectId: number): Promise<{ prospect_id: number; speed_score: number | null; issues: string[]; summary: string; design_notes: string }> => {
-    const response = await api.post(`/api/outreach/campaigns/prospects/${prospectId}/audit-website`);
-    return response.data;
-  },
-
-  bulkAuditCampaign: async (campaignId: number, prospectIds?: number[]): Promise<{ audited: number; skipped: number; failed: number; results: any[] }> => {
-    const response = await api.post(`/api/outreach/campaigns/${campaignId}/prospects/bulk-audit`, prospectIds ? { prospect_ids: prospectIds } : {});
-    return response.data;
-  },
 };
 
 // Lead Discovery API
