@@ -184,7 +184,7 @@ class MultiTouchStep(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     campaign_id = Column(Integer, ForeignKey("outreach_campaigns.id", ondelete="CASCADE"), nullable=False, index=True)
-    step_number = Column(Integer, nullable=False)  # 1-7
+    step_number = Column(Integer, nullable=False)
     channel_type = Column(String(50), nullable=False)  # StepChannelType value
     delay_days = Column(Integer, nullable=False, default=1)
     template_subject = Column(String(500), nullable=True)  # for email steps

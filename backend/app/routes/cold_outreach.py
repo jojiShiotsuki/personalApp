@@ -719,8 +719,8 @@ def update_campaign_steps(campaign_id: int, steps: List[MultiTouchStepCreate], d
     if not campaign:
         raise HTTPException(status_code=404, detail="Campaign not found")
 
-    if len(steps) > 7:
-        raise HTTPException(status_code=400, detail="Maximum 7 steps allowed")
+    if len(steps) > 50:
+        raise HTTPException(status_code=400, detail="Maximum 50 steps allowed")
 
     # Delete existing steps
     db.query(MultiTouchStep).filter(MultiTouchStep.campaign_id == campaign_id).delete()

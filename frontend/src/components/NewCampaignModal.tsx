@@ -142,7 +142,7 @@ export default function NewCampaignModal({
   };
 
   const addStep = () => {
-    if (steps.length >= 7) return;
+    if (steps.length >= 50) return; // generous upper limit
     const nextNum = steps.length + 1;
     setSteps([...steps, {
       step_number: nextNum,
@@ -242,8 +242,8 @@ export default function NewCampaignModal({
             {isMultiTouch && (
               <div className="pt-4 border-t border-stone-700/30">
                 <h3 className="text-sm font-semibold text-[--exec-text] mb-3 flex items-center justify-between">
-                  <span>Sequence Steps ({steps.length}/7)</span>
-                  {steps.length < 7 && (
+                  <span>Sequence Steps ({steps.length})</span>
+                  {steps.length < 50 && (
                     <button
                       type="button"
                       onClick={addStep}
