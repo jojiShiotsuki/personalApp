@@ -27,7 +27,6 @@ import {
   Clock,
   X,
   AlertTriangle,
-  ExternalLink,
   Linkedin,
   Heart,
   UserPlus,
