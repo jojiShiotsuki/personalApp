@@ -239,7 +239,7 @@ def list_prospects(
         except ValueError:
             pass  # Invalid status, return all
 
-    return query.order_by(OutreachProspect.next_action_date.asc().nullslast(), OutreachProspect.created_at.desc()).all()
+    return query.order_by(OutreachProspect.next_action_date.asc().nullslast(), OutreachProspect.created_at.desc(), OutreachProspect.id.asc()).all()
 
 
 @router.get("/{campaign_id}/prospects/today", response_model=List[ProspectResponse])
@@ -257,7 +257,7 @@ def get_todays_queue(campaign_id: int, db: Session = Depends(get_db)):
         OutreachProspect.status.in_([
             ProspectStatus.QUEUED, ProspectStatus.IN_SEQUENCE, ProspectStatus.CONNECTED, ProspectStatus.PENDING_ENGAGEMENT
         ])
-    ).order_by(OutreachProspect.next_action_date.asc()).all()
+    ).order_by(OutreachProspect.next_action_date.asc(), OutreachProspect.id.asc()).all()
 
     # Enrich multi-touch prospects with step detail and warnings
     if campaign.campaign_type == CampaignType.MULTI_TOUCH:
