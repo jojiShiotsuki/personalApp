@@ -234,6 +234,9 @@ class ProspectResponse(ProspectBase):
 class CsvColumnMapping(BaseModel):
     agency_name: str
     contact_name: Optional[str] = None
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    title: Optional[str] = None
     email: Optional[str] = None
     website: Optional[str] = None
     niche: Optional[str] = None

@@ -329,6 +329,13 @@ def import_prospects(campaign_id: int, data: CsvImportRequest, db: Session = Dep
             contact_name = None
             if mapping.contact_name:
                 contact_name = row.get(mapping.contact_name, "").strip() or None
+            # Support separate first_name + last_name columns (e.g. Apollo exports)
+            if not contact_name and (mapping.first_name or mapping.last_name):
+                first = row.get(mapping.first_name, "").strip() if mapping.first_name else ""
+                last = row.get(mapping.last_name, "").strip() if mapping.last_name else ""
+                combined = f"{first} {last}".strip()
+                if combined:
+                    contact_name = combined
 
             website = None
             if mapping.website:

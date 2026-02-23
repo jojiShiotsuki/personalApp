@@ -847,6 +847,9 @@ export interface ProspectCreate {
 export interface CsvColumnMapping {
   agency_name: string;
   contact_name?: string;
+  first_name?: string;
+  last_name?: string;
+  title?: string;
   email?: string;
   website?: string;
   niche?: string;

@@ -53,70 +53,72 @@ function parseCSVLine(line: string): string[] {
   return result;
 }
 
+// Find first matching header index using exact match first, then includes
+function findHeader(lowerHeaders: string[], headers: string[], patterns: string[]): string | undefined {
+  for (const pattern of patterns) {
+    // Exact match first
+    const exactIdx = lowerHeaders.findIndex((h) => h === pattern);
+    if (exactIdx !== -1) return headers[exactIdx];
+  }
+  for (const pattern of patterns) {
+    // Partial match as fallback
+    const partialIdx = lowerHeaders.findIndex((h) => h.includes(pattern));
+    if (partialIdx !== -1) return headers[partialIdx];
+  }
+  return undefined;
+}
+
 // Auto-detect column mapping based on column names
 function autoDetectMapping(headers: string[]): Partial<CsvColumnMapping> {
   const mapping: Partial<CsvColumnMapping> = {};
   const lowerHeaders = headers.map((h) => h.toLowerCase().trim());
 
-  // Agency name detection
-  const agencyPatterns = ['agency_name', 'agency name', 'company', 'company_name', 'company name', 'business', 'business_name', 'name', 'agency'];
-  for (const pattern of agencyPatterns) {
-    const idx = lowerHeaders.findIndex((h) => h === pattern || h.includes(pattern));
-    if (idx !== -1) {
-      mapping.agency_name = headers[idx];
-      break;
-    }
+  // Agency / Company name detection
+  mapping.agency_name = findHeader(lowerHeaders, headers, [
+    'agency_name', 'agency name', 'company name', 'company_name', 'company name for emails',
+    'company', 'business_name', 'business name', 'business', 'agency', 'name',
+  ]);
+
+  // Email detection (exact match 'email' first to avoid matching 'email status' etc.)
+  mapping.email = findHeader(lowerHeaders, headers, [
+    'email', 'email_address', 'email address', 'e-mail', 'mail',
+  ]);
+
+  // Contact name (single column) detection
+  mapping.contact_name = findHeader(lowerHeaders, headers, [
+    'contact_name', 'contact name', 'full_name', 'full name',
+  ]);
+
+  // First name detection (Apollo uses "First Name")
+  if (!mapping.contact_name) {
+    mapping.first_name = findHeader(lowerHeaders, headers, [
+      'first name', 'first_name', 'firstname', 'given name',
+    ]);
+    mapping.last_name = findHeader(lowerHeaders, headers, [
+      'last name', 'last_name', 'lastname', 'surname', 'family name',
+    ]);
   }
 
-  // Email detection
-  const emailPatterns = ['email', 'email_address', 'email address', 'e-mail', 'mail'];
-  for (const pattern of emailPatterns) {
-    const idx = lowerHeaders.findIndex((h) => h === pattern || h.includes(pattern));
-    if (idx !== -1) {
-      mapping.email = headers[idx];
-      break;
-    }
-  }
+  // Title / Job Title detection
+  mapping.title = findHeader(lowerHeaders, headers, [
+    'title', 'job title', 'job_title', 'position', 'role', 'designation',
+  ]);
 
-  // Contact name detection
-  const contactPatterns = ['contact_name', 'contact name', 'contact', 'person', 'first_name', 'first name', 'full_name', 'full name'];
-  for (const pattern of contactPatterns) {
-    const idx = lowerHeaders.findIndex((h) => h === pattern || h.includes(pattern));
-    if (idx !== -1) {
-      mapping.contact_name = headers[idx];
-      break;
-    }
-  }
+  // Website detection (exact match first to avoid matching 'linkedin url')
+  mapping.website = findHeader(lowerHeaders, headers, [
+    'website', 'site', 'web', 'domain',
+  ]);
 
-  // Website detection
-  const websitePatterns = ['website', 'url', 'site', 'web', 'domain'];
-  for (const pattern of websitePatterns) {
-    const idx = lowerHeaders.findIndex((h) => h === pattern || h.includes(pattern));
-    if (idx !== -1) {
-      mapping.website = headers[idx];
-      break;
-    }
-  }
+  // Niche / Industry detection
+  mapping.niche = findHeader(lowerHeaders, headers, [
+    'niche', 'industry', 'category', 'vertical', 'sector',
+  ]);
 
-  // Niche detection
-  const nichePatterns = ['niche', 'industry', 'category', 'vertical', 'sector'];
-  for (const pattern of nichePatterns) {
-    const idx = lowerHeaders.findIndex((h) => h === pattern || h.includes(pattern));
-    if (idx !== -1) {
-      mapping.niche = headers[idx];
-      break;
-    }
-  }
-
-  // LinkedIn URL detection
-  const linkedinPatterns = ['linkedin_url', 'linkedin url', 'linkedin', 'linkedin_profile', 'linkedin profile', 'li_url'];
-  for (const pattern of linkedinPatterns) {
-    const idx = lowerHeaders.findIndex((h) => h === pattern || h.includes(pattern));
-    if (idx !== -1) {
-      mapping.linkedin_url = headers[idx];
-      break;
-    }
-  }
+  // LinkedIn URL detection (Apollo uses "Person Linkedin Url")
+  mapping.linkedin_url = findHeader(lowerHeaders, headers, [
+    'person linkedin url', 'linkedin_url', 'linkedin url', 'linkedin_profile',
+    'linkedin profile', 'person linkedin', 'li_url', 'linkedin',
+  ]);
 
   return mapping;
 }
@@ -261,10 +263,18 @@ export default function CsvImportModal({ isOpen, onClose, campaignId, isLinkedIn
   };
 
   // Get preview data with mapped columns
+  const getContactName = (row: Record<string, any>) => {
+    if (mapping.contact_name) return row[mapping.contact_name] || '';
+    const first = mapping.first_name ? (row[mapping.first_name] || '').trim() : '';
+    const last = mapping.last_name ? (row[mapping.last_name] || '').trim() : '';
+    return `${first} ${last}`.trim();
+  };
+
   const previewData = csvData.slice(0, 5).map((row) => ({
     agency_name: mapping.agency_name ? row[mapping.agency_name] : '',
     email: mapping.email ? row[mapping.email] : '',
-    contact_name: mapping.contact_name ? row[mapping.contact_name] : '',
+    contact_name: getContactName(row),
+    title: mapping.title ? row[mapping.title] : '',
     website: mapping.website ? row[mapping.website] : '',
     niche: mapping.niche ? row[mapping.niche] : '',
     linkedin_url: mapping.linkedin_url ? row[mapping.linkedin_url] : '',
@@ -377,10 +387,12 @@ export default function CsvImportModal({ isOpen, onClose, campaignId, isLinkedIn
                 Drag and drop or click to browse
               </p>
               <div className="text-xs text-[--exec-text-muted]">
-                Required columns: <span className="font-medium text-[--exec-text-secondary]">agency_name</span>,{' '}
-                <span className="font-medium text-[--exec-text-secondary]">{isLinkedIn ? 'linkedin_url' : 'email'}</span>
+                Required: <span className="font-medium text-[--exec-text-secondary]">Company Name</span>,{' '}
+                <span className="font-medium text-[--exec-text-secondary]">{isLinkedIn ? 'LinkedIn URL' : 'Email'}</span>
                 <br />
-                Optional: <span className="text-[--exec-text-secondary]">contact_name, website, niche{isLinkedIn ? ', email' : ', linkedin_url'}</span>
+                Optional: <span className="text-[--exec-text-secondary]">First Name, Last Name, Title, Website, Industry{isLinkedIn ? ', Email' : ', LinkedIn URL'}</span>
+                <br />
+                <span className="text-[--exec-text-muted] mt-1 inline-block">Compatible with Apollo, Hunter, and other export formats</span>
               </div>
             </div>
           )}
@@ -473,14 +485,90 @@ export default function CsvImportModal({ isOpen, onClose, campaignId, isLinkedIn
                   </select>
                 </div>
 
-                {/* Contact Name - Optional */}
+                {/* Contact Name OR First+Last Name */}
                 <div className="flex items-center gap-4">
                   <label className="w-32 text-sm font-medium text-[--exec-text-secondary]">
                     Contact Name
                   </label>
                   <select
                     value={mapping.contact_name || ''}
-                    onChange={(e) => handleMappingChange('contact_name', e.target.value)}
+                    onChange={(e) => {
+                      handleMappingChange('contact_name', e.target.value);
+                      if (e.target.value) {
+                        handleMappingChange('first_name', '');
+                        handleMappingChange('last_name', '');
+                      }
+                    }}
+                    className={cn(
+                      'flex-1 px-4 py-2.5 rounded-xl',
+                      'bg-[--exec-surface-alt] border border-[--exec-border]',
+                      'text-[--exec-text] text-sm',
+                      'focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]',
+                      'transition-all duration-200'
+                    )}
+                  >
+                    <option value="">Not mapped</option>
+                    {csvHeaders.map((header) => (
+                      <option key={header} value={header}>
+                        {header}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* First Name + Last Name (alternative to Contact Name) */}
+                {!mapping.contact_name && (
+                  <div className="flex items-center gap-4">
+                    <label className="w-32 text-sm font-medium text-[--exec-text-secondary]">
+                      First Name
+                    </label>
+                    <select
+                      value={mapping.first_name || ''}
+                      onChange={(e) => handleMappingChange('first_name', e.target.value)}
+                      className={cn(
+                        'flex-1 px-4 py-2.5 rounded-xl',
+                        'bg-[--exec-surface-alt] border border-[--exec-border]',
+                        'text-[--exec-text] text-sm',
+                        'focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]',
+                        'transition-all duration-200'
+                      )}
+                    >
+                      <option value="">Not mapped</option>
+                      {csvHeaders.map((header) => (
+                        <option key={header} value={header}>
+                          {header}
+                        </option>
+                      ))}
+                    </select>
+                    <select
+                      value={mapping.last_name || ''}
+                      onChange={(e) => handleMappingChange('last_name', e.target.value)}
+                      className={cn(
+                        'flex-1 px-4 py-2.5 rounded-xl',
+                        'bg-[--exec-surface-alt] border border-[--exec-border]',
+                        'text-[--exec-text] text-sm',
+                        'focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]',
+                        'transition-all duration-200'
+                      )}
+                    >
+                      <option value="">Last Name (optional)</option>
+                      {csvHeaders.map((header) => (
+                        <option key={header} value={header}>
+                          {header}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {/* Title / Job Title - Optional */}
+                <div className="flex items-center gap-4">
+                  <label className="w-32 text-sm font-medium text-[--exec-text-secondary]">
+                    Title
+                  </label>
+                  <select
+                    value={mapping.title || ''}
+                    onChange={(e) => handleMappingChange('title', e.target.value)}
                     className={cn(
                       'flex-1 px-4 py-2.5 rounded-xl',
                       'bg-[--exec-surface-alt] border border-[--exec-border]',
@@ -579,6 +667,7 @@ export default function CsvImportModal({ isOpen, onClose, campaignId, isLinkedIn
                       )}
                       <th className="px-4 py-3 text-left text-xs font-medium text-[--exec-text-muted] uppercase tracking-wider">Email</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-[--exec-text-muted] uppercase tracking-wider">Contact</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-[--exec-text-muted] uppercase tracking-wider">Title</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-[--exec-text-muted] uppercase tracking-wider">Website</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-[--exec-text-muted] uppercase tracking-wider">Niche</th>
                     </tr>
@@ -599,6 +688,9 @@ export default function CsvImportModal({ isOpen, onClose, campaignId, isLinkedIn
                         </td>
                         <td className="px-4 py-3 text-sm text-[--exec-text-secondary] whitespace-nowrap">
                           {row.contact_name || <span className="text-[--exec-text-muted]">-</span>}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-[--exec-text-secondary] whitespace-nowrap truncate max-w-[120px]">
+                          {row.title || <span className="text-[--exec-text-muted]">-</span>}
                         </td>
                         <td className="px-4 py-3 text-sm text-[--exec-text-secondary] whitespace-nowrap truncate max-w-[150px]">
                           {row.website || <span className="text-[--exec-text-muted]">-</span>}
