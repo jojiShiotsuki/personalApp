@@ -5,6 +5,7 @@ load_dotenv()
 
 from pathlib import Path
 import logging
+from sqlalchemy import text
 from fastapi import FastAPI, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -116,6 +117,30 @@ async def startup_event():
 @app.get("/health")
 async def health_check():
     return {"status": "healthy"}
+
+@app.get("/debug/db-enums")
+async def debug_db_enums():
+    """Temporary diagnostic endpoint - check PostgreSQL enum values."""
+    from app.database import SessionLocal
+    db = SessionLocal()
+    try:
+        dialect = db.bind.dialect.name
+        if dialect == "postgresql":
+            result = db.execute(text("SELECT enum_range(NULL::campaigntype)")).scalar()
+            prospect_result = db.execute(text("SELECT enum_range(NULL::prospectstatus)")).scalar()
+            alembic_ver = db.execute(text("SELECT version_num FROM alembic_version")).scalar()
+            return {
+                "dialect": dialect,
+                "campaigntype_values": str(result),
+                "prospectstatus_values": str(prospect_result),
+                "alembic_version": alembic_ver,
+            }
+        else:
+            return {"dialect": dialect, "note": "SQLite - no native enums"}
+    except Exception as e:
+        return {"error": str(e)}
+    finally:
+        db.close()
 
 # Serve static files (frontend build)
 frontend_dist = Path(__file__).parent.parent / "frontend" / "dist"
