@@ -1302,11 +1302,10 @@ export default function MultiTouchCampaignsTab() {
     onError: () => toast.error('Failed to update prospect'),
   });
 
-  // Silent mutation for inline issue tag toggling (no toast, no modal close)
+  // Silent mutation for inline issue tag toggling — no refetch to avoid re-sorting
   const updateIssuesMutation = useMutation({
     mutationFn: ({ id, data }: { id: number; data: Partial<OutreachProspect> }) =>
       coldOutreachApi.updateProspect(id, data),
-    onSuccess: () => invalidateAll(),
     onError: () => toast.error('Failed to update issues'),
   });
 
