@@ -32,7 +32,7 @@ export default function DateRangePicker({ startDate, endDate, onChange }: DateRa
 
   return (
     <div className="flex items-center gap-3 flex-wrap">
-      <Calendar className="w-4 h-4 text-gray-400 dark:text-slate-500" />
+      <Calendar className="w-4 h-4 text-[--exec-text-muted]" />
       <div className="flex items-center gap-1">
         {PRESETS.map(p => (
           <button
@@ -41,8 +41,8 @@ export default function DateRangePicker({ startDate, endDate, onChange }: DateRa
             className={cn(
               "px-3 py-1.5 text-sm font-medium rounded-lg transition-all duration-200",
               activePreset === p.label
-                ? "bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"
-                : "text-gray-600 dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-700"
+                ? "bg-[--exec-accent] text-white shadow-sm"
+                : "text-stone-400 hover:text-white hover:bg-stone-600"
             )}
           >
             {p.label}
@@ -56,21 +56,23 @@ export default function DateRangePicker({ startDate, endDate, onChange }: DateRa
           onChange={(e) => onChange(e.target.value, endDate)}
           className={cn(
             "px-3 py-1.5 text-sm rounded-lg",
-            "bg-gray-50 dark:bg-slate-700 border border-gray-200 dark:border-slate-600",
-            "text-gray-900 dark:text-white",
-            "focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+            "bg-stone-800 border border-stone-600",
+            "text-[--exec-text]",
+            "focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]",
+            "transition-all duration-200"
           )}
         />
-        <span className="text-gray-400 dark:text-slate-500 text-sm">to</span>
+        <span className="text-[--exec-text-muted] text-sm">to</span>
         <input
           type="date"
           value={endDate}
           onChange={(e) => onChange(startDate, e.target.value)}
           className={cn(
             "px-3 py-1.5 text-sm rounded-lg",
-            "bg-gray-50 dark:bg-slate-700 border border-gray-200 dark:border-slate-600",
-            "text-gray-900 dark:text-white",
-            "focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+            "bg-stone-800 border border-stone-600",
+            "text-[--exec-text]",
+            "focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]",
+            "transition-all duration-200"
           )}
         />
       </div>

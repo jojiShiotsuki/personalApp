@@ -65,10 +65,10 @@ interface RevenueData {
 }
 
 const tooltipStyle = {
-  backgroundColor: '#1e293b',
-  border: '1px solid #334155',
-  borderRadius: '8px',
-  color: '#f1f5f9',
+  backgroundColor: 'var(--exec-surface)',
+  border: '1px solid var(--exec-border-subtle)',
+  borderRadius: '12px',
+  color: 'var(--exec-text)',
 };
 
 const axisTickStyle = { fontSize: 12, fill: '#94a3b8' };
@@ -83,26 +83,18 @@ export default function RevenueTab({ startDate, endDate }: RevenueTabProps) {
   if (isLoading) {
     return (
       <div className="space-y-6">
-        {/* Full-width skeleton x2 */}
         {[...Array(2)].map((_, i) => (
-          <div
-            key={i}
-            className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6 animate-pulse"
-          >
-            <div className="h-4 bg-gray-200 dark:bg-slate-700 rounded w-48 mb-4" />
-            <div className="h-[300px] bg-gray-200 dark:bg-slate-700 rounded" />
+          <div key={i} className="bento-card-static p-6 animate-pulse">
+            <div className="h-4 bg-stone-700/50 rounded w-48 mb-4" />
+            <div className="h-[300px] bg-stone-700/50 rounded" />
           </div>
         ))}
-        {/* Two-column skeleton rows x2 */}
         {[...Array(2)].map((_, i) => (
           <div key={`row-${i}`} className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {[...Array(2)].map((_, j) => (
-              <div
-                key={j}
-                className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6 animate-pulse"
-              >
-                <div className="h-4 bg-gray-200 dark:bg-slate-700 rounded w-40 mb-4" />
-                <div className="h-[300px] bg-gray-200 dark:bg-slate-700 rounded" />
+              <div key={j} className="bento-card-static p-6 animate-pulse">
+                <div className="h-4 bg-stone-700/50 rounded w-40 mb-4" />
+                <div className="h-[300px] bg-stone-700/50 rounded" />
               </div>
             ))}
           </div>
@@ -113,8 +105,8 @@ export default function RevenueTab({ startDate, endDate }: RevenueTabProps) {
 
   if (error) {
     return (
-      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6">
-        <p className="text-red-600 dark:text-red-400 text-sm">
+      <div className="bento-card-static p-6">
+        <p className="text-[--exec-danger] text-sm">
           Failed to load revenue data. Please try again.
         </p>
       </div>
@@ -132,9 +124,9 @@ export default function RevenueTab({ startDate, endDate }: RevenueTabProps) {
 
   return (
     <div className="space-y-6">
-      {/* Revenue Over Time — full width */}
-      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6">
-        <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-4">
+      {/* Revenue Over Time */}
+      <div className="bento-card-static p-6">
+        <h3 className="text-base font-semibold text-[--exec-text] mb-4">
           Revenue Over Time
         </h3>
         <ResponsiveContainer width="100%" height={300}>
@@ -170,9 +162,9 @@ export default function RevenueTab({ startDate, endDate }: RevenueTabProps) {
         </ResponsiveContainer>
       </div>
 
-      {/* MRR Trend — full width */}
-      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6">
-        <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-4">
+      {/* MRR Trend */}
+      <div className="bento-card-static p-6">
+        <h3 className="text-base font-semibold text-[--exec-text] mb-4">
           MRR Trend
         </h3>
         <ResponsiveContainer width="100%" height={300}>
@@ -210,9 +202,8 @@ export default function RevenueTab({ startDate, endDate }: RevenueTabProps) {
 
       {/* Revenue by Client + Revenue by Source */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Revenue by Client — horizontal bar chart */}
-        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6">
-          <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-4">
+        <div className="bento-card-static p-6">
+          <h3 className="text-base font-semibold text-[--exec-text] mb-4">
             Revenue by Client
           </h3>
           {data.revenue_by_client.length > 0 ? (
@@ -249,15 +240,14 @@ export default function RevenueTab({ startDate, endDate }: RevenueTabProps) {
               </BarChart>
             </ResponsiveContainer>
           ) : (
-            <p className="text-sm text-gray-500 dark:text-slate-400 text-center py-12">
+            <p className="text-sm text-[--exec-text-muted] text-center py-12">
               No client revenue data available for this period.
             </p>
           )}
         </div>
 
-        {/* Revenue by Source — donut pie chart */}
-        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6">
-          <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-4">
+        <div className="bento-card-static p-6">
+          <h3 className="text-base font-semibold text-[--exec-text] mb-4">
             Revenue by Source
           </h3>
           <ResponsiveContainer width="100%" height={350}>
@@ -293,9 +283,8 @@ export default function RevenueTab({ startDate, endDate }: RevenueTabProps) {
 
       {/* Avg Deal Size + Won vs Lost */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Avg Deal Size Trend */}
-        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6">
-          <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-4">
+        <div className="bento-card-static p-6">
+          <h3 className="text-base font-semibold text-[--exec-text] mb-4">
             Avg Deal Size Trend
           </h3>
           <ResponsiveContainer width="100%" height={300}>
@@ -331,9 +320,8 @@ export default function RevenueTab({ startDate, endDate }: RevenueTabProps) {
           </ResponsiveContainer>
         </div>
 
-        {/* Won vs Lost */}
-        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6">
-          <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-4">
+        <div className="bento-card-static p-6">
+          <h3 className="text-base font-semibold text-[--exec-text] mb-4">
             Won vs Lost Deals
           </h3>
           <ResponsiveContainer width="100%" height={300}>

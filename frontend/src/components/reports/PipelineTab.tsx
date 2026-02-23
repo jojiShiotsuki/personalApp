@@ -56,10 +56,10 @@ interface PipelineData {
 }
 
 const tooltipStyle = {
-  backgroundColor: '#1e293b',
-  border: '1px solid #334155',
-  borderRadius: '8px',
-  color: '#f1f5f9',
+  backgroundColor: 'var(--exec-surface)',
+  border: '1px solid var(--exec-border-subtle)',
+  borderRadius: '12px',
+  color: 'var(--exec-text)',
 };
 
 const axisTickStyle = { fontSize: 12, fill: '#94a3b8' };
@@ -76,49 +76,39 @@ export default function PipelineTab({ startDate, endDate }: PipelineTabProps) {
   if (isLoading) {
     return (
       <div className="space-y-6">
-        {/* Metric card skeletons */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {[...Array(3)].map((_, i) => (
-            <div
-              key={i}
-              className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6 animate-pulse"
-            >
-              <div className="h-4 bg-gray-200 dark:bg-slate-700 rounded w-24 mb-4" />
-              <div className="h-8 bg-gray-200 dark:bg-slate-700 rounded w-32" />
+            <div key={i} className="bento-card-static p-6 animate-pulse">
+              <div className="h-4 bg-stone-700/50 rounded w-24 mb-4" />
+              <div className="h-8 bg-stone-700/50 rounded w-32" />
             </div>
           ))}
         </div>
-        {/* Funnel skeleton */}
-        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6 animate-pulse">
-          <div className="h-4 bg-gray-200 dark:bg-slate-700 rounded w-32 mb-4" />
+        <div className="bento-card-static p-6 animate-pulse">
+          <div className="h-4 bg-stone-700/50 rounded w-32 mb-4" />
           <div className="space-y-2">
             {[100, 75, 50, 30].map((w, i) => (
               <div
                 key={i}
-                className="h-10 bg-gray-200 dark:bg-slate-700 rounded"
+                className="h-10 bg-stone-700/50 rounded"
                 style={{ width: `${w}%` }}
               />
             ))}
           </div>
         </div>
-        {/* Two-column chart skeleton */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {[...Array(2)].map((_, i) => (
-            <div
-              key={i}
-              className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6 animate-pulse"
-            >
-              <div className="h-4 bg-gray-200 dark:bg-slate-700 rounded w-40 mb-4" />
-              <div className="h-[300px] bg-gray-200 dark:bg-slate-700 rounded" />
+            <div key={i} className="bento-card-static p-6 animate-pulse">
+              <div className="h-4 bg-stone-700/50 rounded w-40 mb-4" />
+              <div className="h-[300px] bg-stone-700/50 rounded" />
             </div>
           ))}
         </div>
-        {/* Table skeleton */}
-        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6 animate-pulse">
-          <div className="h-4 bg-gray-200 dark:bg-slate-700 rounded w-36 mb-4" />
+        <div className="bento-card-static p-6 animate-pulse">
+          <div className="h-4 bg-stone-700/50 rounded w-36 mb-4" />
           <div className="space-y-3">
             {[...Array(3)].map((_, i) => (
-              <div key={i} className="h-10 bg-gray-200 dark:bg-slate-700 rounded" />
+              <div key={i} className="h-10 bg-stone-700/50 rounded" />
             ))}
           </div>
         </div>
@@ -128,8 +118,8 @@ export default function PipelineTab({ startDate, endDate }: PipelineTabProps) {
 
   if (error) {
     return (
-      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6">
-        <p className="text-red-600 dark:text-red-400 text-sm">
+      <div className="bento-card-static p-6">
+        <p className="text-[--exec-danger] text-sm">
           Failed to load pipeline data. Please try again.
         </p>
       </div>
@@ -164,8 +154,8 @@ export default function PipelineTab({ startDate, endDate }: PipelineTabProps) {
       </div>
 
       {/* Deal Funnel */}
-      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6">
-        <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-4">
+      <div className="bento-card-static p-6">
+        <h3 className="text-base font-semibold text-[--exec-text] mb-4">
           Deal Funnel
         </h3>
         <div className="space-y-2">
@@ -174,7 +164,7 @@ export default function PipelineTab({ startDate, endDate }: PipelineTabProps) {
             const color = FUNNEL_COLORS[index % FUNNEL_COLORS.length];
             return (
               <div key={stage.stage} className="flex items-center gap-3">
-                <span className="text-sm font-medium text-gray-700 dark:text-slate-200 w-28 shrink-0">
+                <span className="text-sm font-medium text-[--exec-text-secondary] w-28 shrink-0">
                   {stage.stage}
                 </span>
                 <div className="flex-1 relative">
@@ -191,7 +181,7 @@ export default function PipelineTab({ startDate, endDate }: PipelineTabProps) {
                     </span>
                   </div>
                 </div>
-                <span className="text-sm font-medium text-gray-500 dark:text-slate-400 w-24 text-right shrink-0">
+                <span className="text-sm font-medium text-[--exec-text-muted] w-24 text-right shrink-0">
                   {formatCurrency(stage.value)}
                 </span>
               </div>
@@ -202,9 +192,8 @@ export default function PipelineTab({ startDate, endDate }: PipelineTabProps) {
 
       {/* Pipeline Value Over Time + Win Rate Trend */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Pipeline Value Over Time */}
-        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6">
-          <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-4">
+        <div className="bento-card-static p-6">
+          <h3 className="text-base font-semibold text-[--exec-text] mb-4">
             Pipeline Value Over Time
           </h3>
           <ResponsiveContainer width="100%" height={300}>
@@ -240,9 +229,8 @@ export default function PipelineTab({ startDate, endDate }: PipelineTabProps) {
           </ResponsiveContainer>
         </div>
 
-        {/* Win Rate Trend */}
-        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6">
-          <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-4">
+        <div className="bento-card-static p-6">
+          <h3 className="text-base font-semibold text-[--exec-text] mb-4">
             Win Rate Trend
           </h3>
           <ResponsiveContainer width="100%" height={300}>
@@ -280,46 +268,46 @@ export default function PipelineTab({ startDate, endDate }: PipelineTabProps) {
       </div>
 
       {/* Stalled Deals Table */}
-      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 overflow-hidden">
+      <div className="bento-card-static overflow-hidden">
         <div className="px-6 pt-6 pb-4">
           <div className="flex items-center gap-2 mb-1">
-            <AlertTriangle className="w-5 h-5 text-amber-500" />
-            <h3 className="text-base font-semibold text-gray-900 dark:text-white">
+            <AlertTriangle className="w-5 h-5 text-[--exec-warning]" />
+            <h3 className="text-base font-semibold text-[--exec-text]">
               Stalled Deals
             </h3>
           </div>
-          <p className="text-sm text-gray-500 dark:text-slate-400">
+          <p className="text-sm text-[--exec-text-muted]">
             Deals with no activity for 14+ days
           </p>
         </div>
         {data.stalled_deals.length > 0 ? (
-          <table className="min-w-full divide-y divide-gray-200 dark:divide-slate-700">
-            <thead className="bg-gray-50 dark:bg-slate-700/50">
+          <table className="min-w-full divide-y divide-[--exec-border-subtle]">
+            <thead className="bg-stone-800/50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-[--exec-text-muted] uppercase tracking-wider">
                   Deal Name
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-[--exec-text-muted] uppercase tracking-wider">
                   Stage
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-[--exec-text-muted] uppercase tracking-wider">
                   Value
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-[--exec-text-muted] uppercase tracking-wider">
                   Days Stalled
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200 dark:divide-slate-700">
+            <tbody className="divide-y divide-[--exec-border-subtle]">
               {data.stalled_deals.map((deal) => (
-                <tr key={deal.id} className="hover:bg-gray-50 dark:hover:bg-slate-700/50">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                <tr key={deal.id} className="hover:bg-[--exec-surface-alt] transition-colors">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-[--exec-text]">
                     {deal.title}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-slate-400">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-[--exec-text-muted]">
                     {deal.stage}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-[--exec-text]">
                     {formatCurrency(deal.value)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -327,8 +315,8 @@ export default function PipelineTab({ startDate, endDate }: PipelineTabProps) {
                       className={cn(
                         'inline-flex items-center px-2.5 py-1 text-xs font-medium rounded-full border',
                         deal.days_stalled > 30
-                          ? 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800'
-                          : 'bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800'
+                          ? 'bg-[--exec-danger-bg] text-[--exec-danger] border-[--exec-danger]/30'
+                          : 'bg-[--exec-warning-bg] text-[--exec-warning] border-[--exec-warning]/30'
                       )}
                     >
                       {deal.days_stalled} days
@@ -340,7 +328,7 @@ export default function PipelineTab({ startDate, endDate }: PipelineTabProps) {
           </table>
         ) : (
           <div className="px-6 pb-6 pt-2 text-center">
-            <p className="text-sm text-gray-500 dark:text-slate-400 py-8">
+            <p className="text-sm text-[--exec-text-muted] py-8">
               No stalled deals -- all deals are progressing on schedule.
             </p>
           </div>

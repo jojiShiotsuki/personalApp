@@ -53,10 +53,10 @@ interface TimeData {
 }
 
 const tooltipStyle = {
-  backgroundColor: '#1e293b',
-  border: '1px solid #334155',
-  borderRadius: '8px',
-  color: '#f1f5f9',
+  backgroundColor: 'var(--exec-surface)',
+  border: '1px solid var(--exec-border-subtle)',
+  borderRadius: '12px',
+  color: 'var(--exec-text)',
 };
 
 const axisTickStyle = { fontSize: 12, fill: '#94a3b8' };
@@ -84,39 +84,29 @@ export default function TimeTab({ startDate, endDate }: TimeTabProps) {
   if (isLoading) {
     return (
       <div className="space-y-6">
-        {/* Metric card skeletons */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {[...Array(3)].map((_, i) => (
-            <div
-              key={i}
-              className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6 animate-pulse"
-            >
-              <div className="h-4 bg-gray-200 dark:bg-slate-700 rounded w-24 mb-4" />
-              <div className="h-8 bg-gray-200 dark:bg-slate-700 rounded w-32" />
+            <div key={i} className="bento-card-static p-6 animate-pulse">
+              <div className="h-4 bg-stone-700/50 rounded w-24 mb-4" />
+              <div className="h-8 bg-stone-700/50 rounded w-32" />
             </div>
           ))}
         </div>
-        {/* Full-width chart skeleton */}
-        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6 animate-pulse">
-          <div className="h-4 bg-gray-200 dark:bg-slate-700 rounded w-48 mb-4" />
-          <div className="h-[300px] bg-gray-200 dark:bg-slate-700 rounded" />
+        <div className="bento-card-static p-6 animate-pulse">
+          <div className="h-4 bg-stone-700/50 rounded w-48 mb-4" />
+          <div className="h-[300px] bg-stone-700/50 rounded" />
         </div>
-        {/* Two-column skeleton */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {[...Array(2)].map((_, i) => (
-            <div
-              key={i}
-              className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6 animate-pulse"
-            >
-              <div className="h-4 bg-gray-200 dark:bg-slate-700 rounded w-40 mb-4" />
-              <div className="h-[300px] bg-gray-200 dark:bg-slate-700 rounded" />
+            <div key={i} className="bento-card-static p-6 animate-pulse">
+              <div className="h-4 bg-stone-700/50 rounded w-40 mb-4" />
+              <div className="h-[300px] bg-stone-700/50 rounded" />
             </div>
           ))}
         </div>
-        {/* Full-width chart skeleton */}
-        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6 animate-pulse">
-          <div className="h-4 bg-gray-200 dark:bg-slate-700 rounded w-36 mb-4" />
-          <div className="h-[350px] bg-gray-200 dark:bg-slate-700 rounded" />
+        <div className="bento-card-static p-6 animate-pulse">
+          <div className="h-4 bg-stone-700/50 rounded w-36 mb-4" />
+          <div className="h-[350px] bg-stone-700/50 rounded" />
         </div>
       </div>
     );
@@ -124,8 +114,8 @@ export default function TimeTab({ startDate, endDate }: TimeTabProps) {
 
   if (error) {
     return (
-      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6">
-        <p className="text-red-600 dark:text-red-400 text-sm">
+      <div className="bento-card-static p-6">
+        <p className="text-[--exec-danger] text-sm">
           Failed to load time data. Please try again.
         </p>
       </div>
@@ -162,9 +152,9 @@ export default function TimeTab({ startDate, endDate }: TimeTabProps) {
         />
       </div>
 
-      {/* Hours Over Time — full width bar chart */}
-      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6">
-        <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-4">
+      {/* Hours Over Time */}
+      <div className="bento-card-static p-6">
+        <h3 className="text-base font-semibold text-[--exec-text] mb-4">
           Hours Over Time
         </h3>
         <ResponsiveContainer width="100%" height={300}>
@@ -200,9 +190,8 @@ export default function TimeTab({ startDate, endDate }: TimeTabProps) {
 
       {/* Billable vs Non-billable + Time by Category */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Billable vs Non-billable — donut pie chart */}
-        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6">
-          <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-4">
+        <div className="bento-card-static p-6">
+          <h3 className="text-base font-semibold text-[--exec-text] mb-4">
             Billable vs Non-billable
           </h3>
           <ResponsiveContainer width="100%" height={300}>
@@ -235,9 +224,8 @@ export default function TimeTab({ startDate, endDate }: TimeTabProps) {
           </ResponsiveContainer>
         </div>
 
-        {/* Time by Category — full pie chart */}
-        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6">
-          <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-4">
+        <div className="bento-card-static p-6">
+          <h3 className="text-base font-semibold text-[--exec-text] mb-4">
             Time by Category
           </h3>
           <ResponsiveContainer width="100%" height={300}>
@@ -273,9 +261,9 @@ export default function TimeTab({ startDate, endDate }: TimeTabProps) {
         </div>
       </div>
 
-      {/* Time by Project — full width horizontal bar chart */}
-      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6">
-        <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-4">
+      {/* Time by Project */}
+      <div className="bento-card-static p-6">
+        <h3 className="text-base font-semibold text-[--exec-text] mb-4">
           Time by Project
         </h3>
         {data.time_by_project.length > 0 ? (
@@ -312,7 +300,7 @@ export default function TimeTab({ startDate, endDate }: TimeTabProps) {
             </BarChart>
           </ResponsiveContainer>
         ) : (
-          <p className="text-sm text-gray-500 dark:text-slate-400 text-center py-12">
+          <p className="text-sm text-[--exec-text-muted] text-center py-12">
             No project time data available for this period.
           </p>
         )}

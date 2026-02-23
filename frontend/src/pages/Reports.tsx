@@ -28,44 +28,53 @@ export default function Reports() {
   };
 
   return (
-    <div className="min-h-full bg-[--exec-bg]">
-      {/* Header */}
-      <div className="bg-[--exec-surface] border-b border-stone-700/40 px-8 py-6">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <BarChart3 className="w-6 h-6 text-[--exec-accent]" />
-            <div>
-              <h1 className="text-2xl font-bold text-[--exec-text] tracking-tight">Reports</h1>
-              <p className="mt-1 text-sm text-[--exec-text-muted]">
-                Analytics and insights across your business
-              </p>
+    <div className="min-h-full bg-[--exec-bg] grain">
+      {/* Hero Header */}
+      <header className="relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-[--exec-surface] via-[--exec-surface] to-[--exec-accent-bg-subtle]" />
+        <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-bl from-[--exec-accent]/5 to-transparent rounded-full blur-3xl" />
+
+        <div className="relative px-8 pt-8 pb-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-[--exec-accent-bg] flex items-center justify-center">
+                <BarChart3 className="w-5 h-5 text-[--exec-accent]" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-[--exec-text] tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>
+                  Reports
+                </h1>
+                <p className="mt-0.5 text-sm text-[--exec-text-muted]">
+                  Analytics and insights across your business
+                </p>
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Date Range Picker */}
-        <div className="mb-4">
-          <DateRangePicker startDate={startDate} endDate={endDate} onChange={handleDateChange} />
-        </div>
+          {/* Date Range Picker */}
+          <div className="mb-4">
+            <DateRangePicker startDate={startDate} endDate={endDate} onChange={handleDateChange} />
+          </div>
 
-        {/* Tabs */}
-        <div className="flex items-center gap-1 bg-stone-800/50 p-1 rounded-xl w-fit">
-          {TABS.map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
-              className={cn(
-                "px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200",
-                activeTab === tab.key
-                  ? "bg-[--exec-surface] text-[--exec-text] shadow-sm"
-                  : "text-[--exec-text-muted] hover:text-[--exec-text-secondary]"
-              )}
-            >
-              {tab.label}
-            </button>
-          ))}
+          {/* Tabs */}
+          <div className="flex items-center gap-1 bg-stone-800/50 p-1 rounded-xl w-fit">
+            {TABS.map((tab) => (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                className={cn(
+                  "px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200",
+                  activeTab === tab.key
+                    ? "bg-[--exec-accent] text-white shadow-sm"
+                    : "text-stone-400 hover:text-white hover:bg-stone-600"
+                )}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      </header>
 
       {/* Content */}
       <div className="px-8 py-6 space-y-6">
