@@ -24,24 +24,29 @@ app = FastAPI(
 )
 
 # CORS configuration - supports both development and production
-# In development, allow all localhost origins. In production, use specific origins.
-if os.getenv("ENVIRONMENT", "development") == "production":
+# Detect production via RENDER env var (set automatically on Render) or ENVIRONMENT
+is_production = os.getenv("RENDER") or os.getenv("ENVIRONMENT") == "production"
+
+if is_production:
     raw_origins = os.getenv("CORS_ORIGINS", "")
     allowed_origins = [o.strip() for o in raw_origins.split(",") if o.strip()]
     # Ensure the Render frontend is always allowed
     render_frontend = "https://vertex-frontend-h5qj.onrender.com"
     if render_frontend not in allowed_origins:
         allowed_origins.append(render_frontend)
-    allow_credentials = True
 else:
-    # Development: allow all origins (credentials must be False with "*")
-    allowed_origins = ["*"]
-    allow_credentials = False
+    # Development: allow localhost origins
+    allowed_origins = [
+        "http://localhost:5173",
+        "http://localhost:5174",
+        "http://127.0.0.1:5173",
+        "http://127.0.0.1:5174",
+    ]
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
-    allow_credentials=allow_credentials,
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
