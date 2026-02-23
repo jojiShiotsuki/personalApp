@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { coldOutreachApi } from '@/lib/api';
 import type { OutreachCampaign, MultiTouchStepCreate } from '@/types';
 import { CampaignType, StepChannelType } from '@/types';
-import { X, Plus, Trash2, Mail, Linkedin, MessageCircle, Heart, Reply } from 'lucide-react';
+import { X, Plus, Trash2, Mail, Linkedin, MessageCircle, Heart, Reply, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -141,15 +141,32 @@ export default function NewCampaignModal({
     }
   };
 
-  const addStep = () => {
-    if (steps.length >= 50) return; // generous upper limit
+  const [showAddMenu, setShowAddMenu] = useState(false);
+  const addMenuRef = useRef<HTMLDivElement>(null);
+
+  // Close add menu on outside click
+  useEffect(() => {
+    if (!showAddMenu) return;
+    const handleClick = (e: MouseEvent) => {
+      if (addMenuRef.current && !addMenuRef.current.contains(e.target as Node)) {
+        setShowAddMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [showAddMenu]);
+
+  const addStep = (channelType: StepChannelType) => {
+    if (steps.length >= 50) return;
+    const config = CHANNEL_CONFIG[channelType];
     const nextNum = steps.length + 1;
     setSteps([...steps, {
       step_number: nextNum,
-      channel_type: StepChannelType.EMAIL,
-      delay_days: 1,
-      instruction_text: '',
+      channel_type: channelType,
+      delay_days: config.defaultDelay,
+      instruction_text: config.defaultInstruction,
     }]);
+    setShowAddMenu(false);
   };
 
   const removeStep = (index: number) => {
@@ -244,14 +261,35 @@ export default function NewCampaignModal({
                 <h3 className="text-sm font-semibold text-[--exec-text] mb-3 flex items-center justify-between">
                   <span>Sequence Steps ({steps.length})</span>
                   {steps.length < 50 && (
-                    <button
-                      type="button"
-                      onClick={addStep}
-                      className="flex items-center gap-1 text-xs font-medium text-[--exec-accent] hover:text-[--exec-accent-light] transition-colors"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                      Add Step
-                    </button>
+                    <div className="relative" ref={addMenuRef}>
+                      <button
+                        type="button"
+                        onClick={() => setShowAddMenu(!showAddMenu)}
+                        className="flex items-center gap-1 text-xs font-medium text-[--exec-accent] hover:text-[--exec-accent-light] transition-colors"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        Add Step
+                        <ChevronDown className={cn('w-3 h-3 transition-transform', showAddMenu && 'rotate-180')} />
+                      </button>
+                      {showAddMenu && (
+                        <div className="absolute right-0 top-full mt-1 bg-stone-800 border border-stone-600/60 rounded-lg shadow-xl z-10 py-1 w-52 animate-in fade-in zoom-in-95 duration-150">
+                          {Object.entries(CHANNEL_CONFIG).map(([key, cfg]) => {
+                            const Icon = cfg.icon;
+                            return (
+                              <button
+                                key={key}
+                                type="button"
+                                onClick={() => addStep(key as StepChannelType)}
+                                className="w-full flex items-center gap-2.5 px-3 py-2 text-left text-sm text-[--exec-text-secondary] hover:text-[--exec-text] hover:bg-stone-700/60 transition-colors"
+                              >
+                                <Icon className={cn('w-4 h-4', cfg.color)} />
+                                {cfg.label}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
                   )}
                 </h3>
 
