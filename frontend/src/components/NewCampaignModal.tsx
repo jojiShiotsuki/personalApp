@@ -314,10 +314,11 @@ export default function NewCampaignModal({
                               className={cn(inputClasses, 'py-1.5 text-xs')}
                             />
 
-                            {/* Template fields for email/message steps */}
+                            {/* Template fields for email/message/connect steps */}
                             {(step.channel_type === StepChannelType.EMAIL ||
                               step.channel_type === StepChannelType.FOLLOW_UP_EMAIL ||
-                              step.channel_type === StepChannelType.LINKEDIN_MESSAGE) && (
+                              step.channel_type === StepChannelType.LINKEDIN_MESSAGE ||
+                              step.channel_type === StepChannelType.LINKEDIN_CONNECT) && (
                               <div className="space-y-1.5">
                                 {(step.channel_type === StepChannelType.EMAIL || step.channel_type === StepChannelType.FOLLOW_UP_EMAIL) && (
                                   <input
