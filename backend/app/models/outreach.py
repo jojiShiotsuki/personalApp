@@ -142,6 +142,11 @@ class OutreachProspect(Base):
     # Data copied from discovered lead during import
     website_issues = Column(JSON, nullable=True)  # e.g. ['slow_load', 'not_mobile_friendly', ...]
 
+    # Automated website audit fields
+    website_speed_score = Column(Integer, nullable=True)
+    last_audited_at = Column(DateTime, nullable=True)
+    audit_data = Column(JSON, nullable=True)  # Full audit results for drill-down
+
     # Social links (copied from discovered lead during import)
     linkedin_url = Column(String(500), nullable=True)
     facebook_url = Column(String(500), nullable=True)

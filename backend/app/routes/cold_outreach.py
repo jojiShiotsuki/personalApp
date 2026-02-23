@@ -19,6 +19,7 @@ from app.schemas.outreach import (
     EmailTemplateCreate, EmailTemplateResponse,
     RenderedEmail,
     MultiTouchStepCreate, MultiTouchStepResponse,
+    WebsiteAuditResult, BulkAuditRequest, BulkAuditResponse,
 )
 
 router = APIRouter(prefix="/api/outreach/campaigns", tags=["cold-outreach"])
@@ -466,6 +467,127 @@ def delete_prospect(prospect_id: int, db: Session = Depends(get_db)):
 
     db.delete(prospect)
     db.commit()
+
+
+# ============== WEBSITE AUDIT ENDPOINTS ==============
+
+@router.post("/prospects/{prospect_id}/audit-website", response_model=WebsiteAuditResult)
+async def audit_prospect_website(prospect_id: int, db: Session = Depends(get_db)):
+    """Run automated website audit for a single prospect."""
+    from app.services.website_audit_service import audit_single_website
+
+    prospect = db.query(OutreachProspect).filter(OutreachProspect.id == prospect_id).first()
+    if not prospect:
+        raise HTTPException(status_code=404, detail="Prospect not found")
+    if not prospect.website:
+        raise HTTPException(status_code=400, detail="Prospect has no website URL")
+
+    audit = await audit_single_website(
+        url=prospect.website,
+        business_name=prospect.agency_name,
+        niche=prospect.niche,
+    )
+
+    # Update prospect fields
+    prospect.website_speed_score = audit["speed_score"]
+    prospect.website_issues = audit["issues"]
+    prospect.last_audited_at = datetime.utcnow()
+    prospect.audit_data = {
+        "summary": audit["summary"],
+        "design_notes": audit["design_notes"],
+        "raw_data": audit["raw_data"],
+    }
+    db.commit()
+    db.refresh(prospect)
+
+    return WebsiteAuditResult(
+        prospect_id=prospect.id,
+        speed_score=audit["speed_score"],
+        issues=audit["issues"],
+        summary=audit["summary"],
+        design_notes=audit["design_notes"],
+    )
+
+
+@router.post("/{campaign_id}/prospects/bulk-audit", response_model=BulkAuditResponse)
+async def bulk_audit_campaign_websites(
+    campaign_id: int,
+    body: Optional[BulkAuditRequest] = None,
+    db: Session = Depends(get_db),
+):
+    """Run website audit on multiple prospects. Defaults to unaudited prospects with websites."""
+    import asyncio as aio
+    from app.services.website_audit_service import audit_single_website
+
+    campaign = db.query(OutreachCampaign).filter(OutreachCampaign.id == campaign_id).first()
+    if not campaign:
+        raise HTTPException(status_code=404, detail="Campaign not found")
+
+    query = db.query(OutreachProspect).filter(
+        OutreachProspect.campaign_id == campaign_id,
+        OutreachProspect.website.isnot(None),
+        OutreachProspect.website != "",
+    )
+
+    if body and body.prospect_ids:
+        query = query.filter(OutreachProspect.id.in_(body.prospect_ids))
+    else:
+        # Default: only unaudited prospects
+        query = query.filter(OutreachProspect.last_audited_at.is_(None))
+
+    prospects = query.order_by(OutreachProspect.id.asc()).limit(50).all()
+
+    audited = 0
+    skipped = 0
+    failed = 0
+    results = []
+
+    for prospect in prospects:
+        if not prospect.website or not prospect.website.strip():
+            skipped += 1
+            continue
+
+        try:
+            audit = await audit_single_website(
+                url=prospect.website,
+                business_name=prospect.agency_name,
+                niche=prospect.niche,
+            )
+
+            prospect.website_speed_score = audit["speed_score"]
+            prospect.website_issues = audit["issues"]
+            prospect.last_audited_at = datetime.utcnow()
+            prospect.audit_data = {
+                "summary": audit["summary"],
+                "design_notes": audit["design_notes"],
+                "raw_data": audit["raw_data"],
+            }
+
+            results.append(WebsiteAuditResult(
+                prospect_id=prospect.id,
+                speed_score=audit["speed_score"],
+                issues=audit["issues"],
+                summary=audit["summary"],
+                design_notes=audit["design_notes"],
+            ))
+            audited += 1
+
+        except Exception as e:
+            failed += 1
+            import logging
+            logging.getLogger(__name__).warning(f"Bulk audit failed for prospect {prospect.id}: {e}")
+
+        # Rate limit delay between audits (PageSpeed API limits)
+        await aio.sleep(2)
+
+    db.commit()
+
+    return BulkAuditResponse(
+        audited=audited,
+        skipped=skipped,
+        failed=failed,
+        results=results,
+    )
 
 
 @router.post("/prospects/{prospect_id}/mark-sent", response_model=MarkSentResponse)
