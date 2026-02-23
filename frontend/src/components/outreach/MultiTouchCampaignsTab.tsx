@@ -19,6 +19,8 @@ import {
   Users,
   CheckCircle,
   ChevronDown,
+  ChevronRight,
+  ArrowRight,
   Edit2,
   Trash2,
   Globe,
@@ -944,6 +946,141 @@ function SkippedProspects({
   );
 }
 
+// Sequence Steps Panel — collapsible horizontal pipeline view
+function SequenceStepsPanel({
+  steps,
+  onEdit,
+  onDelete,
+}: {
+  steps: MultiTouchStep[];
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  const [isExpanded, setIsExpanded] = useState(true);
+
+  if (steps.length === 0) return null;
+
+  return (
+    <div className="bento-card overflow-hidden mb-6">
+      {/* Header */}
+      <button
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-[--exec-surface-alt] transition-colors"
+      >
+        <div className="flex items-center gap-2.5">
+          <ChevronRight
+            className={cn(
+              'w-4 h-4 text-[--exec-text-muted] transition-transform duration-200',
+              isExpanded && 'rotate-90'
+            )}
+          />
+          <Layers className="w-4 h-4 text-purple-400" />
+          <span className="text-sm font-semibold text-[--exec-text]">
+            Sequence
+          </span>
+          <span className="text-xs text-[--exec-text-muted]">
+            ({steps.length} step{steps.length !== 1 ? 's' : ''})
+          </span>
+        </div>
+
+        <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+          <button
+            onClick={onEdit}
+            className={cn(
+              'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200',
+              'bg-blue-500/15 text-blue-400 border border-blue-500/25',
+              'hover:bg-blue-500/25 hover:border-blue-400/40'
+            )}
+          >
+            <Edit2 className="w-3 h-3" />
+            Edit Sequence
+          </button>
+          <button
+            onClick={onDelete}
+            className={cn(
+              'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200',
+              'bg-red-500/15 text-red-400 border border-red-500/25',
+              'hover:bg-red-500/25 hover:border-red-400/40'
+            )}
+          >
+            <Trash2 className="w-3 h-3" />
+            Delete
+          </button>
+        </div>
+      </button>
+
+      {/* Steps pipeline */}
+      {isExpanded && (
+        <div className="px-5 pb-5 pt-1">
+          <div className="flex items-stretch gap-0 overflow-x-auto pb-2">
+            {steps.map((step, idx) => {
+              const colors = CHANNEL_COLORS[step.channel_type as StepChannelType];
+              const Icon = CHANNEL_ICONS[step.channel_type as StepChannelType];
+              const label = CHANNEL_LABELS[step.channel_type as StepChannelType];
+              const isLast = idx === steps.length - 1;
+
+              return (
+                <div key={step.id || step.step_number} className="flex items-stretch flex-shrink-0">
+                  {/* Step card */}
+                  <div
+                    className={cn(
+                      'flex flex-col gap-1.5 px-4 py-3 rounded-xl border min-w-[150px] max-w-[180px]',
+                      'bg-stone-800/40 border-stone-700/40',
+                      'hover:bg-stone-800/60 hover:border-stone-600/50 transition-all duration-200'
+                    )}
+                  >
+                    {/* Step number + channel */}
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={cn(
+                          'flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-bold',
+                          colors?.bg || 'bg-stone-600/30',
+                          colors?.text || 'text-stone-400'
+                        )}
+                      >
+                        {step.step_number}
+                      </span>
+                      <div className="flex items-center gap-1.5">
+                        {Icon && <Icon className={cn('w-3.5 h-3.5', colors?.text || 'text-stone-400')} />}
+                        <span className={cn('text-xs font-semibold', colors?.text || 'text-stone-400')}>
+                          {label || step.channel_type}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Delay info */}
+                    <span className="text-[10px] text-[--exec-text-muted]">
+                      {step.step_number === 1 && step.delay_days === 0
+                        ? 'starts immediately'
+                        : step.delay_days === 0
+                          ? 'no delay'
+                          : `wait ${step.delay_days}d after prev`}
+                    </span>
+
+                    {/* Instruction text */}
+                    {step.instruction_text && (
+                      <p className="text-[10px] text-[--exec-text-muted] line-clamp-2 leading-tight mt-0.5">
+                        {step.instruction_text}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Arrow connector */}
+                  {!isLast && (
+                    <div className="flex items-center px-1.5 flex-shrink-0">
+                      <ArrowRight className="w-4 h-4 text-stone-600" />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Main component
 export default function MultiTouchCampaignsTab() {
   const [selectedCampaignId, setSelectedCampaignId] = useState<number | null>(null);
@@ -1206,6 +1343,29 @@ export default function MultiTouchCampaignsTab() {
           )}
         </div>
 
+        {/* Quick edit/delete buttons (visible next to selector when campaign selected) */}
+        {selectedCampaignId && (() => {
+          const selectedCampaign = campaigns.find((c) => c.id === selectedCampaignId);
+          return selectedCampaign ? (
+            <div className="flex items-center gap-1.5 ml-2">
+              <button
+                onClick={(e) => handleEditCampaign(e, selectedCampaign)}
+                className="p-2 rounded-lg text-[--exec-text-muted] hover:text-blue-400 hover:bg-blue-500/15 transition-all duration-200"
+                title="Edit campaign"
+              >
+                <Edit2 className="w-4 h-4" />
+              </button>
+              <button
+                onClick={(e) => handleDeleteCampaign(e, selectedCampaign.id)}
+                className="p-2 rounded-lg text-[--exec-text-muted] hover:text-red-400 hover:bg-red-500/15 transition-all duration-200"
+                title="Delete campaign"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
+          ) : null;
+        })()}
+
         {/* Action buttons */}
         <div className="flex items-center gap-3">
           <button
@@ -1340,6 +1500,24 @@ export default function MultiTouchCampaignsTab() {
               </div>
             </div>
           </div>
+        )}
+
+        {/* Sequence Steps Panel */}
+        {selectedCampaignId && campaignSteps.length > 0 && (
+          <SequenceStepsPanel
+            steps={campaignSteps}
+            onEdit={() => {
+              const campaign = campaigns.find((c) => c.id === selectedCampaignId);
+              if (campaign) {
+                setEditingCampaign(campaign);
+              }
+            }}
+            onDelete={() => {
+              if (confirm('Delete this campaign and all its prospects?')) {
+                deleteCampaignMutation.mutate(selectedCampaignId);
+              }
+            }}
+          />
         )}
 
         {/* Sub-tabs */}
