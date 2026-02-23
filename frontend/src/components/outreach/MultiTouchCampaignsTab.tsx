@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { coldOutreachApi } from '@/lib/api';
@@ -164,7 +164,7 @@ function ChannelBadge({ channelType }: { channelType: StepChannelType }) {
   );
 }
 
-// Inline website issue tagger — clickable toggle badges
+// Inline website issue tagger — clickable toggle badges with optimistic local state
 function WebsiteIssueTagger({
   prospect,
   onUpdate,
@@ -172,20 +172,26 @@ function WebsiteIssueTagger({
   prospect: OutreachProspect;
   onUpdate: (prospectId: number, issues: string[]) => void;
 }) {
-  const currentIssues = prospect.website_issues || [];
+  const [localIssues, setLocalIssues] = useState<string[]>(prospect.website_issues || []);
+
+  // Sync from server when prospect data changes
+  useEffect(() => {
+    setLocalIssues(prospect.website_issues || []);
+  }, [prospect.website_issues]);
 
   const toggle = (issueKey: string) => {
-    const updated = currentIssues.includes(issueKey)
-      ? currentIssues.filter((i) => i !== issueKey)
-      : [...currentIssues, issueKey];
-    onUpdate(prospect.id, updated);
+    const updated = localIssues.includes(issueKey)
+      ? localIssues.filter((i) => i !== issueKey)
+      : [...localIssues, issueKey];
+    setLocalIssues(updated); // Optimistic update
+    onUpdate(prospect.id, updated); // Persist to server
   };
 
   return (
     <div className="flex flex-wrap items-center gap-1">
       <AlertTriangle className="w-3 h-3 text-amber-400/60 flex-shrink-0" />
       {Object.entries(WEBSITE_ISSUE_LABELS).map(([key, info]) => {
-        const isActive = currentIssues.includes(key);
+        const isActive = localIssues.includes(key);
         return (
           <button
             key={key}
