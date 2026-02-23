@@ -44,6 +44,7 @@ import CsvImportModal from '@/components/CsvImportModal';
 import ResponseOutcomeModal from '@/components/ResponseOutcomeModal';
 import NewCampaignModal from '@/components/NewCampaignModal';
 import ProspectStatusBadge from '@/components/outreach/ProspectStatusBadge';
+import { WEBSITE_ISSUE_LABELS } from '@/lib/outreachConstants';
 
 type TabType = 'today' | 'all' | 'replied' | 'skipped';
 
@@ -163,6 +164,47 @@ function ChannelBadge({ channelType }: { channelType: StepChannelType }) {
   );
 }
 
+// Inline website issue tagger — clickable toggle badges
+function WebsiteIssueTagger({
+  prospect,
+  onUpdate,
+}: {
+  prospect: OutreachProspect;
+  onUpdate: (prospectId: number, issues: string[]) => void;
+}) {
+  const currentIssues = prospect.website_issues || [];
+
+  const toggle = (issueKey: string) => {
+    const updated = currentIssues.includes(issueKey)
+      ? currentIssues.filter((i) => i !== issueKey)
+      : [...currentIssues, issueKey];
+    onUpdate(prospect.id, updated);
+  };
+
+  return (
+    <div className="flex flex-wrap items-center gap-1">
+      <AlertTriangle className="w-3 h-3 text-amber-400/60 flex-shrink-0" />
+      {Object.entries(WEBSITE_ISSUE_LABELS).map(([key, info]) => {
+        const isActive = currentIssues.includes(key);
+        return (
+          <button
+            key={key}
+            onClick={() => toggle(key)}
+            className={cn(
+              'px-1.5 py-0.5 text-[10px] font-medium rounded border transition-all duration-150',
+              isActive
+                ? info.color
+                : 'text-stone-500 bg-stone-800/30 border-stone-700/40 hover:border-stone-500/50 hover:text-stone-400'
+            )}
+          >
+            {info.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 // Edit Prospect Modal
 function EditProspectModal({
   prospect,
@@ -187,9 +229,19 @@ function EditProspectModal({
     niche: prospect.niche || '',
     notes: prospect.notes || '',
     linkedin_url: prospect.linkedin_url || '',
+    website_issues: prospect.website_issues || [] as string[],
   });
 
   if (!isOpen) return null;
+
+  const toggleIssue = (issueKey: string) => {
+    setForm((prev) => ({
+      ...prev,
+      website_issues: prev.website_issues.includes(issueKey)
+        ? prev.website_issues.filter((i) => i !== issueKey)
+        : [...prev.website_issues, issueKey],
+    }));
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -201,6 +253,7 @@ function EditProspectModal({
       niche: form.niche || undefined,
       notes: form.notes || undefined,
       linkedin_url: form.linkedin_url || undefined,
+      website_issues: form.website_issues,
     });
   };
 
@@ -267,6 +320,34 @@ function EditProspectModal({
             <div>
               <label className="block text-sm font-medium text-[--exec-text-secondary] mb-1.5">Notes</label>
               <textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} className={cn(inputClasses, 'resize-none')} rows={3} placeholder="Any context or notes..." />
+            </div>
+
+            {/* Website Issues */}
+            <div className="pt-4 border-t border-stone-700/30">
+              <label className="block text-sm font-medium text-[--exec-text-secondary] mb-2">
+                <AlertTriangle className="w-3.5 h-3.5 inline mr-1.5 text-amber-400" />
+                Website Issues
+              </label>
+              <div className="flex flex-wrap gap-1.5">
+                {Object.entries(WEBSITE_ISSUE_LABELS).map(([key, info]) => {
+                  const isActive = form.website_issues.includes(key);
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => toggleIssue(key)}
+                      className={cn(
+                        'px-2.5 py-1 text-xs font-medium rounded-lg border transition-all duration-150',
+                        isActive
+                          ? info.color
+                          : 'text-stone-500 bg-stone-800/30 border-stone-700/40 hover:border-stone-500/50 hover:text-stone-400'
+                      )}
+                    >
+                      {info.label}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             <div className="flex items-center justify-between pt-4 border-t border-stone-700/30 mt-6">
@@ -514,6 +595,7 @@ function MultiTouchProspectCard({
   onEngaged,
   onSkip,
   onEdit,
+  onUpdateIssues,
 }: {
   prospect: OutreachProspect;
   campaignId: number;
@@ -524,6 +606,7 @@ function MultiTouchProspectCard({
   onEngaged: (campaignId: number, prospectId: number) => void;
   onSkip: (prospectId: number) => void;
   onEdit: () => void;
+  onUpdateIssues: (prospectId: number, issues: string[]) => void;
 }) {
   const [isResponseModalOpen, setIsResponseModalOpen] = useState(false);
   const stepDetail = prospect.current_step_detail;
@@ -576,6 +659,11 @@ function MultiTouchProspectCard({
             )}
 
             <ProspectLinks prospect={prospect} />
+
+            {/* Website issue tags */}
+            <div className="mt-1.5">
+              <WebsiteIssueTagger prospect={prospect} onUpdate={onUpdateIssues} />
+            </div>
 
             {/* Dates */}
             {(prospect.last_contacted_at || prospect.next_action_date) && (
@@ -685,6 +773,7 @@ function TodayQueue({
   onEngaged,
   onSkip,
   onEdit,
+  onUpdateIssues,
 }: {
   prospects: OutreachProspect[];
   campaignId: number;
@@ -695,6 +784,7 @@ function TodayQueue({
   onEngaged: (campaignId: number, prospectId: number) => void;
   onSkip: (prospectId: number) => void;
   onEdit: (prospect: OutreachProspect) => void;
+  onUpdateIssues: (prospectId: number, issues: string[]) => void;
 }) {
   if (prospects.length === 0) {
     return (
@@ -720,6 +810,7 @@ function TodayQueue({
           onEngaged={onEngaged}
           onSkip={onSkip}
           onEdit={() => onEdit(prospect)}
+          onUpdateIssues={onUpdateIssues}
         />
       ))}
     </div>
@@ -731,10 +822,12 @@ function AllProspectsTable({
   prospects,
   campaignSteps,
   onEdit,
+  onUpdateIssues,
 }: {
   prospects: OutreachProspect[];
   campaignSteps: MultiTouchStep[];
   onEdit: (prospect: OutreachProspect) => void;
+  onUpdateIssues: (prospectId: number, issues: string[]) => void;
 }) {
   if (prospects.length === 0) {
     return (
@@ -753,6 +846,7 @@ function AllProspectsTable({
           <tr>
             <th className="px-6 py-3 text-left text-xs font-medium text-[--exec-text-muted] uppercase tracking-wider">Agency</th>
             <th className="px-6 py-3 text-left text-xs font-medium text-[--exec-text-muted] uppercase tracking-wider">Contact</th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-[--exec-text-muted] uppercase tracking-wider">Issues</th>
             <th className="px-6 py-3 text-left text-xs font-medium text-[--exec-text-muted] uppercase tracking-wider">Step</th>
             <th className="px-6 py-3 text-left text-xs font-medium text-[--exec-text-muted] uppercase tracking-wider">Status</th>
             <th className="px-6 py-3 text-left text-xs font-medium text-[--exec-text-muted] uppercase tracking-wider">Next Action</th>
@@ -780,6 +874,9 @@ function AllProspectsTable({
                     <span className="text-sm text-[--exec-text]">{prospect.contact_name || '-'}</span>
                     {prospect.email && <span className="text-xs text-[--exec-text-muted] block truncate max-w-[180px]">{prospect.email}</span>}
                   </div>
+                </td>
+                <td className="px-6 py-4">
+                  <WebsiteIssueTagger prospect={prospect} onUpdate={onUpdateIssues} />
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center gap-2">
@@ -1199,6 +1296,14 @@ export default function MultiTouchCampaignsTab() {
     onError: () => toast.error('Failed to update prospect'),
   });
 
+  // Silent mutation for inline issue tag toggling (no toast, no modal close)
+  const updateIssuesMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: Partial<OutreachProspect> }) =>
+      coldOutreachApi.updateProspect(id, data),
+    onSuccess: () => invalidateAll(),
+    onError: () => toast.error('Failed to update issues'),
+  });
+
   const deleteProspectMutation = useMutation({
     mutationFn: (prospectId: number) => coldOutreachApi.deleteProspect(prospectId),
     onSuccess: () => {
@@ -1241,6 +1346,10 @@ export default function MultiTouchCampaignsTab() {
 
   const handleEngaged = (campaignId: number, prospectId: number) => {
     engagedMutation.mutate({ campaignId, prospectId });
+  };
+
+  const handleUpdateIssues = (prospectId: number, issues: string[]) => {
+    updateIssuesMutation.mutate({ id: prospectId, data: { website_issues: issues } as Partial<OutreachProspect> });
   };
 
   const handleDeleteCampaign = (e: React.MouseEvent, campaignId: number) => {
@@ -1560,6 +1669,7 @@ export default function MultiTouchCampaignsTab() {
                 onEngaged={handleEngaged}
                 onSkip={(prospectId) => skipMutation.mutate(prospectId)}
                 onEdit={setEditingProspect}
+                onUpdateIssues={handleUpdateIssues}
               />
             )}
             {activeTab === 'all' && (
@@ -1567,6 +1677,7 @@ export default function MultiTouchCampaignsTab() {
                 prospects={allProspects}
                 campaignSteps={campaignSteps}
                 onEdit={setEditingProspect}
+                onUpdateIssues={handleUpdateIssues}
               />
             )}
             {activeTab === 'replied' && (
