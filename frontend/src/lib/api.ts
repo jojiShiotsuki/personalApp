@@ -1272,3 +1272,26 @@ export const discoveryCallApi = {
   },
 };
 
+// Reports API
+export const reportsApi = {
+  getOverview: async (startDate: string, endDate: string) => {
+    const res = await api.get('/api/reports/overview', { params: { start_date: startDate, end_date: endDate } });
+    return res.data;
+  },
+
+  getRevenue: async (startDate: string, endDate: string) => {
+    const res = await api.get('/api/reports/revenue', { params: { start_date: startDate, end_date: endDate } });
+    return res.data;
+  },
+
+  getTime: async (startDate: string, endDate: string) => {
+    const res = await api.get('/api/reports/time', { params: { start_date: startDate, end_date: endDate } });
+    return res.data;
+  },
+
+  getPipeline: async (startDate: string, endDate: string) => {
+    const res = await api.get('/api/reports/pipeline', { params: { start_date: startDate, end_date: endDate } });
+    return res.data;
+  },
+};
+
