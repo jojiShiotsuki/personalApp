@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { coldOutreachApi } from '@/lib/api';
 import type { OutreachProspect, RenderedEmail } from '@/types';
-import { X, Mail, Copy, Check, Send, Loader2, ChevronDown, AlertTriangle, Edit2 } from 'lucide-react';
+import { X, Mail, Copy, Check, Send, Loader2, ChevronDown, AlertTriangle, Edit2, StickyNote } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -61,6 +61,7 @@ export default function CopyEmailModal({
   const [isEditingIssues, setIsEditingIssues] = useState(false);
   const [customDescriptions, setCustomDescriptions] = useState<Record<string, string>>(loadCustomDescriptions);
   const [editDrafts, setEditDrafts] = useState<Record<string, string>>({});
+  const [customNote, setCustomNote] = useState(prospect.custom_email_note || '');
   const queryClient = useQueryClient();
 
   // Get the effective description for an issue (custom or default)
@@ -155,6 +156,25 @@ export default function CopyEmailModal({
       toast.error('Failed to mark as sent');
     },
   });
+
+  // Save custom note on blur
+  const saveNoteMutation = useMutation({
+    mutationFn: (note: string) =>
+      coldOutreachApi.updateProspect(prospect.id, { custom_email_note: note }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['outreach-today-queue'] });
+      queryClient.invalidateQueries({ queryKey: ['outreach-prospects'] });
+      queryClient.invalidateQueries({ queryKey: ['mt-today-queue'] });
+      queryClient.invalidateQueries({ queryKey: ['mt-prospects'] });
+    },
+  });
+
+  const handleNoteBlur = () => {
+    const trimmed = customNote.trim();
+    if (trimmed !== (prospect.custom_email_note || '')) {
+      saveNoteMutation.mutate(trimmed);
+    }
+  };
 
   const handleCopy = async (field: 'to' | 'subject' | 'body', value: string) => {
     try {
@@ -442,6 +462,31 @@ export default function CopyEmailModal({
               </div>
             </div>
           ) : null}
+
+          {/* Custom Note */}
+          <div className="mt-4">
+            <label className="flex items-center gap-1.5 text-xs font-medium text-[--exec-text-muted] uppercase tracking-wider mb-2">
+              <StickyNote className="w-3 h-3" />
+              Personal Note
+            </label>
+            <textarea
+              value={customNote}
+              onChange={(e) => setCustomNote(e.target.value)}
+              onBlur={handleNoteBlur}
+              className={cn(
+                'w-full px-4 py-2.5 rounded-lg',
+                'bg-stone-800/50 border border-stone-600/40',
+                'text-[--exec-text] placeholder:text-[--exec-text-muted]',
+                'focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]/50',
+                'transition-all text-sm resize-none'
+              )}
+              rows={2}
+              placeholder="Add a personalized note for this prospect..."
+            />
+            {saveNoteMutation.isPending && (
+              <p className="text-[10px] text-[--exec-text-muted] mt-1">Saving...</p>
+            )}
+          </div>
 
           {/* Footer */}
           <div className="flex gap-3 justify-end pt-6 border-t border-stone-700/30 mt-6">
