@@ -20,11 +20,7 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     op.add_column('outreach_prospects', sa.Column('custom_email_note', sa.Text(), nullable=True))
-    op.add_column('outreach_prospects', sa.Column('custom_email_subject', sa.String(500), nullable=True))
-    op.add_column('outreach_prospects', sa.Column('custom_email_body', sa.Text(), nullable=True))
 
 
 def downgrade() -> None:
-    op.drop_column('outreach_prospects', 'custom_email_body')
-    op.drop_column('outreach_prospects', 'custom_email_subject')
     op.drop_column('outreach_prospects', 'custom_email_note')
