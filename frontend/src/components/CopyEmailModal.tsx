@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { coldOutreachApi } from '@/lib/api';
 import type { OutreachProspect, RenderedEmail } from '@/types';
-import { X, Mail, Copy, Check, Send, Loader2, ChevronDown, AlertTriangle, Edit2, StickyNote } from 'lucide-react';
+import { X, Mail, Copy, Check, Send, Loader2, ChevronDown, AlertTriangle, Edit2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -463,11 +463,11 @@ export default function CopyEmailModal({
             </div>
           ) : null}
 
-          {/* Custom Note */}
+          {/* Alternate Message */}
           <div className="mt-4">
             <label className="flex items-center gap-1.5 text-xs font-medium text-[--exec-text-muted] uppercase tracking-wider mb-2">
-              <StickyNote className="w-3 h-3" />
-              Personal Note
+              <Edit2 className="w-3 h-3" />
+              Alternate Message
             </label>
             <textarea
               value={customNote}
@@ -480,8 +480,8 @@ export default function CopyEmailModal({
                 'focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]/50',
                 'transition-all text-sm resize-none'
               )}
-              rows={2}
-              placeholder="Add a personalized note for this prospect..."
+              rows={3}
+              placeholder="Write a custom message for this prospect..."
             />
             {saveNoteMutation.isPending && (
               <p className="text-[10px] text-[--exec-text-muted] mt-1">Saving...</p>
