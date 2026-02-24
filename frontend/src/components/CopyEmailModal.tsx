@@ -1,9 +1,9 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { coldOutreachApi } from '@/lib/api';
 import type { OutreachProspect, RenderedEmail } from '@/types';
-import { X, Mail, Copy, Check, Send, Loader2, ChevronDown, AlertTriangle, Edit2 } from 'lucide-react';
+import { X, Mail, Copy, Check, Send, Loader2, ChevronDown, AlertTriangle, Edit2, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -61,7 +61,12 @@ export default function CopyEmailModal({
   const [isEditingIssues, setIsEditingIssues] = useState(false);
   const [customDescriptions, setCustomDescriptions] = useState<Record<string, string>>(loadCustomDescriptions);
   const [editDrafts, setEditDrafts] = useState<Record<string, string>>({});
-  const [customNote, setCustomNote] = useState(prospect.custom_email_note || '');
+
+  // Editable subject/body — initialized from saved custom values or template
+  const [editSubject, setEditSubject] = useState(prospect.custom_email_subject || '');
+  const [editBody, setEditBody] = useState(prospect.custom_email_body || '');
+  const [hasInitializedFromTemplate, setHasInitializedFromTemplate] = useState(false);
+
   const queryClient = useQueryClient();
 
   // Get the effective description for an issue (custom or default)
@@ -89,6 +94,16 @@ export default function CopyEmailModal({
       body: rawEmail.body.replace(issueRegex, issueText),
     };
   }, [rawEmail, selectedIssue, customDescriptions]);
+
+  // Initialize editable fields from saved custom values or template once loaded
+  useEffect(() => {
+    if (email && !hasInitializedFromTemplate) {
+      // Use saved custom values if they exist, otherwise use the rendered template
+      setEditSubject(prospect.custom_email_subject || email.subject);
+      setEditBody(prospect.custom_email_body || email.body);
+      setHasInitializedFromTemplate(true);
+    }
+  }, [email, hasInitializedFromTemplate]);
 
   // Available issues: prospect's detected issues, or all if none
   const availableIssues = prospect.website_issues && prospect.website_issues.length > 0
@@ -150,6 +165,9 @@ export default function CopyEmailModal({
       queryClient.invalidateQueries({ queryKey: ['outreach-today-queue'] });
       queryClient.invalidateQueries({ queryKey: ['outreach-prospects'] });
       queryClient.invalidateQueries({ queryKey: ['outreach-campaign'] });
+      queryClient.invalidateQueries({ queryKey: ['mt-today-queue'] });
+      queryClient.invalidateQueries({ queryKey: ['mt-prospects'] });
+      queryClient.invalidateQueries({ queryKey: ['mt-campaign'] });
       onClose();
     },
     onError: () => {
@@ -157,10 +175,10 @@ export default function CopyEmailModal({
     },
   });
 
-  // Save custom note on blur
-  const saveNoteMutation = useMutation({
-    mutationFn: (note: string) =>
-      coldOutreachApi.updateProspect(prospect.id, { custom_email_note: note }),
+  // Save custom subject/body per prospect
+  const saveCustomEmailMutation = useMutation({
+    mutationFn: (data: { custom_email_subject?: string; custom_email_body?: string }) =>
+      coldOutreachApi.updateProspect(prospect.id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['outreach-today-queue'] });
       queryClient.invalidateQueries({ queryKey: ['outreach-prospects'] });
@@ -169,11 +187,25 @@ export default function CopyEmailModal({
     },
   });
 
-  const handleNoteBlur = () => {
-    const trimmed = customNote.trim();
-    if (trimmed !== (prospect.custom_email_note || '')) {
-      saveNoteMutation.mutate(trimmed);
+  const handleSubjectBlur = () => {
+    if (editSubject !== (prospect.custom_email_subject || email?.subject || '')) {
+      saveCustomEmailMutation.mutate({ custom_email_subject: editSubject });
     }
+  };
+
+  const handleBodyBlur = () => {
+    if (editBody !== (prospect.custom_email_body || email?.body || '')) {
+      saveCustomEmailMutation.mutate({ custom_email_body: editBody });
+    }
+  };
+
+  const handleResetToTemplate = () => {
+    if (!email) return;
+    setEditSubject(email.subject);
+    setEditBody(email.body);
+    // Clear saved custom values
+    saveCustomEmailMutation.mutate({ custom_email_subject: '', custom_email_body: '' });
+    toast.success('Reset to template');
   };
 
   const handleCopy = async (field: 'to' | 'subject' | 'body', value: string) => {
@@ -191,13 +223,19 @@ export default function CopyEmailModal({
     if (!email) return;
 
     try {
-      // Format full email for clipboard
-      const fullEmail = `To: ${email.to_email}\nSubject: ${email.subject}\n\n${email.body}`;
+      const fullEmail = `To: ${email.to_email}\nSubject: ${editSubject}\n\n${editBody}`;
       await navigator.clipboard.writeText(fullEmail);
       setCopiedField('all');
       toast.success('Full email copied!');
 
-      // Mark as sent
+      // Save custom values before marking sent
+      if (editSubject !== email.subject || editBody !== email.body) {
+        saveCustomEmailMutation.mutate({
+          custom_email_subject: editSubject,
+          custom_email_body: editBody,
+        });
+      }
+
       markSentMutation.mutate();
     } catch {
       toast.error('Failed to copy email');
@@ -205,6 +243,8 @@ export default function CopyEmailModal({
   };
 
   if (!isOpen) return null;
+
+  const isCustomized = email && (editSubject !== email.subject || editBody !== email.body);
 
   const CopyButton = ({
     field,
@@ -236,6 +276,14 @@ export default function CopyEmailModal({
     'w-full px-3 py-1.5 rounded-lg text-xs',
     'bg-stone-800/50 border border-stone-600/40',
     'text-[--exec-text] placeholder:text-[--exec-text-muted]',
+    'focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]/50',
+    'transition-all'
+  );
+
+  const editableFieldClasses = cn(
+    'w-full px-4 py-2.5 rounded-lg',
+    'bg-stone-800/50 border border-stone-600/40',
+    'text-[--exec-text] text-sm',
     'focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]/50',
     'transition-all'
   );
@@ -274,13 +322,28 @@ export default function CopyEmailModal({
 
           {/* Template Selector */}
           <div className="mb-4">
-            <label className="block text-xs font-medium text-[--exec-text-muted] uppercase tracking-wider mb-2">
-              Template
-            </label>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-xs font-medium text-[--exec-text-muted] uppercase tracking-wider">
+                Template
+              </label>
+              {isCustomized && (
+                <button
+                  onClick={handleResetToTemplate}
+                  className="flex items-center gap-1 text-xs text-amber-400 hover:text-amber-300 transition-colors"
+                  title="Reset subject and body to template"
+                >
+                  <RotateCcw className="w-3 h-3" />
+                  Reset to template
+                </button>
+              )}
+            </div>
             <div className="relative">
               <select
                 value={selectedTemplate}
-                onChange={(e) => setSelectedTemplate(e.target.value)}
+                onChange={(e) => {
+                  setSelectedTemplate(e.target.value);
+                  setHasInitializedFromTemplate(false);
+                }}
                 className={cn(
                   'w-full px-4 py-2.5 rounded-lg appearance-none',
                   'bg-stone-800/50 border border-stone-600/40',
@@ -422,7 +485,7 @@ export default function CopyEmailModal({
             </div>
           ) : email ? (
             <div className="space-y-4">
-              {/* To Field */}
+              {/* To Field (read-only) */}
               <div className="bg-[--exec-surface-alt] rounded-xl p-4">
                 <div className="flex items-center justify-between mb-2">
                   <label className="text-xs font-medium text-[--exec-text-muted] uppercase tracking-wider">
@@ -435,58 +498,47 @@ export default function CopyEmailModal({
                 </p>
               </div>
 
-              {/* Subject Field */}
+              {/* Subject Field (editable) */}
               <div className="bg-[--exec-surface-alt] rounded-xl p-4">
                 <div className="flex items-center justify-between mb-2">
                   <label className="text-xs font-medium text-[--exec-text-muted] uppercase tracking-wider">
                     Subject
                   </label>
-                  <CopyButton field="subject" value={email.subject} />
+                  <CopyButton field="subject" value={editSubject} />
                 </div>
-                <p className="text-sm text-[--exec-text] font-medium">
-                  {email.subject || <span className="text-[--exec-text-muted] italic">No subject set</span>}
-                </p>
+                <input
+                  type="text"
+                  value={editSubject}
+                  onChange={(e) => setEditSubject(e.target.value)}
+                  onBlur={handleSubjectBlur}
+                  className={editableFieldClasses}
+                  placeholder="Email subject..."
+                />
               </div>
 
-              {/* Body Field */}
+              {/* Body Field (editable) */}
               <div className="bg-[--exec-surface-alt] rounded-xl p-4">
                 <div className="flex items-center justify-between mb-2">
                   <label className="text-xs font-medium text-[--exec-text-muted] uppercase tracking-wider">
                     Body
                   </label>
-                  <CopyButton field="body" value={email.body} />
+                  <CopyButton field="body" value={editBody} />
                 </div>
-                <div className="text-sm text-[--exec-text] whitespace-pre-wrap leading-relaxed max-h-64 overflow-y-auto">
-                  {email.body}
-                </div>
+                <textarea
+                  value={editBody}
+                  onChange={(e) => setEditBody(e.target.value)}
+                  onBlur={handleBodyBlur}
+                  className={cn(editableFieldClasses, 'resize-none leading-relaxed')}
+                  rows={10}
+                  placeholder="Email body..."
+                />
               </div>
+
+              {saveCustomEmailMutation.isPending && (
+                <p className="text-[10px] text-[--exec-text-muted]">Saving...</p>
+              )}
             </div>
           ) : null}
-
-          {/* Alternate Message */}
-          <div className="mt-4">
-            <label className="flex items-center gap-1.5 text-xs font-medium text-[--exec-text-muted] uppercase tracking-wider mb-2">
-              <Edit2 className="w-3 h-3" />
-              Alternate Message
-            </label>
-            <textarea
-              value={customNote}
-              onChange={(e) => setCustomNote(e.target.value)}
-              onBlur={handleNoteBlur}
-              className={cn(
-                'w-full px-4 py-2.5 rounded-lg',
-                'bg-stone-800/50 border border-stone-600/40',
-                'text-[--exec-text] placeholder:text-[--exec-text-muted]',
-                'focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]/50',
-                'transition-all text-sm resize-none'
-              )}
-              rows={3}
-              placeholder="Write a custom message for this prospect..."
-            />
-            {saveNoteMutation.isPending && (
-              <p className="text-[10px] text-[--exec-text-muted] mt-1">Saving...</p>
-            )}
-          </div>
 
           {/* Footer */}
           <div className="flex gap-3 justify-end pt-6 border-t border-stone-700/30 mt-6">

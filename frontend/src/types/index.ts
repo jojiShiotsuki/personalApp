@@ -859,6 +859,8 @@ export interface OutreachProspect {
   response_type?: ResponseType;
   notes?: string;
   custom_email_note?: string;
+  custom_email_subject?: string;
+  custom_email_body?: string;
   discovered_lead_id?: number;
   converted_contact_id?: number;
   converted_deal_id?: number;

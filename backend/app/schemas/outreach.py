@@ -233,6 +233,8 @@ class ProspectUpdate(BaseModel):
     next_action_date: Optional[date] = None
     notes: Optional[str] = None
     custom_email_note: Optional[str] = None
+    custom_email_subject: Optional[str] = Field(None, max_length=500)
+    custom_email_body: Optional[str] = None
     linkedin_url: Optional[str] = Field(None, max_length=500)
     facebook_url: Optional[str] = Field(None, max_length=500)
     instagram_url: Optional[str] = Field(None, max_length=500)
@@ -249,6 +251,8 @@ class ProspectResponse(ProspectBase):
     response_type: Optional[ResponseType]
     notes: Optional[str]
     custom_email_note: Optional[str] = None
+    custom_email_subject: Optional[str] = None
+    custom_email_body: Optional[str] = None
     discovered_lead_id: Optional[int] = None
     converted_contact_id: Optional[int] = None
     converted_deal_id: Optional[int] = None

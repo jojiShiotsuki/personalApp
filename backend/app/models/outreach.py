@@ -137,6 +137,8 @@ class OutreachProspect(Base):
     response_type = Column(Enum(ResponseType), nullable=True)
     notes = Column(Text, nullable=True)
     custom_email_note = Column(Text, nullable=True)  # Personalized note shown in CopyEmailModal per prospect
+    custom_email_subject = Column(String(500), nullable=True)  # Custom subject saved per prospect
+    custom_email_body = Column(Text, nullable=True)  # Custom body saved per prospect
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
