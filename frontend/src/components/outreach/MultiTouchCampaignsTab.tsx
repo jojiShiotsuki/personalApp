@@ -552,6 +552,8 @@ function SequencePipelineView({
   onEdit: (prospect: OutreachProspect) => void;
   onViewMessage: (prospect: OutreachProspect) => void;
 }) {
+  const [showSkipped, setShowSkipped] = useState(false);
+
   if (prospects.length === 0) {
     return (
       <div className="bento-card p-12 text-center">
@@ -569,9 +571,12 @@ function SequencePipelineView({
     converted: [],
     not_interested: [],
   };
+  const skippedProspects: OutreachProspect[] = [];
 
   for (const p of prospects) {
-    if (p.status === ProspectStatus.REPLIED) {
+    if (p.status === ProspectStatus.SKIPPED) {
+      skippedProspects.push(p);
+    } else if (p.status === ProspectStatus.REPLIED) {
       outcomeBuckets.replied.push(p);
     } else if (p.status === ProspectStatus.CONVERTED) {
       outcomeBuckets.converted.push(p);
@@ -585,7 +590,6 @@ function SequencePipelineView({
   }
 
   // Build step columns: use campaignSteps if available, otherwise derive from prospect data
-  // This ensures prospects are always visible even while campaign details are loading
   let stepColumns: { stepNumber: number; channelType?: StepChannelType; label: string }[];
 
   if (campaignSteps.length > 0) {
@@ -594,8 +598,6 @@ function SequencePipelineView({
       channelType: step.channel_type as StepChannelType,
       label: CHANNEL_LABELS[step.channel_type as StepChannelType] || step.channel_type,
     }));
-    // Also include any step numbers from prospects that aren't in campaignSteps
-    // (e.g. prospects advanced beyond defined steps)
     const definedStepNums = new Set(campaignSteps.map((s) => s.step_number));
     for (const stepNum of Object.keys(stepBuckets).map(Number).sort((a, b) => a - b)) {
       if (!definedStepNums.has(stepNum)) {
@@ -603,148 +605,183 @@ function SequencePipelineView({
       }
     }
   } else {
-    // No campaign steps loaded yet — create columns from prospect data
     stepColumns = Object.keys(stepBuckets)
       .map(Number)
       .sort((a, b) => a - b)
       .map((stepNum) => ({ stepNumber: stepNum, label: `Step ${stepNum}` }));
   }
 
-  const hasStepColumns = stepColumns.length > 0;
+  const totalColumns = stepColumns.length + OUTCOME_COLUMNS.length;
 
   return (
-    <div className="overflow-x-auto pb-4 -mx-2">
-      <div className="flex gap-4 min-w-min px-2">
-        {/* Step columns */}
-        {stepColumns.map((col) => {
-          const colors = col.channelType ? CHANNEL_COLORS[col.channelType] : undefined;
-          const Icon = col.channelType ? CHANNEL_ICONS[col.channelType] : undefined;
-          const bucket = stepBuckets[col.stepNumber] || [];
+    <div className="space-y-4">
+      {/* Pipeline columns */}
+      <div className="overflow-x-auto pb-4 -mx-2">
+        <div
+          className="grid gap-4 px-2"
+          style={{
+            gridTemplateColumns: `repeat(${totalColumns}, minmax(220px, 1fr))`,
+            minWidth: totalColumns > 4 ? `${totalColumns * 240}px` : undefined,
+          }}
+        >
+          {/* Step columns */}
+          {stepColumns.map((col) => {
+            const colors = col.channelType ? CHANNEL_COLORS[col.channelType] : undefined;
+            const Icon = col.channelType ? CHANNEL_ICONS[col.channelType] : undefined;
+            const bucket = stepBuckets[col.stepNumber] || [];
 
-          return (
-            <div
-              key={col.stepNumber}
-              className="flex flex-col w-[280px] flex-shrink-0"
-            >
-              {/* Column header */}
-              <div
-                className={cn(
-                  'rounded-t-xl px-4 py-3 border border-b-0',
-                  'bg-stone-800/50 border-stone-700/40'
-                )}
-              >
-                <div className="flex items-center gap-2.5">
-                  <span
-                    className={cn(
-                      'flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold',
-                      colors?.bg || 'bg-stone-600/30',
-                      colors?.text || 'text-stone-400'
-                    )}
-                  >
-                    {col.stepNumber}
-                  </span>
-                  <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                    {Icon && <Icon className={cn('w-4 h-4 flex-shrink-0', colors?.text || 'text-stone-400')} />}
-                    <span className={cn('text-sm font-semibold truncate', colors?.text || 'text-stone-400')}>
-                      {col.label}
+            return (
+              <div key={col.stepNumber} className="flex flex-col min-w-0">
+                {/* Column header */}
+                <div
+                  className={cn(
+                    'rounded-t-xl px-4 py-3 border border-b-0',
+                    'bg-stone-800/50 border-stone-700/40'
+                  )}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <span
+                      className={cn(
+                        'flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold flex-shrink-0',
+                        colors?.bg || 'bg-stone-600/30',
+                        colors?.text || 'text-stone-400'
+                      )}
+                    >
+                      {col.stepNumber}
+                    </span>
+                    <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                      {Icon && <Icon className={cn('w-4 h-4 flex-shrink-0', colors?.text || 'text-stone-400')} />}
+                      <span className={cn('text-sm font-semibold truncate', colors?.text || 'text-stone-400')}>
+                        {col.label}
+                      </span>
+                    </div>
+                    <span className="text-xs bg-stone-700/60 text-[--exec-text-muted] px-2 py-0.5 rounded-full font-medium flex-shrink-0">
+                      {bucket.length}
                     </span>
                   </div>
-                  <span className="text-xs bg-stone-700/60 text-[--exec-text-muted] px-2 py-0.5 rounded-full font-medium flex-shrink-0">
-                    {bucket.length}
-                  </span>
+                </div>
+
+                {/* Column body */}
+                <div
+                  className={cn(
+                    'flex-1 rounded-b-xl border border-t-0 p-3 space-y-3 min-h-[160px] max-h-[70vh] overflow-y-auto',
+                    'bg-stone-800/15 border-stone-700/40'
+                  )}
+                >
+                  {bucket.length === 0 ? (
+                    <div className="flex items-center justify-center h-full min-h-[100px] text-[--exec-text-muted] text-sm">
+                      No prospects
+                    </div>
+                  ) : (
+                    bucket.map((prospect) => (
+                      <PipelineProspectCard
+                        key={prospect.id}
+                        prospect={prospect}
+                        onEdit={onEdit}
+                        onViewMessage={onViewMessage}
+                      />
+                    ))
+                  )}
                 </div>
               </div>
+            );
+          })}
 
-              {/* Column body */}
-              <div
-                className={cn(
-                  'flex-1 rounded-b-xl border border-t-0 p-3 space-y-3 min-h-[160px] max-h-[70vh] overflow-y-auto',
-                  'bg-stone-800/15 border-stone-700/40'
-                )}
-              >
-                {bucket.length === 0 ? (
-                  <div className="flex items-center justify-center h-full min-h-[100px] text-[--exec-text-muted] text-sm">
-                    No prospects
+          {/* Outcome columns */}
+          {OUTCOME_COLUMNS.map((col) => {
+            const bucket = outcomeBuckets[col.key];
+            const OutcomeIcon = col.icon;
+
+            return (
+              <div key={col.key} className="flex flex-col min-w-0">
+                {/* Column header */}
+                <div
+                  className={cn(
+                    'rounded-t-xl px-4 py-3 border border-b-0',
+                    col.headerBg,
+                    col.border
+                  )}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <OutcomeIcon className={cn('w-4.5 h-4.5 flex-shrink-0', col.text)} />
+                    <span className={cn('text-sm font-semibold flex-1', col.text)}>
+                      {col.label}
+                    </span>
+                    <span className={cn('text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0', col.bg, col.text)}>
+                      {bucket.length}
+                    </span>
                   </div>
-                ) : (
-                  bucket.map((prospect) => (
-                    <PipelineProspectCard
-                      key={prospect.id}
-                      prospect={prospect}
-                      onEdit={onEdit}
-                      onViewMessage={onViewMessage}
-                      isMuted={prospect.status === ProspectStatus.SKIPPED}
-                    />
-                  ))
-                )}
-              </div>
-            </div>
-          );
-        })}
+                </div>
 
-        {/* Divider between step columns and outcome columns */}
-        {hasStepColumns && (
-          <div className="flex items-center px-1 flex-shrink-0">
-            <div className="w-px h-2/3 bg-stone-600/40" />
-          </div>
-        )}
-
-        {/* Outcome columns */}
-        {OUTCOME_COLUMNS.map((col) => {
-          const bucket = outcomeBuckets[col.key];
-          const OutcomeIcon = col.icon;
-
-          return (
-            <div
-              key={col.key}
-              className="flex flex-col w-[280px] flex-shrink-0"
-            >
-              {/* Column header */}
-              <div
-                className={cn(
-                  'rounded-t-xl px-4 py-3 border border-b-0',
-                  col.headerBg,
-                  col.border
-                )}
-              >
-                <div className="flex items-center gap-2.5">
-                  <OutcomeIcon className={cn('w-4.5 h-4.5 flex-shrink-0', col.text)} />
-                  <span className={cn('text-sm font-semibold flex-1', col.text)}>
-                    {col.label}
-                  </span>
-                  <span className={cn('text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0', col.bg, col.text)}>
-                    {bucket.length}
-                  </span>
+                {/* Column body */}
+                <div
+                  className={cn(
+                    'flex-1 rounded-b-xl border border-t-0 p-3 space-y-3 min-h-[160px] max-h-[70vh] overflow-y-auto',
+                    'bg-stone-800/15',
+                    col.border
+                  )}
+                >
+                  {bucket.length === 0 ? (
+                    <div className="flex items-center justify-center h-full min-h-[100px] text-[--exec-text-muted] text-sm">
+                      None yet
+                    </div>
+                  ) : (
+                    bucket.map((prospect) => (
+                      <PipelineProspectCard
+                        key={prospect.id}
+                        prospect={prospect}
+                        onEdit={onEdit}
+                        onViewMessage={onViewMessage}
+                      />
+                    ))
+                  )}
                 </div>
               </div>
-
-              {/* Column body */}
-              <div
-                className={cn(
-                  'flex-1 rounded-b-xl border border-t-0 p-3 space-y-3 min-h-[160px] max-h-[70vh] overflow-y-auto',
-                  'bg-stone-800/15',
-                  col.border
-                )}
-              >
-                {bucket.length === 0 ? (
-                  <div className="flex items-center justify-center h-full min-h-[100px] text-[--exec-text-muted] text-sm">
-                    None yet
-                  </div>
-                ) : (
-                  bucket.map((prospect) => (
-                    <PipelineProspectCard
-                      key={prospect.id}
-                      prospect={prospect}
-                      onEdit={onEdit}
-                      onViewMessage={onViewMessage}
-                    />
-                  ))
-                )}
-              </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
+
+      {/* Skipped prospects section */}
+      {skippedProspects.length > 0 && (
+        <div className="bento-card overflow-hidden">
+          <button
+            onClick={() => setShowSkipped(!showSkipped)}
+            className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-[--exec-surface-alt] transition-colors"
+          >
+            <div className="flex items-center gap-2.5">
+              <ChevronRight
+                className={cn(
+                  'w-4 h-4 text-[--exec-text-muted] transition-transform duration-200',
+                  showSkipped && 'rotate-90'
+                )}
+              />
+              <span className="text-sm font-semibold text-[--exec-text-muted]">
+                Skipped
+              </span>
+              <span className="text-xs bg-stone-700/60 text-[--exec-text-muted] px-2 py-0.5 rounded-full font-medium">
+                {skippedProspects.length}
+              </span>
+            </div>
+          </button>
+
+          {showSkipped && (
+            <div className="px-5 pb-5 pt-1">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                {skippedProspects.map((prospect) => (
+                  <PipelineProspectCard
+                    key={prospect.id}
+                    prospect={prospect}
+                    onEdit={onEdit}
+                    onViewMessage={onViewMessage}
+                    isMuted
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -1314,6 +1351,7 @@ export default function MultiTouchCampaignsTab() {
           isOpen={!!emailModalProspect}
           onClose={() => setEmailModalProspect(null)}
           prospect={emailModalProspect}
+          campaignId={selectedCampaignId ?? undefined}
         />
       )}
     </>

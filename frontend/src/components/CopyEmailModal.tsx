@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { coldOutreachApi } from '@/lib/api';
 import type { OutreachProspect, RenderedEmail } from '@/types';
-import { X, Mail, Copy, Check, Send, Loader2, ChevronDown, AlertTriangle, Edit2, RotateCcw } from 'lucide-react';
+import { X, Mail, Copy, Check, Loader2, ChevronDown, AlertTriangle, Edit2, RotateCcw, ArrowRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -11,6 +11,7 @@ interface CopyEmailModalProps {
   isOpen: boolean;
   onClose: () => void;
   prospect: OutreachProspect;
+  campaignId?: number;
 }
 
 const EMAIL_TEMPLATES = [
@@ -53,6 +54,7 @@ export default function CopyEmailModal({
   isOpen,
   onClose,
   prospect,
+  campaignId,
 }: CopyEmailModalProps) {
   const defaultType = STEP_TO_TYPE[prospect.current_step] || 'email_1';
   const [selectedTemplate, setSelectedTemplate] = useState(defaultType);
@@ -157,9 +159,12 @@ export default function CopyEmailModal({
     },
   });
 
-  // Mark sent mutation
-  const markSentMutation = useMutation({
-    mutationFn: () => coldOutreachApi.markSent(prospect.id),
+  // Advance / mark sent mutation
+  const advanceMutation = useMutation({
+    mutationFn: () =>
+      campaignId
+        ? coldOutreachApi.advanceProspect(campaignId, prospect.id)
+        : coldOutreachApi.markSent(prospect.id),
     onSuccess: (data) => {
       toast.success(data.message);
       queryClient.invalidateQueries({ queryKey: ['outreach-today-queue'] });
@@ -171,7 +176,7 @@ export default function CopyEmailModal({
       onClose();
     },
     onError: () => {
-      toast.error('Failed to mark as sent');
+      toast.error('Failed to advance prospect');
     },
   });
 
@@ -219,7 +224,7 @@ export default function CopyEmailModal({
     }
   };
 
-  const handleCopyAllAndMarkSent = async () => {
+  const handleCopyAndAdvance = async () => {
     if (!email) return;
 
     try {
@@ -228,7 +233,7 @@ export default function CopyEmailModal({
       setCopiedField('all');
       toast.success('Full email copied!');
 
-      // Save custom values before marking sent
+      // Save custom values before advancing
       if (editSubject !== email.subject || editBody !== email.body) {
         saveCustomEmailMutation.mutate({
           custom_email_subject: editSubject,
@@ -236,7 +241,7 @@ export default function CopyEmailModal({
         });
       }
 
-      markSentMutation.mutate();
+      advanceMutation.mutate();
     } catch {
       toast.error('Failed to copy email');
     }
@@ -550,8 +555,8 @@ export default function CopyEmailModal({
               Cancel
             </button>
             <button
-              onClick={handleCopyAllAndMarkSent}
-              disabled={!email || markSentMutation.isPending}
+              onClick={handleCopyAndAdvance}
+              disabled={!email || advanceMutation.isPending}
               className={cn(
                 'flex items-center gap-2 px-4 py-2 text-sm font-medium text-white rounded-lg',
                 'bg-[--exec-accent] hover:bg-[--exec-accent-dark]',
@@ -559,20 +564,20 @@ export default function CopyEmailModal({
                 'disabled:opacity-50 disabled:cursor-not-allowed'
               )}
             >
-              {markSentMutation.isPending ? (
+              {advanceMutation.isPending ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  Marking as Sent...
+                  Advancing...
                 </>
               ) : copiedField === 'all' ? (
                 <>
                   <Check className="w-4 h-4" />
-                  Copied & Marking Sent...
+                  Copied & Advancing...
                 </>
               ) : (
                 <>
-                  <Send className="w-4 h-4" />
-                  Copy All & Mark Sent
+                  <ArrowRight className="w-4 h-4" />
+                  Copy & Next Step
                 </>
               )}
             </button>
