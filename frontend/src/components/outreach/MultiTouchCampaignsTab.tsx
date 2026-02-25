@@ -1376,7 +1376,7 @@ function SequenceStepsPanel({
 // Main component
 export default function MultiTouchCampaignsTab() {
   const [selectedCampaignId, setSelectedCampaignId] = useState<number | null>(null);
-  const [activeTab, setActiveTab] = useState<TabType>('today');
+  const [activeTab, setActiveTab] = useState<TabType>('all');
   const [isNewCampaignOpen, setIsNewCampaignOpen] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [isCampaignDropdownOpen, setIsCampaignDropdownOpen] = useState(false);
