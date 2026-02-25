@@ -557,19 +557,46 @@ function SequencePipelineView({
     }
   }
 
+  // Build step columns: use campaignSteps if available, otherwise derive from prospect data
+  // This ensures prospects are always visible even while campaign details are loading
+  let stepColumns: { stepNumber: number; channelType?: StepChannelType; label: string }[];
+
+  if (campaignSteps.length > 0) {
+    stepColumns = campaignSteps.map((step) => ({
+      stepNumber: step.step_number,
+      channelType: step.channel_type as StepChannelType,
+      label: CHANNEL_LABELS[step.channel_type as StepChannelType] || step.channel_type,
+    }));
+    // Also include any step numbers from prospects that aren't in campaignSteps
+    // (e.g. prospects advanced beyond defined steps)
+    const definedStepNums = new Set(campaignSteps.map((s) => s.step_number));
+    for (const stepNum of Object.keys(stepBuckets).map(Number).sort((a, b) => a - b)) {
+      if (!definedStepNums.has(stepNum)) {
+        stepColumns.push({ stepNumber: stepNum, label: `Step ${stepNum}` });
+      }
+    }
+  } else {
+    // No campaign steps loaded yet — create columns from prospect data
+    stepColumns = Object.keys(stepBuckets)
+      .map(Number)
+      .sort((a, b) => a - b)
+      .map((stepNum) => ({ stepNumber: stepNum, label: `Step ${stepNum}` }));
+  }
+
+  const hasStepColumns = stepColumns.length > 0;
+
   return (
     <div className="overflow-x-auto pb-4">
       <div className="flex gap-3 min-w-min">
         {/* Step columns */}
-        {campaignSteps.map((step) => {
-          const colors = CHANNEL_COLORS[step.channel_type as StepChannelType];
-          const Icon = CHANNEL_ICONS[step.channel_type as StepChannelType];
-          const label = CHANNEL_LABELS[step.channel_type as StepChannelType];
-          const bucket = stepBuckets[step.step_number] || [];
+        {stepColumns.map((col) => {
+          const colors = col.channelType ? CHANNEL_COLORS[col.channelType] : undefined;
+          const Icon = col.channelType ? CHANNEL_ICONS[col.channelType] : undefined;
+          const bucket = stepBuckets[col.stepNumber] || [];
 
           return (
             <div
-              key={step.step_number}
+              key={col.stepNumber}
               className="flex flex-col w-[240px] flex-shrink-0"
             >
               {/* Column header */}
@@ -587,12 +614,12 @@ function SequencePipelineView({
                       colors?.text || 'text-stone-400'
                     )}
                   >
-                    {step.step_number}
+                    {col.stepNumber}
                   </span>
                   <div className="flex items-center gap-1.5 flex-1 min-w-0">
                     {Icon && <Icon className={cn('w-3.5 h-3.5 flex-shrink-0', colors?.text || 'text-stone-400')} />}
                     <span className={cn('text-xs font-semibold truncate', colors?.text || 'text-stone-400')}>
-                      {label || step.channel_type}
+                      {col.label}
                     </span>
                   </div>
                   <span className="text-[10px] bg-stone-700/60 text-[--exec-text-muted] px-1.5 py-0.5 rounded-full font-medium flex-shrink-0">
@@ -628,7 +655,7 @@ function SequencePipelineView({
         })}
 
         {/* Divider between step columns and outcome columns */}
-        {campaignSteps.length > 0 && (
+        {hasStepColumns && (
           <div className="flex items-center px-1 flex-shrink-0">
             <div className="w-px h-2/3 bg-stone-700/50" />
           </div>
