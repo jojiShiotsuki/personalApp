@@ -21,6 +21,7 @@ import {
   ChevronDown,
   ChevronRight,
   ArrowRight,
+  ArrowUpDown,
   Edit2,
   Trash2,
   Globe,
@@ -623,6 +624,46 @@ const OUTCOME_COLUMNS = [
   },
 ];
 
+// Sort options for pipeline columns
+type SortOption = 'date_asc' | 'name_asc' | 'date_added' | 'custom_first';
+
+const SORT_OPTIONS: { value: SortOption; label: string }[] = [
+  { value: 'date_asc', label: 'Next action (soonest)' },
+  { value: 'name_asc', label: 'Name (A–Z)' },
+  { value: 'date_added', label: 'Date added (newest)' },
+  { value: 'custom_first', label: 'Custom message first' },
+];
+
+function sortProspects(list: OutreachProspect[], sort: SortOption): OutreachProspect[] {
+  const sorted = [...list];
+  switch (sort) {
+    case 'date_asc':
+      return sorted.sort((a, b) => {
+        if (!a.next_action_date && !b.next_action_date) return 0;
+        if (!a.next_action_date) return 1;
+        if (!b.next_action_date) return -1;
+        return a.next_action_date.localeCompare(b.next_action_date);
+      });
+    case 'name_asc':
+      return sorted.sort((a, b) =>
+        a.agency_name.localeCompare(b.agency_name, undefined, { sensitivity: 'base' })
+      );
+    case 'date_added':
+      return sorted.sort((a, b) =>
+        (b.created_at || '').localeCompare(a.created_at || '')
+      );
+    case 'custom_first':
+      return sorted.sort((a, b) => {
+        const aCustom = !!(a.custom_email_subject || a.custom_email_body);
+        const bCustom = !!(b.custom_email_subject || b.custom_email_body);
+        if (aCustom === bCustom) return 0;
+        return aCustom ? -1 : 1;
+      });
+    default:
+      return sorted;
+  }
+}
+
 // Pipeline / Kanban view for All Prospects
 function SequencePipelineView({
   prospects,
@@ -638,6 +679,7 @@ function SequencePipelineView({
   onMarkResponse: (prospect: OutreachProspect) => void;
 }) {
   const [showSkipped, setShowSkipped] = useState(false);
+  const [sortBy, setSortBy] = useState<SortOption>('date_asc');
 
   if (prospects.length === 0) {
     return (
@@ -700,6 +742,26 @@ function SequencePipelineView({
 
   return (
     <div className="space-y-4">
+      {/* Sort control */}
+      <div className="flex items-center justify-end gap-2">
+        <ArrowUpDown className="w-3.5 h-3.5 text-[--exec-text-muted]" />
+        <select
+          value={sortBy}
+          onChange={(e) => setSortBy(e.target.value as SortOption)}
+          className={cn(
+            'px-3 py-1.5 rounded-lg text-xs font-medium appearance-none cursor-pointer',
+            'bg-stone-800/50 border border-stone-700/40',
+            'text-[--exec-text-muted] hover:text-[--exec-text]',
+            'focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]/50',
+            'transition-all'
+          )}
+        >
+          {SORT_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>{opt.label}</option>
+          ))}
+        </select>
+      </div>
+
       {/* Pipeline columns */}
       <div className="overflow-x-auto pb-4 -mx-2">
         <div
@@ -713,7 +775,7 @@ function SequencePipelineView({
           {stepColumns.map((col) => {
             const colors = col.channelType ? CHANNEL_COLORS[col.channelType] : undefined;
             const Icon = col.channelType ? CHANNEL_ICONS[col.channelType] : undefined;
-            const bucket = stepBuckets[col.stepNumber] || [];
+            const bucket = sortProspects(stepBuckets[col.stepNumber] || [], sortBy);
 
             return (
               <div key={col.stepNumber} className="flex flex-col min-w-0">
@@ -775,7 +837,7 @@ function SequencePipelineView({
 
           {/* Outcome columns */}
           {OUTCOME_COLUMNS.map((col) => {
-            const bucket = outcomeBuckets[col.key];
+            const bucket = sortProspects(outcomeBuckets[col.key], sortBy);
             const OutcomeIcon = col.icon;
 
             return (

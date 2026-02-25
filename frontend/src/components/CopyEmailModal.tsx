@@ -84,18 +84,48 @@ export default function CopyEmailModal({
     enabled: isOpen,
   });
 
-  // Apply {issue}/{issue1}/etc replacement client-side
+  // Build prospect variable replacements
+  const prospectVars = useMemo(() => {
+    const contactName = prospect.contact_name || prospect.agency_name;
+    const firstName = prospect.contact_name
+      ? prospect.contact_name.split(/\s+/)[0]
+      : prospect.agency_name;
+    return {
+      '{agency_name}': prospect.agency_name || '',
+      '{contact_name}': contactName || '',
+      '{name}': contactName || '',
+      '{first_name}': firstName || '',
+      '{company}': prospect.agency_name || '',
+      '{niche}': prospect.niche || '',
+      '{website}': prospect.website || '',
+      '{email}': prospect.email || '',
+    } as Record<string, string>;
+  }, [prospect]);
+
+  // Replace all variables in a string (issue + prospect variables)
+  const replaceVars = (text: string, issueText?: string): string => {
+    let result = text;
+    // Replace issue variables
+    if (issueText) {
+      result = result.replace(/\{issue\d*\}/g, issueText);
+    }
+    // Replace prospect variables
+    for (const [placeholder, value] of Object.entries(prospectVars)) {
+      result = result.split(placeholder).join(value);
+    }
+    return result;
+  };
+
+  // Apply variable replacements client-side
   const email = useMemo(() => {
     if (!rawEmail) return null;
-    if (!selectedIssue) return rawEmail;
-    const issueText = getDescription(selectedIssue);
-    const issueRegex = /\{issue\d*\}/g;
+    const issueText = selectedIssue ? getDescription(selectedIssue) : undefined;
     return {
       ...rawEmail,
-      subject: rawEmail.subject.replace(issueRegex, issueText),
-      body: rawEmail.body.replace(issueRegex, issueText),
+      subject: replaceVars(rawEmail.subject, issueText),
+      body: replaceVars(rawEmail.body, issueText),
     };
-  }, [rawEmail, selectedIssue, customDescriptions]);
+  }, [rawEmail, selectedIssue, customDescriptions, prospectVars]);
 
   // Initialize editable fields from saved custom values or template once loaded
   useEffect(() => {
@@ -215,7 +245,7 @@ export default function CopyEmailModal({
 
   const handleCopy = async (field: 'to' | 'subject' | 'body', value: string) => {
     try {
-      await navigator.clipboard.writeText(value);
+      await navigator.clipboard.writeText(replaceVars(value));
       setCopiedField(field);
       setTimeout(() => setCopiedField(null), 2000);
       toast.success(`${field.charAt(0).toUpperCase() + field.slice(1)} copied!`);
@@ -228,7 +258,7 @@ export default function CopyEmailModal({
     if (!email) return;
 
     try {
-      const fullEmail = `To: ${email.to_email}\nSubject: ${editSubject}\n\n${editBody}`;
+      const fullEmail = `To: ${email.to_email}\nSubject: ${replaceVars(editSubject)}\n\n${replaceVars(editBody)}`;
       await navigator.clipboard.writeText(fullEmail);
       setCopiedField('all');
       toast.success('Full email copied!');
