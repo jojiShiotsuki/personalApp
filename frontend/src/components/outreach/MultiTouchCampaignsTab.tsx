@@ -420,6 +420,7 @@ function PipelineProspectCard({
   isMuted?: boolean;
 }) {
   const dueToday = isDueToday(prospect.next_action_date);
+  const hasCustomMessage = !!(prospect.custom_email_subject || prospect.custom_email_body);
 
   return (
     <div
@@ -467,9 +468,20 @@ function PipelineProspectCard({
         <p className="text-xs text-[--exec-text-muted] truncate mb-2">{prospect.contact_name}</p>
       )}
 
-      {/* Status badge */}
-      <div className="mb-2">
+      {/* Status badge + custom message indicator */}
+      <div className="flex items-center gap-2 mb-2">
         <ProspectStatusBadge status={prospect.status} />
+        {hasCustomMessage ? (
+          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/25">
+            <Mail className="w-2.5 h-2.5" />
+            Custom
+          </span>
+        ) : prospect.email ? (
+          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium rounded bg-stone-700/40 text-stone-500 border border-stone-600/30">
+            <Mail className="w-2.5 h-2.5" />
+            No msg
+          </span>
+        ) : null}
       </div>
 
       {/* Next action date */}
