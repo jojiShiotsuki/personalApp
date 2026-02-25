@@ -958,13 +958,6 @@ function SequencePipelineView({
     );
   }
 
-  // Outcome statuses that go into dedicated columns
-  const outcomeStatuses = new Set([
-    ProspectStatus.REPLIED,
-    ProspectStatus.CONVERTED,
-    ProspectStatus.NOT_INTERESTED,
-  ]);
-
   // Group prospects by step (non-outcome) or by outcome status
   const stepBuckets: Record<number, OutreachProspect[]> = {};
   const outcomeBuckets: Record<string, OutreachProspect[]> = {
