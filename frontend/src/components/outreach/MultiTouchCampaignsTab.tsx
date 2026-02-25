@@ -407,7 +407,7 @@ function isDueToday(dateStr?: string | null): boolean {
   return d <= today;
 }
 
-// Compact prospect card for pipeline view
+// Prospect card for pipeline view
 function PipelineProspectCard({
   prospect,
   onEdit,
@@ -424,67 +424,69 @@ function PipelineProspectCard({
   return (
     <div
       className={cn(
-        'rounded-lg border p-3 transition-all duration-200 group',
+        'bento-card p-4 transition-all duration-200 group',
         isMuted
-          ? 'bg-stone-800/20 border-stone-700/30 opacity-60 hover:opacity-80'
+          ? 'opacity-50 hover:opacity-75'
           : dueToday
-            ? 'bg-[--exec-surface] border-[--exec-accent]/40 shadow-[0_0_8px_rgba(var(--exec-accent-rgb,59,130,246),0.15)] hover:shadow-[0_0_12px_rgba(var(--exec-accent-rgb,59,130,246),0.25)]'
-            : 'bg-[--exec-surface] border-[--exec-border-subtle] hover:border-[--exec-border] hover:shadow-md'
+            ? 'border-[--exec-accent]/40 shadow-[0_0_10px_rgba(var(--exec-accent-rgb,59,130,246),0.12)] hover:shadow-[0_0_16px_rgba(var(--exec-accent-rgb,59,130,246),0.2)]'
+            : 'hover:shadow-lg hover:-translate-y-0.5'
       )}
     >
-      {/* Agency name + due today badge */}
-      <div className="flex items-start justify-between gap-1.5 mb-1">
+      {/* Header row: agency name + actions */}
+      <div className="flex items-start justify-between gap-2 mb-2">
         <h4 className="text-sm font-semibold text-[--exec-text] truncate flex-1">
           {prospect.agency_name}
         </h4>
         <div className="flex items-center gap-1 flex-shrink-0">
           {dueToday && !isMuted && (
-            <span className="px-1.5 py-0.5 text-[9px] font-bold uppercase rounded bg-[--exec-accent]/20 text-[--exec-accent] tracking-wider">
+            <span className="px-2 py-0.5 text-[10px] font-bold uppercase rounded-md bg-[--exec-accent]/20 text-[--exec-accent] tracking-wide">
               Today
             </span>
           )}
           {prospect.email && (
             <button
               onClick={() => onViewMessage(prospect)}
-              className="p-1 text-[--exec-text-muted] hover:text-blue-400 hover:bg-blue-500/15 rounded transition-colors opacity-0 group-hover:opacity-100"
+              className="p-1.5 text-[--exec-text-muted] hover:text-blue-400 hover:bg-blue-500/15 rounded-md transition-colors opacity-0 group-hover:opacity-100"
               title="View email"
             >
-              <Mail className="w-3 h-3" />
+              <Mail className="w-3.5 h-3.5" />
             </button>
           )}
           <button
             onClick={() => onEdit(prospect)}
-            className="p-1 text-[--exec-text-muted] hover:text-[--exec-text] hover:bg-[--exec-surface-alt] rounded transition-colors opacity-0 group-hover:opacity-100"
+            className="p-1.5 text-[--exec-text-muted] hover:text-[--exec-text] hover:bg-[--exec-surface-alt] rounded-md transition-colors opacity-0 group-hover:opacity-100"
             title="Edit prospect"
           >
-            <Edit2 className="w-3 h-3" />
+            <Edit2 className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>
 
       {/* Contact name */}
       {prospect.contact_name && (
-        <p className="text-xs text-[--exec-text-muted] truncate mb-1">{prospect.contact_name}</p>
+        <p className="text-xs text-[--exec-text-muted] truncate mb-2">{prospect.contact_name}</p>
       )}
 
       {/* Status badge */}
-      <div className="mb-1.5">
+      <div className="mb-2">
         <ProspectStatusBadge status={prospect.status} />
       </div>
 
       {/* Next action date */}
       {prospect.next_action_date && (
         <div className={cn(
-          'flex items-center gap-1 text-[10px] mb-1.5',
+          'flex items-center gap-1.5 text-xs mb-2',
           dueToday ? 'text-[--exec-accent] font-medium' : 'text-[--exec-text-muted]'
         )}>
-          <Calendar className="w-3 h-3" />
+          <Calendar className="w-3.5 h-3.5" />
           {dueToday ? 'Due today' : `Next ${formatShortDate(prospect.next_action_date)}`}
         </div>
       )}
 
       {/* Links */}
-      <ProspectLinks prospect={prospect} />
+      <div className="pt-2 border-t border-[--exec-border-subtle]">
+        <ProspectLinks prospect={prospect} />
+      </div>
     </div>
   );
 }
@@ -599,8 +601,8 @@ function SequencePipelineView({
   const hasStepColumns = stepColumns.length > 0;
 
   return (
-    <div className="overflow-x-auto pb-4">
-      <div className="flex gap-3 min-w-min">
+    <div className="overflow-x-auto pb-4 -mx-2">
+      <div className="flex gap-4 min-w-min px-2">
         {/* Step columns */}
         {stepColumns.map((col) => {
           const colors = col.channelType ? CHANNEL_COLORS[col.channelType] : undefined;
@@ -610,19 +612,19 @@ function SequencePipelineView({
           return (
             <div
               key={col.stepNumber}
-              className="flex flex-col w-[240px] flex-shrink-0"
+              className="flex flex-col w-[280px] flex-shrink-0"
             >
               {/* Column header */}
               <div
                 className={cn(
-                  'rounded-t-xl px-3 py-2.5 border border-b-0',
-                  'bg-stone-800/40 border-stone-700/40'
+                  'rounded-t-xl px-4 py-3 border border-b-0',
+                  'bg-stone-800/50 border-stone-700/40'
                 )}
               >
-                <div className="flex items-center gap-2 mb-0.5">
+                <div className="flex items-center gap-2.5">
                   <span
                     className={cn(
-                      'flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-bold',
+                      'flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold',
                       colors?.bg || 'bg-stone-600/30',
                       colors?.text || 'text-stone-400'
                     )}
@@ -630,12 +632,12 @@ function SequencePipelineView({
                     {col.stepNumber}
                   </span>
                   <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                    {Icon && <Icon className={cn('w-3.5 h-3.5 flex-shrink-0', colors?.text || 'text-stone-400')} />}
-                    <span className={cn('text-xs font-semibold truncate', colors?.text || 'text-stone-400')}>
+                    {Icon && <Icon className={cn('w-4 h-4 flex-shrink-0', colors?.text || 'text-stone-400')} />}
+                    <span className={cn('text-sm font-semibold truncate', colors?.text || 'text-stone-400')}>
                       {col.label}
                     </span>
                   </div>
-                  <span className="text-[10px] bg-stone-700/60 text-[--exec-text-muted] px-1.5 py-0.5 rounded-full font-medium flex-shrink-0">
+                  <span className="text-xs bg-stone-700/60 text-[--exec-text-muted] px-2 py-0.5 rounded-full font-medium flex-shrink-0">
                     {bucket.length}
                   </span>
                 </div>
@@ -644,12 +646,12 @@ function SequencePipelineView({
               {/* Column body */}
               <div
                 className={cn(
-                  'flex-1 rounded-b-xl border border-t-0 p-2 space-y-2 min-h-[120px]',
+                  'flex-1 rounded-b-xl border border-t-0 p-3 space-y-3 min-h-[160px] max-h-[70vh] overflow-y-auto',
                   'bg-stone-800/15 border-stone-700/40'
                 )}
               >
                 {bucket.length === 0 ? (
-                  <div className="flex items-center justify-center h-full min-h-[80px] text-[--exec-text-muted] text-xs">
+                  <div className="flex items-center justify-center h-full min-h-[100px] text-[--exec-text-muted] text-sm">
                     No prospects
                   </div>
                 ) : (
@@ -671,7 +673,7 @@ function SequencePipelineView({
         {/* Divider between step columns and outcome columns */}
         {hasStepColumns && (
           <div className="flex items-center px-1 flex-shrink-0">
-            <div className="w-px h-2/3 bg-stone-700/50" />
+            <div className="w-px h-2/3 bg-stone-600/40" />
           </div>
         )}
 
@@ -683,22 +685,22 @@ function SequencePipelineView({
           return (
             <div
               key={col.key}
-              className="flex flex-col w-[240px] flex-shrink-0"
+              className="flex flex-col w-[280px] flex-shrink-0"
             >
               {/* Column header */}
               <div
                 className={cn(
-                  'rounded-t-xl px-3 py-2.5 border border-b-0',
+                  'rounded-t-xl px-4 py-3 border border-b-0',
                   col.headerBg,
                   col.border
                 )}
               >
-                <div className="flex items-center gap-2">
-                  <OutcomeIcon className={cn('w-4 h-4 flex-shrink-0', col.text)} />
-                  <span className={cn('text-xs font-semibold flex-1', col.text)}>
+                <div className="flex items-center gap-2.5">
+                  <OutcomeIcon className={cn('w-4.5 h-4.5 flex-shrink-0', col.text)} />
+                  <span className={cn('text-sm font-semibold flex-1', col.text)}>
                     {col.label}
                   </span>
-                  <span className={cn('text-[10px] px-1.5 py-0.5 rounded-full font-medium flex-shrink-0', col.bg, col.text)}>
+                  <span className={cn('text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0', col.bg, col.text)}>
                     {bucket.length}
                   </span>
                 </div>
@@ -707,13 +709,13 @@ function SequencePipelineView({
               {/* Column body */}
               <div
                 className={cn(
-                  'flex-1 rounded-b-xl border border-t-0 p-2 space-y-2 min-h-[120px]',
+                  'flex-1 rounded-b-xl border border-t-0 p-3 space-y-3 min-h-[160px] max-h-[70vh] overflow-y-auto',
                   'bg-stone-800/15',
                   col.border
                 )}
               >
                 {bucket.length === 0 ? (
-                  <div className="flex items-center justify-center h-full min-h-[80px] text-[--exec-text-muted] text-xs">
+                  <div className="flex items-center justify-center h-full min-h-[100px] text-[--exec-text-muted] text-sm">
                     None yet
                   </div>
                 ) : (
