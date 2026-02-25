@@ -263,6 +263,21 @@ export default function CopyEmailModal({
     }
   };
 
+  // Save any unsaved custom edits before closing
+  const handleClose = () => {
+    if (email) {
+      const subjectChanged = editSubject !== (prospect.custom_email_subject || email.subject || '');
+      const bodyChanged = editBody !== (prospect.custom_email_body || email.body || '');
+      if (subjectChanged || bodyChanged) {
+        saveCustomEmailMutation.mutate({
+          custom_email_subject: editSubject,
+          custom_email_body: editBody,
+        });
+      }
+    }
+    onClose();
+  };
+
   const handleResetToTemplate = () => {
     if (!email) return;
     setEditSubject(email.subject);
@@ -377,7 +392,7 @@ export default function CopyEmailModal({
               </div>
             </div>
             <button
-              onClick={onClose}
+              onClick={handleClose}
               className="text-[--exec-text-muted] hover:text-[--exec-text] p-1.5 hover:bg-stone-700/50 rounded-lg transition-colors"
             >
               <X className="w-5 h-5" />
@@ -617,7 +632,7 @@ export default function CopyEmailModal({
           <div className="flex gap-3 justify-end pt-6 border-t border-stone-700/30 mt-6">
             <button
               type="button"
-              onClick={onClose}
+              onClick={handleClose}
               className="px-4 py-2 text-sm font-medium text-[--exec-text-secondary] bg-stone-700/50 rounded-lg hover:bg-stone-600/50 transition-colors"
             >
               Cancel
