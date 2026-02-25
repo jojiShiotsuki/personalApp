@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { coldOutreachApi } from '@/lib/api';
@@ -26,29 +26,22 @@ import {
   Globe,
   MapPin,
   Calendar,
-  Clock,
   X,
   AlertTriangle,
   Linkedin,
   Heart,
   UserPlus,
-  UserCheck,
   Mail,
   Reply,
-  SkipForward,
-  RotateCcw,
   XCircle,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import CsvImportModal from '@/components/CsvImportModal';
-import ResponseOutcomeModal from '@/components/ResponseOutcomeModal';
 import NewCampaignModal from '@/components/NewCampaignModal';
 import CopyEmailModal from '@/components/CopyEmailModal';
 import ProspectStatusBadge from '@/components/outreach/ProspectStatusBadge';
 import { WEBSITE_ISSUE_LABELS } from '@/lib/outreachConstants';
-
-type TabType = 'today' | 'all' | 'replied' | 'skipped';
 
 // Channel type colors for step indicators and badges
 const CHANNEL_COLORS: Record<StepChannelType, { bg: string; text: string; dot: string }> = {
@@ -80,33 +73,6 @@ function formatShortDate(dateStr?: string | null): string | null {
   if (!dateStr) return null;
   const d = new Date(dateStr);
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-}
-
-// Step progress indicator
-function StepIndicator({ steps, currentStep }: { steps: MultiTouchStep[]; currentStep: number }) {
-  return (
-    <div className="flex items-center gap-1.5">
-      {steps.map((step) => {
-        const colors = CHANNEL_COLORS[step.channel_type as StepChannelType];
-        const isCurrent = step.step_number === currentStep;
-        const isCompleted = step.step_number < currentStep;
-        return (
-          <div
-            key={step.step_number}
-            title={`Step ${step.step_number}: ${CHANNEL_LABELS[step.channel_type as StepChannelType] || step.channel_type}`}
-            className={cn(
-              'rounded-full transition-all',
-              isCurrent
-                ? cn('w-3 h-3', colors?.dot || 'bg-stone-400', 'shadow-[0_0_6px_rgba(255,255,255,0.3)]')
-                : isCompleted
-                  ? cn('w-2 h-2', colors?.dot || 'bg-stone-400')
-                  : 'w-2 h-2 bg-stone-600'
-            )}
-          />
-        );
-      })}
-    </div>
-  );
 }
 
 // Prospect links helper
@@ -148,67 +114,6 @@ function ProspectLinks({ prospect }: { prospect: OutreachProspect }) {
       >
         <MapPin className="w-3.5 h-3.5" />
       </a>
-    </div>
-  );
-}
-
-// Channel badge
-function ChannelBadge({ channelType }: { channelType: StepChannelType }) {
-  const colors = CHANNEL_COLORS[channelType];
-  const Icon = CHANNEL_ICONS[channelType];
-  const label = CHANNEL_LABELS[channelType];
-  if (!colors || !label) return null;
-  return (
-    <span className={cn('inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium', colors.bg, colors.text)}>
-      {Icon && <Icon className="w-3 h-3" />}
-      {label}
-    </span>
-  );
-}
-
-// Inline website issue tagger — clickable toggle badges with optimistic local state
-function WebsiteIssueTagger({
-  prospect,
-  onUpdate,
-}: {
-  prospect: OutreachProspect;
-  onUpdate: (prospectId: number, issues: string[]) => void;
-}) {
-  const [localIssues, setLocalIssues] = useState<string[]>(prospect.website_issues || []);
-
-  // Sync from server when prospect data changes
-  useEffect(() => {
-    setLocalIssues(prospect.website_issues || []);
-  }, [prospect.website_issues]);
-
-  const toggle = (issueKey: string) => {
-    const updated = localIssues.includes(issueKey)
-      ? localIssues.filter((i) => i !== issueKey)
-      : [...localIssues, issueKey];
-    setLocalIssues(updated); // Optimistic update
-    onUpdate(prospect.id, updated); // Persist to server
-  };
-
-  return (
-    <div className="flex flex-wrap items-center gap-1">
-      <AlertTriangle className="w-3 h-3 text-amber-400/60 flex-shrink-0" />
-      {Object.entries(WEBSITE_ISSUE_LABELS).map(([key, info]) => {
-        const isActive = localIssues.includes(key);
-        return (
-          <button
-            key={key}
-            onClick={() => toggle(key)}
-            className={cn(
-              'px-1.5 py-0.5 text-[10px] font-medium rounded border transition-all duration-150',
-              isActive
-                ? info.color
-                : 'text-stone-500 bg-stone-800/30 border-stone-700/40 hover:border-stone-500/50 hover:text-stone-400'
-            )}
-          >
-            {info.label}
-          </button>
-        );
-      })}
     </div>
   );
 }
@@ -491,357 +396,15 @@ function AddProspectModal({
   );
 }
 
-// Action button for today queue cards based on step channel type
-function StepActionButton({
-  prospect,
-  campaignId,
-  onAdvance,
-  onConnectionSent,
-  onMtConnected,
-  onEngaged,
-}: {
-  prospect: OutreachProspect;
-  campaignId: number;
-  onAdvance: (campaignId: number, prospectId: number) => void;
-  onConnectionSent: (prospectId: number) => void;
-  onMtConnected: (campaignId: number, prospectId: number) => void;
-  onEngaged: (campaignId: number, prospectId: number) => void;
-}) {
-  const stepDetail = prospect.current_step_detail;
-  if (!stepDetail) return null;
-
-  const channelType = stepDetail.channel_type as StepChannelType;
-  const isPendingConnection = prospect.status === ProspectStatus.PENDING_CONNECTION;
-
-  const actionBtnClass = cn(
-    'flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200',
-    'text-white hover:brightness-110 hover:scale-105 hover:shadow-lg active:scale-95'
-  );
-
-  switch (channelType) {
-    case StepChannelType.EMAIL:
-    case StepChannelType.FOLLOW_UP_EMAIL:
-      return (
-        <button
-          onClick={() => onAdvance(campaignId, prospect.id)}
-          className={actionBtnClass}
-          style={{ backgroundColor: 'var(--exec-accent)' }}
-        >
-          <Send className="w-4 h-4" />
-          Mark Sent
-        </button>
-      );
-
-    case StepChannelType.LINKEDIN_CONNECT:
-      if (isPendingConnection) {
-        return (
-          <button
-            onClick={() => onMtConnected(campaignId, prospect.id)}
-            className={cn(actionBtnClass, 'bg-cyan-600 hover:bg-cyan-500')}
-          >
-            <UserCheck className="w-4 h-4" />
-            Connected!
-          </button>
-        );
-      }
-      return (
-        <button
-          onClick={() => onConnectionSent(prospect.id)}
-          className={actionBtnClass}
-          style={{ backgroundColor: 'var(--exec-accent)' }}
-        >
-          <UserPlus className="w-4 h-4" />
-          Connection Sent
-        </button>
-      );
-
-    case StepChannelType.LINKEDIN_MESSAGE:
-      return (
-        <button
-          onClick={() => onAdvance(campaignId, prospect.id)}
-          className={actionBtnClass}
-          style={{ backgroundColor: 'var(--exec-accent)' }}
-        >
-          <MessageSquare className="w-4 h-4" />
-          Message Sent
-        </button>
-      );
-
-    case StepChannelType.LINKEDIN_ENGAGE:
-      return (
-        <button
-          onClick={() => onEngaged(campaignId, prospect.id)}
-          className={cn(actionBtnClass, 'bg-amber-600 hover:bg-amber-500')}
-        >
-          <Heart className="w-4 h-4" />
-          I Engaged
-        </button>
-      );
-
-    default:
-      return (
-        <button
-          onClick={() => onAdvance(campaignId, prospect.id)}
-          className={actionBtnClass}
-          style={{ backgroundColor: 'var(--exec-accent)' }}
-        >
-          <Send className="w-4 h-4" />
-          Done
-        </button>
-      );
-  }
-}
-
-// Multi-touch prospect card for the today queue
-function MultiTouchProspectCard({
-  prospect,
-  campaignId,
-  campaignSteps,
-  onAdvance,
-  onConnectionSent,
-  onMtConnected,
-  onEngaged,
-  onSkip,
-  onEdit,
-  onUpdateIssues,
-  onViewMessage,
-}: {
-  prospect: OutreachProspect;
-  campaignId: number;
-  campaignSteps: MultiTouchStep[];
-  onAdvance: (campaignId: number, prospectId: number) => void;
-  onConnectionSent: (prospectId: number) => void;
-  onMtConnected: (campaignId: number, prospectId: number) => void;
-  onEngaged: (campaignId: number, prospectId: number) => void;
-  onSkip: (prospectId: number) => void;
-  onEdit: () => void;
-  onUpdateIssues: (prospectId: number, issues: string[]) => void;
-  onViewMessage: (prospect: OutreachProspect) => void;
-}) {
-  const [isResponseModalOpen, setIsResponseModalOpen] = useState(false);
-  const stepDetail = prospect.current_step_detail;
-  const channelType = stepDetail?.channel_type as StepChannelType | undefined;
-
-  return (
-    <>
-      <div className="bento-card p-5 hover:shadow-lg transition-all duration-200">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex-1 min-w-0">
-            {/* Agency & contact */}
-            <div className="flex items-center gap-2 mb-1">
-              <h3 className="font-semibold text-[--exec-text] truncate">{prospect.agency_name}</h3>
-              {channelType && <ChannelBadge channelType={channelType} />}
-            </div>
-
-            {prospect.contact_name && (
-              <p className="text-xs text-[--exec-text-muted] mb-1">{prospect.contact_name}</p>
-            )}
-
-            {prospect.niche && (
-              <p className="text-xs text-[--exec-text-muted] mb-1.5">{prospect.niche}</p>
-            )}
-
-            {/* Step progress indicator */}
-            {campaignSteps.length > 0 && (
-              <div className="mb-2">
-                <StepIndicator steps={campaignSteps} currentStep={prospect.current_step} />
-              </div>
-            )}
-
-            {/* Current step instruction */}
-            {stepDetail?.instruction_text && (
-              <p className="text-xs text-[--exec-text-secondary] bg-stone-800/40 rounded-lg px-2.5 py-1.5 mb-2 border border-stone-700/30">
-                <span className="font-medium text-[--exec-text-muted]">Step {stepDetail.step_number}:</span>{' '}
-                {stepDetail.instruction_text}
-              </p>
-            )}
-
-            {/* Missing data warnings */}
-            {prospect.missing_data_warnings && prospect.missing_data_warnings.length > 0 && (
-              <div className="flex flex-wrap items-center gap-1 mb-2">
-                <AlertTriangle className="w-3 h-3 text-amber-400 flex-shrink-0" />
-                {prospect.missing_data_warnings.map((warning, i) => (
-                  <span key={i} className="px-1.5 py-0.5 text-[10px] font-medium rounded border bg-amber-500/15 text-amber-400 border-amber-500/30">
-                    {warning}
-                  </span>
-                ))}
-              </div>
-            )}
-
-            <ProspectLinks prospect={prospect} />
-
-            {/* Website issue tags */}
-            <div className="mt-1.5">
-              <WebsiteIssueTagger prospect={prospect} onUpdate={onUpdateIssues} />
-            </div>
-
-            {/* Dates */}
-            {(prospect.last_contacted_at || prospect.next_action_date) && (
-              <div className="flex items-center gap-3 mt-2 text-xs text-[--exec-text-muted]">
-                {prospect.last_contacted_at && (
-                  <span className="flex items-center gap-1">
-                    <Clock className="w-3 h-3" />
-                    Sent {formatShortDate(prospect.last_contacted_at)}
-                  </span>
-                )}
-                {prospect.next_action_date && (
-                  <span className="flex items-center gap-1">
-                    <Calendar className="w-3 h-3" />
-                    Next {formatShortDate(prospect.next_action_date)}
-                  </span>
-                )}
-              </div>
-            )}
-          </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              onClick={onEdit}
-              className="p-1.5 text-[--exec-text-muted] hover:text-[--exec-text] hover:bg-[--exec-surface-alt] rounded-lg transition-colors"
-              title="Edit prospect"
-            >
-              <Edit2 className="w-3.5 h-3.5" />
-            </button>
-            <ProspectStatusBadge status={prospect.status} />
-          </div>
-        </div>
-
-        {/* Action buttons */}
-        <div className="flex items-center gap-2 mt-4 pt-4 border-t border-[--exec-border-subtle]">
-          {/* Open LinkedIn if applicable */}
-          {prospect.linkedin_url && channelType && (
-            channelType === StepChannelType.LINKEDIN_CONNECT ||
-            channelType === StepChannelType.LINKEDIN_MESSAGE ||
-            channelType === StepChannelType.LINKEDIN_ENGAGE
-          ) && (
-            <a
-              href={prospect.linkedin_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={cn(
-                'flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200',
-                'bg-blue-600/30 text-blue-300 border border-blue-500/30',
-                'hover:bg-blue-500 hover:text-white hover:scale-105',
-                'active:scale-95'
-              )}
-            >
-              <Linkedin className="w-4 h-4" />
-              Open Profile
-            </a>
-          )}
-
-          {/* View Email */}
-          {(channelType === StepChannelType.EMAIL || channelType === StepChannelType.FOLLOW_UP_EMAIL) && prospect.email && (
-            <button
-              onClick={() => onViewMessage(prospect)}
-              className={cn(
-                'flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200',
-                'bg-stone-700/50 text-[--exec-text-secondary] hover:bg-stone-600/50 hover:text-[--exec-text]'
-              )}
-            >
-              <Mail className="w-4 h-4" />
-              View Email
-            </button>
-          )}
-
-          {/* Primary action */}
-          <StepActionButton
-            prospect={prospect}
-            campaignId={campaignId}
-            onAdvance={onAdvance}
-            onConnectionSent={onConnectionSent}
-            onMtConnected={onMtConnected}
-            onEngaged={onEngaged}
-          />
-
-          {/* They Replied */}
-          <button
-            onClick={() => setIsResponseModalOpen(true)}
-            className={cn(
-              'flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200',
-              'bg-green-600 text-white hover:bg-green-500 hover:scale-105 hover:shadow-lg active:scale-95'
-            )}
-          >
-            <MessageSquare className="w-4 h-4" />
-            They Replied
-          </button>
-
-          {/* Skip */}
-          <button
-            onClick={() => onSkip(prospect.id)}
-            className="p-2 text-[--exec-text-muted] hover:text-orange-400 hover:bg-orange-500/10 rounded-xl transition-colors"
-            title="Skip this prospect"
-          >
-            <SkipForward className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
-
-      <ResponseOutcomeModal
-        isOpen={isResponseModalOpen}
-        onClose={() => setIsResponseModalOpen(false)}
-        prospect={prospect}
-      />
-    </>
-  );
-}
-
-// Today Queue view
-function TodayQueue({
-  prospects,
-  campaignId,
-  campaignSteps,
-  onAdvance,
-  onConnectionSent,
-  onMtConnected,
-  onEngaged,
-  onSkip,
-  onEdit,
-  onUpdateIssues,
-  onViewMessage,
-}: {
-  prospects: OutreachProspect[];
-  campaignId: number;
-  campaignSteps: MultiTouchStep[];
-  onAdvance: (campaignId: number, prospectId: number) => void;
-  onConnectionSent: (prospectId: number) => void;
-  onMtConnected: (campaignId: number, prospectId: number) => void;
-  onEngaged: (campaignId: number, prospectId: number) => void;
-  onSkip: (prospectId: number) => void;
-  onEdit: (prospect: OutreachProspect) => void;
-  onUpdateIssues: (prospectId: number, issues: string[]) => void;
-  onViewMessage: (prospect: OutreachProspect) => void;
-}) {
-  if (prospects.length === 0) {
-    return (
-      <div className="bento-card p-12 text-center">
-        <Layers className="w-12 h-12 text-[--exec-text-muted] mx-auto mb-4" />
-        <h3 className="text-lg font-medium text-[--exec-text] mb-2">No actions for today</h3>
-        <p className="text-[--exec-text-muted]">Check back tomorrow or import more prospects.</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-      {prospects.map((prospect) => (
-        <MultiTouchProspectCard
-          key={prospect.id}
-          prospect={prospect}
-          campaignId={campaignId}
-          campaignSteps={campaignSteps}
-          onAdvance={onAdvance}
-          onConnectionSent={onConnectionSent}
-          onMtConnected={onMtConnected}
-          onEngaged={onEngaged}
-          onSkip={onSkip}
-          onEdit={() => onEdit(prospect)}
-          onUpdateIssues={onUpdateIssues}
-          onViewMessage={onViewMessage}
-        />
-      ))}
-    </div>
-  );
+// Check if a date string is today or in the past
+// Check if a date string is today or in the past
+function isDueToday(dateStr?: string | null): boolean {
+  if (!dateStr) return false;
+  const d = new Date(dateStr);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  d.setHours(0, 0, 0, 0);
+  return d <= today;
 }
 
 // Compact prospect card for pipeline view
@@ -854,27 +417,38 @@ function PipelineProspectCard({
   onEdit: (prospect: OutreachProspect) => void;
   isMuted?: boolean;
 }) {
+  const dueToday = isDueToday(prospect.next_action_date);
+
   return (
     <div
       className={cn(
         'rounded-lg border p-3 transition-all duration-200 group',
         isMuted
           ? 'bg-stone-800/20 border-stone-700/30 opacity-60 hover:opacity-80'
-          : 'bg-[--exec-surface] border-[--exec-border-subtle] hover:border-[--exec-border] hover:shadow-md'
+          : dueToday
+            ? 'bg-[--exec-surface] border-[--exec-accent]/40 shadow-[0_0_8px_rgba(var(--exec-accent-rgb,59,130,246),0.15)] hover:shadow-[0_0_12px_rgba(var(--exec-accent-rgb,59,130,246),0.25)]'
+            : 'bg-[--exec-surface] border-[--exec-border-subtle] hover:border-[--exec-border] hover:shadow-md'
       )}
     >
-      {/* Agency name */}
+      {/* Agency name + due today badge */}
       <div className="flex items-start justify-between gap-1.5 mb-1">
         <h4 className="text-sm font-semibold text-[--exec-text] truncate flex-1">
           {prospect.agency_name}
         </h4>
-        <button
-          onClick={() => onEdit(prospect)}
-          className="p-1 text-[--exec-text-muted] hover:text-[--exec-text] hover:bg-[--exec-surface-alt] rounded transition-colors opacity-0 group-hover:opacity-100 flex-shrink-0"
-          title="Edit prospect"
-        >
-          <Edit2 className="w-3 h-3" />
-        </button>
+        <div className="flex items-center gap-1 flex-shrink-0">
+          {dueToday && !isMuted && (
+            <span className="px-1.5 py-0.5 text-[9px] font-bold uppercase rounded bg-[--exec-accent]/20 text-[--exec-accent] tracking-wider">
+              Today
+            </span>
+          )}
+          <button
+            onClick={() => onEdit(prospect)}
+            className="p-1 text-[--exec-text-muted] hover:text-[--exec-text] hover:bg-[--exec-surface-alt] rounded transition-colors opacity-0 group-hover:opacity-100"
+            title="Edit prospect"
+          >
+            <Edit2 className="w-3 h-3" />
+          </button>
+        </div>
       </div>
 
       {/* Contact name */}
@@ -889,9 +463,12 @@ function PipelineProspectCard({
 
       {/* Next action date */}
       {prospect.next_action_date && (
-        <div className="flex items-center gap-1 text-[10px] text-[--exec-text-muted] mb-1.5">
+        <div className={cn(
+          'flex items-center gap-1 text-[10px] mb-1.5',
+          dueToday ? 'text-[--exec-accent] font-medium' : 'text-[--exec-text-muted]'
+        )}>
           <Calendar className="w-3 h-3" />
-          Next {formatShortDate(prospect.next_action_date)}
+          {dueToday ? 'Due today' : `Next ${formatShortDate(prospect.next_action_date)}`}
         </div>
       )}
 
@@ -1116,128 +693,6 @@ function SequencePipelineView({
   );
 }
 
-// Replied Prospects
-function RepliedProspects({
-  prospects,
-  onEdit,
-}: {
-  prospects: OutreachProspect[];
-  onEdit: (prospect: OutreachProspect) => void;
-}) {
-  const replied = prospects.filter(
-    (p) =>
-      p.status === ProspectStatus.REPLIED ||
-      p.status === ProspectStatus.CONVERTED ||
-      p.status === ProspectStatus.NOT_INTERESTED
-  );
-
-  if (replied.length === 0) {
-    return (
-      <div className="bento-card p-12 text-center">
-        <MessageSquare className="w-12 h-12 text-[--exec-text-muted] mx-auto mb-4" />
-        <h3 className="text-lg font-medium text-[--exec-text] mb-2">No replies yet</h3>
-        <p className="text-[--exec-text-muted]">Keep working the sequence! Replies will appear here.</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-      {replied.map((prospect) => (
-        <div key={prospect.id} className="bento-card p-5">
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex-1 min-w-0">
-              <h3 className="font-semibold text-[--exec-text] truncate mb-1">{prospect.agency_name}</h3>
-              {prospect.contact_name && <p className="text-xs text-[--exec-text-muted] mb-1">{prospect.contact_name}</p>}
-              {prospect.niche && <p className="text-xs text-[--exec-text-muted] mb-1">{prospect.niche}</p>}
-              <ProspectLinks prospect={prospect} />
-              {prospect.notes && <p className="text-xs text-[--exec-text-muted] line-clamp-2 mt-2">{prospect.notes}</p>}
-              {prospect.last_contacted_at && (
-                <p className="text-xs text-[--exec-text-muted] mt-2 flex items-center gap-1">
-                  <Clock className="w-3 h-3" />
-                  Last sent {formatShortDate(prospect.last_contacted_at)}
-                </p>
-              )}
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => onEdit(prospect)}
-                className="p-1.5 text-[--exec-text-muted] hover:text-[--exec-text] hover:bg-[--exec-surface-alt] rounded-lg transition-colors"
-                title="Edit"
-              >
-                <Edit2 className="w-3.5 h-3.5" />
-              </button>
-              <ProspectStatusBadge status={prospect.status} />
-            </div>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-// Skipped Prospects
-function SkippedProspects({
-  prospects,
-  onRestore,
-  onEdit,
-}: {
-  prospects: OutreachProspect[];
-  onRestore: (prospectId: number) => void;
-  onEdit: (prospect: OutreachProspect) => void;
-}) {
-  const skipped = prospects.filter((p) => p.status === ProspectStatus.SKIPPED);
-
-  if (skipped.length === 0) {
-    return (
-      <div className="bento-card p-12 text-center">
-        <SkipForward className="w-12 h-12 text-[--exec-text-muted] mx-auto mb-4" />
-        <h3 className="text-lg font-medium text-[--exec-text] mb-2">No skipped prospects</h3>
-        <p className="text-[--exec-text-muted]">Prospects you skip will appear here.</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-      {skipped.map((prospect) => (
-        <div key={prospect.id} className="bento-card p-5">
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex-1 min-w-0">
-              <h3 className="font-semibold text-[--exec-text] truncate mb-1">{prospect.agency_name}</h3>
-              {prospect.contact_name && <p className="text-xs text-[--exec-text-muted] mb-1">{prospect.contact_name}</p>}
-              {prospect.niche && <p className="text-xs text-[--exec-text-muted] mb-1">{prospect.niche}</p>}
-              <ProspectLinks prospect={prospect} />
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => onEdit(prospect)}
-                className="p-1.5 text-[--exec-text-muted] hover:text-[--exec-text] hover:bg-[--exec-surface-alt] rounded-lg transition-colors"
-                title="Edit"
-              >
-                <Edit2 className="w-3.5 h-3.5" />
-              </button>
-              <ProspectStatusBadge status={prospect.status} />
-            </div>
-          </div>
-          <div className="flex items-center gap-2 mt-4 pt-4 border-t border-[--exec-border-subtle]">
-            <button
-              onClick={() => onRestore(prospect.id)}
-              className={cn(
-                'flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200',
-                'bg-emerald-600 text-white hover:bg-emerald-500 hover:scale-105 hover:shadow-lg active:scale-95'
-              )}
-            >
-              <RotateCcw className="w-4 h-4" />
-              Restore
-            </button>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
 // Sequence Steps Panel — collapsible horizontal pipeline view
 function SequenceStepsPanel({
   steps,
@@ -1376,7 +831,6 @@ function SequenceStepsPanel({
 // Main component
 export default function MultiTouchCampaignsTab() {
   const [selectedCampaignId, setSelectedCampaignId] = useState<number | null>(null);
-  const [activeTab, setActiveTab] = useState<TabType>('all');
   const [isNewCampaignOpen, setIsNewCampaignOpen] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [isCampaignDropdownOpen, setIsCampaignDropdownOpen] = useState(false);
@@ -1399,76 +853,13 @@ export default function MultiTouchCampaignsTab() {
     enabled: !!selectedCampaignId,
   });
 
-  const { data: todayQueue = [] } = useQuery<OutreachProspect[]>({
-    queryKey: ['mt-today-queue', selectedCampaignId],
-    queryFn: () => coldOutreachApi.getTodayQueue(selectedCampaignId!),
-    enabled: !!selectedCampaignId && activeTab === 'today',
-  });
-
   const { data: allProspects = [] } = useQuery<OutreachProspect[]>({
     queryKey: ['mt-prospects', selectedCampaignId],
     queryFn: () => coldOutreachApi.getProspects(selectedCampaignId!),
-    enabled: !!selectedCampaignId && activeTab !== 'today',
+    enabled: !!selectedCampaignId,
   });
 
   // Mutations
-  const advanceProspectMutation = useMutation({
-    mutationFn: ({ campaignId, prospectId }: { campaignId: number; prospectId: number }) =>
-      coldOutreachApi.advanceProspect(campaignId, prospectId),
-    onSuccess: (data) => {
-      toast.success(data.message);
-      invalidateAll();
-    },
-    onError: () => toast.error('Failed to advance prospect'),
-  });
-
-  const connectionSentMutation = useMutation({
-    mutationFn: (prospectId: number) => coldOutreachApi.markConnectionSent(prospectId),
-    onSuccess: (data) => {
-      toast.success(data.message);
-      invalidateAll();
-    },
-    onError: () => toast.error('Failed to mark connection sent'),
-  });
-
-  const mtConnectedMutation = useMutation({
-    mutationFn: ({ campaignId, prospectId }: { campaignId: number; prospectId: number }) =>
-      coldOutreachApi.markMtConnected(campaignId, prospectId),
-    onSuccess: (data) => {
-      toast.success(data.message);
-      invalidateAll();
-    },
-    onError: () => toast.error('Failed to mark as connected'),
-  });
-
-  const engagedMutation = useMutation({
-    mutationFn: ({ campaignId, prospectId }: { campaignId: number; prospectId: number }) =>
-      coldOutreachApi.markEngaged(campaignId, prospectId),
-    onSuccess: (data) => {
-      toast.success(data.message);
-      invalidateAll();
-    },
-    onError: () => toast.error('Failed to mark engagement'),
-  });
-
-  const skipMutation = useMutation({
-    mutationFn: (prospectId: number) => coldOutreachApi.skipProspect(prospectId),
-    onSuccess: (data) => {
-      toast.success(data.message);
-      invalidateAll();
-    },
-    onError: () => toast.error('Failed to skip prospect'),
-  });
-
-  const unskipMutation = useMutation({
-    mutationFn: (prospectId: number) => coldOutreachApi.unskipProspect(prospectId),
-    onSuccess: (data) => {
-      toast.success(data.message);
-      invalidateAll();
-    },
-    onError: () => toast.error('Failed to restore prospect'),
-  });
-
   const deleteCampaignMutation = useMutation({
     mutationFn: (campaignId: number) => coldOutreachApi.deleteCampaign(campaignId),
     onSuccess: () => {
@@ -1492,13 +883,6 @@ export default function MultiTouchCampaignsTab() {
     onError: () => toast.error('Failed to update prospect'),
   });
 
-  // Silent mutation for inline issue tag toggling — no refetch to avoid re-sorting
-  const updateIssuesMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: Partial<OutreachProspect> }) =>
-      coldOutreachApi.updateProspect(id, data),
-    onError: () => toast.error('Failed to update issues'),
-  });
-
   const deleteProspectMutation = useMutation({
     mutationFn: (prospectId: number) => coldOutreachApi.deleteProspect(prospectId),
     onSuccess: () => {
@@ -1520,32 +904,10 @@ export default function MultiTouchCampaignsTab() {
   });
 
   function invalidateAll() {
-    queryClient.invalidateQueries({ queryKey: ['mt-today-queue'] });
     queryClient.invalidateQueries({ queryKey: ['mt-prospects'] });
     queryClient.invalidateQueries({ queryKey: ['mt-campaign'] });
     queryClient.invalidateQueries({ queryKey: ['multi-touch-campaigns'] });
   }
-
-  // Handlers
-  const handleAdvance = (campaignId: number, prospectId: number) => {
-    advanceProspectMutation.mutate({ campaignId, prospectId });
-  };
-
-  const handleConnectionSent = (prospectId: number) => {
-    connectionSentMutation.mutate(prospectId);
-  };
-
-  const handleMtConnected = (campaignId: number, prospectId: number) => {
-    mtConnectedMutation.mutate({ campaignId, prospectId });
-  };
-
-  const handleEngaged = (campaignId: number, prospectId: number) => {
-    engagedMutation.mutate({ campaignId, prospectId });
-  };
-
-  const handleUpdateIssues = (prospectId: number, issues: string[]) => {
-    updateIssuesMutation.mutate({ id: prospectId, data: { website_issues: issues } as Partial<OutreachProspect> });
-  };
 
   const handleDeleteCampaign = (e: React.MouseEvent, campaignId: number) => {
     e.stopPropagation();
@@ -1824,68 +1186,13 @@ export default function MultiTouchCampaignsTab() {
           />
         )}
 
-        {/* Sub-tabs */}
-        {selectedCampaignId && (
-          <div className="mb-6">
-            <div className="flex items-center gap-1">
-              {(['today', 'all', 'replied', 'skipped'] as const).map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  className={cn(
-                    'px-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200',
-                    activeTab === tab
-                      ? 'text-white shadow-lg scale-105'
-                      : 'bg-slate-700/50 text-slate-400 hover:bg-slate-600 hover:text-white hover:scale-105'
-                  )}
-                  style={activeTab === tab ? { backgroundColor: 'var(--exec-accent)' } : undefined}
-                >
-                  {tab === 'today' && 'Today'}
-                  {tab === 'all' && 'All Prospects'}
-                  {tab === 'replied' && 'Replied'}
-                  {tab === 'skipped' && 'Skipped'}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Content Area */}
+        {/* Pipeline View */}
         {selectedCampaignId ? (
-          <div>
-            {activeTab === 'today' && (
-              <TodayQueue
-                prospects={todayQueue}
-                campaignId={selectedCampaignId}
-                campaignSteps={campaignSteps}
-                onAdvance={handleAdvance}
-                onConnectionSent={handleConnectionSent}
-                onMtConnected={handleMtConnected}
-                onEngaged={handleEngaged}
-                onSkip={(prospectId) => skipMutation.mutate(prospectId)}
-                onEdit={setEditingProspect}
-                onUpdateIssues={handleUpdateIssues}
-                onViewMessage={setEmailModalProspect}
-              />
-            )}
-            {activeTab === 'all' && (
-              <SequencePipelineView
-                prospects={allProspects}
-                campaignSteps={campaignSteps}
-                onEdit={setEditingProspect}
-              />
-            )}
-            {activeTab === 'replied' && (
-              <RepliedProspects prospects={allProspects} onEdit={setEditingProspect} />
-            )}
-            {activeTab === 'skipped' && (
-              <SkippedProspects
-                prospects={allProspects}
-                onRestore={(prospectId) => unskipMutation.mutate(prospectId)}
-                onEdit={setEditingProspect}
-              />
-            )}
-          </div>
+          <SequencePipelineView
+            prospects={allProspects}
+            campaignSteps={campaignSteps}
+            onEdit={setEditingProspect}
+          />
         ) : (
           <div className="bento-card p-12 text-center">
             <Layers className="w-12 h-12 text-[--exec-text-muted] mx-auto mb-4" />
