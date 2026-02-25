@@ -41,6 +41,7 @@ import CsvImportModal from '@/components/CsvImportModal';
 import NewCampaignModal from '@/components/NewCampaignModal';
 import CopyEmailModal from '@/components/CopyEmailModal';
 import ProspectStatusBadge from '@/components/outreach/ProspectStatusBadge';
+import ResponseOutcomeModal from '@/components/ResponseOutcomeModal';
 import { WEBSITE_ISSUE_LABELS } from '@/lib/outreachConstants';
 
 // Channel type colors for step indicators and badges
@@ -412,11 +413,13 @@ function PipelineProspectCard({
   prospect,
   onEdit,
   onViewMessage,
+  onMarkResponse,
   isMuted,
 }: {
   prospect: OutreachProspect;
   onEdit: (prospect: OutreachProspect) => void;
   onViewMessage: (prospect: OutreachProspect) => void;
+  onMarkResponse: (prospect: OutreachProspect) => void;
   isMuted?: boolean;
 }) {
   const dueToday = isDueToday(prospect.next_action_date);
@@ -451,6 +454,15 @@ function PipelineProspectCard({
               title="View email"
             >
               <Mail className="w-3.5 h-3.5" />
+            </button>
+          )}
+          {!isMuted && (
+            <button
+              onClick={() => onMarkResponse(prospect)}
+              className="p-1.5 text-[--exec-text-muted] hover:text-green-400 hover:bg-green-500/15 rounded-md transition-colors opacity-0 group-hover:opacity-100"
+              title="Mark response"
+            >
+              <MessageSquare className="w-3.5 h-3.5" />
             </button>
           )}
           <button
@@ -546,11 +558,13 @@ function SequencePipelineView({
   campaignSteps,
   onEdit,
   onViewMessage,
+  onMarkResponse,
 }: {
   prospects: OutreachProspect[];
   campaignSteps: MultiTouchStep[];
   onEdit: (prospect: OutreachProspect) => void;
   onViewMessage: (prospect: OutreachProspect) => void;
+  onMarkResponse: (prospect: OutreachProspect) => void;
 }) {
   const [showSkipped, setShowSkipped] = useState(false);
 
@@ -679,6 +693,7 @@ function SequencePipelineView({
                         prospect={prospect}
                         onEdit={onEdit}
                         onViewMessage={onViewMessage}
+                        onMarkResponse={onMarkResponse}
                       />
                     ))
                   )}
@@ -732,6 +747,7 @@ function SequencePipelineView({
                         prospect={prospect}
                         onEdit={onEdit}
                         onViewMessage={onViewMessage}
+                        onMarkResponse={onMarkResponse}
                       />
                     ))
                   )}
@@ -774,6 +790,7 @@ function SequencePipelineView({
                     prospect={prospect}
                     onEdit={onEdit}
                     onViewMessage={onViewMessage}
+                    onMarkResponse={onMarkResponse}
                     isMuted
                   />
                 ))}
@@ -931,6 +948,7 @@ export default function MultiTouchCampaignsTab() {
   const [editingProspect, setEditingProspect] = useState<OutreachProspect | null>(null);
   const [isAddProspectOpen, setIsAddProspectOpen] = useState(false);
   const [emailModalProspect, setEmailModalProspect] = useState<OutreachProspect | null>(null);
+  const [responseModalProspect, setResponseModalProspect] = useState<OutreachProspect | null>(null);
 
   const queryClient = useQueryClient();
 
@@ -1286,6 +1304,7 @@ export default function MultiTouchCampaignsTab() {
             campaignSteps={campaignSteps}
             onEdit={setEditingProspect}
             onViewMessage={setEmailModalProspect}
+            onMarkResponse={setResponseModalProspect}
           />
         ) : (
           <div className="bento-card p-12 text-center">
@@ -1352,6 +1371,14 @@ export default function MultiTouchCampaignsTab() {
           onClose={() => setEmailModalProspect(null)}
           prospect={emailModalProspect}
           campaignId={selectedCampaignId ?? undefined}
+        />
+      )}
+
+      {responseModalProspect && (
+        <ResponseOutcomeModal
+          isOpen={!!responseModalProspect}
+          onClose={() => setResponseModalProspect(null)}
+          prospect={responseModalProspect}
         />
       )}
     </>

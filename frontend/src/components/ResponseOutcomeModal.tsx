@@ -73,6 +73,9 @@ export default function ResponseOutcomeModal({
       queryClient.invalidateQueries({ queryKey: ['outreach-today-queue'] });
       queryClient.invalidateQueries({ queryKey: ['outreach-prospects'] });
       queryClient.invalidateQueries({ queryKey: ['outreach-campaign'] });
+      queryClient.invalidateQueries({ queryKey: ['mt-prospects'] });
+      queryClient.invalidateQueries({ queryKey: ['mt-campaign'] });
+      queryClient.invalidateQueries({ queryKey: ['multi-touch-campaigns'] });
 
       // If interested and contact was created, show success state
       if (selectedOutcome === ResponseType.INTERESTED && data.contact_id) {
