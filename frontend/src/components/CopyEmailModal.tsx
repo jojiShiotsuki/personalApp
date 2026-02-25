@@ -128,11 +128,11 @@ export default function CopyEmailModal({
   }, [rawEmail, selectedIssue, customDescriptions, prospectVars]);
 
   // Initialize editable fields from saved custom values or template once loaded
+  // Apply replaceVars so any saved {first_name} etc. get resolved on open
   useEffect(() => {
     if (email && !hasInitializedFromTemplate) {
-      // Use saved custom values if they exist, otherwise use the rendered template
-      setEditSubject(prospect.custom_email_subject || email.subject);
-      setEditBody(prospect.custom_email_body || email.body);
+      setEditSubject(replaceVars(prospect.custom_email_subject || email.subject));
+      setEditBody(replaceVars(prospect.custom_email_body || email.body));
       setHasInitializedFromTemplate(true);
     }
   }, [email, hasInitializedFromTemplate]);
