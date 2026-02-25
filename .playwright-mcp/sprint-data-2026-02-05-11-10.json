@@ -1,0 +1,1371 @@
+{
+  "exportMetadata": {
+    "exportedAt": "2026-02-05T03:10:58.182Z",
+    "version": "2.0",
+    "purpose": "AI Coach Progress Analysis"
+  },
+  "sprintInfo": {
+    "id": 6,
+    "title": "30-Day Client Acquisition Sprint",
+    "status": "active",
+    "startDate": "2026-02-05",
+    "endDate": "2026-03-06",
+    "currentDay": 1,
+    "currentWeek": 1,
+    "currentWeekTheme": "Foundation",
+    "daysRemaining": 29,
+    "progressPercentage": 0
+  },
+  "performanceMetrics": {
+    "tasks": {
+      "total": 67,
+      "completed": 0,
+      "pending": 67,
+      "completionRate": 0
+    },
+    "outreach": {
+      "coldEmails": {
+        "current": 0,
+        "target": 10,
+        "rate": 0,
+        "dailyAvg": 0
+      },
+      "linkedin": {
+        "current": 0,
+        "target": 10,
+        "rate": 0,
+        "dailyAvg": 0
+      },
+      "calls": {
+        "current": 0,
+        "target": 5,
+        "rate": 0,
+        "dailyAvg": 0
+      },
+      "looms": {
+        "current": 0,
+        "target": 1,
+        "rate": 0,
+        "dailyAvg": 0
+      },
+      "totalCurrent": 0,
+      "totalTarget": 26
+    },
+    "consistency": {
+      "daysElapsed": 1,
+      "daysWithActivity": 0,
+      "perfectDays": 0,
+      "currentStreak": 0,
+      "activityRate": 0
+    },
+    "analysis": {
+      "strongAreas": [],
+      "weakAreas": [
+        "Cold Emails",
+        "LinkedIn Outreach",
+        "Discovery Calls",
+        "Loom Audits"
+      ],
+      "overallAssessment": "Needs Attention"
+    }
+  },
+  "weeklyData": [
+    {
+      "weekNumber": 1,
+      "theme": "Foundation",
+      "daysCompleted": 0,
+      "totalDays": 7,
+      "isCurrent": true,
+      "tasks": {
+        "total": 15,
+        "completed": 0
+      },
+      "outreach": {
+        "emails": 0,
+        "linkedin": 0,
+        "calls": 0,
+        "looms": 0
+      }
+    },
+    {
+      "weekNumber": 2,
+      "theme": "Volume",
+      "daysCompleted": 0,
+      "totalDays": 7,
+      "isCurrent": false,
+      "tasks": {
+        "total": 15,
+        "completed": 0
+      },
+      "outreach": {
+        "emails": 0,
+        "linkedin": 0,
+        "calls": 0,
+        "looms": 0
+      }
+    },
+    {
+      "weekNumber": 3,
+      "theme": "Momentum",
+      "daysCompleted": 0,
+      "totalDays": 7,
+      "isCurrent": false,
+      "tasks": {
+        "total": 15,
+        "completed": 0
+      },
+      "outreach": {
+        "emails": 0,
+        "linkedin": 0,
+        "calls": 0,
+        "looms": 0
+      }
+    },
+    {
+      "weekNumber": 4,
+      "theme": "Close",
+      "daysCompleted": 0,
+      "totalDays": 9,
+      "isCurrent": false,
+      "tasks": {
+        "total": 22,
+        "completed": 0
+      },
+      "outreach": {
+        "emails": 0,
+        "linkedin": 0,
+        "calls": 0,
+        "looms": 0
+      }
+    }
+  ],
+  "dailyData": [
+    {
+      "dayNumber": 1,
+      "weekNumber": 1,
+      "date": "2026-02-05",
+      "isComplete": false,
+      "tasks": [
+        {
+          "id": 1,
+          "title": "Screenshot Pundok Studios #1 Google ranking",
+          "status": "pending",
+          "isCompleted": false
+        },
+        {
+          "id": 2,
+          "title": "Screenshot You% Nutrition #1 Google ranking",
+          "status": "pending",
+          "isCompleted": false
+        }
+      ],
+      "outreach": {
+        "coldEmails": {
+          "current": 0,
+          "target": 10,
+          "percentage": 0
+        },
+        "linkedin": {
+          "current": 0,
+          "target": 10,
+          "percentage": 0
+        },
+        "calls": {
+          "current": 0,
+          "target": 5,
+          "percentage": 0
+        },
+        "looms": {
+          "current": 0,
+          "target": 1,
+          "percentage": 0
+        }
+      },
+      "notes": null
+    },
+    {
+      "dayNumber": 2,
+      "weekNumber": 1,
+      "date": "2026-02-06",
+      "isComplete": false,
+      "tasks": [
+        {
+          "id": 68,
+          "title": "Message Pundok Studios for testimonial",
+          "status": "pending",
+          "isCompleted": false
+        },
+        {
+          "id": 69,
+          "title": "Message You% for testimonial",
+          "status": "pending",
+          "isCompleted": false
+        },
+        {
+          "id": 70,
+          "title": "Message Best Roofing Now for testimonial",
+          "status": "pending",
+          "isCompleted": false
+        }
+      ],
+      "outreach": {
+        "coldEmails": {
+          "current": 0,
+          "target": 0
+        },
+        "linkedin": {
+          "current": 0,
+          "target": 0
+        },
+        "calls": {
+          "current": 0,
+          "target": 0
+        },
+        "looms": {
+          "current": 0,
+          "target": 0
+        }
+      },
+      "notes": null
+    },
+    {
+      "dayNumber": 3,
+      "weekNumber": 1,
+      "date": "2026-02-07",
+      "isComplete": false,
+      "tasks": [
+        {
+          "id": 6,
+          "title": "Update LinkedIn headline: AU tradies focus",
+          "status": "pending",
+          "isCompleted": false
+        },
+        {
+          "id": 7,
+          "title": "Update LinkedIn About section with proof",
+          "status": "pending",
+          "isCompleted": false
+        }
+      ],
+      "outreach": {
+        "coldEmails": {
+          "current": 0,
+          "target": 0
+        },
+        "linkedin": {
+          "current": 0,
+          "target": 0
+        },
+        "calls": {
+          "current": 0,
+          "target": 0
+        },
+        "looms": {
+          "current": 0,
+          "target": 0
+        }
+      },
+      "notes": null
+    },
+    {
+      "dayNumber": 4,
+      "weekNumber": 1,
+      "date": "2026-02-08",
+      "isComplete": false,
+      "tasks": [
+        {
+          "id": 8,
+          "title": "Create portfolio page focused on tradies",
+          "status": "pending",
+          "isCompleted": false
+        },
+        {
+          "id": 9,
+          "title": "Add case studies to portfolio",
+          "status": "pending",
+          "isCompleted": false
+        }
+      ],
+      "outreach": {
+        "coldEmails": {
+          "current": 0,
+          "target": 0
+        },
+        "linkedin": {
+          "current": 0,
+          "target": 0
+        },
+        "calls": {
+          "current": 0,
+          "target": 0
+        },
+        "looms": {
+          "current": 0,
+          "target": 0
+        }
+      },
+      "notes": null
+    },
+    {
+      "dayNumber": 5,
+      "weekNumber": 1,
+      "date": "2026-02-09",
+      "isComplete": false,
+      "tasks": [
+        {
+          "id": 10,
+          "title": "Find 25 tradies with bad websites (HiPages)",
+          "status": "pending",
+          "isCompleted": false
+        },
+        {
+          "id": 11,
+          "title": "Find 25 tradies with bad websites (Google Maps)",
+          "status": "pending",
+          "isCompleted": false
+        }
+      ],
+      "outreach": {
+        "coldEmails": {
+          "current": 0,
+          "target": 0
+        },
+        "linkedin": {
+          "current": 0,
+          "target": 0
+        },
+        "calls": {
+          "current": 0,
+          "target": 0
+        },
+        "looms": {
+          "current": 0,
+          "target": 0
+        }
+      },
+      "notes": null
+    },
+    {
+      "dayNumber": 6,
+      "weekNumber": 1,
+      "date": "2026-02-10",
+      "isComplete": false,
+      "tasks": [
+        {
+          "id": 12,
+          "title": "Write 5 personalised cold emails",
+          "status": "pending",
+          "isCompleted": false
+        },
+        {
+          "id": 13,
+          "title": "Prepare email templates in outreach tool",
+          "status": "pending",
+          "isCompleted": false
+        }
+      ],
+      "outreach": {
+        "coldEmails": {
+          "current": 0,
+          "target": 0
+        },
+        "linkedin": {
+          "current": 0,
+          "target": 0
+        },
+        "calls": {
+          "current": 0,
+          "target": 0
+        },
+        "looms": {
+          "current": 0,
+          "target": 0
+        }
+      },
+      "notes": null
+    },
+    {
+      "dayNumber": 7,
+      "weekNumber": 1,
+      "date": "2026-02-11",
+      "isComplete": false,
+      "tasks": [
+        {
+          "id": 14,
+          "title": "Send 5 cold emails",
+          "status": "pending",
+          "isCompleted": false
+        },
+        {
+          "id": 15,
+          "title": "Send 10 LinkedIn connection requests",
+          "status": "pending",
+          "isCompleted": false
+        }
+      ],
+      "outreach": {
+        "coldEmails": {
+          "current": 0,
+          "target": 0
+        },
+        "linkedin": {
+          "current": 0,
+          "target": 0
+        },
+        "calls": {
+          "current": 0,
+          "target": 0
+        },
+        "looms": {
+          "current": 0,
+          "target": 0
+        }
+      },
+      "notes": null
+    },
+    {
+      "dayNumber": 8,
+      "weekNumber": 2,
+      "date": "2026-02-12",
+      "isComplete": false,
+      "tasks": [
+        {
+          "id": 16,
+          "title": "Send 10 cold emails",
+          "status": "pending",
+          "isCompleted": false
+        },
+        {
+          "id": 17,
+          "title": "Send 10 LinkedIn connections",
+          "status": "pending",
+          "isCompleted": false
+        }
+      ],
+      "outreach": {
+        "coldEmails": {
+          "current": 0,
+          "target": 0
+        },
+        "linkedin": {
+          "current": 0,
+          "target": 0
+        },
+        "calls": {
+          "current": 0,
+          "target": 0
+        },
+        "looms": {
+          "current": 0,
+          "target": 0
+        }
+      },
+      "notes": null
+    },
+    {
+      "dayNumber": 9,
+      "weekNumber": 2,
+      "date": "2026-02-13",
+      "isComplete": false,
+      "tasks": [
+        {
+          "id": 18,
+          "title": "Follow up Day 1-5 emails",
+          "status": "pending",
+          "isCompleted": false
+        },
+        {
+          "id": 19,
+          "title": "Send 10 new LinkedIn connections",
+          "status": "pending",
+          "isCompleted": false
+        }
+      ],
+      "outreach": {
+        "coldEmails": {
+          "current": 0,
+          "target": 0
+        },
+        "linkedin": {
+          "current": 0,
+          "target": 0
+        },
+        "calls": {
+          "current": 0,
+          "target": 0
+        },
+        "looms": {
+          "current": 0,
+          "target": 0
+        }
+      },
+      "notes": null
+    },
+    {
+      "dayNumber": 10,
+      "weekNumber": 2,
+      "date": "2026-02-14",
+      "isComplete": false,
+      "tasks": [
+        {
+          "id": 21,
+          "title": "Record 2 Loom audits for hot prospects",
+          "status": "pending",
+          "isCompleted": false
+        },
+        {
+          "id": 81,
+          "title": "Send 10 cold emails",
+          "status": "pending",
+          "isCompleted": false
+        }
+      ],
+      "outreach": {
+        "coldEmails": {
+          "current": 0,
+          "target": 0
+        },
+        "linkedin": {
+          "current": 0,
+          "target": 0
+        },
+        "calls": {
+          "current": 0,
+          "target": 0
+        },
+        "looms": {
+          "current": 0,
+          "target": 0
+        }
+      },
+      "notes": null
+    },
+    {
+      "dayNumber": 11,
+      "weekNumber": 2,
+      "date": "2026-02-15",
+      "isComplete": false,
+      "tasks": [
+        {
+          "id": 71,
+          "title": "Send 10 cold emails",
+          "status": "pending",
+          "isCompleted": false
+        },
+        {
+          "id": 72,
+          "title": "Send 10 LinkedIn connections",
+          "status": "pending",
+          "isCompleted": false
+        }
+      ],
+      "outreach": {
+        "coldEmails": {
+          "current": 0,
+          "target": 0
+        },
+        "linkedin": {
+          "current": 0,
+          "target": 0
+        },
+        "calls": {
+          "current": 0,
+          "target": 0
+        },
+        "looms": {
+          "current": 0,
+          "target": 0
+        }
+      },
+      "notes": null
+    },
+    {
+      "dayNumber": 12,
+      "weekNumber": 2,
+      "date": "2026-02-16",
+      "isComplete": false,
+      "tasks": [
+        {
+          "id": 24,
+          "title": "Send break-up emails to Week 1 non-responders",
+          "status": "pending",
+          "isCompleted": false
+        },
+        {
+          "id": 25,
+          "title": "Review which email templates work best",
+          "status": "pending",
+          "isCompleted": false
+        }
+      ],
+      "outreach": {
+        "coldEmails": {
+          "current": 0,
+          "target": 0
+        },
+        "linkedin": {
+          "current": 0,
+          "target": 0
+        },
+        "calls": {
+          "current": 0,
+          "target": 0
+        },
+        "looms": {
+          "current": 0,
+          "target": 0
+        }
+      },
+      "notes": null
+    },
+    {
+      "dayNumber": 13,
+      "weekNumber": 2,
+      "date": "2026-02-17",
+      "isComplete": false,
+      "tasks": [
+        {
+          "id": 26,
+          "title": "Find 10 AU marketing agencies",
+          "status": "pending",
+          "isCompleted": false
+        },
+        {
+          "id": 27,
+          "title": "Send 10 agency outreach emails",
+          "status": "pending",
+          "isCompleted": false
+        }
+      ],
+      "outreach": {
+        "coldEmails": {
+          "current": 0,
+          "target": 0
+        },
+        "linkedin": {
+          "current": 0,
+          "target": 0
+        },
+        "calls": {
+          "current": 0,
+          "target": 0
+        },
+        "looms": {
+          "current": 0,
+          "target": 0
+        }
+      },
+      "notes": null
+    },
+    {
+      "dayNumber": 14,
+      "weekNumber": 2,
+      "date": "2026-02-18",
+      "isComplete": false,
+      "tasks": [
+        {
+          "id": 28,
+          "title": "Review all responses",
+          "status": "pending",
+          "isCompleted": false
+        },
+        {
+          "id": 29,
+          "title": "Book discovery calls",
+          "status": "pending",
+          "isCompleted": false
+        },
+        {
+          "id": 30,
+          "title": "Adjust messaging based on feedback",
+          "status": "pending",
+          "isCompleted": false
+        }
+      ],
+      "outreach": {
+        "coldEmails": {
+          "current": 0,
+          "target": 0
+        },
+        "linkedin": {
+          "current": 0,
+          "target": 0
+        },
+        "calls": {
+          "current": 0,
+          "target": 0
+        },
+        "looms": {
+          "current": 0,
+          "target": 0
+        }
+      },
+      "notes": null
+    },
+    {
+      "dayNumber": 15,
+      "weekNumber": 3,
+      "date": "2026-02-19",
+      "isComplete": false,
+      "tasks": [
+        {
+          "id": 32,
+          "title": "Follow up LinkedIn connections",
+          "status": "pending",
+          "isCompleted": false
+        },
+        {
+          "id": 82,
+          "title": "Send 10 cold emails",
+          "status": "pending",
+          "isCompleted": false
+        }
+      ],
+      "outreach": {
+        "coldEmails": {
+          "current": 0,
+          "target": 0
+        },
+        "linkedin": {
+          "current": 0,
+          "target": 0
+        },
+        "calls": {
+          "current": 0,
+          "target": 0
+        },
+        "looms": {
+          "current": 0,
+          "target": 0
+        }
+      },
+      "notes": null
+    },
+    {
+      "dayNumber": 16,
+      "weekNumber": 3,
+      "date": "2026-02-20",
+      "isComplete": false,
+      "tasks": [
+        {
+          "id": 73,
+          "title": "Send 10 cold emails",
+          "status": "pending",
+          "isCompleted": false
+        },
+        {
+          "id": 74,
+          "title": "Send 10 LinkedIn connections",
+          "status": "pending",
+          "isCompleted": false
+        }
+      ],
+      "outreach": {
+        "coldEmails": {
+          "current": 0,
+          "target": 0
+        },
+        "linkedin": {
+          "current": 0,
+          "target": 0
+        },
+        "calls": {
+          "current": 0,
+          "target": 0
+        },
+        "looms": {
+          "current": 0,
+          "target": 0
+        }
+      },
+      "notes": null
+    },
+    {
+      "dayNumber": 17,
+      "weekNumber": 3,
+      "date": "2026-02-21",
+      "isComplete": false,
+      "tasks": [
+        {
+          "id": 35,
+          "title": "Record 3 Loom audits for engaged prospects",
+          "status": "pending",
+          "isCompleted": false
+        },
+        {
+          "id": 36,
+          "title": "Send Loom videos to prospects",
+          "status": "pending",
+          "isCompleted": false
+        }
+      ],
+      "outreach": {
+        "coldEmails": {
+          "current": 0,
+          "target": 0
+        },
+        "linkedin": {
+          "current": 0,
+          "target": 0
+        },
+        "calls": {
+          "current": 0,
+          "target": 0
+        },
+        "looms": {
+          "current": 0,
+          "target": 0
+        }
+      },
+      "notes": null
+    },
+    {
+      "dayNumber": 18,
+      "weekNumber": 3,
+      "date": "2026-02-22",
+      "isComplete": false,
+      "tasks": [
+        {
+          "id": 38,
+          "title": "Follow up with agencies",
+          "status": "pending",
+          "isCompleted": false
+        },
+        {
+          "id": 83,
+          "title": "Send 10 cold emails",
+          "status": "pending",
+          "isCompleted": false
+        }
+      ],
+      "outreach": {
+        "coldEmails": {
+          "current": 0,
+          "target": 0
+        },
+        "linkedin": {
+          "current": 0,
+          "target": 0
+        },
+        "calls": {
+          "current": 0,
+          "target": 0
+        },
+        "looms": {
+          "current": 0,
+          "target": 0
+        }
+      },
+      "notes": null
+    },
+    {
+      "dayNumber": 19,
+      "weekNumber": 3,
+      "date": "2026-02-23",
+      "isComplete": false,
+      "tasks": [
+        {
+          "id": 75,
+          "title": "Send 10 cold emails",
+          "status": "pending",
+          "isCompleted": false
+        },
+        {
+          "id": 76,
+          "title": "Send 10 LinkedIn connections",
+          "status": "pending",
+          "isCompleted": false
+        }
+      ],
+      "outreach": {
+        "coldEmails": {
+          "current": 0,
+          "target": 0
+        },
+        "linkedin": {
+          "current": 0,
+          "target": 0
+        },
+        "calls": {
+          "current": 0,
+          "target": 0
+        },
+        "looms": {
+          "current": 0,
+          "target": 0
+        }
+      },
+      "notes": null
+    },
+    {
+      "dayNumber": 20,
+      "weekNumber": 3,
+      "date": "2026-02-24",
+      "isComplete": false,
+      "tasks": [
+        {
+          "id": 41,
+          "title": "Send break-up emails to all non-responders",
+          "status": "pending",
+          "isCompleted": false
+        },
+        {
+          "id": 42,
+          "title": "Clean up prospect list",
+          "status": "pending",
+          "isCompleted": false
+        }
+      ],
+      "outreach": {
+        "coldEmails": {
+          "current": 0,
+          "target": 0
+        },
+        "linkedin": {
+          "current": 0,
+          "target": 0
+        },
+        "calls": {
+          "current": 0,
+          "target": 0
+        },
+        "looms": {
+          "current": 0,
+          "target": 0
+        }
+      },
+      "notes": null
+    },
+    {
+      "dayNumber": 21,
+      "weekNumber": 3,
+      "date": "2026-02-25",
+      "isComplete": false,
+      "tasks": [
+        {
+          "id": 43,
+          "title": "Review results and metrics",
+          "status": "pending",
+          "isCompleted": false
+        },
+        {
+          "id": 44,
+          "title": "Refine scripts based on what's working",
+          "status": "pending",
+          "isCompleted": false
+        },
+        {
+          "id": 45,
+          "title": "Document winning approaches",
+          "status": "pending",
+          "isCompleted": false
+        }
+      ],
+      "outreach": {
+        "coldEmails": {
+          "current": 0,
+          "target": 0
+        },
+        "linkedin": {
+          "current": 0,
+          "target": 0
+        },
+        "calls": {
+          "current": 0,
+          "target": 0
+        },
+        "looms": {
+          "current": 0,
+          "target": 0
+        }
+      },
+      "notes": null
+    },
+    {
+      "dayNumber": 22,
+      "weekNumber": 4,
+      "date": "2026-02-26",
+      "isComplete": false,
+      "tasks": [
+        {
+          "id": 77,
+          "title": "Send 10 cold emails",
+          "status": "pending",
+          "isCompleted": false
+        },
+        {
+          "id": 78,
+          "title": "Send 10 LinkedIn connections",
+          "status": "pending",
+          "isCompleted": false
+        }
+      ],
+      "outreach": {
+        "coldEmails": {
+          "current": 0,
+          "target": 0
+        },
+        "linkedin": {
+          "current": 0,
+          "target": 0
+        },
+        "calls": {
+          "current": 0,
+          "target": 0
+        },
+        "looms": {
+          "current": 0,
+          "target": 0
+        }
+      },
+      "notes": null
+    },
+    {
+      "dayNumber": 23,
+      "weekNumber": 4,
+      "date": "2026-02-27",
+      "isComplete": false,
+      "tasks": [
+        {
+          "id": 48,
+          "title": "Send Loom audits to warm leads",
+          "status": "pending",
+          "isCompleted": false
+        },
+        {
+          "id": 84,
+          "title": "Book discovery calls",
+          "status": "pending",
+          "isCompleted": false
+        }
+      ],
+      "outreach": {
+        "coldEmails": {
+          "current": 0,
+          "target": 0
+        },
+        "linkedin": {
+          "current": 0,
+          "target": 0
+        },
+        "calls": {
+          "current": 0,
+          "target": 0
+        },
+        "looms": {
+          "current": 0,
+          "target": 0
+        }
+      },
+      "notes": null
+    },
+    {
+      "dayNumber": 24,
+      "weekNumber": 4,
+      "date": "2026-02-28",
+      "isComplete": false,
+      "tasks": [
+        {
+          "id": 50,
+          "title": "Conduct 2-3 discovery calls (SPIN framework)",
+          "status": "pending",
+          "isCompleted": false
+        },
+        {
+          "id": 51,
+          "title": "Present offers on calls",
+          "status": "pending",
+          "isCompleted": false
+        }
+      ],
+      "outreach": {
+        "coldEmails": {
+          "current": 0,
+          "target": 0
+        },
+        "linkedin": {
+          "current": 0,
+          "target": 0
+        },
+        "calls": {
+          "current": 0,
+          "target": 0
+        },
+        "looms": {
+          "current": 0,
+          "target": 0
+        }
+      },
+      "notes": null
+    },
+    {
+      "dayNumber": 25,
+      "weekNumber": 4,
+      "date": "2026-03-01",
+      "isComplete": false,
+      "tasks": [
+        {
+          "id": 52,
+          "title": "Send 2-3 proposals to interested prospects",
+          "status": "pending",
+          "isCompleted": false
+        },
+        {
+          "id": 53,
+          "title": "Follow up previous proposals",
+          "status": "pending",
+          "isCompleted": false
+        }
+      ],
+      "outreach": {
+        "coldEmails": {
+          "current": 0,
+          "target": 0
+        },
+        "linkedin": {
+          "current": 0,
+          "target": 0
+        },
+        "calls": {
+          "current": 0,
+          "target": 0
+        },
+        "looms": {
+          "current": 0,
+          "target": 0
+        }
+      },
+      "notes": null
+    },
+    {
+      "dayNumber": 26,
+      "weekNumber": 4,
+      "date": "2026-03-02",
+      "isComplete": false,
+      "tasks": [
+        {
+          "id": 54,
+          "title": "Follow up proposals",
+          "status": "pending",
+          "isCompleted": false
+        },
+        {
+          "id": 55,
+          "title": "Handle objections",
+          "status": "pending",
+          "isCompleted": false
+        },
+        {
+          "id": 56,
+          "title": "Close deals",
+          "status": "pending",
+          "isCompleted": false
+        }
+      ],
+      "outreach": {
+        "coldEmails": {
+          "current": 0,
+          "target": 0
+        },
+        "linkedin": {
+          "current": 0,
+          "target": 0
+        },
+        "calls": {
+          "current": 0,
+          "target": 0
+        },
+        "looms": {
+          "current": 0,
+          "target": 0
+        }
+      },
+      "notes": null
+    },
+    {
+      "dayNumber": 27,
+      "weekNumber": 4,
+      "date": "2026-03-03",
+      "isComplete": false,
+      "tasks": [
+        {
+          "id": 79,
+          "title": "Send 10 cold emails",
+          "status": "pending",
+          "isCompleted": false
+        },
+        {
+          "id": 80,
+          "title": "Send 10 LinkedIn connections",
+          "status": "pending",
+          "isCompleted": false
+        }
+      ],
+      "outreach": {
+        "coldEmails": {
+          "current": 0,
+          "target": 0
+        },
+        "linkedin": {
+          "current": 0,
+          "target": 0
+        },
+        "calls": {
+          "current": 0,
+          "target": 0
+        },
+        "looms": {
+          "current": 0,
+          "target": 0
+        }
+      },
+      "notes": null
+    },
+    {
+      "dayNumber": 28,
+      "weekNumber": 4,
+      "date": "2026-03-04",
+      "isComplete": false,
+      "tasks": [
+        {
+          "id": 59,
+          "title": "Conduct discovery calls",
+          "status": "pending",
+          "isCompleted": false
+        },
+        {
+          "id": 60,
+          "title": "Follow up all proposals",
+          "status": "pending",
+          "isCompleted": false
+        }
+      ],
+      "outreach": {
+        "coldEmails": {
+          "current": 0,
+          "target": 0
+        },
+        "linkedin": {
+          "current": 0,
+          "target": 0
+        },
+        "calls": {
+          "current": 0,
+          "target": 0
+        },
+        "looms": {
+          "current": 0,
+          "target": 0
+        }
+      },
+      "notes": null
+    },
+    {
+      "dayNumber": 29,
+      "weekNumber": 4,
+      "date": "2026-03-05",
+      "isComplete": false,
+      "tasks": [
+        {
+          "id": 62,
+          "title": "Collect deposits",
+          "status": "pending",
+          "isCompleted": false
+        },
+        {
+          "id": 63,
+          "title": "Onboard new clients",
+          "status": "pending",
+          "isCompleted": false
+        },
+        {
+          "id": 85,
+          "title": "Close deals",
+          "status": "pending",
+          "isCompleted": false
+        }
+      ],
+      "outreach": {
+        "coldEmails": {
+          "current": 0,
+          "target": 0
+        },
+        "linkedin": {
+          "current": 0,
+          "target": 0
+        },
+        "calls": {
+          "current": 0,
+          "target": 0
+        },
+        "looms": {
+          "current": 0,
+          "target": 0
+        }
+      },
+      "notes": null
+    },
+    {
+      "dayNumber": 30,
+      "weekNumber": 4,
+      "date": "2026-03-06",
+      "isComplete": false,
+      "tasks": [
+        {
+          "id": 64,
+          "title": "Review entire month",
+          "status": "pending",
+          "isCompleted": false
+        },
+        {
+          "id": 65,
+          "title": "Document what worked",
+          "status": "pending",
+          "isCompleted": false
+        },
+        {
+          "id": 66,
+          "title": "Plan next month's sprint",
+          "status": "pending",
+          "isCompleted": false
+        },
+        {
+          "id": 67,
+          "title": "Celebrate wins!",
+          "status": "pending",
+          "isCompleted": false
+        }
+      ],
+      "outreach": {
+        "coldEmails": {
+          "current": 0,
+          "target": 0
+        },
+        "linkedin": {
+          "current": 0,
+          "target": 0
+        },
+        "calls": {
+          "current": 0,
+          "target": 0
+        },
+        "looms": {
+          "current": 0,
+          "target": 0
+        }
+      },
+      "notes": null
+    }
+  ],
+  "dailyPerformanceTrend": [
+    {
+      "day": 1,
+      "date": "2026-02-05",
+      "tasksCompleted": 0,
+      "totalTasks": 2,
+      "outreachTotal": 0,
+      "outreachTarget": 26,
+      "isPerfect": false
+    }
+  ]
+}
