@@ -37,6 +37,7 @@ import {
   Reply,
   SkipForward,
   RotateCcw,
+  XCircle,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -843,19 +844,109 @@ function TodayQueue({
   );
 }
 
-// All Prospects table
-function AllProspectsTable({
+// Compact prospect card for pipeline view
+function PipelineProspectCard({
+  prospect,
+  onEdit,
+  isMuted,
+}: {
+  prospect: OutreachProspect;
+  onEdit: (prospect: OutreachProspect) => void;
+  isMuted?: boolean;
+}) {
+  return (
+    <div
+      className={cn(
+        'rounded-lg border p-3 transition-all duration-200 group',
+        isMuted
+          ? 'bg-stone-800/20 border-stone-700/30 opacity-60 hover:opacity-80'
+          : 'bg-[--exec-surface] border-[--exec-border-subtle] hover:border-[--exec-border] hover:shadow-md'
+      )}
+    >
+      {/* Agency name */}
+      <div className="flex items-start justify-between gap-1.5 mb-1">
+        <h4 className="text-sm font-semibold text-[--exec-text] truncate flex-1">
+          {prospect.agency_name}
+        </h4>
+        <button
+          onClick={() => onEdit(prospect)}
+          className="p-1 text-[--exec-text-muted] hover:text-[--exec-text] hover:bg-[--exec-surface-alt] rounded transition-colors opacity-0 group-hover:opacity-100 flex-shrink-0"
+          title="Edit prospect"
+        >
+          <Edit2 className="w-3 h-3" />
+        </button>
+      </div>
+
+      {/* Contact name */}
+      {prospect.contact_name && (
+        <p className="text-xs text-[--exec-text-muted] truncate mb-1">{prospect.contact_name}</p>
+      )}
+
+      {/* Status badge */}
+      <div className="mb-1.5">
+        <ProspectStatusBadge status={prospect.status} />
+      </div>
+
+      {/* Next action date */}
+      {prospect.next_action_date && (
+        <div className="flex items-center gap-1 text-[10px] text-[--exec-text-muted] mb-1.5">
+          <Calendar className="w-3 h-3" />
+          Next {formatShortDate(prospect.next_action_date)}
+        </div>
+      )}
+
+      {/* Links */}
+      <ProspectLinks prospect={prospect} />
+    </div>
+  );
+}
+
+// Outcome column configuration
+const OUTCOME_COLUMNS = [
+  {
+    key: 'replied' as const,
+    label: 'Replied',
+    status: ProspectStatus.REPLIED,
+    icon: MessageSquare,
+    bg: 'bg-green-500/15',
+    border: 'border-green-500/30',
+    text: 'text-green-400',
+    dot: 'bg-green-400',
+    headerBg: 'bg-green-500/10',
+  },
+  {
+    key: 'converted' as const,
+    label: 'Converted',
+    status: ProspectStatus.CONVERTED,
+    icon: CheckCircle,
+    bg: 'bg-purple-500/15',
+    border: 'border-purple-500/30',
+    text: 'text-purple-400',
+    dot: 'bg-purple-400',
+    headerBg: 'bg-purple-500/10',
+  },
+  {
+    key: 'not_interested' as const,
+    label: 'Not Interested',
+    status: ProspectStatus.NOT_INTERESTED,
+    icon: XCircle,
+    bg: 'bg-red-500/15',
+    border: 'border-red-500/30',
+    text: 'text-red-400',
+    dot: 'bg-red-400',
+    headerBg: 'bg-red-500/10',
+  },
+];
+
+// Pipeline / Kanban view for All Prospects
+function SequencePipelineView({
   prospects,
   campaignSteps,
   onEdit,
-  onUpdateIssues,
-  onViewMessage,
 }: {
   prospects: OutreachProspect[];
   campaignSteps: MultiTouchStep[];
   onEdit: (prospect: OutreachProspect) => void;
-  onUpdateIssues: (prospectId: number, issues: string[]) => void;
-  onViewMessage: (prospect: OutreachProspect) => void;
 }) {
   if (prospects.length === 0) {
     return (
@@ -867,95 +958,167 @@ function AllProspectsTable({
     );
   }
 
-  return (
-    <div className="bento-card overflow-hidden">
-      <table className="min-w-full divide-y divide-[--exec-border]">
-        <thead className="bg-[--exec-surface-alt]">
-          <tr>
-            <th className="px-6 py-3 text-left text-xs font-medium text-[--exec-text-muted] uppercase tracking-wider">Agency</th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-[--exec-text-muted] uppercase tracking-wider">Contact</th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-[--exec-text-muted] uppercase tracking-wider">Issues</th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-[--exec-text-muted] uppercase tracking-wider">Step</th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-[--exec-text-muted] uppercase tracking-wider">Status</th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-[--exec-text-muted] uppercase tracking-wider">Next Action</th>
-            <th className="px-6 py-3 text-right text-xs font-medium text-[--exec-text-muted] uppercase tracking-wider">Actions</th>
-          </tr>
-        </thead>
-        <tbody className="bg-[--exec-surface] divide-y divide-[--exec-border-subtle]">
-          {prospects.map((prospect) => {
-            const stepObj = campaignSteps.find((s) => s.step_number === prospect.current_step);
-            const channelType = stepObj?.channel_type as StepChannelType | undefined;
+  // Outcome statuses that go into dedicated columns
+  const outcomeStatuses = new Set([
+    ProspectStatus.REPLIED,
+    ProspectStatus.CONVERTED,
+    ProspectStatus.NOT_INTERESTED,
+  ]);
 
-            return (
-              <tr key={prospect.id} className="hover:bg-[--exec-surface-alt] transition-colors">
-                <td className="px-6 py-4">
-                  <div className="min-w-0">
-                    <span className="text-sm font-medium text-[--exec-text] block truncate">{prospect.agency_name}</span>
-                    {prospect.niche && <span className="text-xs text-[--exec-text-muted] block truncate">{prospect.niche}</span>}
-                    <div className="mt-1">
-                      <ProspectLinks prospect={prospect} />
-                    </div>
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div>
-                    <span className="text-sm text-[--exec-text]">{prospect.contact_name || '-'}</span>
-                    {prospect.email && <span className="text-xs text-[--exec-text-muted] block truncate max-w-[180px]">{prospect.email}</span>}
-                  </div>
-                </td>
-                <td className="px-6 py-4">
-                  <WebsiteIssueTagger prospect={prospect} onUpdate={onUpdateIssues} />
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-[--exec-text-secondary]">{prospect.current_step}</span>
-                    {channelType && <ChannelBadge channelType={channelType} />}
-                  </div>
-                  {campaignSteps.length > 0 && (
-                    <div className="mt-1">
-                      <StepIndicator steps={campaignSteps} currentStep={prospect.current_step} />
-                    </div>
-                  )}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <ProspectStatusBadge status={prospect.status} />
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-[--exec-text-muted]">
-                    {prospect.next_action_date ? new Date(prospect.next_action_date).toLocaleDateString() : '-'}
-                  </div>
-                  {prospect.last_contacted_at && (
-                    <div className="text-xs text-[--exec-text-muted] mt-0.5 flex items-center gap-1">
-                      <Clock className="w-3 h-3" />
-                      Sent {formatShortDate(prospect.last_contacted_at)}
-                    </div>
-                  )}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-right">
-                  <div className="flex items-center justify-end gap-1">
-                    {(channelType === StepChannelType.EMAIL || channelType === StepChannelType.FOLLOW_UP_EMAIL) && prospect.email && (
-                      <button
-                        onClick={() => onViewMessage(prospect)}
-                        className="p-1.5 text-[--exec-text-muted] hover:text-blue-400 hover:bg-blue-500/15 rounded-lg transition-colors"
-                        title="View email"
-                      >
-                        <Mail className="w-4 h-4" />
-                      </button>
+  // Group prospects by step (non-outcome) or by outcome status
+  const stepBuckets: Record<number, OutreachProspect[]> = {};
+  const outcomeBuckets: Record<string, OutreachProspect[]> = {
+    replied: [],
+    converted: [],
+    not_interested: [],
+  };
+
+  for (const p of prospects) {
+    if (p.status === ProspectStatus.REPLIED) {
+      outcomeBuckets.replied.push(p);
+    } else if (p.status === ProspectStatus.CONVERTED) {
+      outcomeBuckets.converted.push(p);
+    } else if (p.status === ProspectStatus.NOT_INTERESTED) {
+      outcomeBuckets.not_interested.push(p);
+    } else {
+      const step = p.current_step;
+      if (!stepBuckets[step]) stepBuckets[step] = [];
+      stepBuckets[step].push(p);
+    }
+  }
+
+  return (
+    <div className="overflow-x-auto pb-4">
+      <div className="flex gap-3 min-w-min">
+        {/* Step columns */}
+        {campaignSteps.map((step) => {
+          const colors = CHANNEL_COLORS[step.channel_type as StepChannelType];
+          const Icon = CHANNEL_ICONS[step.channel_type as StepChannelType];
+          const label = CHANNEL_LABELS[step.channel_type as StepChannelType];
+          const bucket = stepBuckets[step.step_number] || [];
+
+          return (
+            <div
+              key={step.step_number}
+              className="flex flex-col w-[240px] flex-shrink-0"
+            >
+              {/* Column header */}
+              <div
+                className={cn(
+                  'rounded-t-xl px-3 py-2.5 border border-b-0',
+                  'bg-stone-800/40 border-stone-700/40'
+                )}
+              >
+                <div className="flex items-center gap-2 mb-0.5">
+                  <span
+                    className={cn(
+                      'flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-bold',
+                      colors?.bg || 'bg-stone-600/30',
+                      colors?.text || 'text-stone-400'
                     )}
-                    <button
-                      onClick={() => onEdit(prospect)}
-                      className="p-1.5 text-[--exec-text-muted] hover:text-[--exec-text] hover:bg-[--exec-surface-alt] rounded-lg transition-colors"
-                      title="Edit prospect"
-                    >
-                      <Edit2 className="w-4 h-4" />
-                    </button>
+                  >
+                    {step.step_number}
+                  </span>
+                  <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                    {Icon && <Icon className={cn('w-3.5 h-3.5 flex-shrink-0', colors?.text || 'text-stone-400')} />}
+                    <span className={cn('text-xs font-semibold truncate', colors?.text || 'text-stone-400')}>
+                      {label || step.channel_type}
+                    </span>
                   </div>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+                  <span className="text-[10px] bg-stone-700/60 text-[--exec-text-muted] px-1.5 py-0.5 rounded-full font-medium flex-shrink-0">
+                    {bucket.length}
+                  </span>
+                </div>
+              </div>
+
+              {/* Column body */}
+              <div
+                className={cn(
+                  'flex-1 rounded-b-xl border border-t-0 p-2 space-y-2 min-h-[120px]',
+                  'bg-stone-800/15 border-stone-700/40'
+                )}
+              >
+                {bucket.length === 0 ? (
+                  <div className="flex items-center justify-center h-full min-h-[80px] text-[--exec-text-muted] text-xs">
+                    No prospects
+                  </div>
+                ) : (
+                  bucket.map((prospect) => (
+                    <PipelineProspectCard
+                      key={prospect.id}
+                      prospect={prospect}
+                      onEdit={onEdit}
+                      isMuted={prospect.status === ProspectStatus.SKIPPED}
+                    />
+                  ))
+                )}
+              </div>
+            </div>
+          );
+        })}
+
+        {/* Divider between step columns and outcome columns */}
+        {campaignSteps.length > 0 && (
+          <div className="flex items-center px-1 flex-shrink-0">
+            <div className="w-px h-2/3 bg-stone-700/50" />
+          </div>
+        )}
+
+        {/* Outcome columns */}
+        {OUTCOME_COLUMNS.map((col) => {
+          const bucket = outcomeBuckets[col.key];
+          const OutcomeIcon = col.icon;
+
+          return (
+            <div
+              key={col.key}
+              className="flex flex-col w-[240px] flex-shrink-0"
+            >
+              {/* Column header */}
+              <div
+                className={cn(
+                  'rounded-t-xl px-3 py-2.5 border border-b-0',
+                  col.headerBg,
+                  col.border
+                )}
+              >
+                <div className="flex items-center gap-2">
+                  <OutcomeIcon className={cn('w-4 h-4 flex-shrink-0', col.text)} />
+                  <span className={cn('text-xs font-semibold flex-1', col.text)}>
+                    {col.label}
+                  </span>
+                  <span className={cn('text-[10px] px-1.5 py-0.5 rounded-full font-medium flex-shrink-0', col.bg, col.text)}>
+                    {bucket.length}
+                  </span>
+                </div>
+              </div>
+
+              {/* Column body */}
+              <div
+                className={cn(
+                  'flex-1 rounded-b-xl border border-t-0 p-2 space-y-2 min-h-[120px]',
+                  'bg-stone-800/15',
+                  col.border
+                )}
+              >
+                {bucket.length === 0 ? (
+                  <div className="flex items-center justify-center h-full min-h-[80px] text-[--exec-text-muted] text-xs">
+                    None yet
+                  </div>
+                ) : (
+                  bucket.map((prospect) => (
+                    <PipelineProspectCard
+                      key={prospect.id}
+                      prospect={prospect}
+                      onEdit={onEdit}
+                    />
+                  ))
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -1713,12 +1876,10 @@ export default function MultiTouchCampaignsTab() {
               />
             )}
             {activeTab === 'all' && (
-              <AllProspectsTable
+              <SequencePipelineView
                 prospects={allProspects}
                 campaignSteps={campaignSteps}
                 onEdit={setEditingProspect}
-                onUpdateIssues={handleUpdateIssues}
-                onViewMessage={setEmailModalProspect}
               />
             )}
             {activeTab === 'replied' && (
