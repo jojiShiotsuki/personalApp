@@ -411,10 +411,12 @@ function isDueToday(dateStr?: string | null): boolean {
 function PipelineProspectCard({
   prospect,
   onEdit,
+  onViewMessage,
   isMuted,
 }: {
   prospect: OutreachProspect;
   onEdit: (prospect: OutreachProspect) => void;
+  onViewMessage: (prospect: OutreachProspect) => void;
   isMuted?: boolean;
 }) {
   const dueToday = isDueToday(prospect.next_action_date);
@@ -440,6 +442,15 @@ function PipelineProspectCard({
             <span className="px-1.5 py-0.5 text-[9px] font-bold uppercase rounded bg-[--exec-accent]/20 text-[--exec-accent] tracking-wider">
               Today
             </span>
+          )}
+          {prospect.email && (
+            <button
+              onClick={() => onViewMessage(prospect)}
+              className="p-1 text-[--exec-text-muted] hover:text-blue-400 hover:bg-blue-500/15 rounded transition-colors opacity-0 group-hover:opacity-100"
+              title="View email"
+            >
+              <Mail className="w-3 h-3" />
+            </button>
           )}
           <button
             onClick={() => onEdit(prospect)}
@@ -520,10 +531,12 @@ function SequencePipelineView({
   prospects,
   campaignSteps,
   onEdit,
+  onViewMessage,
 }: {
   prospects: OutreachProspect[];
   campaignSteps: MultiTouchStep[];
   onEdit: (prospect: OutreachProspect) => void;
+  onViewMessage: (prospect: OutreachProspect) => void;
 }) {
   if (prospects.length === 0) {
     return (
@@ -645,6 +658,7 @@ function SequencePipelineView({
                       key={prospect.id}
                       prospect={prospect}
                       onEdit={onEdit}
+                      onViewMessage={onViewMessage}
                       isMuted={prospect.status === ProspectStatus.SKIPPED}
                     />
                   ))
@@ -708,6 +722,7 @@ function SequencePipelineView({
                       key={prospect.id}
                       prospect={prospect}
                       onEdit={onEdit}
+                      onViewMessage={onViewMessage}
                     />
                   ))
                 )}
@@ -1219,6 +1234,7 @@ export default function MultiTouchCampaignsTab() {
             prospects={allProspects}
             campaignSteps={campaignSteps}
             onEdit={setEditingProspect}
+            onViewMessage={setEmailModalProspect}
           />
         ) : (
           <div className="bento-card p-12 text-center">
