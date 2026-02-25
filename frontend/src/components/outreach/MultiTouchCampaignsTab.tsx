@@ -119,6 +119,19 @@ function ProspectLinks({ prospect }: { prospect: OutreachProspect }) {
   );
 }
 
+// Status labels for the dropdown
+const STATUS_OPTIONS: { value: ProspectStatus; label: string }[] = [
+  { value: ProspectStatus.QUEUED, label: 'Queued' },
+  { value: ProspectStatus.IN_SEQUENCE, label: 'In Sequence' },
+  { value: ProspectStatus.PENDING_CONNECTION, label: 'Pending Connection' },
+  { value: ProspectStatus.CONNECTED, label: 'Connected' },
+  { value: ProspectStatus.PENDING_ENGAGEMENT, label: 'Pending Engagement' },
+  { value: ProspectStatus.REPLIED, label: 'Replied' },
+  { value: ProspectStatus.CONVERTED, label: 'Converted' },
+  { value: ProspectStatus.NOT_INTERESTED, label: 'Not Interested' },
+  { value: ProspectStatus.SKIPPED, label: 'Skipped' },
+];
+
 // Edit Prospect Modal
 function EditProspectModal({
   prospect,
@@ -127,6 +140,7 @@ function EditProspectModal({
   onSave,
   onDelete,
   isSaving,
+  campaignSteps,
 }: {
   prospect: OutreachProspect;
   isOpen: boolean;
@@ -134,6 +148,7 @@ function EditProspectModal({
   onSave: (data: Partial<OutreachProspect>) => void;
   onDelete: (id: number) => void;
   isSaving: boolean;
+  campaignSteps: MultiTouchStep[];
 }) {
   const [form, setForm] = useState({
     agency_name: prospect.agency_name,
@@ -144,6 +159,9 @@ function EditProspectModal({
     notes: prospect.notes || '',
     linkedin_url: prospect.linkedin_url || '',
     website_issues: prospect.website_issues || [] as string[],
+    status: prospect.status,
+    current_step: prospect.current_step,
+    next_action_date: prospect.next_action_date || '',
   });
 
   if (!isOpen) return null;
@@ -168,7 +186,10 @@ function EditProspectModal({
       notes: form.notes || undefined,
       linkedin_url: form.linkedin_url || undefined,
       website_issues: form.website_issues,
-    });
+      status: form.status,
+      current_step: form.current_step,
+      next_action_date: form.next_action_date || undefined,
+    } as Partial<OutreachProspect>);
   };
 
   const inputClasses = cn(
@@ -234,6 +255,56 @@ function EditProspectModal({
             <div>
               <label className="block text-sm font-medium text-[--exec-text-secondary] mb-1.5">Notes</label>
               <textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} className={cn(inputClasses, 'resize-none')} rows={3} placeholder="Any context or notes..." />
+            </div>
+
+            {/* Pipeline Position */}
+            <div className="pt-4 border-t border-stone-700/30">
+              <h3 className="text-sm font-semibold text-[--exec-text] mb-3 flex items-center">
+                <Layers className="w-4 h-4 mr-2 text-purple-400" />
+                Pipeline Position
+              </h3>
+              <div className="grid grid-cols-2 gap-4 mb-3">
+                <div>
+                  <label className="block text-sm font-medium text-[--exec-text-secondary] mb-1.5">Status</label>
+                  <select
+                    value={form.status}
+                    onChange={(e) => setForm({ ...form, status: e.target.value as ProspectStatus })}
+                    className={cn(inputClasses, 'cursor-pointer appearance-none')}
+                  >
+                    {STATUS_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-[--exec-text-secondary] mb-1.5">Current Step</label>
+                  <select
+                    value={form.current_step}
+                    onChange={(e) => setForm({ ...form, current_step: Number(e.target.value) })}
+                    className={cn(inputClasses, 'cursor-pointer appearance-none')}
+                  >
+                    {campaignSteps.length > 0
+                      ? campaignSteps.map((step) => (
+                          <option key={step.step_number} value={step.step_number}>
+                            Step {step.step_number}: {CHANNEL_LABELS[step.channel_type as StepChannelType] || step.channel_type}
+                          </option>
+                        ))
+                      : Array.from({ length: 7 }, (_, i) => (
+                          <option key={i + 1} value={i + 1}>Step {i + 1}</option>
+                        ))
+                    }
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-[--exec-text-secondary] mb-1.5">Next Action Date</label>
+                <input
+                  type="date"
+                  value={form.next_action_date}
+                  onChange={(e) => setForm({ ...form, next_action_date: e.target.value })}
+                  className={inputClasses}
+                />
+              </div>
             </div>
 
             {/* Website Issues */}
@@ -1355,6 +1426,7 @@ export default function MultiTouchCampaignsTab() {
           onSave={(data) => updateProspectMutation.mutate({ id: editingProspect.id, data })}
           onDelete={(id) => deleteProspectMutation.mutate(id)}
           isSaving={updateProspectMutation.isPending}
+          campaignSteps={campaignSteps}
         />
       )}
 
