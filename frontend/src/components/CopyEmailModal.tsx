@@ -544,7 +544,7 @@ export default function CopyEmailModal({
                 <input
                   type="text"
                   value={editSubject}
-                  onChange={(e) => setEditSubject(e.target.value)}
+                  onChange={(e) => setEditSubject(replaceVars(e.target.value))}
                   onBlur={handleSubjectBlur}
                   className={editableFieldClasses}
                   placeholder="Email subject..."
@@ -561,7 +561,7 @@ export default function CopyEmailModal({
                 </div>
                 <textarea
                   value={editBody}
-                  onChange={(e) => setEditBody(e.target.value)}
+                  onChange={(e) => setEditBody(replaceVars(e.target.value))}
                   onBlur={handleBodyBlur}
                   className={cn(editableFieldClasses, 'resize-none leading-relaxed')}
                   rows={10}
