@@ -625,40 +625,58 @@ const OUTCOME_COLUMNS = [
 ];
 
 // Sort options for pipeline columns
-type SortOption = 'date_asc' | 'name_asc' | 'date_added' | 'custom_first';
+type SortOption = 'date_asc' | 'date_desc' | 'name_asc' | 'name_desc' | 'date_added_new' | 'date_added_old' | 'custom_first' | 'custom_last';
 
 const SORT_OPTIONS: { value: SortOption; label: string }[] = [
   { value: 'date_asc', label: 'Next action (soonest)' },
+  { value: 'date_desc', label: 'Next action (latest)' },
   { value: 'name_asc', label: 'Name (A–Z)' },
-  { value: 'date_added', label: 'Date added (newest)' },
+  { value: 'name_desc', label: 'Name (Z–A)' },
+  { value: 'date_added_new', label: 'Date added (newest)' },
+  { value: 'date_added_old', label: 'Date added (oldest)' },
   { value: 'custom_first', label: 'Custom message first' },
+  { value: 'custom_last', label: 'No message first' },
 ];
 
 function sortProspects(list: OutreachProspect[], sort: SortOption): OutreachProspect[] {
   const sorted = [...list];
   switch (sort) {
     case 'date_asc':
+    case 'date_desc': {
+      const dir = sort === 'date_asc' ? 1 : -1;
       return sorted.sort((a, b) => {
         if (!a.next_action_date && !b.next_action_date) return 0;
         if (!a.next_action_date) return 1;
         if (!b.next_action_date) return -1;
-        return a.next_action_date.localeCompare(b.next_action_date);
+        return dir * a.next_action_date.localeCompare(b.next_action_date);
       });
+    }
     case 'name_asc':
       return sorted.sort((a, b) =>
         a.agency_name.localeCompare(b.agency_name, undefined, { sensitivity: 'base' })
       );
-    case 'date_added':
+    case 'name_desc':
+      return sorted.sort((a, b) =>
+        b.agency_name.localeCompare(a.agency_name, undefined, { sensitivity: 'base' })
+      );
+    case 'date_added_new':
       return sorted.sort((a, b) =>
         (b.created_at || '').localeCompare(a.created_at || '')
       );
+    case 'date_added_old':
+      return sorted.sort((a, b) =>
+        (a.created_at || '').localeCompare(b.created_at || '')
+      );
     case 'custom_first':
+    case 'custom_last': {
+      const dir = sort === 'custom_first' ? -1 : 1;
       return sorted.sort((a, b) => {
         const aCustom = !!(a.custom_email_subject || a.custom_email_body);
         const bCustom = !!(b.custom_email_subject || b.custom_email_body);
         if (aCustom === bCustom) return 0;
-        return aCustom ? -1 : 1;
+        return aCustom ? dir : -dir;
       });
+    }
     default:
       return sorted;
   }
