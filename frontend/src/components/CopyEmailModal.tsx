@@ -102,6 +102,35 @@ export default function CopyEmailModal({
     } as Record<string, string>;
   }, [prospect]);
 
+  // Auto-format pasted email body with proper paragraph spacing
+  const formatEmailBody = (text: string): string => {
+    // If already has double newlines, assume already formatted
+    if (text.includes('\n\n')) return text.trim();
+
+    const lines = text.split('\n');
+    const result: string[] = [];
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      const nextLine = i < lines.length - 1 ? lines[i + 1]?.trim() : '';
+
+      result.push(line);
+
+      if (i === lines.length - 1) continue;
+
+      // Keep sign-off lines together (short line ending with comma + name below)
+      const isSignOff = line.length < 40 && line.endsWith(',') && nextLine.length < 40;
+      // Keep empty lines as-is
+      if (line.length === 0 || nextLine.length === 0) continue;
+
+      if (!isSignOff) {
+        result.push(''); // Add blank line between paragraphs
+      }
+    }
+
+    return result.join('\n').trim();
+  };
+
   // Replace all variables in a string (issue + prospect variables)
   const replaceVars = (text: string, issueText?: string): string => {
     let result = text;
@@ -562,6 +591,15 @@ export default function CopyEmailModal({
                 <textarea
                   value={editBody}
                   onChange={(e) => setEditBody(replaceVars(e.target.value))}
+                  onPaste={(e) => {
+                    e.preventDefault();
+                    const pasted = e.clipboardData.getData('text/plain');
+                    const formatted = replaceVars(formatEmailBody(pasted));
+                    const ta = e.currentTarget;
+                    const before = editBody.slice(0, ta.selectionStart);
+                    const after = editBody.slice(ta.selectionEnd);
+                    setEditBody(before + formatted + after);
+                  }}
                   onBlur={handleBodyBlur}
                   className={cn(editableFieldClasses, 'resize-none leading-relaxed')}
                   rows={10}
