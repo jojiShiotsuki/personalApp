@@ -29,6 +29,8 @@ class RepurposeFormat(str, enum.Enum):
     REEL = "reel"
     CAROUSEL = "carousel"
     LONG_CAPTION = "long_caption"
+    FACEBOOK_POST = "facebook_post"
+    LINKEDIN_POST = "linkedin_post"
 
 
 class EditingStyle(str, enum.Enum):

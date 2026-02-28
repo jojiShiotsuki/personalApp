@@ -511,7 +511,7 @@ export type ReelType =
   | 'direct_cta'
   | 'full_redesign';
 
-export type RepurposeFormat = 'reel' | 'carousel' | 'long_caption';
+export type RepurposeFormat = 'reel' | 'carousel' | 'long_caption' | 'facebook_post' | 'linkedin_post';
 
 export interface RepurposeFormatStatus {
   format: RepurposeFormat;

@@ -29,6 +29,8 @@ const REPURPOSE_FORMATS: { id: RepurposeFormat; label: string; icon: typeof Film
   { id: 'reel', label: 'Reel', icon: Film, description: 'Short-form vertical video' },
   { id: 'carousel', label: 'Carousel', icon: LayoutGrid, description: 'Multi-slide post' },
   { id: 'long_caption', label: 'Long Caption', icon: FileText, description: 'Post with detailed caption' },
+  { id: 'facebook_post', label: 'Facebook Post', icon: Facebook, description: 'Facebook feed post' },
+  { id: 'linkedin_post', label: 'LinkedIn Post', icon: Linkedin, description: 'LinkedIn feed post' },
 ];
 
 const REEL_TYPES: { value: ReelType; label: string }[] = [

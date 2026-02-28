@@ -59,6 +59,10 @@ const getFormatIcon = (format: string) => {
       return LayoutGrid;
     case 'long_caption':
       return FileText;
+    case 'facebook_post':
+      return Facebook;
+    case 'linkedin_post':
+      return Linkedin;
     default:
       return Film;
   }
@@ -72,6 +76,10 @@ const getFormatLabel = (format: string) => {
       return 'Carousel';
     case 'long_caption':
       return 'Long Caption';
+    case 'facebook_post':
+      return 'Facebook Post';
+    case 'linkedin_post':
+      return 'LinkedIn Post';
     default:
       return format;
   }
