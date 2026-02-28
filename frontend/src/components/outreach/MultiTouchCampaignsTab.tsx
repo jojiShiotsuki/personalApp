@@ -572,9 +572,11 @@ function PipelineProspectCard({
       {prospect.next_action_date && (
         <div className={cn(
           'flex items-center gap-1.5 text-xs mb-2',
-          dueToday ? 'text-[--exec-accent] font-medium' : 'text-[--exec-text-muted]'
+          dueToday
+            ? 'text-amber-400 font-semibold bg-amber-500/15 border border-amber-500/25 rounded-md px-2 py-1'
+            : 'text-[--exec-text-muted]'
         )}>
-          <Calendar className="w-3.5 h-3.5" />
+          <Calendar className={cn('w-3.5 h-3.5', dueToday && 'text-amber-400')} />
           {dueToday ? 'Due today' : `Next ${formatShortDate(prospect.next_action_date)}`}
         </div>
       )}
