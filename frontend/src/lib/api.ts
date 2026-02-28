@@ -535,6 +535,11 @@ export const socialContentApi = {
   delete: async (id: number): Promise<void> => {
     await api.delete(`/api/social-content/${id}`);
   },
+
+  bulkCreate: async (items: SocialContentCreate[]): Promise<SocialContent[]> => {
+    const response = await api.post('/api/social-content/bulk', items);
+    return response.data;
+  },
 };
 
 export const dashboardApi = {

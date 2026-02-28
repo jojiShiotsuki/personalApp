@@ -117,6 +117,23 @@ def create_content(
     return content_to_dict(db_content)
 
 
+@router.post("/bulk", status_code=status.HTTP_201_CREATED)
+def bulk_create_content(
+    items: List[SocialContentCreate],
+    db: Session = Depends(get_db),
+):
+    """Bulk create multiple social content items"""
+    created = []
+    for item in items:
+        db_content = SocialContentModel(**item.model_dump())
+        db.add(db_content)
+        created.append(db_content)
+    db.commit()
+    for c in created:
+        db.refresh(c)
+    return [content_to_dict(c) for c in created]
+
+
 @router.put("/{content_id}")
 def update_content(
     content_id: int,

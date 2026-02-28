@@ -4,8 +4,9 @@ import { socialContentApi } from '@/lib/api';
 import type { SocialContent, SocialContentCreate, SocialContentUpdate } from '@/types';
 import MonthView from '@/components/calendar/MonthView';
 import ContentForm from '@/components/calendar/ContentForm';
+import ImportContentModal from '@/components/calendar/ImportContentModal';
 import { getMonthName, formatDateForApi } from '@/lib/dateUtils';
-import { Plus, ChevronLeft, ChevronRight, Instagram, Youtube, Facebook, Twitter, Linkedin, Video, Calendar, Sparkles, Film, LayoutGrid, FileText, Check } from 'lucide-react';
+import { Plus, ChevronLeft, ChevronRight, Instagram, Youtube, Facebook, Twitter, Linkedin, Video, Calendar, Sparkles, Film, LayoutGrid, FileText, Check, Upload } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
@@ -87,6 +88,7 @@ export default function SocialCalendar() {
   const [showForm, setShowForm] = useState(false);
   const [formContentDate, setFormContentDate] = useState<Date | null>(null);
   const [editingContent, setEditingContent] = useState<SocialContent | null>(null);
+  const [showImport, setShowImport] = useState(false);
 
   // Queries
   const { data: yearSummary } = useQuery({
@@ -133,6 +135,16 @@ export default function SocialCalendar() {
       toast.success('Content deleted');
     },
     onError: () => toast.error('Failed to delete content'),
+  });
+
+  const bulkCreateMutation = useMutation({
+    mutationFn: socialContentApi.bulkCreate,
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['social-content'] });
+      setShowImport(false);
+      toast.success(`Imported ${data.length} content entries`);
+    },
+    onError: () => toast.error('Failed to import content'),
   });
 
   // Navigation
@@ -241,13 +253,22 @@ export default function SocialCalendar() {
                 {getSubtitle()}
               </p>
             </div>
-            <button
-              onClick={() => setShowForm(true)}
-              className="group flex items-center gap-2 px-5 py-2.5 bg-orange-600 text-white rounded-2xl shadow-md shadow-orange-600/30 hover:bg-orange-700 hover:shadow-lg hover:shadow-orange-600/40 hover:-translate-y-0.5 transition-all duration-200 font-semibold animate-fade-slide-up delay-3"
-            >
-              <Plus className="w-5 h-5 transition-transform duration-200 group-hover:rotate-90" />
-              New Post
-            </button>
+            <div className="flex items-center gap-3 animate-fade-slide-up delay-3">
+              <button
+                onClick={() => setShowImport(true)}
+                className="group flex items-center gap-2 px-5 py-2.5 bg-stone-700/60 text-[--exec-text-secondary] rounded-2xl border border-stone-600/40 hover:bg-stone-600/60 hover:text-[--exec-text] hover:-translate-y-0.5 transition-all duration-200 font-semibold"
+              >
+                <Upload className="w-5 h-5" />
+                Import
+              </button>
+              <button
+                onClick={() => setShowForm(true)}
+                className="group flex items-center gap-2 px-5 py-2.5 bg-orange-600 text-white rounded-2xl shadow-md shadow-orange-600/30 hover:bg-orange-700 hover:shadow-lg hover:shadow-orange-600/40 hover:-translate-y-0.5 transition-all duration-200 font-semibold"
+              >
+                <Plus className="w-5 h-5 transition-transform duration-200 group-hover:rotate-90" />
+                New Post
+              </button>
+            </div>
           </div>
 
           {/* Breadcrumb Navigation */}
@@ -682,6 +703,13 @@ export default function SocialCalendar() {
           existingContent={editingContent || null}
         />
       )}
+
+      <ImportContentModal
+        isOpen={showImport}
+        onClose={() => setShowImport(false)}
+        onImport={(items) => bulkCreateMutation.mutate(items)}
+        isLoading={bulkCreateMutation.isPending}
+      />
     </div>
   );
 }
