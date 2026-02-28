@@ -141,9 +141,22 @@ export default function ContentForm({
     );
   };
 
+  const handleRepurposeContentChange = (formatId: RepurposeFormat, content: string) => {
+    setRepurposeFormats((prev) =>
+      prev.map((f) =>
+        f.format === formatId ? { ...f, content } : f
+      )
+    );
+  };
+
   const getRepurposeStatus = (formatId: RepurposeFormat): ContentStatus | null => {
     const format = repurposeFormats.find((f) => f.format === formatId);
     return format?.status || null;
+  };
+
+  const getRepurposeContent = (formatId: RepurposeFormat): string => {
+    const format = repurposeFormats.find((f) => f.format === formatId);
+    return format?.content || '';
   };
 
   const getStatusColor = (status: ContentStatus) => {
@@ -306,65 +319,87 @@ export default function ContentForm({
                     <div
                       key={format.id}
                       className={cn(
-                        "flex items-center gap-3 p-3 rounded-xl border transition-all duration-200",
+                        "rounded-xl border transition-all duration-200",
                         isTracked
                           ? "bg-stone-800 border-stone-600"
                           : "bg-stone-800/50 border-stone-700 hover:border-stone-600"
                       )}
                     >
-                      {/* Toggle checkbox */}
-                      <button
-                        type="button"
-                        onClick={() => handleRepurposeToggle(format.id)}
-                        disabled={isLoading}
-                        className={cn(
-                          "w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all duration-200",
-                          isTracked
-                            ? "bg-orange-500 border-orange-500"
-                            : "border-stone-500 hover:border-stone-400"
-                        )}
-                      >
-                        {isTracked && <Check className="w-3 h-3 text-white" />}
-                      </button>
+                      <div className="flex items-center gap-3 p-3">
+                        {/* Toggle checkbox */}
+                        <button
+                          type="button"
+                          onClick={() => handleRepurposeToggle(format.id)}
+                          disabled={isLoading}
+                          className={cn(
+                            "w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all duration-200 shrink-0",
+                            isTracked
+                              ? "bg-orange-500 border-orange-500"
+                              : "border-stone-500 hover:border-stone-400"
+                          )}
+                        >
+                          {isTracked && <Check className="w-3 h-3 text-white" />}
+                        </button>
 
-                      {/* Format info */}
-                      <div className="flex items-center gap-2 flex-1 min-w-0">
-                        <Icon className={cn("w-4 h-4", isTracked ? "text-orange-500" : "text-stone-400")} />
-                        <div className="flex-1 min-w-0">
-                          <span className={cn(
-                            "text-sm font-medium",
-                            isTracked ? "text-white" : "text-stone-400"
-                          )}>
-                            {format.label}
-                          </span>
-                          <span className="text-xs text-stone-500 ml-2 hidden sm:inline">
-                            {format.description}
-                          </span>
+                        {/* Format info */}
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                          <Icon className={cn("w-4 h-4", isTracked ? "text-orange-500" : "text-stone-400")} />
+                          <div className="flex-1 min-w-0">
+                            <span className={cn(
+                              "text-sm font-medium",
+                              isTracked ? "text-white" : "text-stone-400"
+                            )}>
+                              {format.label}
+                            </span>
+                            <span className="text-xs text-stone-500 ml-2 hidden sm:inline">
+                              {format.description}
+                            </span>
+                          </div>
                         </div>
+
+                        {/* Status dropdown (only when tracked) */}
+                        {isTracked && (
+                          <div className="flex items-center gap-2">
+                            <div className={cn("w-2 h-2 rounded-full", getStatusColor(currentStatus))} />
+                            <select
+                              value={currentStatus}
+                              onChange={(e) => handleRepurposeStatusChange(format.id, e.target.value as ContentStatus)}
+                              disabled={isLoading}
+                              className={cn(
+                                "px-2 py-1 rounded-lg text-xs font-medium",
+                                "bg-stone-700 text-white border border-stone-600",
+                                "focus:outline-none focus:ring-1 focus:ring-orange-500",
+                                "cursor-pointer"
+                              )}
+                            >
+                              <option value="not_started">Not Started</option>
+                              <option value="scripted">Scripted</option>
+                              <option value="filmed">Filmed</option>
+                              <option value="editing">Editing</option>
+                              <option value="scheduled">Scheduled</option>
+                              <option value="posted">Posted</option>
+                            </select>
+                          </div>
+                        )}
                       </div>
 
-                      {/* Status dropdown (only when tracked) */}
+                      {/* Content field (only when tracked) */}
                       {isTracked && (
-                        <div className="flex items-center gap-2">
-                          <div className={cn("w-2 h-2 rounded-full", getStatusColor(currentStatus))} />
-                          <select
-                            value={currentStatus}
-                            onChange={(e) => handleRepurposeStatusChange(format.id, e.target.value as ContentStatus)}
+                        <div className="px-3 pb-3">
+                          <textarea
+                            value={getRepurposeContent(format.id)}
+                            onChange={(e) => handleRepurposeContentChange(format.id, e.target.value)}
+                            placeholder={`Write your ${format.label.toLowerCase()} content here...`}
+                            rows={3}
                             disabled={isLoading}
                             className={cn(
-                              "px-2 py-1 rounded-lg text-xs font-medium",
-                              "bg-stone-700 text-white border border-stone-600",
-                              "focus:outline-none focus:ring-1 focus:ring-orange-500",
-                              "cursor-pointer"
+                              "w-full px-3 py-2 rounded-lg text-sm",
+                              "bg-stone-700/50 text-white border border-stone-600/50",
+                              "placeholder:text-stone-500",
+                              "focus:outline-none focus:ring-1 focus:ring-orange-500/30 focus:border-orange-500/50",
+                              "transition-all duration-200 resize-none"
                             )}
-                          >
-                            <option value="not_started">Not Started</option>
-                            <option value="scripted">Scripted</option>
-                            <option value="filmed">Filmed</option>
-                            <option value="editing">Editing</option>
-                            <option value="scheduled">Scheduled</option>
-                            <option value="posted">Posted</option>
-                          </select>
+                          />
                         </div>
                       )}
                     </div>

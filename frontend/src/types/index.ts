@@ -517,6 +517,7 @@ export interface RepurposeFormatStatus {
   format: RepurposeFormat;
   status: ContentStatus;
   posted_date?: string;
+  content?: string;
 }
 
 export interface SocialContent {

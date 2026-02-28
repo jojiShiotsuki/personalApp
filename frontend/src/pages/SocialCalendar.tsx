@@ -623,7 +623,7 @@ export default function SocialCalendar() {
                         {item.repurpose_formats && item.repurpose_formats.length > 0 && (
                           <div>
                             <h4 className="text-xs font-semibold text-[--exec-text-muted] uppercase tracking-wider mb-3">Repurpose Tracker</h4>
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                               {item.repurpose_formats.map((rf) => {
                                 const FormatIcon = getFormatIcon(rf.format);
                                 const rfStatusConfig = getStatusConfig(rf.status);
@@ -631,22 +631,31 @@ export default function SocialCalendar() {
                                   <div
                                     key={rf.format}
                                     className={cn(
-                                      "flex items-center gap-3 p-3 rounded-xl border",
+                                      "rounded-xl border",
                                       rfStatusConfig.bg,
                                       rf.status === 'posted' ? 'border-emerald-500/30' : 'border-transparent'
                                     )}
                                   >
-                                    <FormatIcon className={cn("w-5 h-5", rfStatusConfig.text)} />
-                                    <div className="flex-1 min-w-0">
-                                      <p className={cn("font-medium text-sm", rfStatusConfig.text)}>
-                                        {getFormatLabel(rf.format)}
-                                      </p>
-                                      <p className="text-xs text-[--exec-text-muted] capitalize">
-                                        {rf.status.replace('_', ' ')}
-                                      </p>
+                                    <div className="flex items-center gap-3 p-3">
+                                      <FormatIcon className={cn("w-5 h-5", rfStatusConfig.text)} />
+                                      <div className="flex-1 min-w-0">
+                                        <p className={cn("font-medium text-sm", rfStatusConfig.text)}>
+                                          {getFormatLabel(rf.format)}
+                                        </p>
+                                        <p className="text-xs text-[--exec-text-muted] capitalize">
+                                          {rf.status.replace('_', ' ')}
+                                        </p>
+                                      </div>
+                                      {rf.status === 'posted' && (
+                                        <Check className="w-5 h-5 text-emerald-500" />
+                                      )}
                                     </div>
-                                    {rf.status === 'posted' && (
-                                      <Check className="w-5 h-5 text-emerald-500" />
+                                    {rf.content && (
+                                      <div className="px-3 pb-3">
+                                        <p className="text-xs text-[--exec-text-secondary] bg-[--exec-surface-alt] rounded-lg p-2.5 whitespace-pre-wrap">
+                                          {rf.content}
+                                        </p>
+                                      </div>
                                     )}
                                   </div>
                                 );
