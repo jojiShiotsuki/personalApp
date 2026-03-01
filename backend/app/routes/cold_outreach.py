@@ -40,6 +40,13 @@ def find_next_step(steps: dict, current_step: int):
 MIN_STEP_DELAY_DAYS = 3
 
 
+def calc_next_action_date(current_date, delay_days: int):
+    """Calculate next action date relative to the current follow-up date (not today).
+    Falls back to today if no current date is set."""
+    base = current_date or date.today()
+    return base + timedelta(days=max(delay_days, MIN_STEP_DELAY_DAYS))
+
+
 def get_campaign_stats(campaign: OutreachCampaign, db: Session) -> CampaignStats:
     """Calculate statistics for a campaign using aggregate queries (avoids loading all prospects)."""
     campaign_id = campaign.id
@@ -508,7 +515,7 @@ def mark_email_sent(prospect_id: int, db: Session = Depends(get_db)):
         next_step = current_step + 1
         delay = max(get_step_delay(campaign, next_step), MIN_STEP_DELAY_DAYS)
         prospect.current_step = next_step
-        prospect.next_action_date = date.today() + timedelta(days=delay)
+        prospect.next_action_date = calc_next_action_date(prospect.next_action_date, delay)
         message = f"Email {current_step} sent. Next follow-up scheduled for {prospect.next_action_date}."
 
     db.commit()
@@ -671,7 +678,7 @@ def mark_message_sent(prospect_id: int, db: Session = Depends(get_db)):
         next_step = current_step + 1
         delay = max(get_step_delay(campaign, next_step), MIN_STEP_DELAY_DAYS)
         prospect.current_step = next_step
-        prospect.next_action_date = date.today() + timedelta(days=delay)
+        prospect.next_action_date = calc_next_action_date(prospect.next_action_date, delay)
         message = f"Message {current_step} sent. Next follow-up scheduled for {prospect.next_action_date}."
 
     db.commit()
@@ -789,7 +796,7 @@ def advance_multi_touch_prospect(campaign_id: int, prospect_id: int, db: Session
         message = f"Sequence complete after step {current_step}."
     else:
         prospect.current_step = next_step_num
-        prospect.next_action_date = date.today() + timedelta(days=max(next_step.delay_days, MIN_STEP_DELAY_DAYS))
+        prospect.next_action_date = calc_next_action_date(prospect.next_action_date, next_step.delay_days)
 
         # Set status based on next step's channel type
         channel = next_step.channel_type
@@ -839,7 +846,7 @@ def mark_engaged(campaign_id: int, prospect_id: int, db: Session = Depends(get_d
         message = f"Engagement logged. Sequence complete after step {current_step}."
     else:
         prospect.current_step = next_step_num
-        prospect.next_action_date = date.today() + timedelta(days=max(next_step.delay_days, MIN_STEP_DELAY_DAYS))
+        prospect.next_action_date = calc_next_action_date(prospect.next_action_date, next_step.delay_days)
 
         channel = next_step.channel_type
         if channel in (StepChannelType.EMAIL.value, StepChannelType.FOLLOW_UP_EMAIL.value):
@@ -888,7 +895,7 @@ def mark_mt_connected(campaign_id: int, prospect_id: int, db: Session = Depends(
         message = f"Connected! Sequence complete after step {current_step}."
     else:
         prospect.current_step = next_step_num
-        prospect.next_action_date = date.today() + timedelta(days=max(next_step.delay_days, MIN_STEP_DELAY_DAYS))
+        prospect.next_action_date = calc_next_action_date(prospect.next_action_date, next_step.delay_days)
 
         channel = next_step.channel_type
         if channel in (StepChannelType.EMAIL.value, StepChannelType.FOLLOW_UP_EMAIL.value):
