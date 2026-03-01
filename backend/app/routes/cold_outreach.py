@@ -36,6 +36,10 @@ def find_next_step(steps: dict, current_step: int):
     return None, None
 
 
+# Minimum days between steps when advancing
+MIN_STEP_DELAY_DAYS = 3
+
+
 def get_campaign_stats(campaign: OutreachCampaign, db: Session) -> CampaignStats:
     """Calculate statistics for a campaign using aggregate queries (avoids loading all prospects)."""
     campaign_id = campaign.id
@@ -785,7 +789,7 @@ def advance_multi_touch_prospect(campaign_id: int, prospect_id: int, db: Session
         message = f"Sequence complete after step {current_step}."
     else:
         prospect.current_step = next_step_num
-        prospect.next_action_date = date.today() + timedelta(days=next_step.delay_days)
+        prospect.next_action_date = date.today() + timedelta(days=max(next_step.delay_days, MIN_STEP_DELAY_DAYS))
 
         # Set status based on next step's channel type
         channel = next_step.channel_type
@@ -835,7 +839,7 @@ def mark_engaged(campaign_id: int, prospect_id: int, db: Session = Depends(get_d
         message = f"Engagement logged. Sequence complete after step {current_step}."
     else:
         prospect.current_step = next_step_num
-        prospect.next_action_date = date.today() + timedelta(days=next_step.delay_days)
+        prospect.next_action_date = date.today() + timedelta(days=max(next_step.delay_days, MIN_STEP_DELAY_DAYS))
 
         channel = next_step.channel_type
         if channel in (StepChannelType.EMAIL.value, StepChannelType.FOLLOW_UP_EMAIL.value):
@@ -884,7 +888,7 @@ def mark_mt_connected(campaign_id: int, prospect_id: int, db: Session = Depends(
         message = f"Connected! Sequence complete after step {current_step}."
     else:
         prospect.current_step = next_step_num
-        prospect.next_action_date = date.today() + timedelta(days=next_step.delay_days)
+        prospect.next_action_date = date.today() + timedelta(days=max(next_step.delay_days, MIN_STEP_DELAY_DAYS))
 
         channel = next_step.channel_type
         if channel in (StepChannelType.EMAIL.value, StepChannelType.FOLLOW_UP_EMAIL.value):
