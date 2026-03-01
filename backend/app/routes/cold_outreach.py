@@ -26,6 +26,16 @@ router = APIRouter(prefix="/api/outreach/campaigns", tags=["cold-outreach"])
 
 # ============== HELPER FUNCTIONS ==============
 
+def find_next_step(steps: dict, current_step: int):
+    """Find the next step after current_step by sorted step numbers.
+    Handles non-contiguous step numbers (e.g., steps 1, 2, 4, 5 after step 3 was deleted)."""
+    sorted_nums = sorted(steps.keys())
+    for num in sorted_nums:
+        if num > current_step:
+            return num, steps[num]
+    return None, None
+
+
 def get_campaign_stats(campaign: OutreachCampaign, db: Session) -> CampaignStats:
     """Calculate statistics for a campaign using aggregate queries (avoids loading all prospects)."""
     campaign_id = campaign.id
@@ -765,9 +775,8 @@ def advance_multi_touch_prospect(campaign_id: int, prospect_id: int, db: Session
 
     prospect.last_contacted_at = datetime.utcnow()
 
-    # Check if there's a next step
-    next_step_num = current_step + 1
-    next_step = steps.get(next_step_num)
+    # Find the actual next step (handles non-contiguous step numbers)
+    next_step_num, next_step = find_next_step(steps, current_step)
 
     if not next_step:
         # Sequence complete
@@ -817,9 +826,8 @@ def mark_engaged(campaign_id: int, prospect_id: int, db: Session = Depends(get_d
     steps = {s.step_number: s for s in campaign.multi_touch_steps}
     current_step = prospect.current_step
 
-    # Advance to next step
-    next_step_num = current_step + 1
-    next_step = steps.get(next_step_num)
+    # Find the actual next step (handles non-contiguous step numbers)
+    next_step_num, next_step = find_next_step(steps, current_step)
 
     if not next_step:
         prospect.status = ProspectStatus.NOT_INTERESTED
@@ -867,9 +875,8 @@ def mark_mt_connected(campaign_id: int, prospect_id: int, db: Session = Depends(
     steps = {s.step_number: s for s in campaign.multi_touch_steps}
     current_step = prospect.current_step
 
-    # Advance to next step
-    next_step_num = current_step + 1
-    next_step = steps.get(next_step_num)
+    # Find the actual next step (handles non-contiguous step numbers)
+    next_step_num, next_step = find_next_step(steps, current_step)
 
     if not next_step:
         prospect.status = ProspectStatus.CONNECTED

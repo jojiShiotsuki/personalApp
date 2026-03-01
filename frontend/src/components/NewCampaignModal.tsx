@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { coldOutreachApi } from '@/lib/api';
 import type { OutreachCampaign, MultiTouchStepCreate } from '@/types';
 import { CampaignType, StepChannelType } from '@/types';
-import { X, Plus, Trash2, Mail, Linkedin, MessageCircle, Heart, Reply, ChevronDown } from 'lucide-react';
+import { X, Plus, Trash2, Mail, Linkedin, MessageCircle, Heart, Reply, ChevronDown, GripVertical } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -23,6 +24,11 @@ const DEFAULT_MT_STEPS: MultiTouchStepCreate[] = [
   { step_number: 4, channel_type: StepChannelType.LINKEDIN_MESSAGE, delay_days: 1, instruction_text: 'Send LinkedIn message referencing your email' },
   { step_number: 5, channel_type: StepChannelType.FOLLOW_UP_EMAIL, delay_days: 2, instruction_text: 'Send follow-up email if no reply' },
 ];
+
+/** Renumber steps sequentially starting from 1 */
+function renumberSteps(steps: MultiTouchStepCreate[]): MultiTouchStepCreate[] {
+  return steps.map((s, i) => ({ ...s, step_number: i + 1 }));
+}
 
 interface NewCampaignModalProps {
   isOpen: boolean;
@@ -159,22 +165,18 @@ export default function NewCampaignModal({
   const addStep = (channelType: StepChannelType) => {
     if (steps.length >= 50) return;
     const config = CHANNEL_CONFIG[channelType];
-    const nextNum = steps.length + 1;
-    setSteps([...steps, {
-      step_number: nextNum,
+    const newStep: MultiTouchStepCreate = {
+      step_number: steps.length + 1,
       channel_type: channelType,
       delay_days: config.defaultDelay,
       instruction_text: config.defaultInstruction,
-    }]);
+    };
+    setSteps(renumberSteps([...steps, newStep]));
     setShowAddMenu(false);
   };
 
   const removeStep = (index: number) => {
-    const newSteps = steps.filter((_, i) => i !== index).map((s, i) => ({
-      ...s,
-      step_number: i + 1,
-    }));
-    setSteps(newSteps);
+    setSteps(renumberSteps(steps.filter((_, i) => i !== index)));
   };
 
   const updateStep = (index: number, updates: Partial<MultiTouchStepCreate>) => {
@@ -188,6 +190,18 @@ export default function NewCampaignModal({
       delay_days: config.defaultDelay,
       instruction_text: config.defaultInstruction,
     });
+  };
+
+  const handleDragEnd = (result: DropResult) => {
+    if (!result.destination) return;
+    const from = result.source.index;
+    const to = result.destination.index;
+    if (from === to) return;
+
+    const reordered = [...steps];
+    const [moved] = reordered.splice(from, 1);
+    reordered.splice(to, 0, moved);
+    setSteps(renumberSteps(reordered));
   };
 
   const isPending = createMutation.isPending || updateMutation.isPending;
@@ -293,113 +307,141 @@ export default function NewCampaignModal({
                   )}
                 </h3>
 
-                <div className="space-y-3">
-                  {steps.map((step, index) => {
-                    const config = CHANNEL_CONFIG[step.channel_type];
-                    const Icon = config.icon;
-                    return (
+                <DragDropContext onDragEnd={handleDragEnd}>
+                  <Droppable droppableId="campaign-steps">
+                    {(provided) => (
                       <div
-                        key={index}
-                        className="bg-stone-800/30 border border-stone-700/40 rounded-lg p-3"
+                        ref={provided.innerRef}
+                        {...provided.droppableProps}
+                        className="space-y-3"
                       >
-                        <div className="flex items-start gap-3">
-                          {/* Step number badge */}
-                          <div className="flex-shrink-0 w-7 h-7 rounded-full bg-stone-700/60 flex items-center justify-center mt-0.5">
-                            <span className="text-xs font-bold text-[--exec-text-secondary]">{step.step_number}</span>
-                          </div>
-
-                          <div className="flex-1 space-y-2">
-                            {/* Channel type + delay row */}
-                            <div className="flex items-center gap-2">
-                              <div className="flex-1">
-                                <select
-                                  value={step.channel_type}
-                                  onChange={(e) => handleChannelChange(index, e.target.value as StepChannelType)}
-                                  className={cn(inputClasses, 'py-1.5 cursor-pointer appearance-none')}
+                        {steps.map((step, index) => {
+                          const config = CHANNEL_CONFIG[step.channel_type];
+                          const Icon = config.icon;
+                          return (
+                            <Draggable key={`step-${index}`} draggableId={`step-${index}`} index={index}>
+                              {(provided, snapshot) => (
+                                <div
+                                  ref={provided.innerRef}
+                                  {...provided.draggableProps}
+                                  className={cn(
+                                    'bg-stone-800/30 border border-stone-700/40 rounded-lg p-3',
+                                    snapshot.isDragging && 'shadow-xl border-[--exec-accent]/40 bg-stone-800/60'
+                                  )}
                                 >
-                                  {Object.entries(CHANNEL_CONFIG).map(([key, cfg]) => (
-                                    <option key={key} value={key}>{cfg.label}</option>
-                                  ))}
-                                </select>
-                              </div>
-                              <div className="flex items-center gap-1.5">
-                                <span className="text-xs text-[--exec-text-muted] whitespace-nowrap">{index === 0 ? 'start:' : 'wait'}</span>
-                                <input
-                                  type="number"
-                                  min={0}
-                                  max={30}
-                                  value={step.delay_days}
-                                  onChange={(e) => updateStep(index, { delay_days: parseInt(e.target.value) || 0 })}
-                                  className={cn(inputClasses, 'w-16 py-1.5 text-center')}
-                                />
-                                <span className="text-xs text-[--exec-text-muted] whitespace-nowrap">{index === 0 ? (step.delay_days === 0 ? 'now' : step.delay_days === 1 ? 'day' : 'days') : step.delay_days === 1 ? 'day after' : 'days after'}</span>
-                              </div>
-                              <button
-                                type="button"
-                                onClick={() => removeStep(index)}
-                                className="p-1 text-[--exec-text-muted] hover:text-red-400 hover:bg-red-900/20 rounded transition-colors"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
+                                  <div className="flex items-start gap-2">
+                                    {/* Drag handle */}
+                                    <div
+                                      {...provided.dragHandleProps}
+                                      className="flex-shrink-0 mt-1.5 p-0.5 cursor-grab active:cursor-grabbing text-[--exec-text-muted] hover:text-[--exec-text] transition-colors rounded hover:bg-stone-700/40"
+                                      title="Drag to reorder"
+                                    >
+                                      <GripVertical className="w-4 h-4" />
+                                    </div>
 
-                            {/* Instruction text */}
-                            <input
-                              type="text"
-                              value={step.instruction_text || ''}
-                              onChange={(e) => updateStep(index, { instruction_text: e.target.value })}
-                              placeholder="Instruction shown in queue..."
-                              className={cn(inputClasses, 'py-1.5 text-xs')}
-                            />
+                                    {/* Step number badge */}
+                                    <div className="flex-shrink-0 w-7 h-7 rounded-full bg-stone-700/60 flex items-center justify-center mt-0.5">
+                                      <span className="text-xs font-bold text-[--exec-text-secondary]">{step.step_number}</span>
+                                    </div>
 
-                            {/* Template fields for email/message/connect steps */}
-                            {(step.channel_type === StepChannelType.EMAIL ||
-                              step.channel_type === StepChannelType.FOLLOW_UP_EMAIL ||
-                              step.channel_type === StepChannelType.LINKEDIN_MESSAGE ||
-                              step.channel_type === StepChannelType.LINKEDIN_CONNECT) && (
-                              <div className="space-y-1.5">
-                                {(step.channel_type === StepChannelType.EMAIL || step.channel_type === StepChannelType.FOLLOW_UP_EMAIL) && (
-                                  <input
-                                    type="text"
-                                    value={step.template_subject || ''}
-                                    onChange={(e) => updateStep(index, { template_subject: e.target.value })}
-                                    placeholder="Subject line (optional)"
-                                    className={cn(inputClasses, 'py-1.5 text-xs')}
-                                  />
-                                )}
-                                <textarea
-                                  value={step.template_content || ''}
-                                  onChange={(e) => updateStep(index, { template_content: e.target.value })}
-                                  placeholder="Template content (optional, use {contact_name}, {agency_name}...)"
-                                  rows={2}
-                                  className={cn(inputClasses, 'py-1.5 text-xs resize-none')}
-                                />
-                              </div>
-                            )}
+                                    <div className="flex-1 space-y-2">
+                                      {/* Channel type + delay row */}
+                                      <div className="flex items-center gap-2">
+                                        <div className="flex-1">
+                                          <select
+                                            value={step.channel_type}
+                                            onChange={(e) => handleChannelChange(index, e.target.value as StepChannelType)}
+                                            className={cn(inputClasses, 'py-1.5 cursor-pointer appearance-none')}
+                                          >
+                                            {Object.entries(CHANNEL_CONFIG).map(([key, cfg]) => (
+                                              <option key={key} value={key}>{cfg.label}</option>
+                                            ))}
+                                          </select>
+                                        </div>
+                                        <div className="flex items-center gap-1.5">
+                                          <span className="text-xs text-[--exec-text-muted] whitespace-nowrap">{index === 0 ? 'start:' : 'wait'}</span>
+                                          <input
+                                            type="number"
+                                            min={0}
+                                            max={30}
+                                            value={step.delay_days}
+                                            onChange={(e) => updateStep(index, { delay_days: parseInt(e.target.value) || 0 })}
+                                            className={cn(inputClasses, 'w-16 py-1.5 text-center')}
+                                          />
+                                          <span className="text-xs text-[--exec-text-muted] whitespace-nowrap">{index === 0 ? (step.delay_days === 0 ? 'now' : step.delay_days === 1 ? 'day' : 'days') : step.delay_days === 1 ? 'day after' : 'days after'}</span>
+                                        </div>
+                                        <button
+                                          type="button"
+                                          onClick={() => removeStep(index)}
+                                          className="p-1 text-[--exec-text-muted] hover:text-red-400 hover:bg-red-900/20 rounded transition-colors"
+                                        >
+                                          <Trash2 className="w-3.5 h-3.5" />
+                                        </button>
+                                      </div>
+
+                                      {/* Instruction text */}
+                                      <input
+                                        type="text"
+                                        value={step.instruction_text || ''}
+                                        onChange={(e) => updateStep(index, { instruction_text: e.target.value })}
+                                        placeholder="Instruction shown in queue..."
+                                        className={cn(inputClasses, 'py-1.5 text-xs')}
+                                      />
+
+                                      {/* Template fields for email/message/connect steps */}
+                                      {(step.channel_type === StepChannelType.EMAIL ||
+                                        step.channel_type === StepChannelType.FOLLOW_UP_EMAIL ||
+                                        step.channel_type === StepChannelType.LINKEDIN_MESSAGE ||
+                                        step.channel_type === StepChannelType.LINKEDIN_CONNECT) && (
+                                        <div className="space-y-1.5">
+                                          {(step.channel_type === StepChannelType.EMAIL || step.channel_type === StepChannelType.FOLLOW_UP_EMAIL) && (
+                                            <input
+                                              type="text"
+                                              value={step.template_subject || ''}
+                                              onChange={(e) => updateStep(index, { template_subject: e.target.value })}
+                                              placeholder="Subject line (optional)"
+                                              className={cn(inputClasses, 'py-1.5 text-xs')}
+                                            />
+                                          )}
+                                          <textarea
+                                            value={step.template_content || ''}
+                                            onChange={(e) => updateStep(index, { template_content: e.target.value })}
+                                            placeholder="Template content (optional, use {contact_name}, {agency_name}...)"
+                                            rows={2}
+                                            className={cn(inputClasses, 'py-1.5 text-xs resize-none')}
+                                          />
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+
+                                  {/* Channel type indicator */}
+                                  <div className="flex items-center gap-1.5 mt-2 ml-16">
+                                    <Icon className={cn('w-3 h-3', config.color)} />
+                                    <span className={cn('text-[10px] font-medium', config.color)}>{config.label}</span>
+                                    <span className="text-[10px] text-[--exec-text-muted] ml-1">
+                                      {index === 0
+                                        ? step.delay_days === 0 ? '(starts immediately)' : `(starts after ${step.delay_days}d)`
+                                        : step.delay_days === 0 ? '(same day as prev step)' : `(${step.delay_days}d after prev step)`
+                                      }
+                                    </span>
+                                  </div>
+                                </div>
+                              )}
+                            </Draggable>
+                          );
+                        })}
+                        {provided.placeholder}
+
+                        {steps.length === 0 && (
+                          <div className="text-center py-6 text-[--exec-text-muted] text-sm">
+                            No steps yet. Click "Add Step" to build your sequence.
                           </div>
-                        </div>
-
-                        {/* Channel type indicator */}
-                        <div className="flex items-center gap-1.5 mt-2 ml-10">
-                          <Icon className={cn('w-3 h-3', config.color)} />
-                          <span className={cn('text-[10px] font-medium', config.color)}>{config.label}</span>
-                          <span className="text-[10px] text-[--exec-text-muted] ml-1">
-                            {index === 0
-                              ? step.delay_days === 0 ? '(starts immediately)' : `(starts after ${step.delay_days}d)`
-                              : step.delay_days === 0 ? '(same day as prev step)' : `(${step.delay_days}d after prev step)`
-                            }
-                          </span>
-                        </div>
+                        )}
                       </div>
-                    );
-                  })}
-
-                  {steps.length === 0 && (
-                    <div className="text-center py-6 text-[--exec-text-muted] text-sm">
-                      No steps yet. Click "Add Step" to build your sequence.
-                    </div>
-                  )}
-                </div>
+                    )}
+                  </Droppable>
+                </DragDropContext>
               </div>
             )}
 
