@@ -125,8 +125,12 @@ export default function ContentForm({
         // Remove if already tracked
         return prev.filter((f) => f.format !== formatId);
       } else {
-        // Add with not_started status
-        return [...prev, { format: formatId, status: 'not_started' as ContentStatus }];
+        // Add with not_started status, default scheduled_date to parent content_date
+        return [...prev, {
+          format: formatId,
+          status: 'not_started' as ContentStatus,
+          scheduled_date: formData.content_date || undefined,
+        }];
       }
     });
   };
@@ -147,6 +151,19 @@ export default function ContentForm({
         f.format === formatId ? { ...f, content } : f
       )
     );
+  };
+
+  const handleRepurposeScheduledDateChange = (formatId: RepurposeFormat, scheduled_date: string) => {
+    setRepurposeFormats((prev) =>
+      prev.map((f) =>
+        f.format === formatId ? { ...f, scheduled_date: scheduled_date || undefined } : f
+      )
+    );
+  };
+
+  const getRepurposeScheduledDate = (formatId: RepurposeFormat): string => {
+    const format = repurposeFormats.find((f) => f.format === formatId);
+    return format?.scheduled_date || '';
   };
 
   const getRepurposeStatus = (formatId: RepurposeFormat): ContentStatus | null => {
@@ -382,6 +399,25 @@ export default function ContentForm({
                           </div>
                         )}
                       </div>
+
+                      {/* Scheduled date (only when tracked) */}
+                      {isTracked && (
+                        <div className="flex items-center gap-2 px-3 pb-2">
+                          <label className="text-xs text-stone-400 shrink-0">Scheduled:</label>
+                          <input
+                            type="date"
+                            value={getRepurposeScheduledDate(format.id)}
+                            onChange={(e) => handleRepurposeScheduledDateChange(format.id, e.target.value)}
+                            disabled={isLoading}
+                            className={cn(
+                              "px-2 py-1 rounded-lg text-xs",
+                              "bg-stone-700/50 text-white border border-stone-600/50",
+                              "focus:outline-none focus:ring-1 focus:ring-orange-500/30 focus:border-orange-500/50",
+                              "transition-all duration-200"
+                            )}
+                          />
+                        </div>
+                      )}
 
                       {/* Content field (only when tracked) */}
                       {isTracked && (

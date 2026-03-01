@@ -160,6 +160,7 @@ def update_content(
                 {'format': rf['format'].value if hasattr(rf['format'], 'value') else rf['format'],
                  'status': rf['status'].value if hasattr(rf['status'], 'value') else rf['status'],
                  'posted_date': rf['posted_date'].isoformat() if isinstance(rf.get('posted_date'), date) else rf.get('posted_date'),
+                 'scheduled_date': rf['scheduled_date'].isoformat() if isinstance(rf.get('scheduled_date'), date) else rf.get('scheduled_date'),
                  'content': rf.get('content')}
                 for rf in update_data['repurpose_formats']
             ]
@@ -169,6 +170,10 @@ def update_content(
 
     for field, value in update_data.items():
         setattr(db_content, field, value)
+
+    from sqlalchemy.orm.attributes import flag_modified
+    if 'repurpose_formats' in update_data:
+        flag_modified(db_content, 'repurpose_formats')
 
     db.commit()
     db.refresh(db_content)

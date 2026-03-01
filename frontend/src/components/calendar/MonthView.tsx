@@ -1,6 +1,6 @@
 import { formatDateForApi, isToday, isPast } from '@/lib/dateUtils';
-import { SocialContent } from '@/types';
-import { Plus, Film, LayoutGrid, FileText } from 'lucide-react';
+import { SocialContent, RepurposeFormatStatus } from '@/types';
+import { Plus, Film, LayoutGrid, FileText, Facebook, Linkedin } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface MonthViewProps {
@@ -37,8 +37,23 @@ const getFormatIcon = (format: string) => {
       return LayoutGrid;
     case 'long_caption':
       return FileText;
+    case 'facebook_post':
+      return Facebook;
+    case 'linkedin_post':
+      return Linkedin;
     default:
       return Film;
+  }
+};
+
+const getFormatLabel = (format: string) => {
+  switch (format) {
+    case 'reel': return 'Reel';
+    case 'carousel': return 'Carousel';
+    case 'long_caption': return 'Caption';
+    case 'facebook_post': return 'FB';
+    case 'linkedin_post': return 'LI';
+    default: return format;
   }
 };
 
@@ -111,6 +126,25 @@ export default function MonthView({
     contentByDate[item.content_date].push(item);
   });
 
+  // Build repurpose-by-date map: formats with scheduled_date different from parent content_date
+  // TODO: Cross-month limitation — repurpose formats scheduled in a different month than parent won't appear
+  const repurposeByDate: Record<string, { format: RepurposeFormatStatus; parentTitle: string; parentDate: string }[]> = {};
+  content.forEach((item) => {
+    if (!item.repurpose_formats) return;
+    item.repurpose_formats.forEach((rf) => {
+      if (rf.scheduled_date && rf.scheduled_date !== item.content_date) {
+        if (!repurposeByDate[rf.scheduled_date]) {
+          repurposeByDate[rf.scheduled_date] = [];
+        }
+        repurposeByDate[rf.scheduled_date].push({
+          format: rf,
+          parentTitle: item.title || item.content_type.replace('_', ' '),
+          parentDate: item.content_date,
+        });
+      }
+    });
+  });
+
   return (
     <div className="bg-[--exec-surface] rounded-2xl border border-[--exec-border] overflow-hidden shadow-sm transition-all duration-300 hover:border-[--exec-accent]/50 hover:shadow-md">
       {/* Weekday headers */}
@@ -172,7 +206,7 @@ export default function MonthView({
               </div>
 
               {/* Content items */}
-              {dayContent.length > 0 && (
+              {(dayContent.length > 0 || (repurposeByDate[dateStr] && repurposeByDate[dateStr].length > 0)) && (
                 <div className="space-y-1">
                   {dayContent.slice(0, 2).map((item) => {
                     const config = getStatusConfig(item.status);
@@ -226,6 +260,36 @@ export default function MonthView({
                       +{dayContent.length - 2} more
                     </span>
                   )}
+
+                  {/* Repurpose indicator cards from other days */}
+                  {repurposeByDate[dateStr]?.map((rp) => {
+                    const FormatIcon = getFormatIcon(rp.format.format);
+                    const dotColor = getFormatStatusDot(rp.format.status);
+                    return (
+                      <div
+                        key={`rp-${rp.parentDate}-${rp.format.format}`}
+                        className={cn(
+                          "rounded-lg px-2 py-1 text-xs font-medium transition-all duration-200",
+                          "border border-dashed border-[--exec-accent]/40 bg-[--exec-accent]/5",
+                          "text-[--exec-text-secondary]"
+                        )}
+                        title={`${getFormatLabel(rp.format.format)} from "${rp.parentTitle}" (${rp.parentDate})`}
+                      >
+                        <div className="flex items-center gap-1 min-w-0">
+                          <div className="relative shrink-0">
+                            <FormatIcon className="w-3 h-3 text-[--exec-accent]" />
+                            <div className={cn(
+                              "absolute -bottom-0.5 -right-0.5 w-1.5 h-1.5 rounded-full border border-white/50",
+                              dotColor
+                            )} />
+                          </div>
+                          <span className="truncate text-[--exec-accent]">
+                            {getFormatLabel(rp.format.format)}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
 

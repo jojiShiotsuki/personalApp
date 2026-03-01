@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { socialContentApi } from '@/lib/api';
-import type { SocialContent, SocialContentCreate, SocialContentUpdate } from '@/types';
+import type { SocialContent, SocialContentCreate, SocialContentUpdate, RepurposeFormatStatus } from '@/types';
 import MonthView from '@/components/calendar/MonthView';
 import ContentForm from '@/components/calendar/ContentForm';
 import ImportContentModal from '@/components/calendar/ImportContentModal';
 import { getMonthName, formatDateForApi } from '@/lib/dateUtils';
-import { Plus, ChevronLeft, ChevronRight, Instagram, Youtube, Facebook, Twitter, Linkedin, Video, Calendar, Sparkles, Film, LayoutGrid, FileText, Check, Upload } from 'lucide-react';
+import { Plus, ChevronLeft, ChevronRight, Instagram, Youtube, Facebook, Twitter, Linkedin, Video, Calendar, Sparkles, Film, LayoutGrid, FileText, Check, Upload, ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
@@ -215,6 +215,21 @@ export default function SocialCalendar() {
   const contentForDay = selectedDay && monthContent
     ? monthContent.filter((c) => c.content_date === formatDateForApi(selectedDay))
     : [];
+
+  // Repurpose formats scheduled for the selected day but from different parent dates
+  // TODO: Cross-month limitation — repurpose formats from content in a different month won't appear here
+  const repurposeForDay: { format: RepurposeFormatStatus; parent: SocialContent }[] = [];
+  if (selectedDay && monthContent) {
+    const dayStr = formatDateForApi(selectedDay);
+    monthContent.forEach((item) => {
+      if (!item.repurpose_formats) return;
+      item.repurpose_formats.forEach((rf) => {
+        if (rf.scheduled_date && rf.scheduled_date === dayStr && rf.scheduled_date !== item.content_date) {
+          repurposeForDay.push({ format: rf, parent: item });
+        }
+      });
+    });
+  }
 
   // Get subtitle based on view
   const getSubtitle = () => {
@@ -527,7 +542,7 @@ export default function SocialCalendar() {
               </button>
             </div>
 
-            {contentForDay.length === 0 ? (
+            {contentForDay.length === 0 && repurposeForDay.length === 0 ? (
               <div className="bento-card-static p-12 text-center animate-fade-slide-up delay-6">
                 <div className="w-16 h-16 rounded-2xl bg-[--exec-surface-alt] flex items-center justify-center mx-auto mb-4">
                   <Video className="w-8 h-8 text-[--exec-text-muted]" />
@@ -537,6 +552,56 @@ export default function SocialCalendar() {
               </div>
             ) : (
               <div className="space-y-6">
+                {/* Repurposed Content Scheduled Today */}
+                {repurposeForDay.length > 0 && (
+                  <div className="bento-card-static overflow-hidden animate-fade-slide-up delay-5">
+                    <div className="p-5 border-b border-[--exec-border]">
+                      <h3 className="text-sm font-bold text-[--exec-text] uppercase tracking-wider flex items-center gap-2">
+                        <ArrowRight className="w-4 h-4 text-[--exec-accent]" />
+                        Repurposed Content Scheduled Today
+                      </h3>
+                    </div>
+                    <div className="p-4 space-y-3">
+                      {repurposeForDay.map((rp) => {
+                        const FormatIcon = getFormatIcon(rp.format.format);
+                        const rfConfig = getStatusConfig(rp.format.status);
+                        return (
+                          <button
+                            key={`rp-${rp.parent.id}-${rp.format.format}`}
+                            onClick={() => {
+                              const parentDate = new Date(rp.parent.content_date + 'T00:00:00');
+                              setSelectedDay(parentDate);
+                            }}
+                            className={cn(
+                              "w-full flex items-center gap-3 p-3 rounded-xl border border-dashed",
+                              "border-[--exec-accent]/30 bg-[--exec-accent]/5",
+                              "hover:bg-[--exec-accent]/10 hover:border-[--exec-accent]/50",
+                              "transition-all duration-200 text-left group"
+                            )}
+                          >
+                            <FormatIcon className="w-5 h-5 text-[--exec-accent] shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-[--exec-text]">
+                                {getFormatLabel(rp.format.format)}
+                              </p>
+                              <p className="text-xs text-[--exec-text-muted] truncate">
+                                From: {rp.parent.title || rp.parent.content_type.replace('_', ' ')} ({rp.parent.content_date})
+                              </p>
+                            </div>
+                            <span className={cn(
+                              "px-2 py-0.5 text-xs font-semibold rounded-full capitalize shrink-0",
+                              rfConfig.bg, rfConfig.text
+                            )}>
+                              {rp.format.status.replace('_', ' ')}
+                            </span>
+                            <ArrowRight className="w-4 h-4 text-[--exec-text-muted] group-hover:text-[--exec-accent] transition-colors shrink-0" />
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
                 {contentForDay.map((item, idx) => {
                   const statusConfig = getStatusConfig(item.status);
                   return (
@@ -642,9 +707,16 @@ export default function SocialCalendar() {
                                         <p className={cn("font-medium text-sm", rfStatusConfig.text)}>
                                           {getFormatLabel(rf.format)}
                                         </p>
-                                        <p className="text-xs text-[--exec-text-muted] capitalize">
-                                          {rf.status.replace('_', ' ')}
-                                        </p>
+                                        <div className="flex items-center gap-2">
+                                          <p className="text-xs text-[--exec-text-muted] capitalize">
+                                            {rf.status.replace('_', ' ')}
+                                          </p>
+                                          {rf.scheduled_date && rf.scheduled_date !== item.content_date && (
+                                            <span className="text-xs text-[--exec-accent] font-medium">
+                                              → {new Date(rf.scheduled_date + 'T00:00:00').toLocaleDateString('default', { month: 'short', day: 'numeric' })}
+                                            </span>
+                                          )}
+                                        </div>
                                       </div>
                                       {rf.status === 'posted' && (
                                         <Check className="w-5 h-5 text-emerald-500" />

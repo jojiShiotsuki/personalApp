@@ -9,6 +9,7 @@ class RepurposeFormatStatus(BaseModel):
     format: RepurposeFormat
     status: ContentStatus = ContentStatus.NOT_STARTED
     posted_date: Optional[date] = None
+    scheduled_date: Optional[date] = None
     content: Optional[str] = None
 
 
