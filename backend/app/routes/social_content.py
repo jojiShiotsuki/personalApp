@@ -159,7 +159,8 @@ def update_content(
             update_data['repurpose_formats'] = [
                 {'format': rf['format'].value if hasattr(rf['format'], 'value') else rf['format'],
                  'status': rf['status'].value if hasattr(rf['status'], 'value') else rf['status'],
-                 'posted_date': rf.get('posted_date')}
+                 'posted_date': rf['posted_date'].isoformat() if isinstance(rf.get('posted_date'), date) else rf.get('posted_date'),
+                 'content': rf.get('content')}
                 for rf in update_data['repurpose_formats']
             ]
         else:
