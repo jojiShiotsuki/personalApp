@@ -307,9 +307,9 @@ export default function CopyEmailModal({
       setCopiedField('all');
       toast.success('Full email copied!');
 
-      // Save custom values before advancing
+      // Save custom values before advancing (await to avoid race condition)
       if (editSubject !== email.subject || editBody !== email.body) {
-        saveCustomEmailMutation.mutate({
+        await coldOutreachApi.updateProspect(prospect.id, {
           custom_email_subject: editSubject,
           custom_email_body: editBody,
         });
