@@ -506,7 +506,7 @@ def mark_email_sent(prospect_id: int, db: Session = Depends(get_db)):
     else:
         # Schedule next step
         next_step = current_step + 1
-        delay = get_step_delay(campaign, next_step)
+        delay = max(get_step_delay(campaign, next_step), MIN_STEP_DELAY_DAYS)
         prospect.current_step = next_step
         prospect.next_action_date = date.today() + timedelta(days=delay)
         message = f"Email {current_step} sent. Next follow-up scheduled for {prospect.next_action_date}."
@@ -669,7 +669,7 @@ def mark_message_sent(prospect_id: int, db: Session = Depends(get_db)):
         message = f"Sequence complete. Prospect marked as not interested after {current_step} messages."
     else:
         next_step = current_step + 1
-        delay = get_step_delay(campaign, next_step)
+        delay = max(get_step_delay(campaign, next_step), MIN_STEP_DELAY_DAYS)
         prospect.current_step = next_step
         prospect.next_action_date = date.today() + timedelta(days=delay)
         message = f"Message {current_step} sent. Next follow-up scheduled for {prospect.next_action_date}."
