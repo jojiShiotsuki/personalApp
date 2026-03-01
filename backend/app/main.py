@@ -19,7 +19,7 @@ from app.routes import auth, tasks, crm, task_parser, export, goals, goal_parser
 app = FastAPI(
     title="Personal Productivity App",
     description="Task management and CRM system with AI assistant",
-    version="1.0.3",
+    version="1.0.4",
     redirect_slashes=False,
 )
 
@@ -115,7 +115,7 @@ async def startup_event():
 
 @app.get("/health")
 async def health_check():
-    return {"status": "healthy"}
+    return {"status": "healthy", "version": app.version}
 
 
 # Serve static files (frontend build)
