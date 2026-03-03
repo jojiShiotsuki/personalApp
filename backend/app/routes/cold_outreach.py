@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from typing import List, Optional
 from datetime import datetime, date, timedelta
 
@@ -75,7 +75,10 @@ def get_campaign_stats(campaign: OutreachCampaign, db: Session) -> CampaignStats
     actionable_statuses = [ProspectStatus.QUEUED, ProspectStatus.IN_SEQUENCE, ProspectStatus.CONNECTED, ProspectStatus.PENDING_ENGAGEMENT]
     to_contact_today = db.query(func.count(OutreachProspect.id)).filter(
         OutreachProspect.campaign_id == campaign_id,
-        OutreachProspect.next_action_date <= today,
+        or_(
+            OutreachProspect.next_action_date <= today,
+            OutreachProspect.next_action_date.is_(None),
+        ),
         OutreachProspect.status.in_(actionable_statuses)
     ).scalar() or 0
 
@@ -274,7 +277,10 @@ def get_todays_queue(campaign_id: int, db: Session = Depends(get_db)):
 
     prospects = db.query(OutreachProspect).filter(
         OutreachProspect.campaign_id == campaign_id,
-        OutreachProspect.next_action_date <= today,
+        or_(
+            OutreachProspect.next_action_date <= today,
+            OutreachProspect.next_action_date.is_(None),
+        ),
         OutreachProspect.status.in_([
             ProspectStatus.QUEUED, ProspectStatus.IN_SEQUENCE, ProspectStatus.CONNECTED, ProspectStatus.PENDING_ENGAGEMENT
         ])
@@ -322,7 +328,7 @@ def create_prospect(campaign_id: int, data: ProspectCreate, db: Session = Depend
         custom_fields=data.custom_fields,
         status=ProspectStatus.QUEUED,
         current_step=1,
-        next_action_date=date.today(),
+        next_action_date=None,
     )
     db.add(prospect)
     db.commit()
@@ -442,7 +448,7 @@ def import_prospects(campaign_id: int, data: CsvImportRequest, db: Session = Dep
                 linkedin_url=linkedin_url or None,
                 status=ProspectStatus.QUEUED,
                 current_step=1,
-                next_action_date=date.today(),
+                next_action_date=None,
             )
             db.add(prospect)
             imported_count += 1
@@ -714,7 +720,7 @@ def unskip_prospect(prospect_id: int, db: Session = Depends(get_db)):
 
     prospect.status = ProspectStatus.QUEUED
     prospect.current_step = 1
-    prospect.next_action_date = date.today()
+    prospect.next_action_date = None
     db.commit()
     db.refresh(prospect)
     return {"message": f"Restored {prospect.agency_name} to queue", "prospect": prospect}
