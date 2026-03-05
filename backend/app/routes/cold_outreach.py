@@ -41,9 +41,10 @@ MIN_STEP_DELAY_DAYS = 3
 
 
 def calc_next_action_date(current_date, delay_days: int):
-    """Calculate next action date relative to the current follow-up date (not today).
-    Falls back to today if no current date is set."""
-    base = current_date or date.today()
+    """Calculate next action date from today or the current follow-up date, whichever is later.
+    This ensures the next date is always in the future even if the prospect was overdue."""
+    today = date.today()
+    base = max(current_date, today) if current_date else today
     return base + timedelta(days=max(delay_days, MIN_STEP_DELAY_DAYS))
 
 
