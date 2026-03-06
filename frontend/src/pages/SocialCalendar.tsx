@@ -6,7 +6,7 @@ import MonthView from '@/components/calendar/MonthView';
 import ContentForm from '@/components/calendar/ContentForm';
 import ImportContentModal from '@/components/calendar/ImportContentModal';
 import { getMonthName, formatDateForApi } from '@/lib/dateUtils';
-import { Plus, ChevronLeft, ChevronRight, Instagram, Youtube, Facebook, Twitter, Linkedin, Video, Calendar, Sparkles, Film, LayoutGrid, FileText, Check, Upload, ArrowRight } from 'lucide-react';
+import { Plus, ChevronLeft, ChevronRight, Instagram, Youtube, Facebook, Twitter, Linkedin, Video, Calendar, Sparkles, Film, LayoutGrid, FileText, Check, Upload, ArrowRight, AtSign } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
@@ -53,35 +53,61 @@ const getPlatformIcon = (platform: string) => {
 
 const getFormatIcon = (format: string) => {
   switch (format) {
-    case 'reel':
-      return Film;
-    case 'carousel':
-      return LayoutGrid;
-    case 'long_caption':
-      return FileText;
-    case 'facebook_post':
-      return Facebook;
-    case 'linkedin_post':
-      return Linkedin;
-    default:
-      return Film;
+    // Short-form Video
+    case 'instagram_reel': return Instagram;
+    case 'tiktok_reel': return Video;
+    case 'youtube_short': return Youtube;
+    case 'facebook_reel': return Facebook;
+    case 'linkedin_reel': return Linkedin;
+    // Carousel
+    case 'instagram_carousel': return Instagram;
+    case 'linkedin_carousel': return Linkedin;
+    case 'facebook_carousel': return Facebook;
+    case 'tiktok_carousel': return Video;
+    // Long Caption
+    case 'instagram_long_caption': return Instagram;
+    case 'tiktok_long_caption': return Video;
+    case 'facebook_long_caption': return Facebook;
+    // Text Post
+    case 'facebook_post': return Facebook;
+    case 'linkedin_post': return Linkedin;
+    case 'threads_post': return AtSign;
+    case 'twitter_post': return Twitter;
+    // Legacy
+    case 'reel': return Film;
+    case 'carousel': return LayoutGrid;
+    case 'long_caption': return FileText;
+    default: return Film;
   }
 };
 
 const getFormatLabel = (format: string) => {
   switch (format) {
-    case 'reel':
-      return 'Reel';
-    case 'carousel':
-      return 'Carousel';
-    case 'long_caption':
-      return 'Long Caption';
-    case 'facebook_post':
-      return 'Facebook Post';
-    case 'linkedin_post':
-      return 'LinkedIn Post';
-    default:
-      return format;
+    // Short-form Video
+    case 'instagram_reel': return 'Instagram Reel';
+    case 'tiktok_reel': return 'TikTok Reel';
+    case 'youtube_short': return 'YouTube Short';
+    case 'facebook_reel': return 'Facebook Reel';
+    case 'linkedin_reel': return 'LinkedIn Reel';
+    // Carousel
+    case 'instagram_carousel': return 'Instagram Carousel';
+    case 'linkedin_carousel': return 'LinkedIn Carousel';
+    case 'facebook_carousel': return 'Facebook Carousel';
+    case 'tiktok_carousel': return 'TikTok Carousel';
+    // Long Caption
+    case 'instagram_long_caption': return 'Instagram Long Caption';
+    case 'tiktok_long_caption': return 'TikTok Long Caption';
+    case 'facebook_long_caption': return 'Facebook Long Caption';
+    // Text Post
+    case 'facebook_post': return 'Facebook Post';
+    case 'linkedin_post': return 'LinkedIn Post';
+    case 'threads_post': return 'Threads Post';
+    case 'twitter_post': return 'Twitter/X Post';
+    // Legacy
+    case 'reel': return 'Reel';
+    case 'carousel': return 'Carousel';
+    case 'long_caption': return 'Long Caption';
+    default: return format;
   }
 };
 

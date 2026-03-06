@@ -1,6 +1,6 @@
 import { formatDateForApi, isToday, isPast } from '@/lib/dateUtils';
 import { SocialContent, RepurposeFormatStatus } from '@/types';
-import { Plus, Film, LayoutGrid, FileText, Facebook, Linkedin } from 'lucide-react';
+import { Plus, Film, LayoutGrid, FileText, Facebook, Linkedin, Instagram, Video, Youtube, Twitter, AtSign } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface MonthViewProps {
@@ -31,28 +31,60 @@ const getStatusConfig = (status: string) => {
 
 const getFormatIcon = (format: string) => {
   switch (format) {
-    case 'reel':
-      return Film;
-    case 'carousel':
-      return LayoutGrid;
-    case 'long_caption':
-      return FileText;
-    case 'facebook_post':
-      return Facebook;
-    case 'linkedin_post':
-      return Linkedin;
-    default:
-      return Film;
+    // Short-form Video
+    case 'instagram_reel': return Instagram;
+    case 'tiktok_reel': return Video;
+    case 'youtube_short': return Youtube;
+    case 'facebook_reel': return Facebook;
+    case 'linkedin_reel': return Linkedin;
+    // Carousel
+    case 'instagram_carousel': return Instagram;
+    case 'linkedin_carousel': return Linkedin;
+    case 'facebook_carousel': return Facebook;
+    case 'tiktok_carousel': return Video;
+    // Long Caption
+    case 'instagram_long_caption': return Instagram;
+    case 'tiktok_long_caption': return Video;
+    case 'facebook_long_caption': return Facebook;
+    // Text Post
+    case 'facebook_post': return Facebook;
+    case 'linkedin_post': return Linkedin;
+    case 'threads_post': return AtSign;
+    case 'twitter_post': return Twitter;
+    // Legacy
+    case 'reel': return Film;
+    case 'carousel': return LayoutGrid;
+    case 'long_caption': return FileText;
+    default: return Film;
   }
 };
 
 const getFormatLabel = (format: string) => {
   switch (format) {
+    // Short-form Video
+    case 'instagram_reel': return 'IG Reel';
+    case 'tiktok_reel': return 'TikTok';
+    case 'youtube_short': return 'YT Short';
+    case 'facebook_reel': return 'FB Reel';
+    case 'linkedin_reel': return 'LI Reel';
+    // Carousel
+    case 'instagram_carousel': return 'IG Carousel';
+    case 'linkedin_carousel': return 'LI Carousel';
+    case 'facebook_carousel': return 'FB Carousel';
+    case 'tiktok_carousel': return 'TT Carousel';
+    // Long Caption
+    case 'instagram_long_caption': return 'IG Caption';
+    case 'tiktok_long_caption': return 'TT Caption';
+    case 'facebook_long_caption': return 'FB Caption';
+    // Text Post
+    case 'facebook_post': return 'FB Post';
+    case 'linkedin_post': return 'LI Post';
+    case 'threads_post': return 'Threads';
+    case 'twitter_post': return 'X Post';
+    // Legacy
     case 'reel': return 'Reel';
     case 'carousel': return 'Carousel';
     case 'long_caption': return 'Caption';
-    case 'facebook_post': return 'FB';
-    case 'linkedin_post': return 'LI';
     default: return format;
   }
 };

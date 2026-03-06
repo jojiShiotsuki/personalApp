@@ -511,7 +511,15 @@ export type ReelType =
   | 'direct_cta'
   | 'full_redesign';
 
-export type RepurposeFormat = 'reel' | 'carousel' | 'long_caption' | 'facebook_post' | 'linkedin_post';
+export type RepurposeFormat =
+  // Short-form Video
+  | 'instagram_reel' | 'tiktok_reel' | 'youtube_short' | 'facebook_reel' | 'linkedin_reel'
+  // Carousel
+  | 'instagram_carousel' | 'linkedin_carousel' | 'facebook_carousel' | 'tiktok_carousel'
+  // Long Caption
+  | 'instagram_long_caption' | 'tiktok_long_caption' | 'facebook_long_caption'
+  // Text Post
+  | 'facebook_post' | 'linkedin_post' | 'threads_post' | 'twitter_post';
 
 export interface RepurposeFormatStatus {
   format: RepurposeFormat;

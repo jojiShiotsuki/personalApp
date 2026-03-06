@@ -26,11 +26,26 @@ class ContentStatus(str, enum.Enum):
 
 
 class RepurposeFormat(str, enum.Enum):
-    REEL = "reel"
-    CAROUSEL = "carousel"
-    LONG_CAPTION = "long_caption"
+    # Short-form Video
+    INSTAGRAM_REEL = "instagram_reel"
+    TIKTOK_REEL = "tiktok_reel"
+    YOUTUBE_SHORT = "youtube_short"
+    FACEBOOK_REEL = "facebook_reel"
+    LINKEDIN_REEL = "linkedin_reel"
+    # Carousel
+    INSTAGRAM_CAROUSEL = "instagram_carousel"
+    LINKEDIN_CAROUSEL = "linkedin_carousel"
+    FACEBOOK_CAROUSEL = "facebook_carousel"
+    TIKTOK_CAROUSEL = "tiktok_carousel"
+    # Long Caption (photo/video + music + long caption)
+    INSTAGRAM_LONG_CAPTION = "instagram_long_caption"
+    TIKTOK_LONG_CAPTION = "tiktok_long_caption"
+    FACEBOOK_LONG_CAPTION = "facebook_long_caption"
+    # Text Post
     FACEBOOK_POST = "facebook_post"
     LINKEDIN_POST = "linkedin_post"
+    THREADS_POST = "threads_post"
+    TWITTER_POST = "twitter_post"
 
 
 class EditingStyle(str, enum.Enum):

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Trash2, Instagram, Youtube, Facebook, Twitter, Linkedin, Video, Film, LayoutGrid, FileText, Check } from 'lucide-react';
+import { X, Trash2, Instagram, Youtube, Facebook, Twitter, Linkedin, Video, Film, LayoutGrid, FileText, Check, AtSign } from 'lucide-react';
 import RichTextEditor from '../RichTextEditor';
 import ConfirmModal from '../ConfirmModal';
 import type { SocialContent, SocialContentCreate, SocialContentUpdate, ContentType, ContentStatus, EditingStyle, ReelType, RepurposeFormatStatus, RepurposeFormat } from '@/types';
@@ -25,12 +25,53 @@ const PLATFORMS = [
   { id: 'twitter', label: 'Twitter', icon: Twitter },
 ];
 
-const REPURPOSE_FORMATS: { id: RepurposeFormat; label: string; icon: typeof Film; description: string }[] = [
-  { id: 'reel', label: 'Reel', icon: Film, description: 'Short-form vertical video' },
-  { id: 'carousel', label: 'Carousel', icon: LayoutGrid, description: 'Multi-slide post' },
-  { id: 'long_caption', label: 'Long Caption', icon: FileText, description: 'Post with detailed caption' },
-  { id: 'facebook_post', label: 'Facebook Post', icon: Facebook, description: 'Facebook feed post' },
-  { id: 'linkedin_post', label: 'LinkedIn Post', icon: Linkedin, description: 'LinkedIn feed post' },
+type RepurposeGroup = {
+  label: string;
+  dayOffset: number;
+  formats: { id: RepurposeFormat; label: string; icon: typeof Film }[];
+};
+
+const REPURPOSE_GROUPS: RepurposeGroup[] = [
+  {
+    label: 'Short-form Video',
+    dayOffset: 0,
+    formats: [
+      { id: 'instagram_reel', label: 'Instagram Reel', icon: Instagram },
+      { id: 'tiktok_reel', label: 'TikTok Reel', icon: Video },
+      { id: 'youtube_short', label: 'YouTube Short', icon: Youtube },
+      { id: 'facebook_reel', label: 'Facebook Reel', icon: Facebook },
+      { id: 'linkedin_reel', label: 'LinkedIn Reel', icon: Linkedin },
+    ],
+  },
+  {
+    label: 'Carousel',
+    dayOffset: 3,
+    formats: [
+      { id: 'instagram_carousel', label: 'Instagram Carousel', icon: Instagram },
+      { id: 'linkedin_carousel', label: 'LinkedIn Carousel', icon: Linkedin },
+      { id: 'facebook_carousel', label: 'Facebook Carousel', icon: Facebook },
+      { id: 'tiktok_carousel', label: 'TikTok Carousel', icon: Video },
+    ],
+  },
+  {
+    label: 'Long Caption',
+    dayOffset: 6,
+    formats: [
+      { id: 'instagram_long_caption', label: 'Instagram Long Caption', icon: Instagram },
+      { id: 'tiktok_long_caption', label: 'TikTok Long Caption', icon: Video },
+      { id: 'facebook_long_caption', label: 'Facebook Long Caption', icon: Facebook },
+    ],
+  },
+  {
+    label: 'Text Post',
+    dayOffset: 9,
+    formats: [
+      { id: 'facebook_post', label: 'Facebook Post', icon: Facebook },
+      { id: 'linkedin_post', label: 'LinkedIn Post', icon: Linkedin },
+      { id: 'threads_post', label: 'Threads Post', icon: AtSign },
+      { id: 'twitter_post', label: 'Twitter/X Post', icon: Twitter },
+    ],
+  },
 ];
 
 const REEL_TYPES: { value: ReelType; label: string }[] = [
@@ -118,18 +159,25 @@ export default function ContentForm({
     }
   };
 
+  const getScheduledDate = (formatId: RepurposeFormat): string | undefined => {
+    if (!formData.content_date) return undefined;
+    const group = REPURPOSE_GROUPS.find((g) => g.formats.some((f) => f.id === formatId));
+    if (!group || group.dayOffset === 0) return formData.content_date;
+    const base = new Date(formData.content_date + 'T00:00:00');
+    base.setDate(base.getDate() + group.dayOffset);
+    return base.toISOString().split('T')[0];
+  };
+
   const handleRepurposeToggle = (formatId: RepurposeFormat) => {
     setRepurposeFormats((prev) => {
       const existing = prev.find((f) => f.format === formatId);
       if (existing) {
-        // Remove if already tracked
         return prev.filter((f) => f.format !== formatId);
       } else {
-        // Add with not_started status, default scheduled_date to parent content_date
         return [...prev, {
           format: formatId,
           status: 'not_started' as ContentStatus,
-          scheduled_date: formData.content_date || undefined,
+          scheduled_date: getScheduledDate(formatId),
         }];
       }
     });
@@ -326,121 +374,132 @@ export default function ContentForm({
               <p className="text-xs text-stone-400 mb-3">
                 Track status for each format you plan to repurpose this content into
               </p>
-              <div className="space-y-2">
-                {REPURPOSE_FORMATS.map((format) => {
-                  const Icon = format.icon;
-                  const currentStatus = getRepurposeStatus(format.id);
-                  const isTracked = currentStatus !== null;
-
-                  return (
-                    <div
-                      key={format.id}
-                      className={cn(
-                        "rounded-xl border transition-all duration-200",
-                        isTracked
-                          ? "bg-stone-800 border-stone-600"
-                          : "bg-stone-800/50 border-stone-700 hover:border-stone-600"
-                      )}
-                    >
-                      <div className="flex items-center gap-3 p-3">
-                        {/* Toggle checkbox */}
-                        <button
-                          type="button"
-                          onClick={() => handleRepurposeToggle(format.id)}
-                          disabled={isLoading}
-                          className={cn(
-                            "w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all duration-200 shrink-0",
-                            isTracked
-                              ? "bg-orange-500 border-orange-500"
-                              : "border-stone-500 hover:border-stone-400"
-                          )}
-                        >
-                          {isTracked && <Check className="w-3 h-3 text-white" />}
-                        </button>
-
-                        {/* Format info */}
-                        <div className="flex items-center gap-2 flex-1 min-w-0">
-                          <Icon className={cn("w-4 h-4", isTracked ? "text-orange-500" : "text-stone-400")} />
-                          <div className="flex-1 min-w-0">
-                            <span className={cn(
-                              "text-sm font-medium",
-                              isTracked ? "text-white" : "text-stone-400"
-                            )}>
-                              {format.label}
-                            </span>
-                            <span className="text-xs text-stone-500 ml-2 hidden sm:inline">
-                              {format.description}
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Status dropdown (only when tracked) */}
-                        {isTracked && (
-                          <div className="flex items-center gap-2">
-                            <div className={cn("w-2 h-2 rounded-full", getStatusColor(currentStatus))} />
-                            <select
-                              value={currentStatus}
-                              onChange={(e) => handleRepurposeStatusChange(format.id, e.target.value as ContentStatus)}
-                              disabled={isLoading}
-                              className={cn(
-                                "px-2 py-1 rounded-lg text-xs font-medium",
-                                "bg-stone-700 text-white border border-stone-600",
-                                "focus:outline-none focus:ring-1 focus:ring-orange-500",
-                                "cursor-pointer"
-                              )}
-                            >
-                              <option value="not_started">Not Started</option>
-                              <option value="scripted">Scripted</option>
-                              <option value="filmed">Filmed</option>
-                              <option value="editing">Editing</option>
-                              <option value="scheduled">Scheduled</option>
-                              <option value="posted">Posted</option>
-                            </select>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Scheduled date (only when tracked) */}
-                      {isTracked && (
-                        <div className="flex items-center gap-2 px-3 pb-2">
-                          <label className="text-xs text-stone-400 shrink-0">Scheduled:</label>
-                          <input
-                            type="date"
-                            value={getRepurposeScheduledDate(format.id)}
-                            onChange={(e) => handleRepurposeScheduledDateChange(format.id, e.target.value)}
-                            disabled={isLoading}
-                            className={cn(
-                              "px-2 py-1 rounded-lg text-xs",
-                              "bg-stone-700/50 text-white border border-stone-600/50",
-                              "focus:outline-none focus:ring-1 focus:ring-orange-500/30 focus:border-orange-500/50",
-                              "transition-all duration-200"
-                            )}
-                          />
-                        </div>
-                      )}
-
-                      {/* Content field (only when tracked) */}
-                      {isTracked && (
-                        <div className="px-3 pb-3">
-                          <textarea
-                            value={getRepurposeContent(format.id)}
-                            onChange={(e) => handleRepurposeContentChange(format.id, e.target.value)}
-                            placeholder={`Write your ${format.label.toLowerCase()} content here...`}
-                            rows={3}
-                            disabled={isLoading}
-                            className={cn(
-                              "w-full px-3 py-2 rounded-lg text-sm",
-                              "bg-stone-700/50 text-white border border-stone-600/50",
-                              "placeholder:text-stone-500",
-                              "focus:outline-none focus:ring-1 focus:ring-orange-500/30 focus:border-orange-500/50",
-                              "transition-all duration-200 resize-none"
-                            )}
-                          />
-                        </div>
+              <div className="space-y-4">
+                {REPURPOSE_GROUPS.map((group) => (
+                  <div key={group.label}>
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="text-xs font-semibold text-stone-500 uppercase tracking-wider">
+                        {group.label}
+                      </h4>
+                      {formData.content_date && (
+                        <span className="text-xs text-stone-500">
+                          {group.dayOffset === 0 ? 'Same day' : `+${group.dayOffset} days`}
+                        </span>
                       )}
                     </div>
-                  );
-                })}
+                    <div className="space-y-1.5">
+                      {group.formats.map((format) => {
+                        const Icon = format.icon;
+                        const currentStatus = getRepurposeStatus(format.id);
+                        const isTracked = currentStatus !== null;
+
+                        return (
+                          <div
+                            key={format.id}
+                            className={cn(
+                              "rounded-xl border transition-all duration-200",
+                              isTracked
+                                ? "bg-stone-800 border-stone-600"
+                                : "bg-stone-800/50 border-stone-700 hover:border-stone-600"
+                            )}
+                          >
+                            <div className="flex items-center gap-3 p-3">
+                              {/* Toggle checkbox */}
+                              <button
+                                type="button"
+                                onClick={() => handleRepurposeToggle(format.id)}
+                                disabled={isLoading}
+                                className={cn(
+                                  "w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all duration-200 shrink-0",
+                                  isTracked
+                                    ? "bg-orange-500 border-orange-500"
+                                    : "border-stone-500 hover:border-stone-400"
+                                )}
+                              >
+                                {isTracked && <Check className="w-3 h-3 text-white" />}
+                              </button>
+
+                              {/* Format info */}
+                              <div className="flex items-center gap-2 flex-1 min-w-0">
+                                <Icon className={cn("w-4 h-4", isTracked ? "text-orange-500" : "text-stone-400")} />
+                                <span className={cn(
+                                  "text-sm font-medium",
+                                  isTracked ? "text-white" : "text-stone-400"
+                                )}>
+                                  {format.label}
+                                </span>
+                              </div>
+
+                              {/* Status dropdown (only when tracked) */}
+                              {isTracked && (
+                                <div className="flex items-center gap-2">
+                                  <div className={cn("w-2 h-2 rounded-full", getStatusColor(currentStatus))} />
+                                  <select
+                                    value={currentStatus}
+                                    onChange={(e) => handleRepurposeStatusChange(format.id, e.target.value as ContentStatus)}
+                                    disabled={isLoading}
+                                    className={cn(
+                                      "px-2 py-1 rounded-lg text-xs font-medium",
+                                      "bg-stone-700 text-white border border-stone-600",
+                                      "focus:outline-none focus:ring-1 focus:ring-orange-500",
+                                      "cursor-pointer"
+                                    )}
+                                  >
+                                    <option value="not_started">Not Started</option>
+                                    <option value="scripted">Scripted</option>
+                                    <option value="filmed">Filmed</option>
+                                    <option value="editing">Editing</option>
+                                    <option value="scheduled">Scheduled</option>
+                                    <option value="posted">Posted</option>
+                                  </select>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Scheduled date (only when tracked) */}
+                            {isTracked && (
+                              <div className="flex items-center gap-2 px-3 pb-2">
+                                <label className="text-xs text-stone-400 shrink-0">Scheduled:</label>
+                                <input
+                                  type="date"
+                                  value={getRepurposeScheduledDate(format.id)}
+                                  onChange={(e) => handleRepurposeScheduledDateChange(format.id, e.target.value)}
+                                  disabled={isLoading}
+                                  className={cn(
+                                    "px-2 py-1 rounded-lg text-xs",
+                                    "bg-stone-700/50 text-white border border-stone-600/50",
+                                    "focus:outline-none focus:ring-1 focus:ring-orange-500/30 focus:border-orange-500/50",
+                                    "transition-all duration-200"
+                                  )}
+                                />
+                              </div>
+                            )}
+
+                            {/* Content field (only when tracked) */}
+                            {isTracked && (
+                              <div className="px-3 pb-3">
+                                <textarea
+                                  value={getRepurposeContent(format.id)}
+                                  onChange={(e) => handleRepurposeContentChange(format.id, e.target.value)}
+                                  placeholder={`Write your ${format.label.toLowerCase()} content here...`}
+                                  rows={3}
+                                  disabled={isLoading}
+                                  className={cn(
+                                    "w-full px-3 py-2 rounded-lg text-sm",
+                                    "bg-stone-700/50 text-white border border-stone-600/50",
+                                    "placeholder:text-stone-500",
+                                    "focus:outline-none focus:ring-1 focus:ring-orange-500/30 focus:border-orange-500/50",
+                                    "transition-all duration-200 resize-none"
+                                  )}
+                                />
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
 
