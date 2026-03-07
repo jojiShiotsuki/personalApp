@@ -1,6 +1,6 @@
 import { formatDateForApi, isToday, isPast } from '@/lib/dateUtils';
 import { SocialContent, RepurposeFormatStatus } from '@/types';
-import { Plus, Film, LayoutGrid, FileText, Facebook, Linkedin, Instagram, Video, Youtube, Twitter, AtSign } from 'lucide-react';
+import { Plus, Repeat2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface MonthViewProps {
@@ -13,112 +13,41 @@ interface MonthViewProps {
 const getStatusConfig = (status: string) => {
   switch (status) {
     case 'posted':
-      return { bg: 'bg-emerald-100 dark:bg-emerald-900/40', text: 'text-emerald-700 dark:text-emerald-300', dot: 'bg-emerald-500' };
+      return { bg: 'bg-emerald-500/15', text: 'text-emerald-400', dot: 'bg-emerald-500', border: 'border-emerald-500/30' };
     case 'scheduled':
-      return { bg: 'bg-sky-100 dark:bg-sky-900/40', text: 'text-sky-700 dark:text-sky-300', dot: 'bg-sky-500' };
+      return { bg: 'bg-sky-500/15', text: 'text-sky-400', dot: 'bg-sky-500', border: 'border-sky-500/30' };
     case 'editing':
-      return { bg: 'bg-amber-100 dark:bg-amber-900/40', text: 'text-amber-700 dark:text-amber-300', dot: 'bg-amber-500' };
+      return { bg: 'bg-amber-500/15', text: 'text-amber-400', dot: 'bg-amber-500', border: 'border-amber-500/30' };
     case 'filmed':
-      return { bg: 'bg-purple-100 dark:bg-purple-900/40', text: 'text-purple-700 dark:text-purple-300', dot: 'bg-purple-500' };
+      return { bg: 'bg-purple-500/15', text: 'text-purple-400', dot: 'bg-purple-500', border: 'border-purple-500/30' };
     case 'scripted':
-      return { bg: 'bg-rose-100 dark:bg-rose-900/40', text: 'text-rose-700 dark:text-rose-300', dot: 'bg-rose-500' };
+      return { bg: 'bg-rose-500/15', text: 'text-rose-400', dot: 'bg-rose-500', border: 'border-rose-500/30' };
     case 'not_started':
-      return { bg: 'bg-gray-100 dark:bg-gray-700/50', text: 'text-gray-600 dark:text-gray-300', dot: 'bg-gray-400' };
+      return { bg: 'bg-stone-500/10', text: 'text-stone-400', dot: 'bg-stone-500', border: 'border-stone-500/20' };
     default:
-      return { bg: 'bg-gray-100 dark:bg-gray-700/50', text: 'text-gray-600 dark:text-gray-300', dot: 'bg-gray-400' };
-  }
-};
-
-const getFormatIcon = (format: string) => {
-  switch (format) {
-    // Short-form Video
-    case 'instagram_reel': return Instagram;
-    case 'tiktok_reel': return Video;
-    case 'youtube_short': return Youtube;
-    case 'facebook_reel': return Facebook;
-    case 'linkedin_reel': return Linkedin;
-    // Carousel
-    case 'instagram_carousel': return Instagram;
-    case 'linkedin_carousel': return Linkedin;
-    case 'facebook_carousel': return Facebook;
-    case 'tiktok_carousel': return Video;
-    // Long Caption
-    case 'instagram_long_caption': return Instagram;
-    case 'tiktok_long_caption': return Video;
-    case 'facebook_long_caption': return Facebook;
-    // Text Post
-    case 'facebook_post': return Facebook;
-    case 'linkedin_post': return Linkedin;
-    case 'threads_post': return AtSign;
-    case 'twitter_post': return Twitter;
-    // Legacy
-    case 'reel': return Film;
-    case 'carousel': return LayoutGrid;
-    case 'long_caption': return FileText;
-    default: return Film;
-  }
-};
-
-const getFormatLabel = (format: string) => {
-  switch (format) {
-    // Short-form Video
-    case 'instagram_reel': return 'IG Reel';
-    case 'tiktok_reel': return 'TikTok';
-    case 'youtube_short': return 'YT Short';
-    case 'facebook_reel': return 'FB Reel';
-    case 'linkedin_reel': return 'LI Reel';
-    // Carousel
-    case 'instagram_carousel': return 'IG Carousel';
-    case 'linkedin_carousel': return 'LI Carousel';
-    case 'facebook_carousel': return 'FB Carousel';
-    case 'tiktok_carousel': return 'TT Carousel';
-    // Long Caption
-    case 'instagram_long_caption': return 'IG Caption';
-    case 'tiktok_long_caption': return 'TT Caption';
-    case 'facebook_long_caption': return 'FB Caption';
-    // Text Post
-    case 'facebook_post': return 'FB Post';
-    case 'linkedin_post': return 'LI Post';
-    case 'threads_post': return 'Threads';
-    case 'twitter_post': return 'X Post';
-    // Legacy
-    case 'reel': return 'Reel';
-    case 'carousel': return 'Carousel';
-    case 'long_caption': return 'Caption';
-    default: return format;
+      return { bg: 'bg-stone-500/10', text: 'text-stone-400', dot: 'bg-stone-500', border: 'border-stone-500/20' };
   }
 };
 
 const getFormatStatusDot = (status: string) => {
   switch (status) {
-    case 'posted':
-      return 'bg-emerald-500';
-    case 'scheduled':
-      return 'bg-sky-500';
-    case 'editing':
-      return 'bg-amber-500';
-    case 'filmed':
-      return 'bg-purple-500';
-    case 'scripted':
-      return 'bg-rose-500';
-    default:
-      return 'bg-gray-400';
+    case 'posted': return 'bg-emerald-500';
+    case 'scheduled': return 'bg-sky-500';
+    case 'editing': return 'bg-amber-500';
+    case 'filmed': return 'bg-purple-500';
+    case 'scripted': return 'bg-rose-500';
+    default: return 'bg-stone-500';
   }
 };
 
 const getReelTypeLabel = (reelType: string | null | undefined): string | null => {
   if (!reelType) return null;
   switch (reelType) {
-    case 'educational':
-      return 'Edu';
-    case 'before_after':
-      return 'B/A';
-    case 'bts':
-      return 'BTS';
-    case 'social_proof':
-      return 'Proof';
-    default:
-      return null;
+    case 'educational': return 'Edu';
+    case 'before_after': return 'B/A';
+    case 'bts': return 'BTS';
+    case 'social_proof': return 'Proof';
+    default: return null;
   }
 };
 
@@ -240,88 +169,86 @@ export default function MonthView({
               {/* Content items */}
               {(dayContent.length > 0 || (repurposeByDate[dateStr] && repurposeByDate[dateStr].length > 0)) && (
                 <div className="space-y-1">
-                  {dayContent.slice(0, 2).map((item) => {
+                  {dayContent.slice(0, 3).map((item) => {
                     const config = getStatusConfig(item.status);
-                    const hasRepurpose = item.repurpose_formats && item.repurpose_formats.length > 0;
+                    const repurposeTotal = item.repurpose_formats?.length || 0;
+                    const repurposeDone = item.repurpose_formats?.filter(rf => rf.status === 'posted').length || 0;
                     return (
                       <div
                         key={item.id}
                         className={cn(
-                          "rounded-lg px-2 py-1 text-xs font-medium transition-all duration-200",
-                          "hover:scale-[1.02] hover:shadow-sm",
-                          config.bg, config.text
+                          "rounded-md px-1.5 py-0.5 text-[11px] font-medium leading-tight",
+                          "border-l-2 transition-all duration-200",
+                          config.bg, config.text, config.border
                         )}
                       >
-                        <div className="flex items-center justify-between gap-1">
-                          <div className="flex items-center gap-1 min-w-0">
-                            <span className="truncate">{item.title || <span className="capitalize">{item.content_type.replace('_', ' ')}</span>}</span>
-                            {item.content_type === 'reel' && getReelTypeLabel(item.reel_type) && (
-                              <span className="shrink-0 px-1 py-0.5 text-[10px] font-semibold rounded bg-black/10 dark:bg-white/10">
-                                {getReelTypeLabel(item.reel_type)}
-                              </span>
-                            )}
-                          </div>
-                          {/* Repurpose format indicators */}
-                          {hasRepurpose && (
-                            <div className="flex items-center gap-0.5 shrink-0">
-                              {item.repurpose_formats!.map((rf) => {
-                                const FormatIcon = getFormatIcon(rf.format);
-                                const dotColor = getFormatStatusDot(rf.status);
-                                return (
-                                  <div
-                                    key={rf.format}
-                                    className="relative"
-                                    title={`${rf.format}: ${rf.status}`}
-                                  >
-                                    <FormatIcon className="w-3 h-3 opacity-60" />
-                                    <div className={cn(
-                                      "absolute -bottom-0.5 -right-0.5 w-1.5 h-1.5 rounded-full border border-white/50",
-                                      dotColor
-                                    )} />
-                                  </div>
-                                );
-                              })}
-                            </div>
+                        <div className="flex items-center gap-1 min-w-0">
+                          <span className="truncate">
+                            {item.title || <span className="capitalize">{item.content_type.replace('_', ' ')}</span>}
+                          </span>
+                          {item.content_type === 'reel' && getReelTypeLabel(item.reel_type) && (
+                            <span className="shrink-0 px-1 text-[9px] font-bold rounded bg-white/10">
+                              {getReelTypeLabel(item.reel_type)}
+                            </span>
                           )}
                         </div>
+                        {repurposeTotal > 0 && (
+                          <div className="flex items-center gap-1 mt-0.5">
+                            <div className="flex items-center gap-[2px]">
+                              {item.repurpose_formats!.map((rf) => (
+                                <div
+                                  key={rf.format}
+                                  className={cn(
+                                    "w-1.5 h-1.5 rounded-full",
+                                    getFormatStatusDot(rf.status)
+                                  )}
+                                  title={`${rf.format}: ${rf.status}`}
+                                />
+                              ))}
+                            </div>
+                            <span className="text-[9px] opacity-60">
+                              {repurposeDone}/{repurposeTotal}
+                            </span>
+                          </div>
+                        )}
                       </div>
                     );
                   })}
-                  {dayContent.length > 2 && (
-                    <span className="text-xs font-medium text-[--exec-text-muted] pl-2 group-hover:text-[--exec-accent] transition-colors">
-                      +{dayContent.length - 2} more
+                  {dayContent.length > 3 && (
+                    <span className="text-[10px] font-medium text-[--exec-text-muted] pl-1 group-hover:text-[--exec-accent] transition-colors">
+                      +{dayContent.length - 3} more
                     </span>
                   )}
 
-                  {/* Repurpose indicator cards from other days */}
-                  {repurposeByDate[dateStr]?.map((rp) => {
-                    const FormatIcon = getFormatIcon(rp.format.format);
-                    const dotColor = getFormatStatusDot(rp.format.status);
+                  {/* Repurpose items from other days — collapsed into one summary line */}
+                  {repurposeByDate[dateStr] && repurposeByDate[dateStr].length > 0 && (() => {
+                    const rps = repurposeByDate[dateStr];
+                    const doneCount = rps.filter(rp => rp.format.status === 'posted').length;
                     return (
                       <div
-                        key={`rp-${rp.parentDate}-${rp.format.format}`}
                         className={cn(
-                          "rounded-lg px-2 py-1 text-xs font-medium transition-all duration-200",
-                          "border border-dashed border-[--exec-accent]/40 bg-[--exec-accent]/5",
-                          "text-[--exec-text-secondary]"
+                          "rounded-md px-1.5 py-0.5 text-[11px] font-medium leading-tight",
+                          "border border-dashed border-[--exec-accent]/30 bg-[--exec-accent]/5",
+                          "text-[--exec-accent] flex items-center gap-1"
                         )}
-                        title={`${getFormatLabel(rp.format.format)} from "${rp.parentTitle}" (${rp.parentDate})`}
+                        title={rps.map(rp => `${rp.format.format} from "${rp.parentTitle}"`).join('\n')}
                       >
-                        <div className="flex items-center gap-1 min-w-0">
-                          <div className="relative shrink-0">
-                            <FormatIcon className="w-3 h-3 text-[--exec-accent]" />
-                            <div className={cn(
-                              "absolute -bottom-0.5 -right-0.5 w-1.5 h-1.5 rounded-full border border-white/50",
-                              dotColor
-                            )} />
-                          </div>
-                          <span className="truncate text-[--exec-accent]">
-                            {getFormatLabel(rp.format.format)}
-                          </span>
+                        <Repeat2 className="w-3 h-3 shrink-0" />
+                        <span className="truncate">{rps.length} repurpose{rps.length !== 1 ? 's' : ''}</span>
+                        <div className="flex items-center gap-[2px] shrink-0 ml-auto">
+                          {rps.map((rp) => (
+                            <div
+                              key={`${rp.parentDate}-${rp.format.format}`}
+                              className={cn(
+                                "w-1.5 h-1.5 rounded-full",
+                                getFormatStatusDot(rp.format.status)
+                              )}
+                            />
+                          ))}
                         </div>
                       </div>
                     );
-                  })}
+                  })()}
                 </div>
               )}
 
