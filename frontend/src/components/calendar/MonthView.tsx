@@ -223,7 +223,6 @@ export default function MonthView({
                   {/* Repurpose items from other days — collapsed into one summary line */}
                   {repurposeByDate[dateStr] && repurposeByDate[dateStr].length > 0 && (() => {
                     const rps = repurposeByDate[dateStr];
-                    const doneCount = rps.filter(rp => rp.format.status === 'posted').length;
                     return (
                       <div
                         className={cn(
