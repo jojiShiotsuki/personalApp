@@ -11,7 +11,7 @@ from alembic import op
 import json
 
 revision = 'z2b3c4d5e6f7'
-down_revision = 'z1a2b3c4d5e6'
+down_revision = 'b3c4d5e6f7g8'
 branch_labels = None
 depends_on = None
 
