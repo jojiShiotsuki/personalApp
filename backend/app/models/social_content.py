@@ -46,6 +46,10 @@ class RepurposeFormat(str, enum.Enum):
     LINKEDIN_POST = "linkedin_post"
     THREADS_POST = "threads_post"
     TWITTER_POST = "twitter_post"
+    # Legacy formats (pre-expansion data)
+    REEL = "reel"
+    CAROUSEL = "carousel"
+    LONG_CAPTION = "long_caption"
 
 
 class EditingStyle(str, enum.Enum):
