@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { coldOutreachApi } from '@/lib/api';
@@ -1179,11 +1179,15 @@ export default function MultiTouchCampaignsTab({ initialCampaignId, initialProsp
     enabled: !!selectedCampaignId,
   });
 
-  // Auto-open edit modal when navigating from global search
+  // Auto-open edit modal when navigating from global search (fire once only)
+  const didAutoOpen = useRef(false);
   useEffect(() => {
-    if (initialProspectId && allProspects.length > 0 && !editingProspect) {
+    if (initialProspectId && !didAutoOpen.current) {
       const prospect = allProspects.find((p) => p.id === initialProspectId);
-      if (prospect) setEditingProspect(prospect);
+      if (prospect) {
+        setEditingProspect(prospect);
+        didAutoOpen.current = true;
+      }
     }
   }, [initialProspectId, allProspects]); // eslint-disable-line react-hooks/exhaustive-deps
 

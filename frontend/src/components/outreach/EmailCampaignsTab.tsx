@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { coldOutreachApi } from '@/lib/api';
@@ -1116,16 +1116,16 @@ export default function EmailCampaignsTab({ initialCampaignId, initialProspectId
     enabled: !!selectedCampaignId && (activeTab === 'all' || activeTab === 'replied' || activeTab === 'sent' || activeTab === 'skipped'),
   });
 
-  // Auto-open edit modal when navigating from global search
+  // Auto-open edit modal when navigating from global search (fire once only)
+  const didAutoOpen = useRef(false);
   useEffect(() => {
-    if (initialProspectId && !editingProspect) {
-      // Check todayQueue first, then allProspects
+    if (initialProspectId && !didAutoOpen.current) {
       const prospect = todayQueue.find((p) => p.id === initialProspectId)
         || allProspects.find((p) => p.id === initialProspectId);
       if (prospect) {
         setEditingProspect(prospect);
+        didAutoOpen.current = true;
       } else if (selectedCampaignId && activeTab === 'today') {
-        // Switch to 'all' tab to load all prospects
         setActiveTab('all');
       }
     }
