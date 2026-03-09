@@ -114,13 +114,13 @@ export default function OutreachHub() {
   return (
     <div className="min-h-full bg-[--exec-bg] grain">
       {/* Hero Header */}
-      <header className="relative overflow-hidden">
+      <header className="relative">
         {/* Gradient background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-[--exec-surface] via-[--exec-surface] to-[--exec-accent-bg-subtle]" />
-
-        {/* Decorative elements */}
-        <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-bl from-[--exec-accent]/5 to-transparent rounded-full blur-3xl" />
-        <div className="absolute bottom-0 left-1/3 w-64 h-64 bg-gradient-to-t from-[--exec-sage]/5 to-transparent rounded-full blur-2xl" />
+        <div className="absolute inset-0 bg-gradient-to-br from-[--exec-surface] via-[--exec-surface] to-[--exec-accent-bg-subtle] overflow-hidden">
+          {/* Decorative elements (contained within this overflow-hidden wrapper) */}
+          <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-bl from-[--exec-accent]/5 to-transparent rounded-full blur-3xl" />
+          <div className="absolute bottom-0 left-1/3 w-64 h-64 bg-gradient-to-t from-[--exec-sage]/5 to-transparent rounded-full blur-2xl" />
+        </div>
 
         <div className="relative px-8 pt-8 pb-6">
           {/* Breadcrumb chip */}
