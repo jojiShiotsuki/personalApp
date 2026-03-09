@@ -448,45 +448,56 @@ def upgrade() -> None:
     op.execute("PRAGMA foreign_keys=ON")
 
 
+def _find_fk_name(inspector, table_name: str, column_name: str) -> str | None:
+    """Look up the actual FK constraint name for a given table + column."""
+    for fk in inspector.get_foreign_keys(table_name):
+        if column_name in fk.get('constrained_columns', []):
+            return fk.get('name')
+    return None
+
+
+def _replace_fk(inspector, table_name: str, column_name: str,
+                ref_table: str, ref_column: str, ondelete: str) -> None:
+    """Drop existing FK (if any) and recreate with the desired ondelete."""
+    name = _find_fk_name(inspector, table_name, column_name)
+    if name:
+        op.drop_constraint(name, table_name, type_='foreignkey')
+    new_name = f'{table_name}_{column_name}_fkey'
+    op.create_foreign_key(new_name, table_name, ref_table,
+                          [column_name], [ref_column], ondelete=ondelete)
+
+
 def _upgrade_postgres() -> None:
     """PostgreSQL path: use standard ALTER TABLE to add/change ondelete."""
+    bind = op.get_bind()
+    inspector = sa.inspect(bind)
+
     # discovery_calls
-    op.drop_constraint('discovery_calls_contact_id_fkey', 'discovery_calls', type_='foreignkey')
-    op.drop_constraint('discovery_calls_deal_id_fkey', 'discovery_calls', type_='foreignkey')
-    op.create_foreign_key('discovery_calls_contact_id_fkey', 'discovery_calls', 'crm_contacts', ['contact_id'], ['id'], ondelete='CASCADE')
-    op.create_foreign_key('discovery_calls_deal_id_fkey', 'discovery_calls', 'crm_deals', ['deal_id'], ['id'], ondelete='SET NULL')
+    _replace_fk(inspector, 'discovery_calls', 'contact_id', 'crm_contacts', 'id', 'CASCADE')
+    _replace_fk(inspector, 'discovery_calls', 'deal_id', 'crm_deals', 'id', 'SET NULL')
 
     # loom_audits
-    op.drop_constraint('loom_audits_contact_id_fkey', 'loom_audits', type_='foreignkey')
-    op.create_foreign_key('loom_audits_contact_id_fkey', 'loom_audits', 'crm_contacts', ['contact_id'], ['id'], ondelete='CASCADE')
+    _replace_fk(inspector, 'loom_audits', 'contact_id', 'crm_contacts', 'id', 'CASCADE')
 
     # projects
-    op.drop_constraint('projects_contact_id_fkey', 'projects', type_='foreignkey')
-    op.create_foreign_key('projects_contact_id_fkey', 'projects', 'crm_contacts', ['contact_id'], ['id'], ondelete='SET NULL')
+    _replace_fk(inspector, 'projects', 'contact_id', 'crm_contacts', 'id', 'SET NULL')
 
     # social_content
-    op.drop_constraint('social_content_project_id_fkey', 'social_content', type_='foreignkey')
-    op.create_foreign_key('social_content_project_id_fkey', 'social_content', 'projects', ['project_id'], ['id'], ondelete='SET NULL')
+    _replace_fk(inspector, 'social_content', 'project_id', 'projects', 'id', 'SET NULL')
 
     # tasks
-    op.drop_constraint('tasks_project_id_fkey', 'tasks', type_='foreignkey')
-    op.drop_constraint('tasks_parent_task_id_fkey', 'tasks', type_='foreignkey')
-    op.create_foreign_key('tasks_project_id_fkey', 'tasks', 'projects', ['project_id'], ['id'], ondelete='SET NULL')
-    op.create_foreign_key('tasks_parent_task_id_fkey', 'tasks', 'tasks', ['parent_task_id'], ['id'], ondelete='SET NULL')
+    _replace_fk(inspector, 'tasks', 'project_id', 'projects', 'id', 'SET NULL')
+    _replace_fk(inspector, 'tasks', 'parent_task_id', 'tasks', 'id', 'SET NULL')
 
     # sprint_days
-    op.drop_constraint('sprint_days_sprint_id_fkey', 'sprint_days', type_='foreignkey')
-    op.drop_constraint('sprint_days_outreach_log_id_fkey', 'sprint_days', type_='foreignkey')
-    op.create_foreign_key('sprint_days_sprint_id_fkey', 'sprint_days', 'sprints', ['sprint_id'], ['id'], ondelete='CASCADE')
-    op.create_foreign_key('sprint_days_outreach_log_id_fkey', 'sprint_days', 'daily_outreach_logs', ['outreach_log_id'], ['id'], ondelete='SET NULL')
+    _replace_fk(inspector, 'sprint_days', 'sprint_id', 'sprints', 'id', 'CASCADE')
+    _replace_fk(inspector, 'sprint_days', 'outreach_log_id', 'daily_outreach_logs', 'id', 'SET NULL')
 
     # crm_deals
-    op.drop_constraint('crm_deals_contact_id_fkey', 'crm_deals', type_='foreignkey')
-    op.create_foreign_key('crm_deals_contact_id_fkey', 'crm_deals', 'crm_contacts', ['contact_id'], ['id'], ondelete='CASCADE')
+    _replace_fk(inspector, 'crm_deals', 'contact_id', 'crm_contacts', 'id', 'CASCADE')
 
     # crm_interactions
-    op.drop_constraint('crm_interactions_contact_id_fkey', 'crm_interactions', type_='foreignkey')
-    op.create_foreign_key('crm_interactions_contact_id_fkey', 'crm_interactions', 'crm_contacts', ['contact_id'], ['id'], ondelete='CASCADE')
+    _replace_fk(inspector, 'crm_interactions', 'contact_id', 'crm_contacts', 'id', 'CASCADE')
 
 
 def downgrade() -> None:
