@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { coldOutreachApi } from '@/lib/api';
@@ -928,11 +928,16 @@ function RepliedProspects({ prospects, onEdit }: { prospects: OutreachProspect[]
 }
 
 // Main component
-export default function LinkedInCampaignsTab() {
-  const [selectedCampaignId, setSelectedCampaignId] = useState<number | null>(null);
+export default function LinkedInCampaignsTab({ initialCampaignId }: { initialCampaignId?: number | null }) {
+  const [selectedCampaignId, setSelectedCampaignId] = useState<number | null>(initialCampaignId ?? null);
   const [activeTab, setActiveTab] = useState<TabType>('today');
   const [isNewCampaignOpen, setIsNewCampaignOpen] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
+
+  // Sync from parent when initialCampaignId changes (e.g. global search click)
+  useEffect(() => {
+    if (initialCampaignId != null) setSelectedCampaignId(initialCampaignId);
+  }, [initialCampaignId]);
   const [isTemplatesOpen, setIsTemplatesOpen] = useState(false);
   const [isCampaignDropdownOpen, setIsCampaignDropdownOpen] = useState(false);
   const [editingCampaign, setEditingCampaign] = useState<OutreachCampaign | null>(null);

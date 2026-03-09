@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { coldOutreachApi } from '@/lib/api';
@@ -1073,11 +1073,16 @@ function SkippedProspects({
   );
 }
 
-export default function EmailCampaignsTab() {
+export default function EmailCampaignsTab({ initialCampaignId }: { initialCampaignId?: number | null }) {
   // State
-  const [selectedCampaignId, setSelectedCampaignId] = useState<number | null>(null);
+  const [selectedCampaignId, setSelectedCampaignId] = useState<number | null>(initialCampaignId ?? null);
   const [activeTab, setActiveTab] = useState<TabType>('today');
   const [isNewCampaignOpen, setIsNewCampaignOpen] = useState(false);
+
+  // Sync from parent when initialCampaignId changes (e.g. global search click)
+  useEffect(() => {
+    if (initialCampaignId != null) setSelectedCampaignId(initialCampaignId);
+  }, [initialCampaignId]);
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [isTemplatesOpen, setIsTemplatesOpen] = useState(false);
   const [isCampaignDropdownOpen, setIsCampaignDropdownOpen] = useState(false);

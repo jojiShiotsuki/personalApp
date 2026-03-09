@@ -65,6 +65,7 @@ export default function OutreachHub() {
   const [activeTab, setActiveTab] = useState<TabType>(initialTab);
   const [globalSearch, setGlobalSearch] = useState('');
   const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [jumpToCampaignId, setJumpToCampaignId] = useState<number | null>(null);
   const searchRef = useRef<HTMLDivElement>(null);
 
   // Close search dropdown on outside click
@@ -206,14 +207,16 @@ export default function OutreachHub() {
                           <button
                             key={prospect.id}
                             onClick={() => {
-                              // Navigate to the campaign's tab based on type
+                              // Navigate to the campaign's tab and select the campaign
                               const campaign = campaigns.find((c) => c.id === prospect.campaign_id);
                               if (campaign) {
+                                setJumpToCampaignId(prospect.campaign_id);
                                 const type = campaign.campaign_type;
                                 if (type === 'MULTI_TOUCH') handleTabChange('multi-touch');
                                 else if (type === 'LINKEDIN') handleTabChange('linkedin-campaigns');
                                 else handleTabChange('email-campaigns');
                               }
+                              setGlobalSearch('');
                               setIsSearchFocused(false);
                             }}
                             className="w-full flex items-start gap-3 px-4 py-3 hover:bg-stone-800/80 transition-colors text-left border-b border-stone-800/60 last:border-b-0"
@@ -292,9 +295,9 @@ export default function OutreachHub() {
       {/* Tab Content */}
       <div className="animate-fade-slide-up delay-5">
         {activeTab === 'dm-scripts' && <DMScriptsTab />}
-        {activeTab === 'email-campaigns' && <EmailCampaignsTab />}
-        {activeTab === 'linkedin-campaigns' && <LinkedInCampaignsTab />}
-        {activeTab === 'multi-touch' && <MultiTouchCampaignsTab />}
+        {activeTab === 'email-campaigns' && <EmailCampaignsTab initialCampaignId={jumpToCampaignId} />}
+        {activeTab === 'linkedin-campaigns' && <LinkedInCampaignsTab initialCampaignId={jumpToCampaignId} />}
+        {activeTab === 'multi-touch' && <MultiTouchCampaignsTab initialCampaignId={jumpToCampaignId} />}
         {activeTab === 'lead-discovery' && <LeadDiscoveryTab />}
       </div>
     </div>

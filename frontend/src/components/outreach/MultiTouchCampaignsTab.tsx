@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { coldOutreachApi } from '@/lib/api';
@@ -1143,11 +1143,16 @@ function SequenceStepsPanel({
 }
 
 // Main component
-export default function MultiTouchCampaignsTab() {
-  const [selectedCampaignId, setSelectedCampaignId] = useState<number | null>(null);
+export default function MultiTouchCampaignsTab({ initialCampaignId }: { initialCampaignId?: number | null }) {
+  const [selectedCampaignId, setSelectedCampaignId] = useState<number | null>(initialCampaignId ?? null);
   const [isNewCampaignOpen, setIsNewCampaignOpen] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [isCampaignDropdownOpen, setIsCampaignDropdownOpen] = useState(false);
+
+  // Sync from parent when initialCampaignId changes (e.g. global search click)
+  useEffect(() => {
+    if (initialCampaignId != null) setSelectedCampaignId(initialCampaignId);
+  }, [initialCampaignId]);
   const [editingCampaign, setEditingCampaign] = useState<OutreachCampaign | null>(null);
   const [editingProspect, setEditingProspect] = useState<OutreachProspect | null>(null);
   const [isAddProspectOpen, setIsAddProspectOpen] = useState(false);
