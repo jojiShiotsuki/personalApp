@@ -126,6 +126,31 @@ def get_step_delay(campaign: OutreachCampaign, step: int) -> int:
     return delays.get(step, 7)
 
 
+# ============== GLOBAL PROSPECT SEARCH ==============
+
+@router.get("/search/prospects", response_model=List[ProspectResponse])
+def search_prospects(
+    q: str,
+    db: Session = Depends(get_db)
+):
+    """Search prospects across all campaigns by name, email, agency name, or niche."""
+    if not q or len(q.strip()) < 2:
+        return []
+
+    sanitized = q.strip().replace("%", "\\%").replace("_", "\\_")
+    search_term = f"%{sanitized}%"
+    prospects = db.query(OutreachProspect).filter(
+        or_(
+            OutreachProspect.agency_name.ilike(search_term),
+            OutreachProspect.contact_name.ilike(search_term),
+            OutreachProspect.email.ilike(search_term),
+            OutreachProspect.niche.ilike(search_term),
+        )
+    ).order_by(OutreachProspect.id.desc()).limit(50).all()
+
+    return prospects
+
+
 # ============== CAMPAIGNS ==============
 
 @router.get("", response_model=List[CampaignResponse])
@@ -248,9 +273,10 @@ def delete_campaign(campaign_id: int, db: Session = Depends(get_db)):
 def list_prospects(
     campaign_id: int,
     status: Optional[str] = None,
+    search: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
-    """List prospects for a campaign, optionally filtered by status."""
+    """List prospects for a campaign, optionally filtered by status and/or search term."""
     campaign = db.query(OutreachCampaign).filter(OutreachCampaign.id == campaign_id).first()
     if not campaign:
         raise HTTPException(status_code=404, detail="Campaign not found")
@@ -263,6 +289,18 @@ def list_prospects(
             query = query.filter(OutreachProspect.status == prospect_status)
         except ValueError:
             pass  # Invalid status, return all
+
+    if search and len(search.strip()) >= 2:
+        sanitized = search.strip().replace("%", "\\%").replace("_", "\\_")
+        search_term = f"%{sanitized}%"
+        query = query.filter(
+            or_(
+                OutreachProspect.agency_name.ilike(search_term),
+                OutreachProspect.contact_name.ilike(search_term),
+                OutreachProspect.email.ilike(search_term),
+                OutreachProspect.niche.ilike(search_term),
+            )
+        )
 
     return query.order_by(OutreachProspect.id.asc()).all()
 

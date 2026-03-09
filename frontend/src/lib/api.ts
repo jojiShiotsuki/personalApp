@@ -727,8 +727,17 @@ export const coldOutreachApi = {
   },
 
   // Prospects
-  getProspects: async (campaignId: number): Promise<OutreachProspect[]> => {
-    const response = await api.get(`/api/outreach/campaigns/${campaignId}/prospects`);
+  searchProspects: async (query: string): Promise<OutreachProspect[]> => {
+    const response = await api.get(`/api/outreach/campaigns/search/prospects`, {
+      params: { q: query },
+    });
+    return response.data;
+  },
+
+  getProspects: async (campaignId: number, search?: string): Promise<OutreachProspect[]> => {
+    const response = await api.get(`/api/outreach/campaigns/${campaignId}/prospects`, {
+      params: search ? { search } : undefined,
+    });
     return response.data;
   },
 
