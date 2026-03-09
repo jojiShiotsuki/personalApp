@@ -3,7 +3,6 @@ import { useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { coldOutreachApi, leadDiscoveryApi } from '@/lib/api';
 import type { OutreachProspect } from '@/types';
-import { ProspectStatus } from '@/types';
 import {
   Send,
   Mail,
