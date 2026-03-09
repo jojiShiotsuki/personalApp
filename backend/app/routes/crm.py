@@ -33,9 +33,9 @@ def get_contacts(
         query = query.filter(Contact.status == status)
     if search:
         query = query.filter(
-            (Contact.name.contains(search)) |
-            (Contact.email.contains(search)) |
-            (Contact.company.contains(search))
+            (Contact.name.ilike(f"%{search}%")) |
+            (Contact.email.ilike(f"%{search}%")) |
+            (Contact.company.ilike(f"%{search}%"))
         )
 
     contacts = query.offset(skip).limit(limit).all()
@@ -199,6 +199,11 @@ def update_deal(deal_id: int, deal_update: DealUpdate, db: Session = Depends(get
         raise HTTPException(status_code=404, detail="Deal not found")
 
     update_data = deal_update.model_dump(exclude_unset=True)
+
+    if "contact_id" in update_data and update_data["contact_id"] is not None:
+        contact = db.query(Contact).filter(Contact.id == update_data["contact_id"]).first()
+        if not contact:
+            raise HTTPException(status_code=404, detail="Contact not found")
 
     # If stage changed to closed_won or closed_lost, set actual_close_date
     if "stage" in update_data:

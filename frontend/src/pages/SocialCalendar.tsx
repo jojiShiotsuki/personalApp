@@ -9,6 +9,7 @@ import { getMonthName, formatDateForApi } from '@/lib/dateUtils';
 import { Plus, ChevronLeft, ChevronRight, Instagram, Youtube, Facebook, Twitter, Linkedin, Video, Calendar, Sparkles, Film, LayoutGrid, FileText, Check, Upload, ArrowRight, AtSign } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import DOMPurify from 'dompurify';
 
 type ViewLevel = 'years' | 'months' | 'month' | 'day';
 
@@ -705,7 +706,7 @@ export default function SocialCalendar() {
                             <h4 className="text-xs font-semibold text-[--exec-text-muted] uppercase tracking-wider mb-3">Script / Caption</h4>
                             <div
                               className="prose prose-sm max-w-none text-[--exec-text-secondary] bg-[--exec-surface-alt] rounded-xl p-4"
-                              dangerouslySetInnerHTML={{ __html: item.script }}
+                              dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(item.script || '') }}
                             />
                           </div>
                         )}

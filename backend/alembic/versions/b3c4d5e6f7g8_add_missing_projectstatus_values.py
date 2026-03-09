@@ -18,11 +18,14 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    # Add missing enum values to the projectstatus Postgres enum
-    # IF NOT EXISTS prevents errors if already present (safe for re-runs)
-    op.execute("ALTER TYPE projectstatus ADD VALUE IF NOT EXISTS 'SCOPING'")
-    op.execute("ALTER TYPE projectstatus ADD VALUE IF NOT EXISTS 'REVIEW'")
-    op.execute("ALTER TYPE projectstatus ADD VALUE IF NOT EXISTS 'REVISIONS'")
+    # Add missing enum values to the projectstatus enum.
+    # SQLite stores enums as VARCHAR so no ALTER TYPE is needed.
+    # For PostgreSQL, we use ALTER TYPE ... ADD VALUE IF NOT EXISTS.
+    bind = op.get_bind()
+    if bind.dialect.name == 'postgresql':
+        op.execute("ALTER TYPE projectstatus ADD VALUE IF NOT EXISTS 'SCOPING'")
+        op.execute("ALTER TYPE projectstatus ADD VALUE IF NOT EXISTS 'REVIEW'")
+        op.execute("ALTER TYPE projectstatus ADD VALUE IF NOT EXISTS 'REVISIONS'")
 
 
 def downgrade() -> None:

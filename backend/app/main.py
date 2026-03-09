@@ -102,9 +102,10 @@ async def global_exception_handler(request: Request, exc: Exception):
     if origin in allowed_origins:
         headers["access-control-allow-origin"] = origin
         headers["access-control-allow-credentials"] = "true"
+    error_detail = "Internal server error" if is_production else f"Internal server error: {str(exc)}"
     return JSONResponse(
         status_code=500,
-        content={"detail": f"Internal server error: {str(exc)}"},
+        content={"detail": error_detail},
         headers=headers,
     )
 

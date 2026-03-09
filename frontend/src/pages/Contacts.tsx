@@ -356,7 +356,7 @@ export default function Contacts() {
                       )}
                     </div>
 
-                    <div className="pt-3 border-t border-stone-700/30 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                    <div className="pt-3 border-t border-stone-700/30 flex items-center gap-2 opacity-0 group-hover:opacity-100 max-sm:opacity-100 transition-opacity duration-200">
                       <button
                         onClick={() => setSelectedContact(contact)}
                         className="flex-1 flex items-center justify-center px-3 py-1.5 text-xs font-medium text-[--exec-text-secondary] bg-stone-700/50 hover:bg-stone-600/50 rounded-lg transition-colors"

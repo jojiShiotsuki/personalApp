@@ -167,7 +167,9 @@ export default function Layout({ children }: LayoutProps) {
               {/* Group Items */}
               <div className={cn("space-y-0.5", isExpanded ? "px-3" : "px-2")}>
                 {group.items.map((item) => {
-                  const isActive = location.pathname === item.href;
+                  const isActive = item.href === '/'
+                    ? location.pathname === '/'
+                    : location.pathname === item.href || location.pathname.startsWith(item.href + '/');
                   return (
                     <Link
                       key={item.name}
@@ -213,7 +215,9 @@ export default function Layout({ children }: LayoutProps) {
           <div className="py-3 border-t border-[--sidebar-border]">
             <div className="space-y-0.5">
               {bottomNav.map((item) => {
-                const isActive = location.pathname === item.href;
+                const isActive = item.href === '/'
+                  ? location.pathname === '/'
+                  : location.pathname === item.href || location.pathname.startsWith(item.href + '/');
                 return (
                   <Link
                     key={item.name}

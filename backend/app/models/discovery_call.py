@@ -21,8 +21,8 @@ class DiscoveryCall(Base):
     __tablename__ = "discovery_calls"
 
     id = Column(Integer, primary_key=True, index=True)
-    contact_id = Column(Integer, ForeignKey("crm_contacts.id"), nullable=False, index=True)
-    deal_id = Column(Integer, ForeignKey("crm_deals.id"), nullable=True, index=True)
+    contact_id = Column(Integer, ForeignKey("crm_contacts.id", ondelete="CASCADE"), nullable=False, index=True)
+    deal_id = Column(Integer, ForeignKey("crm_deals.id", ondelete="SET NULL"), nullable=True, index=True)
 
     # Call details
     call_date = Column(Date, nullable=False, default=date.today)

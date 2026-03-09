@@ -40,7 +40,7 @@ class Task(Base):
     completed_at = Column(DateTime, nullable=True)
 
     # Project relationship
-    project_id = Column(Integer, ForeignKey("projects.id"), nullable=True, index=True)
+    project_id = Column(Integer, ForeignKey("projects.id", ondelete="SET NULL"), nullable=True, index=True)
 
     # Sprint day relationship (for tasks within a sprint)
     sprint_day_id = Column(Integer, ForeignKey("sprint_days.id", ondelete="SET NULL"), nullable=True, index=True)
@@ -54,7 +54,7 @@ class Task(Base):
     recurrence_end_date = Column(Date, nullable=True)
     recurrence_count = Column(Integer, nullable=True)
     occurrences_created = Column(Integer, default=0, nullable=False)
-    parent_task_id = Column(Integer, ForeignKey("tasks.id"), nullable=True, index=True)
+    parent_task_id = Column(Integer, ForeignKey("tasks.id", ondelete="SET NULL"), nullable=True, index=True)
     
     # Relationships
     project = relationship("Project", back_populates="tasks")

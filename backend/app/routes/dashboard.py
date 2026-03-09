@@ -82,7 +82,6 @@ def log_deal_followup(deal_id: int, db: Session = Depends(get_db)):
     if not deal:
         raise HTTPException(status_code=404, detail="Deal not found")
 
-    deal.followup_count = (deal.followup_count or 0) + 1
     deal.next_followup_date = date.today() + timedelta(days=7)
     db.commit()
 

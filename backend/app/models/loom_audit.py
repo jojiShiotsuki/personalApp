@@ -19,7 +19,7 @@ class LoomAudit(Base):
     __tablename__ = "loom_audits"
 
     id = Column(Integer, primary_key=True, index=True)
-    contact_id = Column(Integer, ForeignKey("crm_contacts.id"), nullable=False, index=True)
+    contact_id = Column(Integer, ForeignKey("crm_contacts.id", ondelete="CASCADE"), nullable=False, index=True)
 
     # Loom details
     title = Column(String(255), nullable=False)  # e.g., "Website Audit for ABC Plumbing"

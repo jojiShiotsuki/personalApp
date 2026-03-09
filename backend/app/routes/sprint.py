@@ -95,6 +95,22 @@ def create_sprint(data: SprintCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.get("/playbook/{day_number}", response_model=PlaybookSuggestionsResponse)
+def get_playbook_suggestions(day_number: int):
+    """Get playbook task suggestions for a specific day (1-30)."""
+    if day_number < 1 or day_number > 30:
+        raise HTTPException(status_code=400, detail="Day number must be between 1 and 30")
+
+    suggestions = SPRINT_DAY_TASKS.get(day_number, [
+        {"title": "Complete daily outreach targets", "completed": False}
+    ])
+
+    return PlaybookSuggestionsResponse(
+        day_number=day_number,
+        suggestions=[PlaybookSuggestion(title=s["title"]) for s in suggestions]
+    )
+
+
 @router.get("/{sprint_id}", response_model=SprintResponse)
 def get_sprint(sprint_id: int, db: Session = Depends(get_db)):
     """Get a sprint by ID."""
@@ -222,19 +238,3 @@ def update_day_notes(
         return sprint_service.update_day_notes(db, sprint_id, day_number, data.notes)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
-
-
-@router.get("/playbook/{day_number}", response_model=PlaybookSuggestionsResponse)
-def get_playbook_suggestions(day_number: int):
-    """Get playbook task suggestions for a specific day (1-30)."""
-    if day_number < 1 or day_number > 30:
-        raise HTTPException(status_code=400, detail="Day number must be between 1 and 30")
-
-    suggestions = SPRINT_DAY_TASKS.get(day_number, [
-        {"title": "Complete daily outreach targets", "completed": False}
-    ])
-
-    return PlaybookSuggestionsResponse(
-        day_number=day_number,
-        suggestions=[PlaybookSuggestion(title=s["title"]) for s in suggestions]
-    )

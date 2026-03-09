@@ -1,6 +1,7 @@
 import { X, Calendar } from 'lucide-react';
 import type { SocialContent } from '@/types';
 import { cn } from '@/lib/utils';
+import DOMPurify from 'dompurify';
 
 interface DayContentModalProps {
   isOpen: boolean;
@@ -83,7 +84,7 @@ export default function DayContentModal({
                       <p className="text-sm font-semibold text-[--exec-text-secondary] mb-2">Script / Caption</p>
                       <div
                         className="text-sm text-[--exec-text-secondary] bg-stone-800/50 p-3 rounded-lg [&_h1]:text-lg [&_h1]:font-bold [&_h2]:font-bold [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5"
-                        dangerouslySetInnerHTML={{ __html: item.script }}
+                        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(item.script || '') }}
                       />
                     </div>
                   )}

@@ -112,7 +112,7 @@ class Deal(Base):
     __tablename__ = "crm_deals"
 
     id = Column(Integer, primary_key=True, index=True)
-    contact_id = Column(Integer, ForeignKey("crm_contacts.id"), nullable=False, index=True)
+    contact_id = Column(Integer, ForeignKey("crm_contacts.id", ondelete="CASCADE"), nullable=False, index=True)
     title = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
     value = Column(Numeric(12, 2), nullable=True)
@@ -144,7 +144,7 @@ class Interaction(Base):
     __tablename__ = "crm_interactions"
 
     id = Column(Integer, primary_key=True, index=True)
-    contact_id = Column(Integer, ForeignKey("crm_contacts.id"), nullable=False, index=True)
+    contact_id = Column(Integer, ForeignKey("crm_contacts.id", ondelete="CASCADE"), nullable=False, index=True)
     type = Column(Enum(InteractionType), nullable=False)
     subject = Column(String(255), nullable=True)
     notes = Column(Text, nullable=True)

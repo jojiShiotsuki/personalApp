@@ -50,7 +50,7 @@ def get_tasks(
     if search:
         query = query.filter(Task.title.ilike(f"%{search}%"))
 
-    tasks = query.offset(skip).limit(limit).all()
+    tasks = query.order_by(Task.due_date.asc().nullslast(), Task.created_at.desc()).offset(skip).limit(limit).all()
 
     for task in tasks:
         prepare_task_for_response(task)
@@ -93,6 +93,80 @@ def create_task(task: TaskCreate, db: Session = Depends(get_db)):
     })
 
     return prepare_task_for_response(db_task)
+
+
+class BulkUpdateRequest(BaseModel):
+    task_ids: List[int]
+    updates: dict
+
+
+ALLOWED_BULK_UPDATE_FIELDS = {"status", "priority", "phase", "due_date", "project_id", "goal_id"}
+
+
+@router.post("/bulk-delete", status_code=200)
+def bulk_delete_tasks(task_ids: List[int], db: Session = Depends(get_db)):
+    """Delete multiple tasks by their IDs"""
+    if not task_ids:
+        raise HTTPException(status_code=400, detail="No task IDs provided")
+
+    tasks = db.query(Task).filter(Task.id.in_(task_ids)).all()
+
+    if not tasks:
+        raise HTTPException(status_code=404, detail="No tasks found with the provided IDs")
+
+    deleted_count = len(tasks)
+    project_ids = set()
+
+    for task in tasks:
+        if task.project_id:
+            project_ids.add(task.project_id)
+        db.delete(task)
+
+    db.commit()
+
+    for pid in project_ids:
+        recalculate_project_progress(pid, db)
+
+    return {"deleted_count": deleted_count, "message": f"Successfully deleted {deleted_count} task(s)"}
+
+
+@router.put("/bulk-update", status_code=200)
+def bulk_update_tasks(request: BulkUpdateRequest, db: Session = Depends(get_db)):
+    """Update multiple tasks with the same changes"""
+    if not request.task_ids:
+        raise HTTPException(status_code=400, detail="No task IDs provided")
+    if not request.updates:
+        raise HTTPException(status_code=400, detail="No updates provided")
+
+    tasks = db.query(Task).filter(Task.id.in_(request.task_ids)).all()
+    if not tasks:
+        raise HTTPException(status_code=404, detail="No tasks found with the provided IDs")
+
+    project_ids = set()
+    for task in tasks:
+        for field, value in request.updates.items():
+            if field not in ALLOWED_BULK_UPDATE_FIELDS:
+                continue
+            if field == "status" and value:
+                setattr(task, field, TaskStatus(value))
+                if value == TaskStatus.COMPLETED.value:
+                    task.completed_at = datetime.utcnow()
+            elif field == "priority" and value:
+                setattr(task, field, TaskPriority(value))
+            elif field == "phase":
+                task.phase = value
+            else:
+                setattr(task, field, value)
+        task.updated_at = datetime.utcnow()
+        if task.project_id:
+            project_ids.add(task.project_id)
+
+    db.commit()
+
+    for pid in project_ids:
+        recalculate_project_progress(pid, db)
+
+    return {"updated_count": len(tasks), "message": f"Successfully updated {len(tasks)} task(s)"}
 
 
 @router.put("/{task_id}", response_model=TaskResponse)
@@ -138,75 +212,6 @@ def update_task(task_id: int, task_update: TaskUpdate, db: Session = Depends(get
     return prepare_task_for_response(db_task)
 
 
-@router.post("/bulk-delete", status_code=200)
-def bulk_delete_tasks(task_ids: List[int], db: Session = Depends(get_db)):
-    """Delete multiple tasks by their IDs"""
-    if not task_ids:
-        raise HTTPException(status_code=400, detail="No task IDs provided")
-
-    tasks = db.query(Task).filter(Task.id.in_(task_ids)).all()
-
-    if not tasks:
-        raise HTTPException(status_code=404, detail="No tasks found with the provided IDs")
-
-    deleted_count = len(tasks)
-    project_ids = set()
-
-    for task in tasks:
-        if task.project_id:
-            project_ids.add(task.project_id)
-        db.delete(task)
-
-    db.commit()
-
-    for pid in project_ids:
-        recalculate_project_progress(pid, db)
-
-    return {"deleted_count": deleted_count, "message": f"Successfully deleted {deleted_count} task(s)"}
-
-
-class BulkUpdateRequest(BaseModel):
-    task_ids: List[int]
-    updates: dict
-
-
-@router.put("/bulk-update", status_code=200)
-def bulk_update_tasks(request: BulkUpdateRequest, db: Session = Depends(get_db)):
-    """Update multiple tasks with the same changes"""
-    if not request.task_ids:
-        raise HTTPException(status_code=400, detail="No task IDs provided")
-    if not request.updates:
-        raise HTTPException(status_code=400, detail="No updates provided")
-
-    tasks = db.query(Task).filter(Task.id.in_(request.task_ids)).all()
-    if not tasks:
-        raise HTTPException(status_code=404, detail="No tasks found with the provided IDs")
-
-    project_ids = set()
-    for task in tasks:
-        for field, value in request.updates.items():
-            if field == "status" and value:
-                setattr(task, field, TaskStatus(value))
-                if value == TaskStatus.COMPLETED.value:
-                    task.completed_at = datetime.utcnow()
-            elif field == "priority" and value:
-                setattr(task, field, TaskPriority(value))
-            elif field == "phase":
-                task.phase = value
-            else:
-                setattr(task, field, value)
-        task.updated_at = datetime.utcnow()
-        if task.project_id:
-            project_ids.add(task.project_id)
-
-    db.commit()
-
-    for pid in project_ids:
-        recalculate_project_progress(pid, db)
-
-    return {"updated_count": len(tasks), "message": f"Successfully updated {len(tasks)} task(s)"}
-
-
 @router.delete("/{task_id}", status_code=204)
 def delete_task(task_id: int, db: Session = Depends(get_db)):
     """Delete a task"""
@@ -214,8 +219,13 @@ def delete_task(task_id: int, db: Session = Depends(get_db)):
     if not db_task:
         raise HTTPException(status_code=404, detail="Task not found")
 
+    project_id = db_task.project_id
     db.delete(db_task)
     db.commit()
+
+    if project_id:
+        recalculate_project_progress(project_id, db)
+
     return None
 
 
@@ -237,6 +247,9 @@ def update_task_status(
     db_task.updated_at = datetime.utcnow()
     db.commit()
     db.refresh(db_task)
+
+    if db_task.project_id:
+        recalculate_project_progress(db_task.project_id, db)
 
     return prepare_task_for_response(db_task)
 

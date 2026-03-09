@@ -1,4 +1,5 @@
 import os
+import logging
 from datetime import datetime, timedelta
 from typing import Optional
 
@@ -14,7 +15,13 @@ from app.database import get_db
 from app.models.user import User
 
 # Configuration
-SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-key-change-in-production")
+logger = logging.getLogger(__name__)
+_is_production = os.getenv("RENDER") or os.getenv("ENVIRONMENT") == "production"
+SECRET_KEY = os.getenv("SECRET_KEY", "" if _is_production else "dev-secret-key-change-in-production")
+if not SECRET_KEY:
+    raise RuntimeError("SECRET_KEY environment variable must be set in production")
+if not _is_production and not os.getenv("SECRET_KEY"):
+    logger.warning("Using default SECRET_KEY for development. Set SECRET_KEY env var for production.")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_DAYS = 30
 

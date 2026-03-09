@@ -1,6 +1,8 @@
 {
   "permissions": {
     "allow": [
+      "Edit",
+      "Write",
       "Bash(git worktree:*)",
       "Bash(venv/Scripts/activate:*)",
       "Bash(uvicorn app.main:app:*)",
@@ -317,7 +319,17 @@
       "Skill(claude-developer-platform)",
       "Bash(/c/Users/Shiot/Projects/personalApp/backend/venv/Scripts/python.exe:*)",
       "Bash(env:*)",
-      "Bash(cd /c/Users/Shiot/Projects/personalApp/backend && \"venv\\\\\\\\Scripts\\\\\\\\python.exe\" -m alembic heads 2>&1)"
+      "Bash(cd /c/Users/Shiot/Projects/personalApp/backend && \"venv\\\\\\\\Scripts\\\\\\\\python.exe\" -m alembic heads 2>&1)",
+      "Bash(mcp__render__list_services:*)",
+      "Bash(rm:*)",
+      "Bash(npm list:*)",
+      "Bash(npx playwright:*)",
+      "Read(//c/tmp/**)",
+      "Bash(npm init -y)",
+      "Bash(npm ls playwright)",
+      "Read(//c/Users/Shiot/**)",
+      "Read(//c/Users/Shiot/AppData/Roaming/npm/node_modules/**)",
+      "Bash(npm root -g)"
     ],
     "deny": [],
     "ask": []

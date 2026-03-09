@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { coldOutreachApi, leadDiscoveryApi } from '@/lib/api';
@@ -67,11 +68,32 @@ export default function OutreachHub() {
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [jumpToCampaign, setJumpToCampaign] = useState<{ id: number; ts: number } | null>(null);
   const searchRef = useRef<HTMLDivElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const [dropdownPos, setDropdownPos] = useState({ top: 0, right: 0 });
+
+  // Recompute dropdown position when search is focused or input changes
+  const updateDropdownPos = useCallback(() => {
+    if (searchRef.current) {
+      const rect = searchRef.current.getBoundingClientRect();
+      setDropdownPos({
+        top: rect.bottom + 8,
+        right: Math.max(16, window.innerWidth - rect.right),
+      });
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isSearchFocused) updateDropdownPos();
+  }, [isSearchFocused, globalSearch, updateDropdownPos]);
 
   // Close search dropdown on outside click
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
-      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      if (
+        searchRef.current && !searchRef.current.contains(target) &&
+        dropdownRef.current && !dropdownRef.current.contains(target)
+      ) {
         setIsSearchFocused(false);
       }
     }
@@ -114,7 +136,7 @@ export default function OutreachHub() {
   return (
     <div className="min-h-full bg-[--exec-bg] grain">
       {/* Hero Header */}
-      <header className="relative">
+      <header className="relative z-30">
         {/* Gradient background */}
         <div className="absolute inset-0 bg-gradient-to-br from-[--exec-surface] via-[--exec-surface] to-[--exec-accent-bg-subtle] overflow-hidden">
           {/* Decorative elements (contained within this overflow-hidden wrapper) */}
@@ -221,76 +243,79 @@ export default function OutreachHub() {
                 )}
               </div>
 
-              {/* Search Results Dropdown */}
-              {isSearchFocused && globalSearch.trim().length >= 2 && (
-                <div
-                  className="absolute top-full right-0 mt-2 w-[400px] max-h-[400px] overflow-y-auto rounded-xl border border-stone-700/40 shadow-2xl z-50"
-                  style={{ backgroundColor: '#1C1917' }}
-                >
-                  {isSearching ? (
-                    <div className="px-4 py-6 text-center">
-                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-[--exec-accent] mx-auto mb-2" />
-                      <p className="text-xs text-[--exec-text-muted]">Searching...</p>
-                    </div>
-                  ) : searchResults.length === 0 ? (
-                    <div className="px-4 py-6 text-center">
-                      <Search className="w-8 h-8 text-[--exec-text-muted] mx-auto mb-2 opacity-40" />
-                      <p className="text-sm text-[--exec-text-muted]">No prospects found for &ldquo;{globalSearch}&rdquo;</p>
-                    </div>
-                  ) : (
-                    <>
-                      <div className="px-4 py-2.5 border-b border-stone-700/40">
-                        <p className="text-xs font-medium text-[--exec-text-muted]">
-                          {searchResults.length} result{searchResults.length !== 1 ? 's' : ''} across all campaigns
-                        </p>
-                      </div>
-                      {searchResults.map((prospect) => (
-                        <button
-                          key={prospect.id}
-                          onClick={() => {
-                            const campaign = campaigns.find((c) => c.id === prospect.campaign_id);
-                            if (campaign) {
-                              setJumpToCampaign({ id: prospect.campaign_id, ts: Date.now() });
-                              const type = campaign.campaign_type;
-                              if (type === 'MULTI_TOUCH') handleTabChange('multi-touch');
-                              else if (type === 'LINKEDIN') handleTabChange('linkedin-campaigns');
-                              else handleTabChange('email-campaigns');
-                            }
-                            setGlobalSearch('');
-                            setIsSearchFocused(false);
-                          }}
-                          className="w-full flex items-start gap-3 px-4 py-3 hover:bg-stone-800/80 transition-colors text-left border-b border-stone-800/60 last:border-b-0"
-                        >
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm font-medium text-[--exec-text] truncate">
-                                {prospect.agency_name}
-                              </span>
-                              <ProspectStatusBadge status={prospect.status} />
-                            </div>
-                            {prospect.contact_name && (
-                              <p className="text-xs text-[--exec-text-secondary] mt-0.5">{prospect.contact_name}</p>
-                            )}
-                            {prospect.email && (
-                              <p className="text-xs text-[--exec-text-muted] mt-0.5 truncate">{prospect.email}</p>
-                            )}
-                            <p className="text-[10px] text-[--exec-text-muted] mt-1 flex items-center gap-1">
-                              <Layers className="w-3 h-3" />
-                              {getCampaignName(prospect.campaign_id)}
-                              {' · '}Step {prospect.current_step}
-                            </p>
-                          </div>
-                          <ExternalLink className="w-3.5 h-3.5 text-[--exec-text-muted] mt-1 flex-shrink-0" />
-                        </button>
-                      ))}
-                    </>
-                  )}
-                </div>
-              )}
             </div>
           </div>
         </div>
       </header>
+
+      {/* Search Results Dropdown (portal to avoid clipping) */}
+      {isSearchFocused && globalSearch.trim().length >= 2 && createPortal(
+        <div
+          ref={dropdownRef}
+          className="fixed w-[400px] max-w-[calc(100vw-2rem)] max-h-[400px] overflow-y-auto rounded-xl border border-stone-700/40 shadow-2xl"
+          style={{ backgroundColor: '#1C1917', top: dropdownPos.top, right: dropdownPos.right, zIndex: 9999 }}
+        >
+          {isSearching ? (
+            <div className="px-4 py-6 text-center">
+              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-[--exec-accent] mx-auto mb-2" />
+              <p className="text-xs text-[--exec-text-muted]">Searching...</p>
+            </div>
+          ) : searchResults.length === 0 ? (
+            <div className="px-4 py-6 text-center">
+              <Search className="w-8 h-8 text-[--exec-text-muted] mx-auto mb-2 opacity-40" />
+              <p className="text-sm text-[--exec-text-muted]">No prospects found for &ldquo;{globalSearch}&rdquo;</p>
+            </div>
+          ) : (
+            <>
+              <div className="px-4 py-2.5 border-b border-stone-700/40">
+                <p className="text-xs font-medium text-[--exec-text-muted]">
+                  {searchResults.length} result{searchResults.length !== 1 ? 's' : ''} across all campaigns
+                </p>
+              </div>
+              {searchResults.map((prospect) => (
+                <button
+                  key={prospect.id}
+                  onClick={() => {
+                    const campaign = campaigns.find((c) => c.id === prospect.campaign_id);
+                    if (campaign) {
+                      setJumpToCampaign({ id: prospect.campaign_id, ts: Date.now() });
+                      const type = campaign.campaign_type;
+                      if (type === 'MULTI_TOUCH') handleTabChange('multi-touch');
+                      else if (type === 'LINKEDIN') handleTabChange('linkedin-campaigns');
+                      else handleTabChange('email-campaigns');
+                    }
+                    setGlobalSearch('');
+                    setIsSearchFocused(false);
+                  }}
+                  className="w-full flex items-start gap-3 px-4 py-3 hover:bg-stone-800/80 transition-colors text-left border-b border-stone-800/60 last:border-b-0"
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium text-[--exec-text] truncate">
+                        {prospect.agency_name}
+                      </span>
+                      <ProspectStatusBadge status={prospect.status} />
+                    </div>
+                    {prospect.contact_name && (
+                      <p className="text-xs text-[--exec-text-secondary] mt-0.5">{prospect.contact_name}</p>
+                    )}
+                    {prospect.email && (
+                      <p className="text-xs text-[--exec-text-muted] mt-0.5 truncate">{prospect.email}</p>
+                    )}
+                    <p className="text-[10px] text-[--exec-text-muted] mt-1 flex items-center gap-1">
+                      <Layers className="w-3 h-3" />
+                      {getCampaignName(prospect.campaign_id)}
+                      {' · '}Step {prospect.current_step}
+                    </p>
+                  </div>
+                  <ExternalLink className="w-3.5 h-3.5 text-[--exec-text-muted] mt-1 flex-shrink-0" />
+                </button>
+              ))}
+            </>
+          )}
+        </div>,
+        document.body
+      )}
 
       {/* Tab Content */}
       <div className="animate-fade-slide-up delay-5">

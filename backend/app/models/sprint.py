@@ -207,14 +207,14 @@ class SprintDay(Base):
     __tablename__ = "sprint_days"
 
     id = Column(Integer, primary_key=True, index=True)
-    sprint_id = Column(Integer, ForeignKey("sprints.id"), nullable=False, index=True)
+    sprint_id = Column(Integer, ForeignKey("sprints.id", ondelete="CASCADE"), nullable=False, index=True)
 
     day_number = Column(Integer, nullable=False)  # 1-30
     week_number = Column(Integer, nullable=False)  # 1-4
     log_date = Column(Date, nullable=False)
 
     # Link to daily outreach log for that date
-    outreach_log_id = Column(Integer, ForeignKey("daily_outreach_logs.id"), nullable=True, index=True)
+    outreach_log_id = Column(Integer, ForeignKey("daily_outreach_logs.id", ondelete="SET NULL"), nullable=True, index=True)
 
     # Day-specific tasks as JSON
     tasks = Column(Text, nullable=True)  # [{"title": "...", "completed": bool}]

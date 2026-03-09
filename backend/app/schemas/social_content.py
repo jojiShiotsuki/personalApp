@@ -28,7 +28,7 @@ class SocialContentBase(BaseModel):
     thumbnail_reference: Optional[str] = None
     notes: Optional[str] = None
     project_id: Optional[int] = None
-    repurpose_formats: Optional[List[dict]] = None  # JSON from database
+    repurpose_formats: Optional[List[RepurposeFormatStatus]] = None
 
 
 class SocialContentCreate(SocialContentBase):
