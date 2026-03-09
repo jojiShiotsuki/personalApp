@@ -1073,7 +1073,7 @@ function SkippedProspects({
   );
 }
 
-export default function EmailCampaignsTab({ initialCampaignId }: { initialCampaignId?: number | null }) {
+export default function EmailCampaignsTab({ initialCampaignId, initialProspectId }: { initialCampaignId?: number | null; initialProspectId?: number }) {
   // State
   const [selectedCampaignId, setSelectedCampaignId] = useState<number | null>(initialCampaignId ?? null);
   const [activeTab, setActiveTab] = useState<TabType>('today');
@@ -1115,6 +1115,21 @@ export default function EmailCampaignsTab({ initialCampaignId }: { initialCampai
     queryFn: () => coldOutreachApi.getProspects(selectedCampaignId!),
     enabled: !!selectedCampaignId && (activeTab === 'all' || activeTab === 'replied' || activeTab === 'sent' || activeTab === 'skipped'),
   });
+
+  // Auto-open edit modal when navigating from global search
+  useEffect(() => {
+    if (initialProspectId && !editingProspect) {
+      // Check todayQueue first, then allProspects
+      const prospect = todayQueue.find((p) => p.id === initialProspectId)
+        || allProspects.find((p) => p.id === initialProspectId);
+      if (prospect) {
+        setEditingProspect(prospect);
+      } else if (selectedCampaignId && activeTab === 'today') {
+        // Switch to 'all' tab to load all prospects
+        setActiveTab('all');
+      }
+    }
+  }, [initialProspectId, todayQueue, allProspects]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Mutations
   const markSentMutation = useMutation({

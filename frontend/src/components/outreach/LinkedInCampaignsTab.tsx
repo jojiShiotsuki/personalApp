@@ -928,7 +928,7 @@ function RepliedProspects({ prospects, onEdit }: { prospects: OutreachProspect[]
 }
 
 // Main component
-export default function LinkedInCampaignsTab({ initialCampaignId }: { initialCampaignId?: number | null }) {
+export default function LinkedInCampaignsTab({ initialCampaignId, initialProspectId }: { initialCampaignId?: number | null; initialProspectId?: number }) {
   const [selectedCampaignId, setSelectedCampaignId] = useState<number | null>(initialCampaignId ?? null);
   const [activeTab, setActiveTab] = useState<TabType>('today');
   const [isNewCampaignOpen, setIsNewCampaignOpen] = useState(false);
@@ -970,6 +970,19 @@ export default function LinkedInCampaignsTab({ initialCampaignId }: { initialCam
     queryFn: () => coldOutreachApi.getProspects(selectedCampaignId!),
     enabled: !!selectedCampaignId && activeTab !== 'today',
   });
+
+  // Auto-open edit modal when navigating from global search
+  useEffect(() => {
+    if (initialProspectId && !editingProspect) {
+      const prospect = todayQueue.find((p) => p.id === initialProspectId)
+        || allProspects.find((p) => p.id === initialProspectId);
+      if (prospect) {
+        setEditingProspect(prospect);
+      } else if (selectedCampaignId && activeTab === 'today') {
+        setActiveTab('all');
+      }
+    }
+  }, [initialProspectId, todayQueue, allProspects]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Mutations
   const connectionSentMutation = useMutation({

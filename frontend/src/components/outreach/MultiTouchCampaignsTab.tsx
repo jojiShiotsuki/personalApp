@@ -1143,7 +1143,7 @@ function SequenceStepsPanel({
 }
 
 // Main component
-export default function MultiTouchCampaignsTab({ initialCampaignId }: { initialCampaignId?: number | null }) {
+export default function MultiTouchCampaignsTab({ initialCampaignId, initialProspectId }: { initialCampaignId?: number | null; initialProspectId?: number }) {
   const [selectedCampaignId, setSelectedCampaignId] = useState<number | null>(initialCampaignId ?? null);
   const [isNewCampaignOpen, setIsNewCampaignOpen] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
@@ -1178,6 +1178,14 @@ export default function MultiTouchCampaignsTab({ initialCampaignId }: { initialC
     queryFn: () => coldOutreachApi.getProspects(selectedCampaignId!),
     enabled: !!selectedCampaignId,
   });
+
+  // Auto-open edit modal when navigating from global search
+  useEffect(() => {
+    if (initialProspectId && allProspects.length > 0 && !editingProspect) {
+      const prospect = allProspects.find((p) => p.id === initialProspectId);
+      if (prospect) setEditingProspect(prospect);
+    }
+  }, [initialProspectId, allProspects]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Mutations
   const deleteCampaignMutation = useMutation({

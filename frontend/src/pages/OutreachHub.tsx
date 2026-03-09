@@ -66,7 +66,7 @@ export default function OutreachHub() {
   const [activeTab, setActiveTab] = useState<TabType>(initialTab);
   const [globalSearch, setGlobalSearch] = useState('');
   const [isSearchFocused, setIsSearchFocused] = useState(false);
-  const [jumpToCampaign, setJumpToCampaign] = useState<{ id: number; ts: number } | null>(null);
+  const [jumpToCampaign, setJumpToCampaign] = useState<{ id: number; prospectId?: number; ts: number } | null>(null);
   const searchRef = useRef<HTMLDivElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [dropdownPos, setDropdownPos] = useState({ top: 0, right: 0 });
@@ -278,7 +278,7 @@ export default function OutreachHub() {
                   onClick={() => {
                     const campaign = campaigns.find((c) => c.id === prospect.campaign_id);
                     if (campaign) {
-                      setJumpToCampaign({ id: prospect.campaign_id, ts: Date.now() });
+                      setJumpToCampaign({ id: prospect.campaign_id, prospectId: prospect.id, ts: Date.now() });
                       const type = campaign.campaign_type;
                       if (type === 'MULTI_TOUCH') handleTabChange('multi-touch');
                       else if (type === 'LINKEDIN') handleTabChange('linkedin-campaigns');
@@ -320,9 +320,9 @@ export default function OutreachHub() {
       {/* Tab Content */}
       <div className="animate-fade-slide-up delay-5">
         {activeTab === 'dm-scripts' && <DMScriptsTab />}
-        {activeTab === 'email-campaigns' && <EmailCampaignsTab initialCampaignId={jumpToCampaign?.id} key={`email-${jumpToCampaign?.ts ?? 0}`} />}
-        {activeTab === 'linkedin-campaigns' && <LinkedInCampaignsTab initialCampaignId={jumpToCampaign?.id} key={`linkedin-${jumpToCampaign?.ts ?? 0}`} />}
-        {activeTab === 'multi-touch' && <MultiTouchCampaignsTab initialCampaignId={jumpToCampaign?.id} key={`mt-${jumpToCampaign?.ts ?? 0}`} />}
+        {activeTab === 'email-campaigns' && <EmailCampaignsTab initialCampaignId={jumpToCampaign?.id} initialProspectId={jumpToCampaign?.prospectId} key={`email-${jumpToCampaign?.ts ?? 0}`} />}
+        {activeTab === 'linkedin-campaigns' && <LinkedInCampaignsTab initialCampaignId={jumpToCampaign?.id} initialProspectId={jumpToCampaign?.prospectId} key={`linkedin-${jumpToCampaign?.ts ?? 0}`} />}
+        {activeTab === 'multi-touch' && <MultiTouchCampaignsTab initialCampaignId={jumpToCampaign?.id} initialProspectId={jumpToCampaign?.prospectId} key={`mt-${jumpToCampaign?.ts ?? 0}`} />}
         {activeTab === 'lead-discovery' && <LeadDiscoveryTab />}
       </div>
     </div>
