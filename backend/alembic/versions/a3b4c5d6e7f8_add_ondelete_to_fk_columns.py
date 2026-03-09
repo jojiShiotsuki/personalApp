@@ -448,20 +448,15 @@ def upgrade() -> None:
     op.execute("PRAGMA foreign_keys=ON")
 
 
-def _find_fk_name(inspector, table_name: str, column_name: str) -> str | None:
-    """Look up the actual FK constraint name for a given table + column."""
-    for fk in inspector.get_foreign_keys(table_name):
-        if column_name in fk.get('constrained_columns', []):
-            return fk.get('name')
-    return None
-
-
 def _replace_fk(inspector, table_name: str, column_name: str,
                 ref_table: str, ref_column: str, ondelete: str) -> None:
-    """Drop existing FK (if any) and recreate with the desired ondelete."""
-    name = _find_fk_name(inspector, table_name, column_name)
-    if name:
-        op.drop_constraint(name, table_name, type_='foreignkey')
+    """Drop ALL existing FKs on column and recreate with desired ondelete."""
+    # Drop every FK that references this column (there may be duplicates)
+    for fk in inspector.get_foreign_keys(table_name):
+        if column_name in fk.get('constrained_columns', []):
+            name = fk.get('name')
+            if name:
+                op.drop_constraint(name, table_name, type_='foreignkey')
     new_name = f'{table_name}_{column_name}_fkey'
     op.create_foreign_key(new_name, table_name, ref_table,
                           [column_name], [ref_column], ondelete=ondelete)
