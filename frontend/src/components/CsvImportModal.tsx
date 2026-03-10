@@ -265,9 +265,19 @@ export default function CsvImportModal({ isOpen, onClose, campaignId, isLinkedIn
       return;
     }
 
+    // Strip data to only mapped columns to reduce payload size
+    const mappedKeys = Object.values(mapping).filter(Boolean) as string[];
+    const strippedData = csvData.map((row) => {
+      const stripped: Record<string, any> = {};
+      for (const key of mappedKeys) {
+        if (key in row) stripped[key] = row[key];
+      }
+      return stripped;
+    });
+
     importMutation.mutate({
       column_mapping: mapping as CsvColumnMapping,
-      data: csvData,
+      data: strippedData,
     });
   };
 

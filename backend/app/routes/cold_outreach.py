@@ -3,6 +3,9 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func, or_
 from typing import List, Optional
 from datetime import datetime, date, timedelta
+import logging
+
+logger = logging.getLogger(__name__)
 
 from app.database import get_db
 from app.models.outreach import (
@@ -388,11 +391,35 @@ def import_prospects(campaign_id: int, data: CsvImportRequest, db: Session = Dep
 
     is_linkedin = campaign.campaign_type == CampaignType.LINKEDIN
     is_multi_touch = campaign.campaign_type == CampaignType.MULTI_TOUCH
+    mapping = data.column_mapping
+
+    # --- Batch duplicate check: load existing emails & linkedin URLs in 2 queries ---
+    existing_emails: set[str] = set()
+    existing_linkedin: set[str] = set()
+
+    email_rows = (
+        db.query(OutreachProspect.email)
+        .filter(OutreachProspect.campaign_id == campaign_id, OutreachProspect.email.isnot(None))
+        .all()
+    )
+    existing_emails = {r[0].lower() for r in email_rows if r[0]}
+
+    li_rows = (
+        db.query(OutreachProspect.linkedin_url)
+        .filter(OutreachProspect.campaign_id == campaign_id, OutreachProspect.linkedin_url.isnot(None))
+        .all()
+    )
+    existing_linkedin = {r[0].lower() for r in li_rows if r[0]}
+
+    # Also track values seen within this import batch to catch intra-CSV duplicates
+    seen_emails: set[str] = set()
+    seen_linkedin: set[str] = set()
+
+    CHUNK_SIZE = 100
+    pending_prospects: list[OutreachProspect] = []
 
     for idx, row in enumerate(data.data, start=1):
         try:
-            # Extract values using column mapping
-            mapping = data.column_mapping
             agency_name = row.get(mapping.agency_name, "").strip()
             email = row.get(mapping.email, "").strip() if mapping.email else ""
             linkedin_url = row.get(mapping.linkedin_url, "").strip() if mapping.linkedin_url else ""
@@ -402,8 +429,7 @@ def import_prospects(campaign_id: int, data: CsvImportRequest, db: Session = Dep
                 errors.append(f"Row {idx}: Missing required field (agency_name)")
                 continue
 
-            # For email campaigns, require email. For LinkedIn, require linkedin_url.
-            # Multi-touch is flexible: accept if either email or linkedin_url present.
+            # Validate required channels per campaign type
             if is_linkedin and not linkedin_url:
                 skipped_count += 1
                 errors.append(f"Row {idx}: Missing LinkedIn URL")
@@ -417,51 +443,44 @@ def import_prospects(campaign_id: int, data: CsvImportRequest, db: Session = Dep
                 errors.append(f"Row {idx}: Missing email and LinkedIn URL (need at least one)")
                 continue
 
-            # Check for duplicates
-            if is_linkedin and linkedin_url:
-                existing = db.query(OutreachProspect).filter(
-                    OutreachProspect.campaign_id == campaign_id,
-                    OutreachProspect.linkedin_url == linkedin_url
-                ).first()
-                if existing:
+            # Duplicate check against DB + already-seen in this batch
+            email_lower = email.lower() if email else ""
+            li_lower = linkedin_url.lower() if linkedin_url else ""
+
+            is_dup = False
+            if is_linkedin and li_lower:
+                if li_lower in existing_linkedin or li_lower in seen_linkedin:
                     skipped_count += 1
                     errors.append(f"Row {idx}: Duplicate LinkedIn URL '{linkedin_url}'")
-                    continue
+                    is_dup = True
             elif is_multi_touch:
-                # For multi-touch, check email OR linkedin_url
-                if email:
-                    existing = db.query(OutreachProspect).filter(
-                        OutreachProspect.campaign_id == campaign_id,
-                        OutreachProspect.email == email
-                    ).first()
-                    if existing:
-                        skipped_count += 1
-                        errors.append(f"Row {idx}: Duplicate email '{email}'")
-                        continue
-                if linkedin_url:
-                    existing = db.query(OutreachProspect).filter(
-                        OutreachProspect.campaign_id == campaign_id,
-                        OutreachProspect.linkedin_url == linkedin_url
-                    ).first()
-                    if existing:
-                        skipped_count += 1
-                        errors.append(f"Row {idx}: Duplicate LinkedIn URL '{linkedin_url}'")
-                        continue
-            elif email:
-                existing = db.query(OutreachProspect).filter(
-                    OutreachProspect.campaign_id == campaign_id,
-                    OutreachProspect.email == email
-                ).first()
-                if existing:
+                if email_lower and (email_lower in existing_emails or email_lower in seen_emails):
                     skipped_count += 1
                     errors.append(f"Row {idx}: Duplicate email '{email}'")
-                    continue
+                    is_dup = True
+                elif li_lower and (li_lower in existing_linkedin or li_lower in seen_linkedin):
+                    skipped_count += 1
+                    errors.append(f"Row {idx}: Duplicate LinkedIn URL '{linkedin_url}'")
+                    is_dup = True
+            elif email_lower:
+                if email_lower in existing_emails or email_lower in seen_emails:
+                    skipped_count += 1
+                    errors.append(f"Row {idx}: Duplicate email '{email}'")
+                    is_dup = True
+
+            if is_dup:
+                continue
+
+            # Track this row's values so later rows can't duplicate them
+            if email_lower:
+                seen_emails.add(email_lower)
+            if li_lower:
+                seen_linkedin.add(li_lower)
 
             # Extract optional fields
             contact_name = None
             if mapping.contact_name:
                 contact_name = row.get(mapping.contact_name, "").strip() or None
-            # Support separate first_name + last_name columns (e.g. Apollo exports)
             if not contact_name and (mapping.first_name or mapping.last_name):
                 first = row.get(mapping.first_name, "").strip() if mapping.first_name else ""
                 last = row.get(mapping.last_name, "").strip() if mapping.last_name else ""
@@ -477,7 +496,7 @@ def import_prospects(campaign_id: int, data: CsvImportRequest, db: Session = Dep
             if mapping.niche:
                 niche = row.get(mapping.niche, "").strip() or None
 
-            prospect = OutreachProspect(
+            pending_prospects.append(OutreachProspect(
                 campaign_id=campaign_id,
                 agency_name=agency_name,
                 contact_name=contact_name,
@@ -488,15 +507,33 @@ def import_prospects(campaign_id: int, data: CsvImportRequest, db: Session = Dep
                 status=ProspectStatus.QUEUED,
                 current_step=1,
                 next_action_date=None,
-            )
-            db.add(prospect)
+            ))
             imported_count += 1
+
+            # Flush in chunks to avoid huge single transaction
+            if len(pending_prospects) >= CHUNK_SIZE:
+                try:
+                    db.bulk_save_objects(pending_prospects)
+                    db.commit()
+                except Exception as e:
+                    logger.error(f"Bulk insert failed at chunk ending row {idx}: {e}")
+                    db.rollback()
+                    raise
+                pending_prospects.clear()
 
         except Exception as e:
             skipped_count += 1
             errors.append(f"Row {idx}: {str(e)}")
 
-    db.commit()
+    # Commit remaining prospects
+    if pending_prospects:
+        try:
+            db.bulk_save_objects(pending_prospects)
+            db.commit()
+        except Exception as e:
+            logger.error(f"Final bulk insert failed: {e}")
+            db.rollback()
+            raise
 
     return CsvImportResponse(
         imported_count=imported_count,
