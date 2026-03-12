@@ -19,6 +19,8 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     op.add_column('outreach_prospects', sa.Column('linkedin_connected', sa.Boolean(), server_default='0', nullable=True))
+    # Migrate existing CONNECTED prospects: mark linkedin_connected and move to IN_SEQUENCE
+    op.execute("UPDATE outreach_prospects SET linkedin_connected = 1, status = 'IN_SEQUENCE' WHERE status = 'CONNECTED'")
 
 
 def downgrade() -> None:
