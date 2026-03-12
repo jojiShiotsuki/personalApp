@@ -69,14 +69,14 @@ def get_campaign_stats(campaign: OutreachCampaign, db: Session) -> CampaignStats
     not_interested = status_counts.get(ProspectStatus.NOT_INTERESTED, 0)
     converted = status_counts.get(ProspectStatus.CONVERTED, 0)
     pending_connection = status_counts.get(ProspectStatus.PENDING_CONNECTION, 0)
-    connected = status_counts.get(ProspectStatus.CONNECTED, 0)
+    connected = 0  # LinkedIn connection now tracked via linkedin_connected boolean
     skipped = status_counts.get(ProspectStatus.SKIPPED, 0)
     pending_engagement = status_counts.get(ProspectStatus.PENDING_ENGAGEMENT, 0)
     total = sum(status_counts.values())
 
     # Count prospects to contact today
     today = date.today()
-    actionable_statuses = [ProspectStatus.QUEUED, ProspectStatus.IN_SEQUENCE, ProspectStatus.CONNECTED, ProspectStatus.PENDING_ENGAGEMENT]
+    actionable_statuses = [ProspectStatus.QUEUED, ProspectStatus.IN_SEQUENCE, ProspectStatus.PENDING_ENGAGEMENT]
     to_contact_today = db.query(func.count(OutreachProspect.id)).filter(
         OutreachProspect.campaign_id == campaign_id,
         or_(
@@ -324,7 +324,7 @@ def get_todays_queue(campaign_id: int, db: Session = Depends(get_db)):
             OutreachProspect.next_action_date.is_(None),
         ),
         OutreachProspect.status.in_([
-            ProspectStatus.QUEUED, ProspectStatus.IN_SEQUENCE, ProspectStatus.CONNECTED, ProspectStatus.PENDING_ENGAGEMENT
+            ProspectStatus.QUEUED, ProspectStatus.IN_SEQUENCE, ProspectStatus.PENDING_ENGAGEMENT
         ])
     ).order_by(OutreachProspect.id.asc()).all()
 
@@ -723,7 +723,8 @@ def mark_connected(prospect_id: int, db: Session = Depends(get_db)):
 
     campaign = prospect.campaign
 
-    prospect.status = ProspectStatus.CONNECTED
+    prospect.linkedin_connected = True
+    prospect.status = ProspectStatus.IN_SEQUENCE
     # Set current_step to 2 (first message after connection) and schedule for today
     prospect.current_step = 2
     prospect.next_action_date = date.today()
@@ -880,18 +881,8 @@ def advance_multi_touch_prospect(campaign_id: int, prospect_id: int, db: Session
         prospect.current_step = next_step_num
         prospect.next_action_date = calc_next_action_date(prospect.next_action_date, next_step.delay_days)
 
-        # Set status based on next step's channel type
-        channel = next_step.channel_type
-        if channel in (StepChannelType.EMAIL.value, StepChannelType.FOLLOW_UP_EMAIL.value):
-            prospect.status = ProspectStatus.IN_SEQUENCE
-        elif channel == StepChannelType.LINKEDIN_CONNECT.value:
-            prospect.status = ProspectStatus.PENDING_CONNECTION
-        elif channel == StepChannelType.LINKEDIN_MESSAGE.value:
-            prospect.status = ProspectStatus.CONNECTED
-        elif channel == StepChannelType.LINKEDIN_ENGAGE.value:
-            prospect.status = ProspectStatus.PENDING_ENGAGEMENT
-        else:
-            prospect.status = ProspectStatus.IN_SEQUENCE
+        # Keep status as IN_SEQUENCE — LinkedIn connection is tracked separately
+        prospect.status = ProspectStatus.IN_SEQUENCE
 
         message = f"Step {current_step} complete. Next: step {next_step_num} ({next_step.channel_type}) on {prospect.next_action_date}."
 
@@ -930,17 +921,8 @@ def mark_engaged(campaign_id: int, prospect_id: int, db: Session = Depends(get_d
         prospect.current_step = next_step_num
         prospect.next_action_date = calc_next_action_date(prospect.next_action_date, next_step.delay_days)
 
-        channel = next_step.channel_type
-        if channel in (StepChannelType.EMAIL.value, StepChannelType.FOLLOW_UP_EMAIL.value):
-            prospect.status = ProspectStatus.IN_SEQUENCE
-        elif channel == StepChannelType.LINKEDIN_CONNECT.value:
-            prospect.status = ProspectStatus.PENDING_CONNECTION
-        elif channel == StepChannelType.LINKEDIN_MESSAGE.value:
-            prospect.status = ProspectStatus.CONNECTED
-        elif channel == StepChannelType.LINKEDIN_ENGAGE.value:
-            prospect.status = ProspectStatus.PENDING_ENGAGEMENT
-        else:
-            prospect.status = ProspectStatus.IN_SEQUENCE
+        # Keep status as IN_SEQUENCE — LinkedIn connection is tracked separately
+        prospect.status = ProspectStatus.IN_SEQUENCE
 
         message = f"Engagement logged. Next: step {next_step_num} ({next_step.channel_type}) on {prospect.next_action_date}."
 
@@ -956,7 +938,7 @@ def mark_engaged(campaign_id: int, prospect_id: int, db: Session = Depends(get_d
 
 @router.post("/{campaign_id}/prospects/{prospect_id}/mark-mt-connected", response_model=MarkSentResponse)
 def mark_mt_connected(campaign_id: int, prospect_id: int, db: Session = Depends(get_db)):
-    """Mark LinkedIn connection accepted for multi-touch campaigns, advance to next step."""
+    """Toggle LinkedIn connection accepted status (separate from pipeline status)."""
     prospect = db.query(OutreachProspect).filter(
         OutreachProspect.id == prospect_id,
         OutreachProspect.campaign_id == campaign_id
@@ -964,34 +946,8 @@ def mark_mt_connected(campaign_id: int, prospect_id: int, db: Session = Depends(
     if not prospect:
         raise HTTPException(status_code=404, detail="Prospect not found")
 
-    campaign = prospect.campaign
-    steps = {s.step_number: s for s in campaign.multi_touch_steps}
-    current_step = prospect.current_step
-
-    # Find the actual next step (handles non-contiguous step numbers)
-    next_step_num, next_step = find_next_step(steps, current_step)
-
-    if not next_step:
-        prospect.status = ProspectStatus.CONNECTED
-        prospect.next_action_date = None
-        message = f"Connected! Sequence complete after step {current_step}."
-    else:
-        prospect.current_step = next_step_num
-        prospect.next_action_date = calc_next_action_date(prospect.next_action_date, next_step.delay_days)
-
-        channel = next_step.channel_type
-        if channel in (StepChannelType.EMAIL.value, StepChannelType.FOLLOW_UP_EMAIL.value):
-            prospect.status = ProspectStatus.IN_SEQUENCE
-        elif channel == StepChannelType.LINKEDIN_CONNECT.value:
-            prospect.status = ProspectStatus.PENDING_CONNECTION
-        elif channel == StepChannelType.LINKEDIN_MESSAGE.value:
-            prospect.status = ProspectStatus.CONNECTED
-        elif channel == StepChannelType.LINKEDIN_ENGAGE.value:
-            prospect.status = ProspectStatus.PENDING_ENGAGEMENT
-        else:
-            prospect.status = ProspectStatus.IN_SEQUENCE
-
-        message = f"Connected! Next: step {next_step_num} ({next_step.channel_type}) on {prospect.next_action_date}."
+    prospect.linkedin_connected = not prospect.linkedin_connected
+    message = "LinkedIn connection confirmed" if prospect.linkedin_connected else "LinkedIn connection unmarked"
 
     db.commit()
     db.refresh(prospect)

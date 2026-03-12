@@ -100,7 +100,6 @@ class ProspectStatus(str, Enum):
     SKIPPED = "SKIPPED"
     # LinkedIn-specific statuses
     PENDING_CONNECTION = "PENDING_CONNECTION"
-    CONNECTED = "CONNECTED"
     # Multi-touch specific
     PENDING_ENGAGEMENT = "PENDING_ENGAGEMENT"
 
@@ -257,6 +256,7 @@ class ProspectResponse(ProspectBase):
     converted_contact_id: Optional[int] = None
     converted_deal_id: Optional[int] = None
     website_issues: Optional[list] = None
+    linkedin_connected: bool = False
     linkedin_url: Optional[str] = None
     facebook_url: Optional[str] = None
     instagram_url: Optional[str] = None

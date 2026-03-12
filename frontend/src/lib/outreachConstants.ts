@@ -39,11 +39,6 @@ export const PROSPECT_STATUS_CONFIG: Record<string, { bg: string; text: string; 
     text: 'text-yellow-600 dark:text-yellow-400',
     label: 'Pending Connection',
   },
-  [ProspectStatus.CONNECTED]: {
-    bg: 'bg-emerald-100 dark:bg-emerald-900/30',
-    text: 'text-emerald-600 dark:text-emerald-400',
-    label: 'Connected',
-  },
   [ProspectStatus.SKIPPED]: {
     bg: 'bg-slate-100 dark:bg-slate-700/50',
     text: 'text-slate-500 dark:text-slate-400',
@@ -57,11 +52,6 @@ export const LINKEDIN_STATUS_OVERRIDES: Partial<Record<string, { bg: string; tex
     bg: 'bg-amber-100 dark:bg-amber-900/30',
     text: 'text-amber-600 dark:text-amber-400',
     label: 'Pending',
-  },
-  [ProspectStatus.CONNECTED]: {
-    bg: 'bg-cyan-100 dark:bg-cyan-900/30',
-    text: 'text-cyan-600 dark:text-cyan-400',
-    label: 'Connected',
   },
   [ProspectStatus.IN_SEQUENCE]: {
     bg: 'bg-blue-100 dark:bg-blue-900/30',

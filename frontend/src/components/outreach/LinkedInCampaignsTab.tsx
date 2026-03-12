@@ -81,7 +81,7 @@ function formatShortDate(dateStr?: string | null): string | null {
 function getStepLabel(step: number, status: ProspectStatus): string {
   if (status === ProspectStatus.QUEUED) return 'Send Connection';
   if (status === ProspectStatus.PENDING_CONNECTION) return 'Awaiting Accept';
-  if (status === ProspectStatus.CONNECTED && step <= 2) return 'Send 1st Message';
+  if (status === ProspectStatus.IN_SEQUENCE && step <= 2) return 'Send 1st Message';
   if (step === 2) return 'Message 1';
   if (step === 3) return 'Follow-up 1';
   if (step === 4) return 'Follow-up 2';
@@ -341,7 +341,7 @@ function LinkedInProspectCard({
   const [isResponseModalOpen, setIsResponseModalOpen] = useState(false);
 
   const isQueued = prospect.status === ProspectStatus.QUEUED;
-  const isConnected = prospect.status === ProspectStatus.CONNECTED;
+  const isConnected = !!prospect.linkedin_connected;
   const isInSequence = prospect.status === ProspectStatus.IN_SEQUENCE;
 
   return (
@@ -628,7 +628,7 @@ function ConnectedProspects({
   onMessageSent: (prospectId: number) => void;
   onEdit: (prospect: OutreachProspect) => void;
 }) {
-  const connected = prospects.filter((p) => p.status === ProspectStatus.CONNECTED);
+  const connected = prospects.filter((p) => !!p.linkedin_connected);
 
   if (connected.length === 0) {
     return (
@@ -1374,7 +1374,7 @@ export default function LinkedInCampaignsTab({ initialCampaignId, initialProspec
               } else if (activeTab === 'pending') {
                 count = filteredAllProspects.filter((p) => p.status === ProspectStatus.PENDING_CONNECTION).length;
               } else if (activeTab === 'connected') {
-                count = filteredAllProspects.filter((p) => p.status === ProspectStatus.CONNECTED).length;
+                count = filteredAllProspects.filter((p) => !!p.linkedin_connected).length;
               } else if (activeTab === 'sent') {
                 count = filteredAllProspects.filter((p) => p.status === ProspectStatus.IN_SEQUENCE).length;
               } else if (activeTab === 'replied') {

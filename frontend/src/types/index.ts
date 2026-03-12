@@ -755,7 +755,6 @@ export enum ProspectStatus {
   SKIPPED = "SKIPPED",
   // LinkedIn-specific
   PENDING_CONNECTION = "PENDING_CONNECTION",
-  CONNECTED = "CONNECTED",
   // Multi-touch specific
   PENDING_ENGAGEMENT = "PENDING_ENGAGEMENT",
 }
@@ -875,6 +874,7 @@ export interface OutreachProspect {
   converted_contact_id?: number;
   converted_deal_id?: number;
   website_issues?: string[];
+  linkedin_connected?: boolean;
   linkedin_url?: string;
   facebook_url?: string;
   instagram_url?: string;

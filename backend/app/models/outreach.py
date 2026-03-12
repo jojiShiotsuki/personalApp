@@ -29,7 +29,6 @@ class ProspectStatus(str, enum.Enum):
     SKIPPED = "SKIPPED"
     # LinkedIn-specific statuses
     PENDING_CONNECTION = "PENDING_CONNECTION"
-    CONNECTED = "CONNECTED"
     # Multi-touch specific
     PENDING_ENGAGEMENT = "PENDING_ENGAGEMENT"
 
@@ -144,6 +143,9 @@ class OutreachProspect(Base):
 
     # Data copied from discovered lead during import
     website_issues = Column(JSON, nullable=True)  # e.g. ['slow_load', 'not_mobile_friendly', ...]
+
+    # LinkedIn connection tracking (separate from pipeline status)
+    linkedin_connected = Column(Boolean, default=False, server_default="0")
 
     # Social links (copied from discovered lead during import)
     linkedin_url = Column(String(500), nullable=True)

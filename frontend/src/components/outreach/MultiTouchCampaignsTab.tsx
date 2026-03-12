@@ -32,6 +32,7 @@ import {
   Linkedin,
   Heart,
   UserPlus,
+  UserCheck,
   Mail,
   Reply,
   XCircle,
@@ -126,7 +127,6 @@ const STATUS_OPTIONS: { value: ProspectStatus; label: string }[] = [
   { value: ProspectStatus.QUEUED, label: 'Queued' },
   { value: ProspectStatus.IN_SEQUENCE, label: 'In Sequence' },
   { value: ProspectStatus.PENDING_CONNECTION, label: 'Pending Connection' },
-  { value: ProspectStatus.CONNECTED, label: 'Connected' },
   { value: ProspectStatus.PENDING_ENGAGEMENT, label: 'Pending Engagement' },
   { value: ProspectStatus.REPLIED, label: 'Replied' },
   { value: ProspectStatus.CONVERTED, label: 'Converted' },
@@ -487,12 +487,14 @@ function PipelineProspectCard({
   onEdit,
   onViewMessage,
   onMarkResponse,
+  onMarkConnected,
   isMuted,
 }: {
   prospect: OutreachProspect;
   onEdit: (prospect: OutreachProspect) => void;
   onViewMessage: (prospect: OutreachProspect) => void;
   onMarkResponse: (prospect: OutreachProspect) => void;
+  onMarkConnected?: (prospect: OutreachProspect) => void;
   isMuted?: boolean;
 }) {
   const dueToday = isDueToday(prospect.next_action_date);
@@ -527,6 +529,20 @@ function PipelineProspectCard({
               title="View email"
             >
               <Mail className="w-3.5 h-3.5" />
+            </button>
+          )}
+          {!isMuted && onMarkConnected && (
+            <button
+              onClick={() => onMarkConnected(prospect)}
+              className={cn(
+                'p-1.5 rounded-md transition-colors',
+                prospect.linkedin_connected
+                  ? 'text-emerald-400 bg-emerald-500/15'
+                  : 'text-[--exec-text-muted] hover:text-emerald-400 hover:bg-emerald-500/15 opacity-0 group-hover:opacity-100'
+              )}
+              title={prospect.linkedin_connected ? 'LinkedIn connected (click to undo)' : 'Mark LinkedIn accepted'}
+            >
+              <UserCheck className="w-3.5 h-3.5" />
             </button>
           )}
           {!isMuted && (
@@ -692,12 +708,14 @@ function SequencePipelineView({
   onEdit,
   onViewMessage,
   onMarkResponse,
+  onMarkConnected,
 }: {
   prospects: OutreachProspect[];
   campaignSteps: MultiTouchStep[];
   onEdit: (prospect: OutreachProspect) => void;
   onViewMessage: (prospect: OutreachProspect) => void;
   onMarkResponse: (prospect: OutreachProspect) => void;
+  onMarkConnected: (prospect: OutreachProspect) => void;
 }) {
   const [showSkipped, setShowSkipped] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>('date_asc');
@@ -898,6 +916,7 @@ function SequencePipelineView({
                         onEdit={onEdit}
                         onViewMessage={onViewMessage}
                         onMarkResponse={onMarkResponse}
+                        onMarkConnected={onMarkConnected}
                       />
                     ))
                   )}
@@ -1235,6 +1254,15 @@ export default function MultiTouchCampaignsTab({ initialCampaignId, initialProsp
     onError: () => toast.error('Failed to add prospect'),
   });
 
+  const markConnectedMutation = useMutation({
+    mutationFn: (prospectId: number) => coldOutreachApi.markMtConnected(selectedCampaignId!, prospectId),
+    onSuccess: (data) => {
+      toast.success(data.message || 'Marked as connected');
+      invalidateAll();
+    },
+    onError: () => toast.error('Failed to mark as connected'),
+  });
+
   function invalidateAll() {
     queryClient.invalidateQueries({ queryKey: ['mt-prospects'] });
     queryClient.invalidateQueries({ queryKey: ['mt-campaign'] });
@@ -1526,6 +1554,7 @@ export default function MultiTouchCampaignsTab({ initialCampaignId, initialProsp
             onEdit={setEditingProspect}
             onViewMessage={setEmailModalProspect}
             onMarkResponse={setResponseModalProspect}
+            onMarkConnected={(prospect) => markConnectedMutation.mutate(prospect.id)}
           />
         ) : (
           <div className="bento-card p-12 text-center">
