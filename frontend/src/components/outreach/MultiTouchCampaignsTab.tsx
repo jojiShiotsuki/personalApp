@@ -893,7 +893,7 @@ function SequencePipelineView({
                       </span>
                     </div>
                     {col.requiresLinkedInConnected && (
-                      <UserCheck className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" title="Only for LinkedIn connected prospects" />
+                      <span title="Only for LinkedIn connected prospects"><UserCheck className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" /></span>
                     )}
                     <span className="text-xs bg-stone-700/60 text-[--exec-text-muted] px-2 py-0.5 rounded-full font-medium flex-shrink-0">
                       {bucket.length}
