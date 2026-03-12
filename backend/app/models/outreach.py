@@ -196,6 +196,7 @@ class MultiTouchStep(Base):
     template_subject = Column(String(500), nullable=True)  # for email steps
     template_content = Column(Text, nullable=True)  # for email/message steps
     instruction_text = Column(String(500), nullable=True)  # guidance shown in queue
+    requires_linkedin_connected = Column(Boolean, default=False, server_default="0")  # only runs if prospect accepted LinkedIn connection
 
     campaign = relationship("OutreachCampaign", back_populates="multi_touch_steps")
 

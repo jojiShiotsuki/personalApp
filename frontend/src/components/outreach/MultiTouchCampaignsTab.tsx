@@ -770,13 +770,14 @@ function SequencePipelineView({
   }
 
   // Build step columns: use campaignSteps if available, otherwise derive from prospect data
-  let stepColumns: { stepNumber: number; channelType?: StepChannelType; label: string }[];
+  let stepColumns: { stepNumber: number; channelType?: StepChannelType; label: string; requiresLinkedInConnected?: boolean }[];
 
   if (campaignSteps.length > 0) {
     stepColumns = campaignSteps.map((step) => ({
       stepNumber: step.step_number,
       channelType: step.channel_type as StepChannelType,
       label: CHANNEL_LABELS[step.channel_type as StepChannelType] || step.channel_type,
+      requiresLinkedInConnected: step.requires_linkedin_connected,
     }));
     const definedStepNums = new Set(campaignSteps.map((s) => s.step_number));
     for (const stepNum of Object.keys(stepBuckets).map(Number).sort((a, b) => a - b)) {
@@ -891,6 +892,9 @@ function SequencePipelineView({
                         {col.label}
                       </span>
                     </div>
+                    {col.requiresLinkedInConnected && (
+                      <UserCheck className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" title="Only for LinkedIn connected prospects" />
+                    )}
                     <span className="text-xs bg-stone-700/60 text-[--exec-text-muted] px-2 py-0.5 rounded-full font-medium flex-shrink-0">
                       {bucket.length}
                     </span>
@@ -1136,6 +1140,14 @@ function SequenceStepsPanel({
                           ? 'no delay'
                           : `wait ${step.delay_days}d after prev`}
                     </span>
+
+                    {/* LinkedIn connected only badge */}
+                    {step.requires_linkedin_connected && (
+                      <div className="flex items-center gap-1 mt-0.5">
+                        <UserCheck className="w-3 h-3 text-emerald-400" />
+                        <span className="text-[10px] text-emerald-400 font-medium">Connected only</span>
+                      </div>
+                    )}
 
                     {/* Instruction text */}
                     {step.instruction_text && (

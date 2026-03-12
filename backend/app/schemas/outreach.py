@@ -148,6 +148,7 @@ class MultiTouchStepCreate(BaseModel):
     template_subject: Optional[str] = Field(None, max_length=500)
     template_content: Optional[str] = None
     instruction_text: Optional[str] = Field(None, max_length=500)
+    requires_linkedin_connected: bool = False
 
 
 class MultiTouchStepResponse(MultiTouchStepCreate):

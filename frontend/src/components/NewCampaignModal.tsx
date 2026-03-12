@@ -5,7 +5,7 @@ import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea
 import { coldOutreachApi } from '@/lib/api';
 import type { OutreachCampaign, MultiTouchStepCreate } from '@/types';
 import { CampaignType, StepChannelType } from '@/types';
-import { X, Plus, Trash2, Mail, Linkedin, MessageCircle, Heart, Reply, ChevronDown, GripVertical } from 'lucide-react';
+import { X, Plus, Trash2, Mail, Linkedin, MessageCircle, Heart, Reply, ChevronDown, GripVertical, UserCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -66,6 +66,7 @@ export default function NewCampaignModal({
           template_subject: s.template_subject,
           template_content: s.template_content,
           instruction_text: s.instruction_text,
+          requires_linkedin_connected: s.requires_linkedin_connected || false,
         })));
       } else {
         setSteps([]);
@@ -387,6 +388,20 @@ export default function NewCampaignModal({
                                         placeholder="Instruction shown in queue..."
                                         className={cn(inputClasses, 'py-1.5 text-xs')}
                                       />
+
+                                      {/* LinkedIn connected only toggle */}
+                                      <label className="flex items-center gap-2 cursor-pointer group/toggle">
+                                        <input
+                                          type="checkbox"
+                                          checked={step.requires_linkedin_connected || false}
+                                          onChange={(e) => updateStep(index, { requires_linkedin_connected: e.target.checked })}
+                                          className="w-3.5 h-3.5 text-emerald-500 bg-stone-700 border-stone-600 rounded focus:ring-emerald-500/30 cursor-pointer"
+                                        />
+                                        <UserCheck className="w-3.5 h-3.5 text-emerald-400/60 group-hover/toggle:text-emerald-400 transition-colors" />
+                                        <span className="text-[11px] text-[--exec-text-muted] group-hover/toggle:text-[--exec-text-secondary] transition-colors">
+                                          Only if LinkedIn connected
+                                        </span>
+                                      </label>
 
                                       {/* Template fields for email/message/connect steps */}
                                       {(step.channel_type === StepChannelType.EMAIL ||

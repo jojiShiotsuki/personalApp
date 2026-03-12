@@ -29,13 +29,18 @@ router = APIRouter(prefix="/api/outreach/campaigns", tags=["cold-outreach"])
 
 # ============== HELPER FUNCTIONS ==============
 
-def find_next_step(steps: dict, current_step: int):
+def find_next_step(steps: dict, current_step: int, prospect=None):
     """Find the next step after current_step by sorted step numbers.
-    Handles non-contiguous step numbers (e.g., steps 1, 2, 4, 5 after step 3 was deleted)."""
+    Handles non-contiguous step numbers (e.g., steps 1, 2, 4, 5 after step 3 was deleted).
+    Skips steps that require LinkedIn connected if the prospect isn't connected."""
     sorted_nums = sorted(steps.keys())
     for num in sorted_nums:
         if num > current_step:
-            return num, steps[num]
+            step = steps[num]
+            # Skip steps requiring LinkedIn connection if prospect isn't connected
+            if prospect and getattr(step, 'requires_linkedin_connected', False) and not getattr(prospect, 'linkedin_connected', False):
+                continue
+            return num, step
     return None, None
 
 
@@ -208,6 +213,7 @@ def create_campaign(data: CampaignCreate, db: Session = Depends(get_db)):
                 template_subject=step_data.template_subject,
                 template_content=step_data.template_content,
                 instruction_text=step_data.instruction_text,
+                requires_linkedin_connected=step_data.requires_linkedin_connected,
             )
             db.add(step)
 
@@ -840,6 +846,7 @@ def update_campaign_steps(campaign_id: int, steps: List[MultiTouchStepCreate], d
             template_subject=step_data.template_subject,
             template_content=step_data.template_content,
             instruction_text=step_data.instruction_text,
+            requires_linkedin_connected=step_data.requires_linkedin_connected,
         )
         db.add(step)
         new_steps.append(step)
@@ -870,7 +877,7 @@ def advance_multi_touch_prospect(campaign_id: int, prospect_id: int, db: Session
     prospect.last_contacted_at = datetime.utcnow()
 
     # Find the actual next step (handles non-contiguous step numbers)
-    next_step_num, next_step = find_next_step(steps, current_step)
+    next_step_num, next_step = find_next_step(steps, current_step, prospect)
 
     if not next_step:
         # Sequence complete
@@ -911,7 +918,7 @@ def mark_engaged(campaign_id: int, prospect_id: int, db: Session = Depends(get_d
     current_step = prospect.current_step
 
     # Find the actual next step (handles non-contiguous step numbers)
-    next_step_num, next_step = find_next_step(steps, current_step)
+    next_step_num, next_step = find_next_step(steps, current_step, prospect)
 
     if not next_step:
         prospect.status = ProspectStatus.NOT_INTERESTED

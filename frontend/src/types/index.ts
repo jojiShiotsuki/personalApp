@@ -793,6 +793,7 @@ export interface MultiTouchStep {
   template_subject?: string;
   template_content?: string;
   instruction_text?: string;
+  requires_linkedin_connected?: boolean;
 }
 
 export interface MultiTouchStepCreate {
@@ -802,6 +803,7 @@ export interface MultiTouchStepCreate {
   template_subject?: string;
   template_content?: string;
   instruction_text?: string;
+  requires_linkedin_connected?: boolean;
 }
 
 export interface OutreachCampaign {
