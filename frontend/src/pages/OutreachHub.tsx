@@ -2,14 +2,13 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { coldOutreachApi, leadDiscoveryApi } from '@/lib/api';
+import { coldOutreachApi } from '@/lib/api';
 import type { OutreachProspect } from '@/types';
 import {
   Send,
   Mail,
   Search,
   MessageCircle,
-  Database,
   Linkedin,
   Layers,
   X,
@@ -20,12 +19,10 @@ import ProspectStatusBadge from '@/components/outreach/ProspectStatusBadge';
 
 // Import tab content components
 import DMScriptsTab from '@/components/outreach/DMScriptsTab';
-import EmailCampaignsTab from '@/components/outreach/EmailCampaignsTab';
 import LinkedInCampaignsTab from '@/components/outreach/LinkedInCampaignsTab';
-import LeadDiscoveryTab from '@/components/outreach/LeadDiscoveryTab';
 import MultiTouchCampaignsTab from '@/components/outreach/MultiTouchCampaignsTab';
 
-type TabType = 'dm-scripts' | 'email-campaigns' | 'linkedin-campaigns' | 'multi-touch' | 'lead-discovery';
+type TabType = 'dm-scripts' | 'linkedin-campaigns' | 'multi-touch';
 
 const tabs = [
   {
@@ -33,12 +30,6 @@ const tabs = [
     name: 'DM Scripts',
     icon: MessageCircle,
     description: 'TikTok cold outreach scripts',
-  },
-  {
-    id: 'email-campaigns' as TabType,
-    name: 'Email Campaigns',
-    icon: Mail,
-    description: 'Cold email sequences',
   },
   {
     id: 'linkedin-campaigns' as TabType,
@@ -51,12 +42,6 @@ const tabs = [
     name: 'Multi-Touch',
     icon: Layers,
     description: 'Cross-channel sequences',
-  },
-  {
-    id: 'lead-discovery' as TabType,
-    name: 'Lead Discovery',
-    icon: Search,
-    description: 'AI-powered prospecting',
   },
 ];
 
@@ -107,11 +92,6 @@ export default function OutreachHub() {
     queryFn: () => coldOutreachApi.getCampaigns(),
   });
 
-  const { data: leadStats } = useQuery({
-    queryKey: ['lead-discovery-stats'],
-    queryFn: leadDiscoveryApi.getStats,
-  });
-
   // Global prospect search (across all campaigns)
   const { data: searchResults = [], isFetching: isSearching } = useQuery<OutreachProspect[]>({
     queryKey: ['global-prospect-search', globalSearch],
@@ -126,7 +106,6 @@ export default function OutreachHub() {
 
   // Calculate totals for stats
   const totalCampaigns = campaigns.length;
-  const totalLeads = leadStats?.total_leads || 0;
 
   // Get campaign name by id for search results
   const getCampaignName = (campaignId: number) => {
@@ -172,12 +151,6 @@ export default function OutreachHub() {
                 <Mail className="w-4 h-4 text-blue-500" />
                 <span className="text-sm font-medium text-[--exec-text]">
                   {totalCampaigns} campaigns
-                </span>
-              </div>
-              <div className="flex items-center gap-2 px-4 py-2 bg-[--exec-surface-alt] rounded-xl">
-                <Database className="w-4 h-4 text-green-500" />
-                <span className="text-sm font-medium text-[--exec-text]">
-                  {totalLeads} leads saved
                 </span>
               </div>
             </div>
@@ -282,7 +255,7 @@ export default function OutreachHub() {
                       const type = campaign.campaign_type;
                       if (type === 'MULTI_TOUCH') handleTabChange('multi-touch');
                       else if (type === 'LINKEDIN') handleTabChange('linkedin-campaigns');
-                      else handleTabChange('email-campaigns');
+                      else handleTabChange('multi-touch');
                     }
                     setGlobalSearch('');
                     setIsSearchFocused(false);
@@ -320,10 +293,8 @@ export default function OutreachHub() {
       {/* Tab Content */}
       <div className="animate-fade-slide-up delay-5">
         {activeTab === 'dm-scripts' && <DMScriptsTab />}
-        {activeTab === 'email-campaigns' && <EmailCampaignsTab initialCampaignId={jumpToCampaign?.id} initialProspectId={jumpToCampaign?.prospectId} key={`email-${jumpToCampaign?.ts ?? 0}`} />}
         {activeTab === 'linkedin-campaigns' && <LinkedInCampaignsTab initialCampaignId={jumpToCampaign?.id} initialProspectId={jumpToCampaign?.prospectId} key={`linkedin-${jumpToCampaign?.ts ?? 0}`} />}
         {activeTab === 'multi-touch' && <MultiTouchCampaignsTab initialCampaignId={jumpToCampaign?.id} initialProspectId={jumpToCampaign?.prospectId} key={`mt-${jumpToCampaign?.ts ?? 0}`} />}
-        {activeTab === 'lead-discovery' && <LeadDiscoveryTab />}
       </div>
     </div>
   );
