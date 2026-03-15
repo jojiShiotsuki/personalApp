@@ -489,6 +489,7 @@ function PipelineProspectCard({
   onMarkResponse,
   onMarkConnected,
   isMuted,
+  isHighlighted,
 }: {
   prospect: OutreachProspect;
   onEdit: (prospect: OutreachProspect) => void;
@@ -496,19 +497,32 @@ function PipelineProspectCard({
   onMarkResponse: (prospect: OutreachProspect) => void;
   onMarkConnected?: (prospect: OutreachProspect) => void;
   isMuted?: boolean;
+  isHighlighted?: boolean;
 }) {
+  const cardRef = useRef<HTMLDivElement>(null);
   const dueToday = isDueToday(prospect.next_action_date);
   const hasCustomMessage = !!(prospect.custom_email_subject || prospect.custom_email_body);
 
+  // Scroll into view when highlighted
+  useEffect(() => {
+    if (isHighlighted && cardRef.current) {
+      setTimeout(() => {
+        cardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+      }, 300);
+    }
+  }, [isHighlighted]);
+
   return (
     <div
+      ref={cardRef}
       className={cn(
         'bento-card p-4 transition-all duration-200 group',
         isMuted
           ? 'opacity-50 hover:opacity-75'
           : dueToday
             ? 'border-[--exec-accent]/40 shadow-[0_0_10px_rgba(var(--exec-accent-rgb,59,130,246),0.12)] hover:shadow-[0_0_16px_rgba(var(--exec-accent-rgb,59,130,246),0.2)]'
-            : 'hover:shadow-lg hover:-translate-y-0.5'
+            : 'hover:shadow-lg hover:-translate-y-0.5',
+        isHighlighted && 'ring-2 ring-amber-400 shadow-[0_0_20px_rgba(251,191,36,0.3)] animate-pulse'
       )}
     >
       {/* Header row: agency name + actions */}
@@ -709,6 +723,7 @@ function SequencePipelineView({
   onViewMessage,
   onMarkResponse,
   onMarkConnected,
+  highlightProspectId,
 }: {
   prospects: OutreachProspect[];
   campaignSteps: MultiTouchStep[];
@@ -716,6 +731,7 @@ function SequencePipelineView({
   onViewMessage: (prospect: OutreachProspect) => void;
   onMarkResponse: (prospect: OutreachProspect) => void;
   onMarkConnected: (prospect: OutreachProspect) => void;
+  highlightProspectId?: number;
 }) {
   const [showSkipped, setShowSkipped] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>('date_asc');
@@ -921,6 +937,7 @@ function SequencePipelineView({
                         onViewMessage={onViewMessage}
                         onMarkResponse={onMarkResponse}
                         onMarkConnected={onMarkConnected}
+                        isHighlighted={prospect.id === highlightProspectId}
                       />
                     ))
                   )}
@@ -975,6 +992,7 @@ function SequencePipelineView({
                         onEdit={onEdit}
                         onViewMessage={onViewMessage}
                         onMarkResponse={onMarkResponse}
+                        isHighlighted={prospect.id === highlightProspectId}
                       />
                     ))
                   )}
@@ -1019,6 +1037,7 @@ function SequencePipelineView({
                     onViewMessage={onViewMessage}
                     onMarkResponse={onMarkResponse}
                     isMuted
+                    isHighlighted={prospect.id === highlightProspectId}
                   />
                 ))}
               </div>
@@ -1210,14 +1229,17 @@ export default function MultiTouchCampaignsTab({ initialCampaignId, initialProsp
     enabled: !!selectedCampaignId,
   });
 
-  // Auto-open edit modal when navigating from global search (fire once only)
+  // Highlight + scroll to prospect when navigating from global search
+  const [highlightProspectId, setHighlightProspectId] = useState<number | undefined>(undefined);
   const didAutoOpen = useRef(false);
   useEffect(() => {
     if (initialProspectId && !didAutoOpen.current) {
       const prospect = allProspects.find((p) => p.id === initialProspectId);
       if (prospect) {
-        setEditingProspect(prospect);
+        setHighlightProspectId(initialProspectId);
         didAutoOpen.current = true;
+        // Clear highlight after 4 seconds
+        setTimeout(() => setHighlightProspectId(undefined), 4000);
       }
     }
   }, [initialProspectId, allProspects]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -1567,6 +1589,7 @@ export default function MultiTouchCampaignsTab({ initialCampaignId, initialProsp
             onViewMessage={setEmailModalProspect}
             onMarkResponse={setResponseModalProspect}
             onMarkConnected={(prospect) => markConnectedMutation.mutate(prospect.id)}
+            highlightProspectId={highlightProspectId}
           />
         ) : (
           <div className="bento-card p-12 text-center">
