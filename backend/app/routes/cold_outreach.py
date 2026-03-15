@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 from app.database import get_db
 from app.models.outreach import (
     OutreachCampaign, OutreachProspect, OutreachEmailTemplate,
-    OutreachTemplate, OutreachNiche, MultiTouchStep,
+    OutreachTemplate, OutreachNiche, MultiTouchStep, CampaignSearchKeyword,
     ProspectStatus, ResponseType, CampaignStatus, CampaignType, StepChannelType
 )
 from app.models.crm import Contact, Deal, ContactStatus, DealStage, Interaction, InteractionType
@@ -22,6 +22,7 @@ from app.schemas.outreach import (
     EmailTemplateCreate, EmailTemplateResponse,
     RenderedEmail,
     MultiTouchStepCreate, MultiTouchStepResponse,
+    SearchKeywordBulkCreate, SearchKeywordResponse, SearchKeywordUpdate,
 )
 
 router = APIRouter(prefix="/api/outreach/campaigns", tags=["cold-outreach"])
@@ -1106,3 +1107,119 @@ def render_email(prospect_id: int, template_type: Optional[str] = None, db: Sess
         prospect_id=prospect.id,
         step_number=prospect.current_step
     )
+
+
+# ============== SEARCH KEYWORDS ==============
+
+@router.get("/{campaign_id}/search-keywords", response_model=List[SearchKeywordResponse])
+def get_search_keywords(campaign_id: int, db: Session = Depends(get_db)):
+    """List all search keywords for a campaign."""
+    campaign = db.query(OutreachCampaign).filter(OutreachCampaign.id == campaign_id).first()
+    if not campaign:
+        raise HTTPException(status_code=404, detail="Campaign not found")
+    keywords = db.query(CampaignSearchKeyword).filter(
+        CampaignSearchKeyword.campaign_id == campaign_id
+    ).order_by(CampaignSearchKeyword.category, CampaignSearchKeyword.keyword).all()
+    return keywords
+
+
+@router.post("/{campaign_id}/search-keywords/bulk", response_model=List[SearchKeywordResponse])
+def bulk_create_search_keywords(
+    campaign_id: int,
+    data: SearchKeywordBulkCreate,
+    db: Session = Depends(get_db)
+):
+    """Bulk create search keywords for a campaign. Skips duplicates."""
+    campaign = db.query(OutreachCampaign).filter(OutreachCampaign.id == campaign_id).first()
+    if not campaign:
+        raise HTTPException(status_code=404, detail="Campaign not found")
+
+    created = []
+    for kw in data.keywords:
+        kw_stripped = kw.strip()
+        if not kw_stripped:
+            continue
+        existing = db.query(CampaignSearchKeyword).filter(
+            CampaignSearchKeyword.campaign_id == campaign_id,
+            CampaignSearchKeyword.category == data.category,
+            CampaignSearchKeyword.keyword == kw_stripped,
+        ).first()
+        if existing:
+            continue
+        new_kw = CampaignSearchKeyword(
+            campaign_id=campaign_id,
+            category=data.category,
+            keyword=kw_stripped,
+        )
+        db.add(new_kw)
+        created.append(new_kw)
+
+    db.commit()
+    for kw in created:
+        db.refresh(kw)
+    return created
+
+
+@router.patch("/search-keywords/{keyword_id}/toggle", response_model=SearchKeywordResponse)
+def toggle_search_keyword(
+    keyword_id: int,
+    leads_found: Optional[int] = None,
+    db: Session = Depends(get_db)
+):
+    """Toggle the searched status of a keyword."""
+    keyword = db.query(CampaignSearchKeyword).filter(CampaignSearchKeyword.id == keyword_id).first()
+    if not keyword:
+        raise HTTPException(status_code=404, detail="Keyword not found")
+
+    keyword.is_searched = not keyword.is_searched
+    if keyword.is_searched:
+        keyword.searched_at = datetime.utcnow()
+        if leads_found is not None:
+            keyword.leads_found = leads_found
+    else:
+        keyword.searched_at = None
+
+    db.commit()
+    db.refresh(keyword)
+    return keyword
+
+
+@router.patch("/search-keywords/{keyword_id}", response_model=SearchKeywordResponse)
+def update_search_keyword(
+    keyword_id: int,
+    data: SearchKeywordUpdate,
+    db: Session = Depends(get_db)
+):
+    """Update a keyword's fields (leads_found, is_searched) without toggling."""
+    keyword = db.query(CampaignSearchKeyword).filter(CampaignSearchKeyword.id == keyword_id).first()
+    if not keyword:
+        raise HTTPException(status_code=404, detail="Keyword not found")
+
+    for key, value in data.model_dump(exclude_unset=True).items():
+        setattr(keyword, key, value)
+
+    db.commit()
+    db.refresh(keyword)
+    return keyword
+
+
+@router.delete("/search-keywords/{keyword_id}")
+def delete_search_keyword(keyword_id: int, db: Session = Depends(get_db)):
+    """Delete a single search keyword."""
+    keyword = db.query(CampaignSearchKeyword).filter(CampaignSearchKeyword.id == keyword_id).first()
+    if not keyword:
+        raise HTTPException(status_code=404, detail="Keyword not found")
+    db.delete(keyword)
+    db.commit()
+    return {"message": "Keyword deleted"}
+
+
+@router.delete("/{campaign_id}/search-keywords/category/{category}")
+def delete_search_keyword_category(campaign_id: int, category: str, db: Session = Depends(get_db)):
+    """Delete all keywords in a category for a campaign."""
+    deleted = db.query(CampaignSearchKeyword).filter(
+        CampaignSearchKeyword.campaign_id == campaign_id,
+        CampaignSearchKeyword.category == category,
+    ).delete()
+    db.commit()
+    return {"message": f"Deleted {deleted} keywords from category '{category}'"}

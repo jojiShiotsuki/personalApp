@@ -81,6 +81,7 @@ import type {
   TaskNote,
   MultiTouchStep,
   MultiTouchStepCreate,
+  CampaignSearchKeyword,
 } from '../types/index';
 import {
   TaskStatus,
@@ -848,6 +849,37 @@ export const coldOutreachApi = {
   markMtConnected: async (campaignId: number, prospectId: number): Promise<{ prospect: OutreachProspect; next_action_date?: string; message: string }> => {
     const response = await api.post(`/api/outreach/campaigns/${campaignId}/prospects/${prospectId}/mark-mt-connected`);
     return response.data;
+  },
+
+  // Search Keywords
+  getSearchKeywords: async (campaignId: number): Promise<CampaignSearchKeyword[]> => {
+    const response = await api.get(`/api/outreach/campaigns/${campaignId}/search-keywords`);
+    return response.data;
+  },
+
+  bulkCreateKeywords: async (campaignId: number, data: { category: string; keywords: string[] }): Promise<CampaignSearchKeyword[]> => {
+    const response = await api.post(`/api/outreach/campaigns/${campaignId}/search-keywords/bulk`, data);
+    return response.data;
+  },
+
+  toggleKeywordSearched: async (keywordId: number, leadsFound?: number): Promise<CampaignSearchKeyword> => {
+    const params: Record<string, string> = {};
+    if (leadsFound !== undefined) params.leads_found = String(leadsFound);
+    const response = await api.patch(`/api/outreach/campaigns/search-keywords/${keywordId}/toggle`, null, { params });
+    return response.data;
+  },
+
+  updateKeyword: async (keywordId: number, data: { is_searched?: boolean; leads_found?: number }): Promise<CampaignSearchKeyword> => {
+    const response = await api.patch(`/api/outreach/campaigns/search-keywords/${keywordId}`, data);
+    return response.data;
+  },
+
+  deleteKeyword: async (keywordId: number): Promise<void> => {
+    await api.delete(`/api/outreach/campaigns/search-keywords/${keywordId}`);
+  },
+
+  deleteKeywordCategory: async (campaignId: number, category: string): Promise<void> => {
+    await api.delete(`/api/outreach/campaigns/${campaignId}/search-keywords/category/${encodeURIComponent(category)}`);
   },
 };
 

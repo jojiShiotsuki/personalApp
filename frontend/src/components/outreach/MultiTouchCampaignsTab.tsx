@@ -45,6 +45,7 @@ import NewCampaignModal from '@/components/NewCampaignModal';
 import CopyEmailModal from '@/components/CopyEmailModal';
 import ProspectStatusBadge from '@/components/outreach/ProspectStatusBadge';
 import ResponseOutcomeModal from '@/components/ResponseOutcomeModal';
+import CampaignKeywordTracker from './CampaignKeywordTracker';
 import { WEBSITE_ISSUE_LABELS } from '@/lib/outreachConstants';
 
 // Channel type colors for step indicators and badges
@@ -1560,6 +1561,11 @@ export default function MultiTouchCampaignsTab({ initialCampaignId, initialProsp
               </div>
             </div>
           </div>
+        )}
+
+        {/* Search Keyword Tracker */}
+        {selectedCampaignId && (
+          <CampaignKeywordTracker campaignId={selectedCampaignId} />
         )}
 
         {/* Sequence Steps Panel */}

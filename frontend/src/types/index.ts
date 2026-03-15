@@ -1019,6 +1019,18 @@ export interface SearchPlannerStats {
   linkedin_leads_found: number;
 }
 
+// Campaign Search Keyword Types
+export interface CampaignSearchKeyword {
+  id: number;
+  campaign_id: number;
+  category: string;
+  keyword: string;
+  is_searched: boolean;
+  searched_at: string | null;
+  leads_found: number;
+  created_at: string;
+}
+
 export interface LeadImportRequest {
   leads: DiscoveredLead[];
   campaign_id: number;

@@ -349,3 +349,31 @@ class RenderedEmail(BaseModel):
     body: str
     prospect_id: int
     step_number: int
+
+
+# Search Keyword Schemas
+class SearchKeywordBase(BaseModel):
+    category: str = Field(..., min_length=1, max_length=255)
+    keyword: str = Field(..., min_length=1, max_length=500)
+
+
+class SearchKeywordBulkCreate(BaseModel):
+    category: str = Field(..., min_length=1, max_length=255)
+    keywords: List[str]
+
+
+class SearchKeywordResponse(SearchKeywordBase):
+    id: int
+    campaign_id: int
+    is_searched: bool
+    searched_at: Optional[datetime] = None
+    leads_found: int
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class SearchKeywordUpdate(BaseModel):
+    is_searched: Optional[bool] = None
+    leads_found: Optional[int] = None

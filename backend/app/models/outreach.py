@@ -114,6 +114,7 @@ class OutreachCampaign(Base):
     prospects = relationship("OutreachProspect", back_populates="campaign", cascade="all, delete-orphan")
     email_templates = relationship("OutreachEmailTemplate", back_populates="campaign", cascade="all, delete-orphan")
     multi_touch_steps = relationship("MultiTouchStep", back_populates="campaign", cascade="all, delete-orphan", order_by="MultiTouchStep.step_number")
+    search_keywords = relationship("CampaignSearchKeyword", back_populates="campaign", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<OutreachCampaign(id={self.id}, name={self.name}, status={self.status})>"
@@ -238,6 +239,28 @@ class DiscoveredLead(Base):
 
     def __repr__(self):
         return f"<DiscoveredLead(id={self.id}, agency_name={self.agency_name}, website={self.website})>"
+
+
+class CampaignSearchKeyword(Base):
+    __tablename__ = "campaign_search_keywords"
+
+    id = Column(Integer, primary_key=True, index=True)
+    campaign_id = Column(Integer, ForeignKey("outreach_campaigns.id", ondelete="CASCADE"), nullable=False, index=True)
+    category = Column(String(255), nullable=False)
+    keyword = Column(String(500), nullable=False)
+    is_searched = Column(Boolean, default=False, nullable=False, server_default='0')
+    searched_at = Column(DateTime, nullable=True)
+    leads_found = Column(Integer, default=0, nullable=False, server_default='0')
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    campaign = relationship("OutreachCampaign", back_populates="search_keywords")
+
+    __table_args__ = (
+        UniqueConstraint('campaign_id', 'category', 'keyword', name='uq_campaign_category_keyword'),
+    )
+
+    def __repr__(self):
+        return f"<CampaignSearchKeyword(id={self.id}, campaign_id={self.campaign_id}, category={self.category}, keyword={self.keyword})>"
 
 
 class SearchPlannerCombination(Base):
