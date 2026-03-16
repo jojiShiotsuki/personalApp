@@ -1663,6 +1663,7 @@ export default function MultiTouchCampaignsTab({ initialCampaignId, initialProsp
           onClose={() => setEmailModalProspect(null)}
           prospect={emailModalProspect}
           campaignId={selectedCampaignId ?? undefined}
+          multiTouchSteps={campaignSteps}
         />
       )}
 

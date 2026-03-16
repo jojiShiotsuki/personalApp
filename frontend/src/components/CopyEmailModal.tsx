@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { coldOutreachApi } from '@/lib/api';
-import type { OutreachProspect, RenderedEmail } from '@/types';
+import type { OutreachProspect, RenderedEmail, MultiTouchStep } from '@/types';
 import { X, Mail, Copy, Check, Loader2, ChevronDown, AlertTriangle, Edit2, RotateCcw, ArrowRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -12,6 +12,7 @@ interface CopyEmailModalProps {
   onClose: () => void;
   prospect: OutreachProspect;
   campaignId?: number;
+  multiTouchSteps?: MultiTouchStep[];
 }
 
 const EMAIL_TEMPLATES = [
@@ -55,8 +56,13 @@ export default function CopyEmailModal({
   onClose,
   prospect,
   campaignId,
+  multiTouchSteps,
 }: CopyEmailModalProps) {
-  const defaultType = STEP_TO_TYPE[prospect.current_step] || 'email_1';
+  // When multi-touch steps are available, use step-based templates
+  const hasStepTemplates = multiTouchSteps && multiTouchSteps.length > 0;
+  const defaultType = hasStepTemplates
+    ? String(prospect.current_step)
+    : (STEP_TO_TYPE[prospect.current_step] || 'email_1');
   const [selectedTemplate, setSelectedTemplate] = useState(defaultType);
   const [copiedField, setCopiedField] = useState<'to' | 'subject' | 'body' | 'all' | null>(null);
   const [selectedIssue, setSelectedIssue] = useState<string | null>(null);
@@ -77,12 +83,29 @@ export default function CopyEmailModal({
     return DEFAULT_ISSUE_DESCRIPTIONS[issueKey]?.description || issueKey;
   };
 
-  // Query rendered email with selected template type
-  const { data: rawEmail, isLoading, error } = useQuery<RenderedEmail>({
+  // Build email from multi-touch step templates (client-side)
+  const stepEmail = useMemo<RenderedEmail | null>(() => {
+    if (!hasStepTemplates) return null;
+    const stepNum = parseInt(selectedTemplate, 10);
+    const step = multiTouchSteps.find(s => s.step_number === stepNum);
+    if (!step) return null;
+    return {
+      to_email: prospect.email || '',
+      subject: step.template_subject || '',
+      body: step.template_content || '',
+      prospect_id: prospect.id,
+      step_number: step.step_number,
+    };
+  }, [hasStepTemplates, multiTouchSteps, selectedTemplate, prospect]);
+
+  // Query rendered email with selected template type (only for non-multi-touch)
+  const { data: rawEmailFromApi, isLoading, error } = useQuery<RenderedEmail>({
     queryKey: ['rendered-email', prospect.id, selectedTemplate],
     queryFn: () => coldOutreachApi.renderEmail(prospect.id, selectedTemplate),
-    enabled: isOpen,
+    enabled: isOpen && !hasStepTemplates,
   });
+
+  const rawEmail = hasStepTemplates ? stepEmail : rawEmailFromApi;
 
   // Build prospect variable replacements
   const prospectVars = useMemo(() => {
@@ -431,11 +454,20 @@ export default function CopyEmailModal({
                   'transition-all cursor-pointer'
                 )}
               >
-                {EMAIL_TEMPLATES.map((t) => (
-                  <option key={t.value} value={t.value}>
-                    {t.label}{t.value === defaultType ? ' (Current Step)' : ''}
-                  </option>
-                ))}
+                {hasStepTemplates
+                  ? multiTouchSteps.map((step) => (
+                      <option key={step.step_number} value={String(step.step_number)}>
+                        Step {step.step_number} — {step.channel_type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+                        {String(step.step_number) === defaultType ? ' (Current)' : ''}
+                        {step.template_subject ? ` · ${step.template_subject.slice(0, 40)}` : ''}
+                      </option>
+                    ))
+                  : EMAIL_TEMPLATES.map((t) => (
+                      <option key={t.value} value={t.value}>
+                        {t.label}{t.value === defaultType ? ' (Current Step)' : ''}
+                      </option>
+                    ))
+                }
               </select>
               <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[--exec-text-muted] pointer-events-none" />
             </div>

@@ -232,20 +232,12 @@ def get_campaign(campaign_id: int, db: Session = Depends(get_db)):
 
     stats = get_campaign_stats(campaign, db)
 
-    return CampaignWithStats(
-        id=campaign.id,
-        name=campaign.name,
-        status=campaign.status,
-        campaign_type=campaign.campaign_type,
-        step_1_delay=campaign.step_1_delay,
-        step_2_delay=campaign.step_2_delay,
-        step_3_delay=campaign.step_3_delay,
-        step_4_delay=campaign.step_4_delay,
-        step_5_delay=campaign.step_5_delay,
-        created_at=campaign.created_at,
-        updated_at=campaign.updated_at,
-        stats=stats
-    )
+    # Force-load the relationship before serialization
+    _ = campaign.multi_touch_steps
+
+    response = CampaignWithStats.model_validate(campaign, from_attributes=True)
+    response.stats = stats
+    return response
 
 
 @router.put("/{campaign_id}", response_model=CampaignResponse)
