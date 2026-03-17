@@ -142,7 +142,7 @@ def search_prospects(
     q: str,
     db: Session = Depends(get_db)
 ):
-    """Search prospects across all campaigns by name, email, agency name, or niche."""
+    """Search prospects across all campaigns by agency name, contact name, email, niche, website, notes, or social URLs."""
     if not q or len(q.strip()) < 2:
         return []
 
@@ -154,6 +154,11 @@ def search_prospects(
             OutreachProspect.contact_name.ilike(search_term),
             OutreachProspect.email.ilike(search_term),
             OutreachProspect.niche.ilike(search_term),
+            OutreachProspect.website.ilike(search_term),
+            OutreachProspect.notes.ilike(search_term),
+            OutreachProspect.linkedin_url.ilike(search_term),
+            OutreachProspect.facebook_url.ilike(search_term),
+            OutreachProspect.instagram_url.ilike(search_term),
         )
     ).order_by(OutreachProspect.id.desc()).limit(50).all()
 
