@@ -168,15 +168,14 @@ def upgrade() -> None:
     if result:
         return  # Already seeded
 
-    # Insert project
+    # Insert project (color column may not exist on all environments)
     conn.execute(sa.text(
-        "INSERT INTO projects (name, description, status, color, created_at, updated_at) "
-        "VALUES (:name, :desc, :status, :color, :created, :updated)"
+        "INSERT INTO projects (name, description, status, created_at, updated_at) "
+        "VALUES (:name, :desc, :status, :created, :updated)"
     ), {
         "name": "Phase 2 Email Warmup and Cold Outreach",
         "desc": "Days 22-51 Outreach Task Plan. Volume ramp: 20/day (Days 22-28) > 25/day (29-35) > 30/day (36-42) > 40/day (43-49) > 50/day (50-51). Target by Day 51: 1,000+ Step 1 emails sent, 3%+ reply rate, first deal closed.",
         "status": "active",
-        "color": "#3B82F6",
         "created": now,
         "updated": now,
     })
