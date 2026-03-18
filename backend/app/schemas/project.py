@@ -32,7 +32,7 @@ class ProjectUpdate(BaseModel):
 class ProjectResponse(ProjectBase):
     id: int
     status: ProjectStatus
-    progress: int
+    progress: int = 0
     notes: Optional[str] = None
     created_at: datetime
     updated_at: datetime
