@@ -7,13 +7,13 @@ import enum
 
 class CallOutcome(str, enum.Enum):
     """Outcome of the discovery call."""
-    SCHEDULED_FOLLOWUP = "scheduled_followup"
-    SENT_PROPOSAL = "sent_proposal"
-    NOT_A_FIT = "not_a_fit"
-    NEEDS_MORE_INFO = "needs_more_info"
-    CLOSED_DEAL = "closed_deal"
-    NO_SHOW = "no_show"
-    RESCHEDULED = "rescheduled"
+    SCHEDULED_FOLLOWUP = "SCHEDULED_FOLLOWUP"
+    SENT_PROPOSAL = "SENT_PROPOSAL"
+    NOT_A_FIT = "NOT_A_FIT"
+    NEEDS_MORE_INFO = "NEEDS_MORE_INFO"
+    CLOSED_DEAL = "CLOSED_DEAL"
+    NO_SHOW = "NO_SHOW"
+    RESCHEDULED = "RESCHEDULED"
 
 
 class DiscoveryCall(Base):

@@ -5,24 +5,24 @@ from app.database import Base
 import enum
 
 class TaskPriority(str, enum.Enum):
-    LOW = "low"
-    MEDIUM = "medium"
-    HIGH = "high"
-    URGENT = "urgent"
+    LOW = "LOW"
+    MEDIUM = "MEDIUM"
+    HIGH = "HIGH"
+    URGENT = "URGENT"
 
 class TaskStatus(str, enum.Enum):
-    PENDING = "pending"
-    IN_PROGRESS = "in_progress"
-    COMPLETED = "completed"
-    DELAYED = "delayed"
-    SKIPPED = "skipped"
-    WAITING_ON_CLIENT = "waiting_on_client"
+    PENDING = "PENDING"
+    IN_PROGRESS = "IN_PROGRESS"
+    COMPLETED = "COMPLETED"
+    DELAYED = "DELAYED"
+    SKIPPED = "SKIPPED"
+    WAITING_ON_CLIENT = "WAITING_ON_CLIENT"
 
 class RecurrenceType(str, enum.Enum):
-    DAILY = "daily"
-    WEEKLY = "weekly"
-    MONTHLY = "monthly"
-    YEARLY = "yearly"
+    DAILY = "DAILY"
+    WEEKLY = "WEEKLY"
+    MONTHLY = "MONTHLY"
+    YEARLY = "YEARLY"
 
 class Task(Base):
     __tablename__ = "tasks"

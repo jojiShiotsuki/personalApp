@@ -245,7 +245,7 @@ export default function SprintTracker() {
     );
   }
 
-  const isPaused = sprint.status === 'paused';
+  const isPaused = sprint.status === 'PAUSED';
   const currentWeek = sprint.weeks.find((w) => w.is_current_week);
 
   return (
@@ -290,7 +290,7 @@ export default function SprintTracker() {
           )}
 
           {/* Pause/Resume button */}
-          {sprint.status === 'active' && (
+          {sprint.status === 'ACTIVE' && (
             <button
               onClick={() => pauseMutation.mutate(sprint.id)}
               disabled={pauseMutation.isPending}

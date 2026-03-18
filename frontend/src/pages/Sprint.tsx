@@ -85,7 +85,7 @@ function exportSprintData(sprint: Sprint) {
         day.outreach_stats.looms.target;
     }
 
-    const dayTasksCompleted = day.tasks.filter(t => t.status === 'completed').length;
+    const dayTasksCompleted = day.tasks.filter(t => t.status === 'COMPLETED').length;
     totalTasks += day.tasks.length;
     completedTasks += dayTasksCompleted;
 
@@ -183,7 +183,7 @@ ${weakAreas.length > 0 ? `**Needs Improvement:** ${weakAreas.join(', ')}` : '**N
 ${sprint.weeks.map(week => {
   const weekDays = sprint.days?.filter((d: SprintDay) => d.week_number === week.week_number) || [];
   const weekTasks = weekDays.reduce((sum: number, d: SprintDay) => sum + d.tasks.length, 0);
-  const weekCompletedTasks = weekDays.reduce((sum: number, d: SprintDay) => sum + d.tasks.filter((t: Task) => t.status === 'completed').length, 0);
+  const weekCompletedTasks = weekDays.reduce((sum: number, d: SprintDay) => sum + d.tasks.filter((t: Task) => t.status === 'COMPLETED').length, 0);
   const weekEmails = weekDays.reduce((sum: number, d: SprintDay) => sum + (d.outreach_stats?.cold_emails.current || 0), 0);
   const weekLinkedIn = weekDays.reduce((sum: number, d: SprintDay) => sum + (d.outreach_stats?.linkedin.current || 0), 0);
   const weekCalls = weekDays.reduce((sum: number, d: SprintDay) => sum + (d.outreach_stats?.calls.current || 0), 0);
@@ -206,8 +206,8 @@ ${sprint.days?.map((day: SprintDay) => {
   const isElapsed = isPast(dayDate) || isToday(dayDate);
   const isCurrent = isToday(dayDate);
   const dayTasks = day.tasks;
-  const completed = dayTasks.filter((t: Task) => t.status === 'completed');
-  const pending = dayTasks.filter((t: Task) => t.status !== 'completed');
+  const completed = dayTasks.filter((t: Task) => t.status === 'COMPLETED');
+  const pending = dayTasks.filter((t: Task) => t.status !== 'COMPLETED');
 
   const dayOutreachCurrent = (day.outreach_stats?.cold_emails.current || 0) +
     (day.outreach_stats?.linkedin.current || 0) +
@@ -1254,7 +1254,7 @@ export default function SprintPage() {
                 Report
               </button>
 
-              {sprint.status === 'active' && (
+              {sprint.status === 'ACTIVE' && (
                 <>
                   {/* Day Navigation */}
                   <div className="flex items-center gap-2">
@@ -1319,7 +1319,7 @@ export default function SprintPage() {
                   )}
                 </>
               )}
-              {sprint.status === 'paused' && (
+              {sprint.status === 'PAUSED' && (
                 <button
                   onClick={() => resumeMutation.mutate(sprint.id)}
                   disabled={resumeMutation.isPending}
@@ -1425,12 +1425,12 @@ export default function SprintPage() {
                   Status
                 </p>
                 <div className="flex items-center gap-2 mt-2">
-                  {sprint.status === 'active' ? (
+                  {sprint.status === 'ACTIVE' ? (
                     <>
                       <div className="w-3 h-3 rounded-full bg-[--exec-sage] animate-pulse" />
                       <span className="font-bold text-[--exec-sage]">Active</span>
                     </>
-                  ) : sprint.status === 'paused' ? (
+                  ) : sprint.status === 'PAUSED' ? (
                     <>
                       <Pause className="w-5 h-5 text-[--exec-warning]" />
                       <span className="font-bold text-[--exec-warning]">Paused</span>
@@ -1543,9 +1543,9 @@ export default function SprintPage() {
                           <span
                             className={cn(
                               'text-xs font-medium px-2 py-1 rounded-full',
-                              pastSprint.status === 'completed'
+                              pastSprint.status === 'COMPLETED'
                                 ? 'bg-[--exec-sage-bg] text-[--exec-sage]'
-                                : pastSprint.status === 'abandoned'
+                                : pastSprint.status === 'ABANDONED'
                                   ? 'bg-[--exec-danger-bg] text-[--exec-danger]'
                                   : 'bg-[--exec-surface-alt] text-[--exec-text-muted]'
                             )}

@@ -36,54 +36,54 @@ const REPURPOSE_GROUPS: RepurposeGroup[] = [
     label: 'Short-form Video',
     dayOffset: 0,
     formats: [
-      { id: 'instagram_reel', label: 'Instagram Reel', icon: Instagram },
-      { id: 'tiktok_reel', label: 'TikTok Reel', icon: Video },
-      { id: 'youtube_short', label: 'YouTube Short', icon: Youtube },
-      { id: 'facebook_reel', label: 'Facebook Reel', icon: Facebook },
-      { id: 'linkedin_reel', label: 'LinkedIn Reel', icon: Linkedin },
+      { id: 'INSTAGRAM_REEL', label: 'Instagram Reel', icon: Instagram },
+      { id: 'TIKTOK_REEL', label: 'TikTok Reel', icon: Video },
+      { id: 'YOUTUBE_SHORT', label: 'YouTube Short', icon: Youtube },
+      { id: 'FACEBOOK_REEL', label: 'Facebook Reel', icon: Facebook },
+      { id: 'LINKEDIN_REEL', label: 'LinkedIn Reel', icon: Linkedin },
     ],
   },
   {
     label: 'Carousel',
     dayOffset: 3,
     formats: [
-      { id: 'instagram_carousel', label: 'Instagram Carousel', icon: Instagram },
-      { id: 'linkedin_carousel', label: 'LinkedIn Carousel', icon: Linkedin },
-      { id: 'facebook_carousel', label: 'Facebook Carousel', icon: Facebook },
-      { id: 'tiktok_carousel', label: 'TikTok Carousel', icon: Video },
+      { id: 'INSTAGRAM_CAROUSEL', label: 'Instagram Carousel', icon: Instagram },
+      { id: 'LINKEDIN_CAROUSEL', label: 'LinkedIn Carousel', icon: Linkedin },
+      { id: 'FACEBOOK_CAROUSEL', label: 'Facebook Carousel', icon: Facebook },
+      { id: 'TIKTOK_CAROUSEL', label: 'TikTok Carousel', icon: Video },
     ],
   },
   {
     label: 'Long Caption',
     dayOffset: 6,
     formats: [
-      { id: 'instagram_long_caption', label: 'Instagram Long Caption', icon: Instagram },
-      { id: 'tiktok_long_caption', label: 'TikTok Long Caption', icon: Video },
-      { id: 'facebook_long_caption', label: 'Facebook Long Caption', icon: Facebook },
+      { id: 'INSTAGRAM_LONG_CAPTION', label: 'Instagram Long Caption', icon: Instagram },
+      { id: 'TIKTOK_LONG_CAPTION', label: 'TikTok Long Caption', icon: Video },
+      { id: 'FACEBOOK_LONG_CAPTION', label: 'Facebook Long Caption', icon: Facebook },
     ],
   },
   {
     label: 'Text Post',
     dayOffset: 9,
     formats: [
-      { id: 'facebook_post', label: 'Facebook Post', icon: Facebook },
-      { id: 'linkedin_post', label: 'LinkedIn Post', icon: Linkedin },
-      { id: 'threads_post', label: 'Threads Post', icon: AtSign },
-      { id: 'twitter_post', label: 'Twitter/X Post', icon: Twitter },
+      { id: 'FACEBOOK_POST', label: 'Facebook Post', icon: Facebook },
+      { id: 'LINKEDIN_POST', label: 'LinkedIn Post', icon: Linkedin },
+      { id: 'THREADS_POST', label: 'Threads Post', icon: AtSign },
+      { id: 'TWITTER_POST', label: 'Twitter/X Post', icon: Twitter },
     ],
   },
 ];
 
 const REEL_TYPES: { value: ReelType; label: string }[] = [
-  { value: 'educational', label: 'Educational' },
-  { value: 'before_after', label: 'Before/After' },
-  { value: 'bts', label: 'BTS (Behind the Scenes)' },
-  { value: 'social_proof', label: 'Social Proof' },
-  { value: 'mini_audit', label: 'Mini-Audit' },
-  { value: 'seo_education', label: 'SEO Education' },
-  { value: 'client_results', label: 'Client Results' },
-  { value: 'direct_cta', label: 'Direct CTA' },
-  { value: 'full_redesign', label: 'Full Redesign' },
+  { value: 'EDUCATIONAL', label: 'Educational' },
+  { value: 'BEFORE_AFTER', label: 'Before/After' },
+  { value: 'BTS', label: 'BTS (Behind the Scenes)' },
+  { value: 'SOCIAL_PROOF', label: 'Social Proof' },
+  { value: 'MINI_AUDIT', label: 'Mini-Audit' },
+  { value: 'SEO_EDUCATION', label: 'SEO Education' },
+  { value: 'CLIENT_RESULTS', label: 'Client Results' },
+  { value: 'DIRECT_CTA', label: 'Direct CTA' },
+  { value: 'FULL_REDESIGN', label: 'Full Redesign' },
 ];
 
 export default function ContentForm({
@@ -99,8 +99,8 @@ export default function ContentForm({
 
   const [formData, setFormData] = useState<Partial<SocialContent>>({
     content_date: '',
-    content_type: 'reel',
-    status: 'not_started',
+    content_type: 'REEL',
+    status: 'NOT_STARTED',
     title: '',
     script: '',
     reel_type: undefined,
@@ -176,7 +176,7 @@ export default function ContentForm({
       } else {
         return [...prev, {
           format: formatId,
-          status: 'not_started' as ContentStatus,
+          status: 'NOT_STARTED' as ContentStatus,
           scheduled_date: getScheduledDate(formatId),
         }];
       }
@@ -187,7 +187,7 @@ export default function ContentForm({
     setRepurposeFormats((prev) =>
       prev.map((f) =>
         f.format === formatId
-          ? { ...f, status, posted_date: status === 'posted' ? new Date().toISOString().split('T')[0] : undefined }
+          ? { ...f, status, posted_date: status === 'POSTED' ? new Date().toISOString().split('T')[0] : undefined }
           : f
       )
     );
@@ -226,15 +226,15 @@ export default function ContentForm({
 
   const getStatusColor = (status: ContentStatus) => {
     switch (status) {
-      case 'posted':
+      case 'POSTED':
         return 'bg-emerald-500';
-      case 'scheduled':
+      case 'SCHEDULED':
         return 'bg-sky-500';
-      case 'editing':
+      case 'EDITING':
         return 'bg-amber-500';
-      case 'filmed':
+      case 'FILMED':
         return 'bg-purple-500';
-      case 'scripted':
+      case 'SCRIPTED':
         return 'bg-rose-500';
       default:
         return 'bg-stone-500';
@@ -291,7 +291,7 @@ export default function ContentForm({
                   Content Type
                 </label>
                 <select
-                  value={formData.content_type || 'reel'}
+                  value={formData.content_type || 'REEL'}
                   onChange={(e) => setFormData({ ...formData, content_type: e.target.value as ContentType })}
                   className={cn(
                     "w-full px-4 py-2.5 rounded-xl border border-stone-600",
@@ -302,20 +302,20 @@ export default function ContentForm({
                   required
                   disabled={isLoading}
                 >
-                  <option value="reel">Reel</option>
-                  <option value="carousel">Carousel</option>
-                  <option value="single_post">Single Post</option>
-                  <option value="story">Story</option>
-                  <option value="tiktok">TikTok</option>
-                  <option value="youtube_short">YouTube Short</option>
-                  <option value="youtube_video">YouTube Video</option>
-                  <option value="blog_post">Blog Post</option>
+                  <option value="REEL">Reel</option>
+                  <option value="CAROUSEL">Carousel</option>
+                  <option value="SINGLE_POST">Single Post</option>
+                  <option value="STORY">Story</option>
+                  <option value="TIKTOK">TikTok</option>
+                  <option value="YOUTUBE_SHORT">YouTube Short</option>
+                  <option value="YOUTUBE_VIDEO">YouTube Video</option>
+                  <option value="BLOG_POST">Blog Post</option>
                 </select>
               </div>
             </div>
 
             {/* Reel Type - Only shown when content type is reel */}
-            {formData.content_type === 'reel' && (
+            {formData.content_type === 'REEL' && (
               <div>
                 <label className="block text-sm font-semibold text-stone-300 mb-1.5">
                   Reel Type
@@ -347,7 +347,7 @@ export default function ContentForm({
                 Status
               </label>
               <select
-                value={formData.status || 'not_started'}
+                value={formData.status || 'NOT_STARTED'}
                 onChange={(e) => setFormData({ ...formData, status: e.target.value as ContentStatus })}
                 className={cn(
                   "w-full px-4 py-2.5 rounded-xl border border-stone-600",
@@ -357,12 +357,12 @@ export default function ContentForm({
                 )}
                 disabled={isLoading}
               >
-                <option value="not_started">Not Started</option>
-                <option value="scripted">Scripted</option>
-                <option value="filmed">Filmed</option>
-                <option value="editing">Editing</option>
-                <option value="scheduled">Scheduled</option>
-                <option value="posted">Posted</option>
+                <option value="NOT_STARTED">Not Started</option>
+                <option value="SCRIPTED">Scripted</option>
+                <option value="FILMED">Filmed</option>
+                <option value="EDITING">Editing</option>
+                <option value="SCHEDULED">Scheduled</option>
+                <option value="POSTED">Posted</option>
               </select>
             </div>
 
@@ -445,12 +445,12 @@ export default function ContentForm({
                                       "cursor-pointer"
                                     )}
                                   >
-                                    <option value="not_started">Not Started</option>
-                                    <option value="scripted">Scripted</option>
-                                    <option value="filmed">Filmed</option>
-                                    <option value="editing">Editing</option>
-                                    <option value="scheduled">Scheduled</option>
-                                    <option value="posted">Posted</option>
+                                    <option value="NOT_STARTED">Not Started</option>
+                                    <option value="SCRIPTED">Scripted</option>
+                                    <option value="FILMED">Filmed</option>
+                                    <option value="EDITING">Editing</option>
+                                    <option value="SCHEDULED">Scheduled</option>
+                                    <option value="POSTED">Posted</option>
                                   </select>
                                 </div>
                               )}

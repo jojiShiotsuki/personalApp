@@ -6,73 +6,73 @@ import enum
 
 
 class ContentType(str, enum.Enum):
-    REEL = "reel"
-    CAROUSEL = "carousel"
-    SINGLE_POST = "single_post"
-    STORY = "story"
-    TIKTOK = "tiktok"
-    YOUTUBE_SHORT = "youtube_short"
-    YOUTUBE_VIDEO = "youtube_video"
-    BLOG_POST = "blog_post"
+    REEL = "REEL"
+    CAROUSEL = "CAROUSEL"
+    SINGLE_POST = "SINGLE_POST"
+    STORY = "STORY"
+    TIKTOK = "TIKTOK"
+    YOUTUBE_SHORT = "YOUTUBE_SHORT"
+    YOUTUBE_VIDEO = "YOUTUBE_VIDEO"
+    BLOG_POST = "BLOG_POST"
 
 
 class ContentStatus(str, enum.Enum):
-    NOT_STARTED = "not_started"
-    SCRIPTED = "scripted"
-    FILMED = "filmed"
-    EDITING = "editing"
-    SCHEDULED = "scheduled"
-    POSTED = "posted"
+    NOT_STARTED = "NOT_STARTED"
+    SCRIPTED = "SCRIPTED"
+    FILMED = "FILMED"
+    EDITING = "EDITING"
+    SCHEDULED = "SCHEDULED"
+    POSTED = "POSTED"
 
 
 class RepurposeFormat(str, enum.Enum):
     # Short-form Video
-    INSTAGRAM_REEL = "instagram_reel"
-    TIKTOK_REEL = "tiktok_reel"
-    YOUTUBE_SHORT = "youtube_short"
-    FACEBOOK_REEL = "facebook_reel"
-    LINKEDIN_REEL = "linkedin_reel"
+    INSTAGRAM_REEL = "INSTAGRAM_REEL"
+    TIKTOK_REEL = "TIKTOK_REEL"
+    YOUTUBE_SHORT = "YOUTUBE_SHORT"
+    FACEBOOK_REEL = "FACEBOOK_REEL"
+    LINKEDIN_REEL = "LINKEDIN_REEL"
     # Carousel
-    INSTAGRAM_CAROUSEL = "instagram_carousel"
-    LINKEDIN_CAROUSEL = "linkedin_carousel"
-    FACEBOOK_CAROUSEL = "facebook_carousel"
-    TIKTOK_CAROUSEL = "tiktok_carousel"
+    INSTAGRAM_CAROUSEL = "INSTAGRAM_CAROUSEL"
+    LINKEDIN_CAROUSEL = "LINKEDIN_CAROUSEL"
+    FACEBOOK_CAROUSEL = "FACEBOOK_CAROUSEL"
+    TIKTOK_CAROUSEL = "TIKTOK_CAROUSEL"
     # Long Caption (photo/video + music + long caption)
-    INSTAGRAM_LONG_CAPTION = "instagram_long_caption"
-    TIKTOK_LONG_CAPTION = "tiktok_long_caption"
-    FACEBOOK_LONG_CAPTION = "facebook_long_caption"
+    INSTAGRAM_LONG_CAPTION = "INSTAGRAM_LONG_CAPTION"
+    TIKTOK_LONG_CAPTION = "TIKTOK_LONG_CAPTION"
+    FACEBOOK_LONG_CAPTION = "FACEBOOK_LONG_CAPTION"
     # Text Post
-    FACEBOOK_POST = "facebook_post"
-    LINKEDIN_POST = "linkedin_post"
-    THREADS_POST = "threads_post"
-    TWITTER_POST = "twitter_post"
+    FACEBOOK_POST = "FACEBOOK_POST"
+    LINKEDIN_POST = "LINKEDIN_POST"
+    THREADS_POST = "THREADS_POST"
+    TWITTER_POST = "TWITTER_POST"
     # Legacy formats (pre-expansion data)
-    REEL = "reel"
-    CAROUSEL = "carousel"
-    LONG_CAPTION = "long_caption"
+    REEL = "REEL"
+    CAROUSEL = "CAROUSEL"
+    LONG_CAPTION = "LONG_CAPTION"
 
 
 class EditingStyle(str, enum.Enum):
-    FAST_PACED = "fast_paced"
-    CINEMATIC = "cinematic"
-    EDUCATIONAL = "educational"
-    BEHIND_SCENES = "behind_scenes"
-    TRENDING = "trending"
-    TUTORIAL = "tutorial"
-    INTERVIEW = "interview"
-    CUSTOM = "custom"
+    FAST_PACED = "FAST_PACED"
+    CINEMATIC = "CINEMATIC"
+    EDUCATIONAL = "EDUCATIONAL"
+    BEHIND_SCENES = "BEHIND_SCENES"
+    TRENDING = "TRENDING"
+    TUTORIAL = "TUTORIAL"
+    INTERVIEW = "INTERVIEW"
+    CUSTOM = "CUSTOM"
 
 
 class ReelType(str, enum.Enum):
-    EDUCATIONAL = "educational"
-    BEFORE_AFTER = "before_after"
-    BTS = "bts"
-    SOCIAL_PROOF = "social_proof"
-    MINI_AUDIT = "mini_audit"
-    SEO_EDUCATION = "seo_education"
-    CLIENT_RESULTS = "client_results"
-    DIRECT_CTA = "direct_cta"
-    FULL_REDESIGN = "full_redesign"
+    EDUCATIONAL = "EDUCATIONAL"
+    BEFORE_AFTER = "BEFORE_AFTER"
+    BTS = "BTS"
+    SOCIAL_PROOF = "SOCIAL_PROOF"
+    MINI_AUDIT = "MINI_AUDIT"
+    SEO_EDUCATION = "SEO_EDUCATION"
+    CLIENT_RESULTS = "CLIENT_RESULTS"
+    DIRECT_CTA = "DIRECT_CTA"
+    FULL_REDESIGN = "FULL_REDESIGN"
 
 
 class SocialContent(Base):

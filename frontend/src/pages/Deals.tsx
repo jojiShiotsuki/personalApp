@@ -573,13 +573,13 @@ export default function Deals() {
                         </label>
                         <select
                           name="service_status"
-                          defaultValue={editingDeal?.service_status || 'pending'}
+                          defaultValue={editingDeal?.service_status || 'PENDING'}
                           className="w-full px-4 py-2.5 rounded-lg bg-stone-800/50 border border-stone-600/40 text-[--exec-text] focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]/50 transition-all text-sm"
                         >
-                          <option value="pending">Pending</option>
-                          <option value="active">Active</option>
-                          <option value="paused">Paused</option>
-                          <option value="cancelled">Cancelled</option>
+                          <option value="PENDING">Pending</option>
+                          <option value="ACTIVE">Active</option>
+                          <option value="PAUSED">Paused</option>
+                          <option value="CANCELLED">Cancelled</option>
                         </select>
                       </div>
                       <div>

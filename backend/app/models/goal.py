@@ -11,23 +11,23 @@ class Quarter(str, enum.Enum):
     Q4 = "Q4"
 
 class Month(str, enum.Enum):
-    JANUARY = "January"
-    FEBRUARY = "February"
-    MARCH = "March"
-    APRIL = "April"
-    MAY = "May"
-    JUNE = "June"
-    JULY = "July"
-    AUGUST = "August"
-    SEPTEMBER = "September"
-    OCTOBER = "October"
-    NOVEMBER = "November"
-    DECEMBER = "December"
+    JANUARY = "JANUARY"
+    FEBRUARY = "FEBRUARY"
+    MARCH = "MARCH"
+    APRIL = "APRIL"
+    MAY = "MAY"
+    JUNE = "JUNE"
+    JULY = "JULY"
+    AUGUST = "AUGUST"
+    SEPTEMBER = "SEPTEMBER"
+    OCTOBER = "OCTOBER"
+    NOVEMBER = "NOVEMBER"
+    DECEMBER = "DECEMBER"
 
 class GoalPriority(str, enum.Enum):
-    LOW = "low"
-    MEDIUM = "medium"
-    HIGH = "high"
+    LOW = "LOW"
+    MEDIUM = "MEDIUM"
+    HIGH = "HIGH"
 
 class Goal(Base):
     __tablename__ = "goals"

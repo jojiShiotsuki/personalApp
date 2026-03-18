@@ -7,10 +7,10 @@ import json
 
 
 class SprintStatus(str, enum.Enum):
-    ACTIVE = "active"
-    COMPLETED = "completed"
-    PAUSED = "paused"
-    ABANDONED = "abandoned"
+    ACTIVE = "ACTIVE"
+    COMPLETED = "COMPLETED"
+    PAUSED = "PAUSED"
+    ABANDONED = "ABANDONED"
 
 
 # Default tasks for each day based on the 30-day playbook

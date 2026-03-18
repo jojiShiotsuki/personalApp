@@ -10,12 +10,12 @@ TASK_TOOLS = [
             "properties": {
                 "status": {
                     "type": "string",
-                    "enum": ["pending", "in_progress", "completed", "delayed"],
+                    "enum": ["PENDING", "IN_PROGRESS", "COMPLETED", "DELAYED"],
                     "description": "Filter by task status"
                 },
                 "priority": {
                     "type": "string",
-                    "enum": ["low", "medium", "high", "urgent"],
+                    "enum": ["LOW", "MEDIUM", "HIGH", "URGENT"],
                     "description": "Filter by priority level"
                 },
                 "limit": {
@@ -43,9 +43,9 @@ TASK_TOOLS = [
                 },
                 "priority": {
                     "type": "string",
-                    "enum": ["low", "medium", "high", "urgent"],
+                    "enum": ["LOW", "MEDIUM", "HIGH", "URGENT"],
                     "description": "Task priority",
-                    "default": "medium"
+                    "default": "MEDIUM"
                 }
             },
             "required": ["title"]
@@ -62,8 +62,8 @@ TASK_TOOLS = [
                     "description": "ID of the task to update"
                 },
                 "title": {"type": "string", "maxLength": 255},
-                "status": {"type": "string", "enum": ["pending", "in_progress", "completed", "delayed"]},
-                "priority": {"type": "string", "enum": ["low", "medium", "high", "urgent"]},
+                "status": {"type": "string", "enum": ["PENDING", "IN_PROGRESS", "COMPLETED", "DELAYED"]},
+                "priority": {"type": "string", "enum": ["LOW", "MEDIUM", "HIGH", "URGENT"]},
                 "due_date": {"type": "string"}
             },
             "required": ["task_id"]

@@ -7,11 +7,11 @@ import enum
 
 class LoomResponseType(str, enum.Enum):
     """Type of response received after sending a Loom audit."""
-    INTERESTED = "interested"
-    NOT_INTERESTED = "not_interested"
-    QUESTIONS = "questions"
-    BOOKED_CALL = "booked_call"
-    NO_RESPONSE = "no_response"
+    INTERESTED = "INTERESTED"
+    NOT_INTERESTED = "NOT_INTERESTED"
+    QUESTIONS = "QUESTIONS"
+    BOOKED_CALL = "BOOKED_CALL"
+    NO_RESPONSE = "NO_RESPONSE"
 
 
 class LoomAudit(Base):

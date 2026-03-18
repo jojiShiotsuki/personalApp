@@ -725,9 +725,9 @@ export default function Dashboard() {
                       </span>
                       <span className={cn(
                         "text-xs px-2.5 py-1 rounded-full font-medium",
-                        content.status === 'posted'
+                        content.status === 'POSTED'
                           ? "bg-[--exec-success-bg] text-[--exec-success]"
-                          : content.status === 'scheduled'
+                          : content.status === 'SCHEDULED'
                             ? "bg-[--exec-accent-bg] text-[--exec-accent]"
                             : "bg-[--exec-surface] text-[--exec-text-muted]"
                       )}>

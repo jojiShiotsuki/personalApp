@@ -6,13 +6,13 @@ import enum
 
 
 class ProjectStatus(str, enum.Enum):
-    TODO = "todo"
-    SCOPING = "scoping"
-    IN_PROGRESS = "in_progress"
-    REVIEW = "review"
-    REVISIONS = "revisions"
-    COMPLETED = "completed"
-    RETAINER = "retainer"
+    TODO = "TODO"
+    SCOPING = "SCOPING"
+    IN_PROGRESS = "IN_PROGRESS"
+    REVIEW = "REVIEW"
+    REVISIONS = "REVISIONS"
+    COMPLETED = "COMPLETED"
+    RETAINER = "RETAINER"
 
 
 class Project(Base):

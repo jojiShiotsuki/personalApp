@@ -13,11 +13,11 @@ class CampaignType(str, enum.Enum):
 
 
 class StepChannelType(str, enum.Enum):
-    EMAIL = "email"
-    LINKEDIN_CONNECT = "linkedin_connect"
-    LINKEDIN_MESSAGE = "linkedin_message"
-    LINKEDIN_ENGAGE = "linkedin_engage"
-    FOLLOW_UP_EMAIL = "follow_up_email"
+    EMAIL = "EMAIL"
+    LINKEDIN_CONNECT = "LINKEDIN_CONNECT"
+    LINKEDIN_MESSAGE = "LINKEDIN_MESSAGE"
+    LINKEDIN_ENGAGE = "LINKEDIN_ENGAGE"
+    FOLLOW_UP_EMAIL = "FOLLOW_UP_EMAIL"
 
 
 class ProspectStatus(str, enum.Enum):

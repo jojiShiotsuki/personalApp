@@ -86,7 +86,7 @@ export default function Services() {
   // Calculate MRR (Monthly Recurring Revenue) for active services only
   const monthlyRecurringRevenue = useMemo(() => {
     return services
-      .filter((s: Deal) => s.service_status === 'active')
+      .filter((s: Deal) => s.service_status === 'ACTIVE')
       .reduce((total: number, service: Deal) => {
         if (service.recurring_amount && service.billing_frequency) {
           return total + getMonthlyAmount(Number(service.recurring_amount), service.billing_frequency);
@@ -227,7 +227,7 @@ export default function Services() {
               <CheckCircle className="w-6 h-6 text-[--exec-sage]" />
             </div>
             <p className="text-3xl font-bold text-[--exec-text] mt-4" style={{ fontFamily: 'var(--font-display)' }}>
-              {services.filter((s: Deal) => s.service_status === 'active').length}
+              {services.filter((s: Deal) => s.service_status === 'ACTIVE').length}
             </p>
             <p className="text-sm text-[--exec-text-muted] mt-1 font-medium">Active Services</p>
           </div>
@@ -248,10 +248,10 @@ export default function Services() {
         <div className="mt-6 mb-4 flex items-center gap-2 animate-fade-slide-up delay-5">
           {[
             { value: 'all', label: 'All Services' },
-            { value: 'active', label: 'Active' },
-            { value: 'pending', label: 'Pending' },
-            { value: 'paused', label: 'Paused' },
-            { value: 'cancelled', label: 'Cancelled' },
+            { value: 'ACTIVE', label: 'Active' },
+            { value: 'PENDING', label: 'Pending' },
+            { value: 'PAUSED', label: 'Paused' },
+            { value: 'CANCELLED', label: 'Cancelled' },
           ].map((filter) => (
             <button
               key={filter.value}
@@ -474,13 +474,13 @@ export default function Services() {
                 </label>
                 <select
                   name="service_status"
-                  defaultValue={editingService.service_status || 'pending'}
+                  defaultValue={editingService.service_status || 'PENDING'}
                   className="w-full px-4 py-2.5 border border-[--exec-border] rounded-xl focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent] bg-[--exec-surface] text-[--exec-text] transition-all duration-200 cursor-pointer"
                 >
-                  <option value="active">Active</option>
-                  <option value="pending">Pending</option>
-                  <option value="paused">Paused</option>
-                  <option value="cancelled">Cancelled</option>
+                  <option value="ACTIVE">Active</option>
+                  <option value="PENDING">Pending</option>
+                  <option value="PAUSED">Paused</option>
+                  <option value="CANCELLED">Cancelled</option>
                 </select>
               </div>
 

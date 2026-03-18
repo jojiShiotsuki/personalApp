@@ -12,17 +12,17 @@ interface MonthViewProps {
 
 const getStatusConfig = (status: string) => {
   switch (status) {
-    case 'posted':
+    case 'POSTED':
       return { bg: 'bg-emerald-500/15', text: 'text-emerald-400', dot: 'bg-emerald-500', border: 'border-emerald-500/30' };
-    case 'scheduled':
+    case 'SCHEDULED':
       return { bg: 'bg-sky-500/15', text: 'text-sky-400', dot: 'bg-sky-500', border: 'border-sky-500/30' };
-    case 'editing':
+    case 'EDITING':
       return { bg: 'bg-amber-500/15', text: 'text-amber-400', dot: 'bg-amber-500', border: 'border-amber-500/30' };
-    case 'filmed':
+    case 'FILMED':
       return { bg: 'bg-purple-500/15', text: 'text-purple-400', dot: 'bg-purple-500', border: 'border-purple-500/30' };
-    case 'scripted':
+    case 'SCRIPTED':
       return { bg: 'bg-rose-500/15', text: 'text-rose-400', dot: 'bg-rose-500', border: 'border-rose-500/30' };
-    case 'not_started':
+    case 'NOT_STARTED':
       return { bg: 'bg-stone-500/10', text: 'text-stone-400', dot: 'bg-stone-500', border: 'border-stone-500/20' };
     default:
       return { bg: 'bg-stone-500/10', text: 'text-stone-400', dot: 'bg-stone-500', border: 'border-stone-500/20' };
@@ -31,11 +31,11 @@ const getStatusConfig = (status: string) => {
 
 const getFormatStatusDot = (status: string) => {
   switch (status) {
-    case 'posted': return 'bg-emerald-500';
-    case 'scheduled': return 'bg-sky-500';
-    case 'editing': return 'bg-amber-500';
-    case 'filmed': return 'bg-purple-500';
-    case 'scripted': return 'bg-rose-500';
+    case 'POSTED': return 'bg-emerald-500';
+    case 'SCHEDULED': return 'bg-sky-500';
+    case 'EDITING': return 'bg-amber-500';
+    case 'FILMED': return 'bg-purple-500';
+    case 'SCRIPTED': return 'bg-rose-500';
     default: return 'bg-stone-500';
   }
 };
@@ -172,7 +172,7 @@ export default function MonthView({
                   {dayContent.slice(0, 3).map((item) => {
                     const config = getStatusConfig(item.status);
                     const repurposeTotal = item.repurpose_formats?.length || 0;
-                    const repurposeDone = item.repurpose_formats?.filter(rf => rf.status === 'posted').length || 0;
+                    const repurposeDone = item.repurpose_formats?.filter(rf => rf.status === 'POSTED').length || 0;
                     return (
                       <div
                         key={item.id}
@@ -186,7 +186,7 @@ export default function MonthView({
                           <span className="truncate">
                             {item.title || <span className="capitalize">{item.content_type.replace('_', ' ')}</span>}
                           </span>
-                          {item.content_type === 'reel' && getReelTypeLabel(item.reel_type) && (
+                          {item.content_type === 'REEL' && getReelTypeLabel(item.reel_type) && (
                             <span className="shrink-0 px-1 text-[9px] font-bold rounded bg-white/10">
                               {getReelTypeLabel(item.reel_type)}
                             </span>
@@ -267,11 +267,11 @@ export default function MonthView({
       {/* Legend */}
       <div className="flex items-center justify-center gap-4 py-4 px-6 bg-[--exec-surface-hover] border-t border-[--exec-border]">
         {[
-          { status: 'posted', label: 'Posted' },
-          { status: 'scheduled', label: 'Scheduled' },
-          { status: 'editing', label: 'Editing' },
-          { status: 'filmed', label: 'Filmed' },
-          { status: 'scripted', label: 'Scripted' },
+          { status: 'POSTED', label: 'Posted' },
+          { status: 'SCHEDULED', label: 'Scheduled' },
+          { status: 'EDITING', label: 'Editing' },
+          { status: 'FILMED', label: 'Filmed' },
+          { status: 'SCRIPTED', label: 'Scripted' },
         ].map(({ status, label }) => {
           const config = getStatusConfig(status);
           return (

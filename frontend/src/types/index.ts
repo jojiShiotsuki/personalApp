@@ -1,35 +1,35 @@
 // Task types
 export enum TaskPriority {
-  LOW = "low",
-  MEDIUM = "medium",
-  HIGH = "high",
-  URGENT = "urgent",
+  LOW = "LOW",
+  MEDIUM = "MEDIUM",
+  HIGH = "HIGH",
+  URGENT = "URGENT",
 }
 
 export enum TaskStatus {
-  PENDING = "pending",
-  IN_PROGRESS = "in_progress",
-  COMPLETED = "completed",
-  DELAYED = "delayed",
-  SKIPPED = "skipped",
-  WAITING_ON_CLIENT = "waiting_on_client",
+  PENDING = "PENDING",
+  IN_PROGRESS = "IN_PROGRESS",
+  COMPLETED = "COMPLETED",
+  DELAYED = "DELAYED",
+  SKIPPED = "SKIPPED",
+  WAITING_ON_CLIENT = "WAITING_ON_CLIENT",
 }
 
 export enum RecurrenceType {
-  DAILY = "daily",
-  WEEKLY = "weekly",
-  MONTHLY = "monthly",
-  YEARLY = "yearly",
+  DAILY = "DAILY",
+  WEEKLY = "WEEKLY",
+  MONTHLY = "MONTHLY",
+  YEARLY = "YEARLY",
 }
 
 export enum ProjectStatus {
-  TODO = "todo",
-  SCOPING = "scoping",
-  IN_PROGRESS = "in_progress",
-  REVIEW = "review",
-  REVISIONS = "revisions",
-  COMPLETED = "completed",
-  RETAINER = "retainer",
+  TODO = "TODO",
+  SCOPING = "SCOPING",
+  IN_PROGRESS = "IN_PROGRESS",
+  REVIEW = "REVIEW",
+  REVISIONS = "REVISIONS",
+  COMPLETED = "COMPLETED",
+  RETAINER = "RETAINER",
 }
 
 export type Project = {
@@ -191,75 +191,75 @@ export type TaskUpdate = {
 
 // CRM types
 export enum ContactStatus {
-  LEAD = "lead",
-  PROSPECT = "prospect",
-  CLIENT = "client",
-  INACTIVE = "inactive",
+  LEAD = "LEAD",
+  PROSPECT = "PROSPECT",
+  CLIENT = "CLIENT",
+  INACTIVE = "INACTIVE",
 }
 
 export enum TradeIndustry {
-  ROOFER = "roofer",
-  PLUMBER = "plumber",
-  ELECTRICIAN = "electrician",
-  BUILDER = "builder",
-  HVAC = "hvac",
-  LANDSCAPER = "landscaper",
-  PAINTER = "painter",
-  CARPENTER = "carpenter",
-  TILER = "tiler",
-  CONCRETER = "concreter",
-  OTHER = "other",
+  ROOFER = "ROOFER",
+  PLUMBER = "PLUMBER",
+  ELECTRICIAN = "ELECTRICIAN",
+  BUILDER = "BUILDER",
+  HVAC = "HVAC",
+  LANDSCAPER = "LANDSCAPER",
+  PAINTER = "PAINTER",
+  CARPENTER = "CARPENTER",
+  TILER = "TILER",
+  CONCRETER = "CONCRETER",
+  OTHER = "OTHER",
 }
 
 export enum LeadSource {
-  HIPAGES = "hipages",
-  SERVICE_SEEKING = "serviceseeking",
-  YELLOW_PAGES = "yellowpages",
-  TRUE_LOCAL = "truelocal",
-  ONEFLARE = "oneflare",
-  GOOGLE_MAPS = "google_maps",
-  GOOGLE_SEARCH = "google_search",
-  LINKEDIN = "linkedin",
-  REFERRAL = "referral",
-  COLD_EMAIL = "cold_email",
-  OTHER = "other",
+  HIPAGES = "HIPAGES",
+  SERVICE_SEEKING = "SERVICE_SEEKING",
+  YELLOW_PAGES = "YELLOW_PAGES",
+  TRUE_LOCAL = "TRUE_LOCAL",
+  ONEFLARE = "ONEFLARE",
+  GOOGLE_MAPS = "GOOGLE_MAPS",
+  GOOGLE_SEARCH = "GOOGLE_SEARCH",
+  LINKEDIN = "LINKEDIN",
+  REFERRAL = "REFERRAL",
+  COLD_EMAIL = "COLD_EMAIL",
+  OTHER = "OTHER",
 }
 
 export enum DealStage {
-  LEAD = "lead",
-  PROSPECT = "prospect",
-  PROPOSAL = "proposal",
-  NEGOTIATION = "negotiation",
-  CLOSED_WON = "closed_won",
-  CLOSED_LOST = "closed_lost",
+  LEAD = "LEAD",
+  PROSPECT = "PROSPECT",
+  PROPOSAL = "PROPOSAL",
+  NEGOTIATION = "NEGOTIATION",
+  CLOSED_WON = "CLOSED_WON",
+  CLOSED_LOST = "CLOSED_LOST",
 }
 
 export enum InteractionType {
-  MEETING = "meeting",
-  EMAIL = "email",
-  CALL = "call",
-  NOTE = "note",
-  SOCIAL_MEDIA = "social_media",
-  FOLLOW_UP_EMAIL = "follow_up_email",
+  MEETING = "MEETING",
+  EMAIL = "EMAIL",
+  CALL = "CALL",
+  NOTE = "NOTE",
+  SOCIAL_MEDIA = "SOCIAL_MEDIA",
+  FOLLOW_UP_EMAIL = "FOLLOW_UP_EMAIL",
   // Daily outreach activity types
-  COLD_EMAIL = "cold_email",
-  LINKEDIN_ACTION = "linkedin_action",
-  FOLLOW_UP_CALL = "follow_up_call",
-  LOOM_AUDIT = "loom_audit",
+  COLD_EMAIL = "COLD_EMAIL",
+  LINKEDIN_ACTION = "LINKEDIN_ACTION",
+  FOLLOW_UP_CALL = "FOLLOW_UP_CALL",
+  LOOM_AUDIT = "LOOM_AUDIT",
 }
 
 export enum BillingFrequency {
-  MONTHLY = "monthly",
-  QUARTERLY = "quarterly",
-  SEMI_ANNUAL = "semi_annual",
-  ANNUAL = "annual",
+  MONTHLY = "MONTHLY",
+  QUARTERLY = "QUARTERLY",
+  SEMI_ANNUAL = "SEMI_ANNUAL",
+  ANNUAL = "ANNUAL",
 }
 
 export enum ServiceStatus {
-  ACTIVE = "active",
-  PAUSED = "paused",
-  CANCELLED = "cancelled",
-  PENDING = "pending",
+  ACTIVE = "ACTIVE",
+  PAUSED = "PAUSED",
+  CANCELLED = "CANCELLED",
+  PENDING = "PENDING",
 }
 
 export type Contact = {
@@ -385,24 +385,24 @@ export enum Quarter {
 }
 
 export enum Month {
-  JANUARY = "January",
-  FEBRUARY = "February",
-  MARCH = "March",
-  APRIL = "April",
-  MAY = "May",
-  JUNE = "June",
-  JULY = "July",
-  AUGUST = "August",
-  SEPTEMBER = "September",
-  OCTOBER = "October",
-  NOVEMBER = "November",
-  DECEMBER = "December",
+  JANUARY = "JANUARY",
+  FEBRUARY = "FEBRUARY",
+  MARCH = "MARCH",
+  APRIL = "APRIL",
+  MAY = "MAY",
+  JUNE = "JUNE",
+  JULY = "JULY",
+  AUGUST = "AUGUST",
+  SEPTEMBER = "SEPTEMBER",
+  OCTOBER = "OCTOBER",
+  NOVEMBER = "NOVEMBER",
+  DECEMBER = "DECEMBER",
 }
 
 export enum GoalPriority {
-  LOW = "low",
-  MEDIUM = "medium",
-  HIGH = "high",
+  LOW = "LOW",
+  MEDIUM = "MEDIUM",
+  HIGH = "HIGH",
 }
 
 export type KeyResult = {
@@ -473,53 +473,53 @@ export type ContextExport = {
 
 // Social Content Types
 export type ContentType =
-  | 'reel'
-  | 'carousel'
-  | 'single_post'
-  | 'story'
-  | 'tiktok'
-  | 'youtube_short'
-  | 'youtube_video'
-  | 'blog_post';
+  | 'REEL'
+  | 'CAROUSEL'
+  | 'SINGLE_POST'
+  | 'STORY'
+  | 'TIKTOK'
+  | 'YOUTUBE_SHORT'
+  | 'YOUTUBE_VIDEO'
+  | 'BLOG_POST';
 
 export type ContentStatus =
-  | 'not_started'
-  | 'scripted'
-  | 'filmed'
-  | 'editing'
-  | 'scheduled'
-  | 'posted';
+  | 'NOT_STARTED'
+  | 'SCRIPTED'
+  | 'FILMED'
+  | 'EDITING'
+  | 'SCHEDULED'
+  | 'POSTED';
 
 export type EditingStyle =
-  | 'fast_paced'
-  | 'cinematic'
-  | 'educational'
-  | 'behind_scenes'
-  | 'trending'
-  | 'tutorial'
-  | 'interview'
-  | 'custom';
+  | 'FAST_PACED'
+  | 'CINEMATIC'
+  | 'EDUCATIONAL'
+  | 'BEHIND_SCENES'
+  | 'TRENDING'
+  | 'TUTORIAL'
+  | 'INTERVIEW'
+  | 'CUSTOM';
 
 export type ReelType =
-  | 'educational'
-  | 'before_after'
-  | 'bts'
-  | 'social_proof'
-  | 'mini_audit'
-  | 'seo_education'
-  | 'client_results'
-  | 'direct_cta'
-  | 'full_redesign';
+  | 'EDUCATIONAL'
+  | 'BEFORE_AFTER'
+  | 'BTS'
+  | 'SOCIAL_PROOF'
+  | 'MINI_AUDIT'
+  | 'SEO_EDUCATION'
+  | 'CLIENT_RESULTS'
+  | 'DIRECT_CTA'
+  | 'FULL_REDESIGN';
 
 export type RepurposeFormat =
   // Short-form Video
-  | 'instagram_reel' | 'tiktok_reel' | 'youtube_short' | 'facebook_reel' | 'linkedin_reel'
+  | 'INSTAGRAM_REEL' | 'TIKTOK_REEL' | 'YOUTUBE_SHORT' | 'FACEBOOK_REEL' | 'LINKEDIN_REEL'
   // Carousel
-  | 'instagram_carousel' | 'linkedin_carousel' | 'facebook_carousel' | 'tiktok_carousel'
+  | 'INSTAGRAM_CAROUSEL' | 'LINKEDIN_CAROUSEL' | 'FACEBOOK_CAROUSEL' | 'TIKTOK_CAROUSEL'
   // Long Caption
-  | 'instagram_long_caption' | 'tiktok_long_caption' | 'facebook_long_caption'
+  | 'INSTAGRAM_LONG_CAPTION' | 'TIKTOK_LONG_CAPTION' | 'FACEBOOK_LONG_CAPTION'
   // Text Post
-  | 'facebook_post' | 'linkedin_post' | 'threads_post' | 'twitter_post';
+  | 'FACEBOOK_POST' | 'LINKEDIN_POST' | 'THREADS_POST' | 'TWITTER_POST';
 
 export interface RepurposeFormatStatus {
   format: RepurposeFormat;
@@ -600,46 +600,46 @@ export interface YearSummary {
 
 // Enums for UI
 export const ContentType = {
-  REEL: 'reel' as const,
-  CAROUSEL: 'carousel' as const,
-  SINGLE_POST: 'single_post' as const,
-  STORY: 'story' as const,
-  TIKTOK: 'tiktok' as const,
-  YOUTUBE_SHORT: 'youtube_short' as const,
-  YOUTUBE_VIDEO: 'youtube_video' as const,
-  BLOG_POST: 'blog_post' as const,
+  REEL: 'REEL' as const,
+  CAROUSEL: 'CAROUSEL' as const,
+  SINGLE_POST: 'SINGLE_POST' as const,
+  STORY: 'STORY' as const,
+  TIKTOK: 'TIKTOK' as const,
+  YOUTUBE_SHORT: 'YOUTUBE_SHORT' as const,
+  YOUTUBE_VIDEO: 'YOUTUBE_VIDEO' as const,
+  BLOG_POST: 'BLOG_POST' as const,
 };
 
 export const ContentStatus = {
-  NOT_STARTED: 'not_started' as const,
-  SCRIPTED: 'scripted' as const,
-  FILMED: 'filmed' as const,
-  EDITING: 'editing' as const,
-  SCHEDULED: 'scheduled' as const,
-  POSTED: 'posted' as const,
+  NOT_STARTED: 'NOT_STARTED' as const,
+  SCRIPTED: 'SCRIPTED' as const,
+  FILMED: 'FILMED' as const,
+  EDITING: 'EDITING' as const,
+  SCHEDULED: 'SCHEDULED' as const,
+  POSTED: 'POSTED' as const,
 };
 
 export const EditingStyle = {
-  FAST_PACED: 'fast_paced' as const,
-  CINEMATIC: 'cinematic' as const,
-  EDUCATIONAL: 'educational' as const,
-  BEHIND_SCENES: 'behind_scenes' as const,
-  TRENDING: 'trending' as const,
-  TUTORIAL: 'tutorial' as const,
-  INTERVIEW: 'interview' as const,
-  CUSTOM: 'custom' as const,
+  FAST_PACED: 'FAST_PACED' as const,
+  CINEMATIC: 'CINEMATIC' as const,
+  EDUCATIONAL: 'EDUCATIONAL' as const,
+  BEHIND_SCENES: 'BEHIND_SCENES' as const,
+  TRENDING: 'TRENDING' as const,
+  TUTORIAL: 'TUTORIAL' as const,
+  INTERVIEW: 'INTERVIEW' as const,
+  CUSTOM: 'CUSTOM' as const,
 }
 
 // Time Tracking Types
 export enum TimeEntryCategory {
-  DEVELOPMENT = "development",
-  DESIGN = "design",
-  MEETING = "meeting",
-  COMMUNICATION = "communication",
-  RESEARCH = "research",
-  ADMIN = "admin",
-  SUPPORT = "support",
-  OTHER = "other",
+  DEVELOPMENT = "DEVELOPMENT",
+  DESIGN = "DESIGN",
+  MEETING = "MEETING",
+  COMMUNICATION = "COMMUNICATION",
+  RESEARCH = "RESEARCH",
+  ADMIN = "ADMIN",
+  SUPPORT = "SUPPORT",
+  OTHER = "OTHER",
 }
 
 export interface TimeEntry {
@@ -777,11 +777,11 @@ export enum CampaignType {
 }
 
 export enum StepChannelType {
-  EMAIL = "email",
-  LINKEDIN_CONNECT = "linkedin_connect",
-  LINKEDIN_MESSAGE = "linkedin_message",
-  LINKEDIN_ENGAGE = "linkedin_engage",
-  FOLLOW_UP_EMAIL = "follow_up_email",
+  EMAIL = "EMAIL",
+  LINKEDIN_CONNECT = "LINKEDIN_CONNECT",
+  LINKEDIN_MESSAGE = "LINKEDIN_MESSAGE",
+  LINKEDIN_ENGAGE = "LINKEDIN_ENGAGE",
+  FOLLOW_UP_EMAIL = "FOLLOW_UP_EMAIL",
 }
 
 export interface MultiTouchStep {
@@ -1116,10 +1116,10 @@ export type OutreachActivityType = 'cold_email' | 'linkedin' | 'call' | 'loom';
 
 // Sprint Types
 export enum SprintStatus {
-  ACTIVE = "active",
-  COMPLETED = "completed",
-  PAUSED = "paused",
-  ABANDONED = "abandoned",
+  ACTIVE = "ACTIVE",
+  COMPLETED = "COMPLETED",
+  PAUSED = "PAUSED",
+  ABANDONED = "ABANDONED",
 }
 
 export interface SprintDayTask {
@@ -1208,11 +1208,11 @@ export interface UpdateNotesResponse {
 
 // Loom Audit Types
 export enum LoomResponseType {
-  INTERESTED = "interested",
-  NOT_INTERESTED = "not_interested",
-  QUESTIONS = "questions",
-  BOOKED_CALL = "booked_call",
-  NO_RESPONSE = "no_response",
+  INTERESTED = "INTERESTED",
+  NOT_INTERESTED = "NOT_INTERESTED",
+  QUESTIONS = "QUESTIONS",
+  BOOKED_CALL = "BOOKED_CALL",
+  NO_RESPONSE = "NO_RESPONSE",
 }
 
 export interface LoomAudit {
@@ -1350,13 +1350,13 @@ export interface PipelineCalculation {
 
 // Discovery Call Types
 export enum CallOutcome {
-  SCHEDULED_FOLLOWUP = "scheduled_followup",
-  SENT_PROPOSAL = "sent_proposal",
-  NOT_A_FIT = "not_a_fit",
-  NEEDS_MORE_INFO = "needs_more_info",
-  CLOSED_DEAL = "closed_deal",
-  NO_SHOW = "no_show",
-  RESCHEDULED = "rescheduled",
+  SCHEDULED_FOLLOWUP = "SCHEDULED_FOLLOWUP",
+  SENT_PROPOSAL = "SENT_PROPOSAL",
+  NOT_A_FIT = "NOT_A_FIT",
+  NEEDS_MORE_INFO = "NEEDS_MORE_INFO",
+  CLOSED_DEAL = "CLOSED_DEAL",
+  NO_SHOW = "NO_SHOW",
+  RESCHEDULED = "RESCHEDULED",
 }
 
 export interface DiscoveryCall {

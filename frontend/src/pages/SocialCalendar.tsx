@@ -15,15 +15,15 @@ type ViewLevel = 'years' | 'months' | 'month' | 'day';
 
 const getStatusConfig = (status: string) => {
   switch (status) {
-    case 'posted':
+    case 'POSTED':
       return { bg: 'bg-emerald-100 dark:bg-emerald-900/40', text: 'text-emerald-700 dark:text-emerald-300', dot: 'bg-emerald-500' };
-    case 'scheduled':
+    case 'SCHEDULED':
       return { bg: 'bg-sky-100 dark:bg-sky-900/40', text: 'text-sky-700 dark:text-sky-300', dot: 'bg-sky-500' };
-    case 'editing':
+    case 'EDITING':
       return { bg: 'bg-amber-100 dark:bg-amber-900/40', text: 'text-amber-700 dark:text-amber-300', dot: 'bg-amber-500' };
-    case 'filmed':
+    case 'FILMED':
       return { bg: 'bg-purple-100 dark:bg-purple-900/40', text: 'text-purple-700 dark:text-purple-300', dot: 'bg-purple-500' };
-    case 'scripted':
+    case 'SCRIPTED':
       return { bg: 'bg-rose-100 dark:bg-rose-900/40', text: 'text-rose-700 dark:text-rose-300', dot: 'bg-rose-500' };
     default:
       return { bg: 'bg-gray-100 dark:bg-gray-700', text: 'text-gray-600 dark:text-gray-300', dot: 'bg-gray-400' };
@@ -725,7 +725,7 @@ export default function SocialCalendar() {
                                     className={cn(
                                       "rounded-xl border",
                                       rfStatusConfig.bg,
-                                      rf.status === 'posted' ? 'border-emerald-500/30' : 'border-transparent'
+                                      rf.status === 'POSTED' ? 'border-emerald-500/30' : 'border-transparent'
                                     )}
                                   >
                                     <div className="flex items-center gap-3 p-3">
@@ -745,7 +745,7 @@ export default function SocialCalendar() {
                                           )}
                                         </div>
                                       </div>
-                                      {rf.status === 'posted' && (
+                                      {rf.status === 'POSTED' && (
                                         <Check className="w-5 h-5 text-emerald-500" />
                                       )}
                                     </div>

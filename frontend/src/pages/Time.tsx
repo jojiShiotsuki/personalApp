@@ -159,7 +159,7 @@ export default function Time() {
                 className="px-4 py-3 bg-[--exec-surface-alt] border border-[--exec-border] rounded-xl focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent] transition-all text-sm text-[--exec-text] cursor-pointer"
               >
                 <option value="">Select Task (optional)</option>
-                {tasks.filter(t => t.status !== 'completed').map(task => (
+                {tasks.filter(t => t.status !== 'COMPLETED').map(task => (
                   <option key={task.id} value={task.id}>{task.title}</option>
                 ))}
               </select>
@@ -181,7 +181,7 @@ export default function Time() {
                 className="px-4 py-3 bg-[--exec-surface-alt] border border-[--exec-border] rounded-xl focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent] transition-all text-sm text-[--exec-text] cursor-pointer"
               >
                 <option value="">Select Deal (optional)</option>
-                {deals.filter(d => !['closed_won', 'closed_lost'].includes(d.stage)).map(deal => (
+                {deals.filter(d => !['CLOSED_WON', 'CLOSED_LOST'].includes(d.stage)).map(deal => (
                   <option key={deal.id} value={deal.id}>{deal.title}</option>
                 ))}
               </select>

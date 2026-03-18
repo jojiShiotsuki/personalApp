@@ -112,8 +112,8 @@ export default function ImportContentModal({
   const handleImport = () => {
     const items: SocialContentCreate[] = parsed.map((entry) => ({
       content_date: formatDateForApi(entry.date),
-      content_type: 'reel',
-      status: 'not_started',
+      content_type: 'REEL',
+      status: 'NOT_STARTED',
       title: entry.title,
       notes: entry.weekTheme ? `Week ${entry.weekNumber}: ${entry.weekTheme}` : undefined,
     }));

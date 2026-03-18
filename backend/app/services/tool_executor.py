@@ -59,8 +59,8 @@ class ToolExecutor:
     def _create_task(self, params: Dict[str, Any]) -> Dict[str, Any]:
         task = Task(
             title=params["title"],
-            priority=params.get("priority", "medium"),
-            status="pending"
+            priority=params.get("priority", "MEDIUM"),
+            status="PENDING"
         )
 
         if "due_date" in params:

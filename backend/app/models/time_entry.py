@@ -6,14 +6,14 @@ import enum
 
 
 class TimeEntryCategory(str, enum.Enum):
-    DEVELOPMENT = "development"
-    DESIGN = "design"
-    MEETING = "meeting"
-    COMMUNICATION = "communication"
-    RESEARCH = "research"
-    ADMIN = "admin"
-    SUPPORT = "support"
-    OTHER = "other"
+    DEVELOPMENT = "DEVELOPMENT"
+    DESIGN = "DESIGN"
+    MEETING = "MEETING"
+    COMMUNICATION = "COMMUNICATION"
+    RESEARCH = "RESEARCH"
+    ADMIN = "ADMIN"
+    SUPPORT = "SUPPORT"
+    OTHER = "OTHER"
 
 
 class TimeEntry(Base):
