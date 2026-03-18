@@ -71,19 +71,19 @@ app.include_router(auth.router)
 # TEMPORARY: Unauthenticated debug endpoint for projects 500 diagnosis
 @app.get("/debug/projects-schema")
 def _debug_projects_schema():
+    import traceback, json
+    from fastapi.responses import JSONResponse
     from app.database import SessionLocal
-    from sqlalchemy import inspect as sa_inspect, text
-    db = SessionLocal()
+    from sqlalchemy import text
     try:
-        inspector = sa_inspect(db.bind)
-        cols = [c["name"] for c in inspector.get_columns("projects")]
+        db = SessionLocal()
         result = db.execute(text("SELECT id, name, status FROM projects LIMIT 5")).fetchall()
-        rows = [{"id": r[0], "name": r[1], "status": str(r[2])} for r in result]
-        return {"columns": cols, "sample_rows": rows}
-    except Exception as e:
-        return {"error": str(e), "type": type(e).__name__}
-    finally:
+        rows = [{"id": r[0], "name": str(r[1]), "status": str(r[2])} for r in result]
         db.close()
+        return JSONResponse(content={"ok": True, "rows": rows})
+    except Exception as e:
+        tb = traceback.format_exc()
+        return JSONResponse(content={"ok": False, "error": str(e), "type": type(e).__name__, "tb": tb}, status_code=200)
 
 # Register API routers (all protected by auth)
 # IMPORTANT: task_parser and goal_parser must come BEFORE tasks/goals to match
