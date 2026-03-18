@@ -20,6 +20,21 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/projects", tags=["projects"])
 
 
+@router.get("/debug-schema")
+def debug_schema(db: Session = Depends(get_db)):
+    """Temporary diagnostic endpoint - remove after debugging."""
+    try:
+        from sqlalchemy import inspect as sa_inspect, text
+        inspector = sa_inspect(db.bind)
+        cols = [c["name"] for c in inspector.get_columns("projects")]
+        # Check enum values
+        result = db.execute(text("SELECT id, name, status FROM projects LIMIT 5")).fetchall()
+        rows = [{"id": r[0], "name": r[1], "status": r[2]} for r in result]
+        return {"columns": cols, "sample_rows": rows}
+    except Exception as e:
+        return {"error": str(e)}
+
+
 @router.get("", response_model=List[ProjectResponse])
 def get_projects(db: Session = Depends(get_db)):
     try:
