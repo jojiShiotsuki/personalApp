@@ -22,7 +22,11 @@ router = APIRouter(prefix="/api/projects", tags=["projects"])
 
 @router.get("", response_model=List[ProjectResponse])
 def get_projects(db: Session = Depends(get_db)):
-    projects = db.query(Project).order_by(Project.updated_at.desc()).all()
+    try:
+        projects = db.query(Project).order_by(Project.updated_at.desc()).all()
+    except Exception as e:
+        logger.error(f"Failed to query projects: {e}")
+        raise HTTPException(status_code=500, detail=f"DB query failed: {str(e)}")
     if not projects:
         return []
     project_ids = [p.id for p in projects]
