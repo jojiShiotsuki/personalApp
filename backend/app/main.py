@@ -87,6 +87,66 @@ def _debug_projects_schema():
         tb = traceback.format_exc()
         return JSONResponse(content={"ok": False, "error": str(e), "type": type(e).__name__, "tb": tb}, status_code=200)
 
+@app.get("/debug/projects-full")
+def _debug_projects_full():
+    """Try the actual projects route logic and return detailed error."""
+    import traceback
+    from fastapi.responses import JSONResponse
+    from sqlalchemy import text
+    try:
+        from app.database.connection import SessionLocal
+        from app.models.project import Project, ProjectStatus
+        from app.models.task import Task, TaskStatus
+        from app.models.crm import Contact
+        from app.schemas.project import ProjectResponse
+        from sqlalchemy import func, case, or_
+        db = SessionLocal()
+        # Step 1: Query projects
+        projects = db.query(Project).order_by(Project.updated_at.desc()).all()
+        step1 = f"Queried {len(projects)} projects OK"
+        # Step 2: Check enum values
+        enum_check = [{"id": p.id, "status": str(p.status), "status_type": type(p.status).__name__} for p in projects[:3]]
+        # Step 3: Try task counts
+        project_ids = [p.id for p in projects]
+        task_counts = db.query(
+            Task.project_id,
+            func.count(Task.id).label("total"),
+            func.sum(case((or_(Task.status == TaskStatus.COMPLETED, Task.status == TaskStatus.SKIPPED), 1), else_=0)).label("completed")
+        ).filter(Task.project_id.in_(project_ids)).group_by(Task.project_id).all()
+        step3 = f"Task counts OK: {len(task_counts)} groups"
+        # Step 4: Set virtual attrs and try serialization
+        counts_map = {tc.project_id: {"total": tc.total, "completed": int(tc.completed or 0)} for tc in task_counts}
+        contact_ids = [p.contact_id for p in projects if p.contact_id]
+        contact_map = {}
+        if contact_ids:
+            contacts = db.query(Contact).filter(Contact.id.in_(contact_ids)).all()
+            contact_map = {c.id: c.name for c in contacts}
+        for project in projects:
+            counts = counts_map.get(project.id, {"total": 0, "completed": 0})
+            project.task_count = counts["total"]
+            project.completed_task_count = counts["completed"]
+            project.contact_name = contact_map.get(project.contact_id) if project.contact_id else None
+        step4 = "Virtual attrs set OK"
+        # Step 5: Try Pydantic serialization
+        try:
+            results = [ProjectResponse.model_validate(p, from_attributes=True).model_dump() for p in projects]
+            step5 = f"Serialized {len(results)} projects OK"
+        except Exception as e:
+            step5 = f"Serialization FAILED: {type(e).__name__}: {str(e)}"
+            # Try one at a time to find the bad one
+            bad_projects = []
+            for p in projects:
+                try:
+                    ProjectResponse.model_validate(p, from_attributes=True)
+                except Exception as pe:
+                    bad_projects.append({"id": p.id, "name": p.name, "error": str(pe)})
+            step5 += f" | Bad projects: {bad_projects}"
+        db.close()
+        return JSONResponse(content={"ok": True, "step1": step1, "enum_check": enum_check, "step3": step3, "step4": step4, "step5": step5})
+    except Exception as e:
+        tb = traceback.format_exc()
+        return JSONResponse(content={"ok": False, "error": str(e), "type": type(e).__name__, "tb": tb}, status_code=200)
+
 # Register API routers (all protected by auth)
 # IMPORTANT: task_parser and goal_parser must come BEFORE tasks/goals to match
 # /parse and /parse-bulk before the generic /{id} route
