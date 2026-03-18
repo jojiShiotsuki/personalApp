@@ -168,14 +168,25 @@ def upgrade() -> None:
     if result:
         return  # Already seeded
 
-    # Insert project (color column may not exist on all environments)
+    # Detect dialect to handle enum differences (SQLite uses lowercase, PostgreSQL uses uppercase)
+    dialect = conn.dialect.name
+    if dialect == 'sqlite':
+        proj_status = 'active'
+        task_status_val = 'pending'
+        def task_priority_val(p): return p  # 'high', 'medium' etc.
+    else:
+        proj_status = 'IN_PROGRESS'
+        task_status_val = 'PENDING'
+        def task_priority_val(p): return p.upper()  # 'HIGH', 'MEDIUM' etc.
+
+    # Insert project
     conn.execute(sa.text(
         "INSERT INTO projects (name, description, status, created_at, updated_at) "
         "VALUES (:name, :desc, :status, :created, :updated)"
     ), {
         "name": "Phase 2 Email Warmup and Cold Outreach",
         "desc": "Days 22-51 Outreach Task Plan. Volume ramp: 20/day (Days 22-28) > 25/day (29-35) > 30/day (36-42) > 40/day (43-49) > 50/day (50-51). Target by Day 51: 1,000+ Step 1 emails sent, 3%+ reply rate, first deal closed.",
-        "status": "active",
+        "status": proj_status,
         "created": now,
         "updated": now,
     })
@@ -195,8 +206,8 @@ def upgrade() -> None:
             "title": title,
             "desc": description,
             "due": due_date,
-            "priority": priority,
-            "status": "pending",
+            "priority": task_priority_val(priority),
+            "status": task_status_val,
             "project_id": project_id,
             "created": now,
             "updated": now,
