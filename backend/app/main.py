@@ -73,7 +73,6 @@ app.include_router(auth.router)
 def _debug_projects_schema():
     import traceback, json
     from fastapi.responses import JSONResponse
-    from app.database import SessionLocal
     from sqlalchemy import text
     try:
         from app.database.connection import SessionLocal
