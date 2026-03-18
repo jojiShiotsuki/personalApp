@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional
 from datetime import datetime, date
 from decimal import Decimal
@@ -40,6 +40,11 @@ class ProjectResponse(ProjectBase):
     task_count: Optional[int] = None
     completed_task_count: Optional[int] = None
     contact_name: Optional[str] = None
+
+    @field_validator('progress', mode='before')
+    @classmethod
+    def coerce_progress(cls, v):
+        return v if v is not None else 0
 
     class Config:
         from_attributes = True
