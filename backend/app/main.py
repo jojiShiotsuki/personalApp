@@ -76,11 +76,16 @@ def _debug_projects_schema():
     from app.database import SessionLocal
     from sqlalchemy import text
     try:
+        from app.database.connection import SessionLocal
         db = SessionLocal()
         result = db.execute(text("SELECT id, name, status FROM projects LIMIT 5")).fetchall()
         rows = [{"id": r[0], "name": str(r[1]), "status": str(r[2])} for r in result]
+        # Also check columns
+        from sqlalchemy import inspect as sa_inspect
+        inspector = sa_inspect(db.bind)
+        cols = [c["name"] for c in inspector.get_columns("projects")]
         db.close()
-        return JSONResponse(content={"ok": True, "rows": rows})
+        return JSONResponse(content={"ok": True, "columns": cols, "rows": rows})
     except Exception as e:
         tb = traceback.format_exc()
         return JSONResponse(content={"ok": False, "error": str(e), "type": type(e).__name__, "tb": tb}, status_code=200)
