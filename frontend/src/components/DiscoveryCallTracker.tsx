@@ -68,9 +68,9 @@ function CallCard({ call }: CallCardProps) {
     <div
       className={cn(
         'p-4 rounded-xl border transition-all',
-        call.outcome === 'closed_deal'
+        call.outcome === 'CLOSED_DEAL'
           ? 'bg-[--exec-sage-bg] border-[--exec-sage]'
-          : call.outcome === 'sent_proposal'
+          : call.outcome === 'SENT_PROPOSAL'
             ? 'bg-[--exec-accent-bg] border-[--exec-accent]'
             : 'bg-[--exec-surface-alt] border-[--exec-border-subtle]'
       )}
@@ -427,13 +427,13 @@ function NewCallModal({ onClose, onSubmit, isLoading }: NewCallModalProps) {
                     className={inputClasses}
                   >
                     <option value="">Select outcome...</option>
-                    <option value="scheduled_followup">Follow-up Scheduled</option>
-                    <option value="sent_proposal">Proposal Sent</option>
-                    <option value="closed_deal">Closed Deal</option>
-                    <option value="needs_more_info">Needs More Info</option>
-                    <option value="not_a_fit">Not a Fit</option>
-                    <option value="no_show">No Show</option>
-                    <option value="rescheduled">Rescheduled</option>
+                    <option value="SCHEDULED_FOLLOWUP">Follow-up Scheduled</option>
+                    <option value="SENT_PROPOSAL">Proposal Sent</option>
+                    <option value="CLOSED_DEAL">Closed Deal</option>
+                    <option value="NEEDS_MORE_INFO">Needs More Info</option>
+                    <option value="NOT_A_FIT">Not a Fit</option>
+                    <option value="NO_SHOW">No Show</option>
+                    <option value="RESCHEDULED">Rescheduled</option>
                   </select>
                 </div>
 

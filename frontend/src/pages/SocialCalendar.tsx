@@ -651,7 +651,7 @@ export default function SocialCalendar() {
                             <span className="text-xs text-[--exec-text-muted] capitalize">
                               {item.content_type.replace('_', ' ')}
                             </span>
-                            {item.content_type === 'reel' && item.reel_type && (
+                            {item.content_type === 'REEL' && item.reel_type && (
                               <span className="px-2 py-0.5 text-xs font-medium rounded-md bg-[--exec-surface-alt] text-[--exec-text-secondary] capitalize">
                                 {item.reel_type.replace('_', ' ')}
                               </span>
