@@ -884,6 +884,9 @@ function SequencePipelineView({
             const Icon = col.channelType ? CHANNEL_ICONS[col.channelType] : undefined;
             const bucket = sortProspects(stepBuckets[col.stepNumber] || [], sortBy);
 
+            const customCount = bucket.filter(p => !!(p.custom_email_subject || p.custom_email_body)).length;
+            const noCustomCount = bucket.filter(p => p.email && !(p.custom_email_subject || p.custom_email_body)).length;
+
             return (
               <div key={col.stepNumber} className="flex flex-col min-w-0">
                 {/* Column header */}
@@ -916,6 +919,19 @@ function SequencePipelineView({
                       {bucket.length}
                     </span>
                   </div>
+                  {/* Custom message counts for steps with email prospects */}
+                  {bucket.length > 0 && (customCount > 0 || noCustomCount > 0) && (
+                    <div className="flex items-center gap-2 mt-2 pt-2 border-t border-stone-700/30">
+                      <span className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-400">
+                        <Mail className="w-2.5 h-2.5" />
+                        {customCount} custom
+                      </span>
+                      <span className="text-[10px] text-stone-600">|</span>
+                      <span className="inline-flex items-center gap-1 text-[10px] font-medium text-stone-500">
+                        {noCustomCount} no msg
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Column body */}
