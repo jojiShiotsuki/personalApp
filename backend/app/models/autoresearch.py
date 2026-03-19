@@ -67,7 +67,7 @@ class Experiment(Base):
     id = Column(Integer, primary_key=True, index=True)
     prospect_id = Column(Integer, ForeignKey("outreach_prospects.id", ondelete="CASCADE"), nullable=False, index=True)
     campaign_id = Column(Integer, ForeignKey("outreach_campaigns.id", ondelete="CASCADE"), nullable=False, index=True)
-    audit_id = Column(Integer, ForeignKey("audit_results.id", ondelete="CASCADE"), nullable=True, index=True)
+    audit_id = Column(Integer, ForeignKey("audit_results.id", ondelete="CASCADE"), nullable=False, index=True)
 
     # Experiment status
     status = Column(String(30), default="draft")  # draft/sent/replied/no_reply/bounced
@@ -97,7 +97,7 @@ class Experiment(Base):
     # Send data
     sent_at = Column(DateTime, nullable=True)
     day_of_week = Column(String(10), nullable=True)
-    step_number = Column(Integer, nullable=True)
+    step_number = Column(Integer, nullable=False, default=1)
 
     # Outcome tracking
     replied = Column(Boolean, default=False)
@@ -105,7 +105,7 @@ class Experiment(Base):
     response_time_minutes = Column(Integer, nullable=True)
     sentiment = Column(String(30), nullable=True)  # positive/neutral/negative
     category = Column(String(50), nullable=True)  # interested/not_interested/question/referral/etc.
-    forwarded_internally = Column(Boolean, default=False)
+    forwarded_internally = Column(Boolean, nullable=True)
     full_reply_text = Column(Text, nullable=True)
 
     # Conversion tracking
@@ -152,18 +152,18 @@ class EmailMatch(Base):
     # Gmail data
     gmail_message_id = Column(String(255), nullable=False, unique=True)
     direction = Column(String(10), nullable=False)  # inbound/outbound
-    from_email = Column(String(255), nullable=True)
-    to_email = Column(String(255), nullable=True)
+    from_email = Column(String(255), nullable=False)
+    to_email = Column(String(255), nullable=False)
     subject = Column(String(500), nullable=True)
     body_text = Column(Text, nullable=True)
-    received_at = Column(DateTime, nullable=True)
+    received_at = Column(DateTime, nullable=False)
 
     # Classification
     sentiment = Column(String(30), nullable=True)
     category = Column(String(50), nullable=True)
-    wants_loom = Column(Boolean, default=False)
-    wants_call = Column(Boolean, default=False)
-    forwarded_internally = Column(Boolean, default=False)
+    wants_loom = Column(Boolean, nullable=True)
+    wants_call = Column(Boolean, nullable=True)
+    forwarded_internally = Column(Boolean, nullable=True)
     key_quote = Column(Text, nullable=True)
     suggested_action = Column(String(100), nullable=True)
     classification_cost = Column(Float, nullable=True)
@@ -180,10 +180,10 @@ class Insight(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     insight = Column(Text, nullable=False)
-    confidence = Column(String(20), nullable=True)
-    sample_size = Column(Integer, nullable=True)
+    confidence = Column(String(20), nullable=False)
+    sample_size = Column(Integer, nullable=False)
     recommendation = Column(Text, nullable=True)
-    applies_to = Column(String(100), nullable=True)  # global/niche/issue_type/etc.
+    applies_to = Column(String(100), nullable=True, default="all_niches")  # global/niche/issue_type/etc.
     is_active = Column(Boolean, default=True)
     experiment_count_at_refresh = Column(Integer, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
