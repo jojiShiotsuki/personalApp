@@ -21,6 +21,7 @@ const Services = lazy(() => import('./pages/Services'));
 const Settings = lazy(() => import('./pages/Settings'));
 const Sprint = lazy(() => import('./pages/Sprint'));
 const Reports = lazy(() => import('./pages/Reports'));
+const Autoresearch = lazy(() => import('./pages/Autoresearch'));
 import QuickAddModal from './components/QuickAddModal';
 import CommandPalette from './components/CommandPalette';
 import ShortcutsModal from './components/ShortcutsModal';
@@ -122,6 +123,7 @@ function AuthenticatedApp() {
           <Route path="/services" element={<Services />} />
           <Route path="/sprint" element={<Sprint />} />
           <Route path="/reports" element={<Reports />} />
+          <Route path="/autoresearch" element={<Autoresearch />} />
           <Route path="/login" element={<Navigate to="/" replace />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

@@ -12,6 +12,7 @@ import {
   Clock,
   Send,
   RefreshCw,
+  FlaskConical,
   Settings,
   ChevronLeft,
   ChevronRight,
@@ -47,6 +48,7 @@ const navigationGroups = [
       { name: 'Deals', href: '/deals', icon: Briefcase },
       { name: 'Services', href: '/services', icon: RefreshCw },
       { name: 'Outreach', href: '/outreach', icon: Send },
+      { name: 'Autoresearch', href: '/autoresearch', icon: FlaskConical },
     ],
   },
   {
