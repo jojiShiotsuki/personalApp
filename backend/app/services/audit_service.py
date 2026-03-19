@@ -249,12 +249,24 @@ class AuditService:
             # Scroll to bottom to trigger lazy-loading, then back to top
             self._scroll_full_page_sync(desktop_page)
 
-            # Full-page screenshot
-            desktop_png = desktop_page.screenshot(full_page=True, type="png")
+            # Full-page screenshot (capped at 7500px height for Claude Vision 8000px limit)
+            page_height = desktop_page.evaluate("() => document.body.scrollHeight")
+            if page_height > 7500:
+                logger.info("Page height %dpx exceeds 7500px, clipping screenshot", page_height)
+                desktop_png = desktop_page.screenshot(
+                    clip={"x": 0, "y": 0, "width": 1440, "height": 7500}, type="png"
+                )
+            else:
+                desktop_png = desktop_page.screenshot(full_page=True, type="png")
             # Cap at 5 MB to avoid massive API calls
             if len(desktop_png) > MAX_SCREENSHOT_SIZE:
                 logger.info("Desktop screenshot too large (%d bytes), retaking as JPEG", len(desktop_png))
-                desktop_png = desktop_page.screenshot(full_page=True, type="jpeg", quality=50)
+                if page_height > 7500:
+                    desktop_png = desktop_page.screenshot(
+                        clip={"x": 0, "y": 0, "width": 1440, "height": 7500}, type="jpeg", quality=50
+                    )
+                else:
+                    desktop_png = desktop_page.screenshot(full_page=True, type="jpeg", quality=50)
             result["desktop_screenshot"] = base64.b64encode(desktop_png).decode("ascii")
 
             # Extract visible text
@@ -271,11 +283,22 @@ class AuditService:
                 self._navigate_with_fallback_sync(mobile_page, url)
                 time.sleep(min_wait)
                 self._scroll_full_page_sync(mobile_page)
-                mobile_png = mobile_page.screenshot(full_page=True, type="png")
+                mob_height = mobile_page.evaluate("() => document.body.scrollHeight")
+                if mob_height > 7500:
+                    mobile_png = mobile_page.screenshot(
+                        clip={"x": 0, "y": 0, "width": 375, "height": 7500}, type="png"
+                    )
+                else:
+                    mobile_png = mobile_page.screenshot(full_page=True, type="png")
                 # Cap at 5 MB to avoid massive API calls
                 if len(mobile_png) > MAX_SCREENSHOT_SIZE:
                     logger.info("Mobile screenshot too large (%d bytes), retaking as JPEG", len(mobile_png))
-                    mobile_png = mobile_page.screenshot(full_page=True, type="jpeg", quality=50)
+                    if mob_height > 7500:
+                        mobile_png = mobile_page.screenshot(
+                            clip={"x": 0, "y": 0, "width": 375, "height": 7500}, type="jpeg", quality=50
+                        )
+                    else:
+                        mobile_png = mobile_page.screenshot(full_page=True, type="jpeg", quality=50)
                 result["mobile_screenshot"] = base64.b64encode(mobile_png).decode("ascii")
             except Exception as mob_err:
                 logger.warning("Mobile capture failed for %s: %s", url, mob_err)
