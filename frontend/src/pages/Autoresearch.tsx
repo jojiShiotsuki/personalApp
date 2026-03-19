@@ -10,6 +10,7 @@ import {
 import { cn } from '@/lib/utils';
 import AuditsTab from '@/components/autoresearch/AuditsTab';
 import ExperimentsTab from '@/components/autoresearch/ExperimentsTab';
+import InsightsTab from '@/components/autoresearch/InsightsTab';
 import SettingsTab from '@/components/autoresearch/SettingsTab';
 
 type TabType = 'audits' | 'insights' | 'experiments' | 'settings';
@@ -115,11 +116,7 @@ export default function Autoresearch() {
       {/* Tab Content */}
       <div className="animate-fade-slide-up delay-5">
         {activeTab === 'audits' && <AuditsTab />}
-        {activeTab === 'insights' && (
-          <div className="p-8 text-center text-[--exec-text-muted]">
-            Insights tab - coming soon
-          </div>
-        )}
+        {activeTab === 'insights' && <InsightsTab />}
         {activeTab === 'experiments' && <ExperimentsTab />}
         {activeTab === 'settings' && <SettingsTab />}
       </div>
