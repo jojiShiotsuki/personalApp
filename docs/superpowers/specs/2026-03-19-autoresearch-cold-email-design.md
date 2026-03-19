@@ -320,6 +320,7 @@ POST /api/autoresearch/gmail/poll       — Manual trigger poll
 ```python
 class GmailToken:
     id: int
+    user_id: int (FK, unique)  # References users.id, one Gmail per user
     email_address: str
     encrypted_refresh_token: str
     last_poll_at: datetime
@@ -347,6 +348,7 @@ class EmailMatch:
     forwarded_internally: bool | None
     key_quote: str | None
     suggested_action: str | None
+    classification_cost: float | None  # AI cost for reply classification
 
     created_at: datetime
 ```
@@ -367,9 +369,10 @@ class Experiment:
     prospect_id: int (FK)
     campaign_id: int (FK)
     audit_id: int (FK)
+    status: str  # draft, sent, replied, no_reply, bounced
 
-    # Audit data (denormalized for query performance)
-    issue_type: str
+    # Audit data (denormalized for query performance, point-in-time snapshot)
+    issue_type: str  # indexed for analytics
     issue_detail: str
     secondary_issue: str | None
     secondary_detail: str | None
@@ -384,8 +387,8 @@ class Experiment:
     was_edited: bool
     edit_type: str | None  # minor_tweak, rewrite, subject_only
 
-    # Prospect context (denormalized)
-    niche: str
+    # Prospect context (denormalized, point-in-time snapshot)
+    niche: str  # indexed for analytics
     city: str
     state: str
     company: str
@@ -798,7 +801,9 @@ def stop_scheduler():
 
 Batch audits use FastAPI `BackgroundTasks` (triggered by user click, not scheduled).
 
-**New dependency:** `apscheduler>=3.10` added to `requirements.txt`.
+**New dependencies:** `apscheduler>=3.10,<4.0` and `cryptography` added to `requirements.txt`.
+
+**Note:** The WAL mode pragma (local dev) must be merged into the existing `set_sqlite_pragma` listener in `connection.py` that already sets `PRAGMA foreign_keys=ON`. Do not create a second listener.
 
 ### Playwright Deployment
 
@@ -908,9 +913,10 @@ All FKs specify `ondelete` behavior:
 ### Batch Audit Controls
 
 - `max_batch_size` setting (default 50, configurable in Settings tab)
+- The batch audit endpoint `POST /api/autoresearch/audit/batch/{campaign_id}` returns a `batch_id` (UUID, in-memory job ID — not a database record). Batch state (completed count, errors, cancellation flag) stored in a server-side dict keyed by `batch_id`, cleared after completion or 1 hour.
 - Progress endpoint: `GET /api/autoresearch/audit/batch/{batch_id}/progress` returns `{completed, total, errors, current_prospect}`
-- Cancel endpoint: `POST /api/autoresearch/audit/batch/{batch_id}/cancel`
-- Frontend shows progress bar with cancel button
+- Cancel endpoint: `POST /api/autoresearch/audit/batch/{batch_id}/cancel` sets a cancellation flag checked between audits
+- Frontend shows progress bar with cancel button, polls progress endpoint every 5 seconds during batch
 
 ### Analytics Pagination
 
