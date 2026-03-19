@@ -10,6 +10,7 @@ Provides:
 import asyncio
 import logging
 import os
+import time
 import uuid
 from datetime import datetime
 from typing import Optional
@@ -57,7 +58,7 @@ router = APIRouter(prefix="/api/autoresearch", tags=["autoresearch"])
 # ──────────────────────────────────────────────
 
 try:
-    from app.services.audit_service import AuditService, DEFAULT_AUDIT_PROMPT
+    from app.services.audit_service import AuditService, DEFAULT_AUDIT_PROMPT, validate_url
     audit_service = AuditService()
 except Exception:
     logger.warning(
@@ -65,7 +66,7 @@ except Exception:
         "Audit endpoints will return 503."
     )
     audit_service = None  # type: ignore[assignment]
-    from app.services.audit_service import DEFAULT_AUDIT_PROMPT
+    from app.services.audit_service import DEFAULT_AUDIT_PROMPT, validate_url
 
 # ──────────────────────────────────────────────
 # Gmail service (module-level, lazy init)
@@ -89,6 +90,23 @@ _oauth_states: dict[str, int] = {}
 # ──────────────────────────────────────────────
 
 _batch_jobs: dict[str, dict] = {}
+
+# Batch job cleanup interval (seconds)
+_BATCH_JOB_MAX_AGE = 3600  # 1 hour
+
+
+def _cleanup_stale_batch_jobs() -> None:
+    """Remove completed batch jobs older than 1 hour to prevent memory leaks."""
+    now = time.monotonic()
+    stale_ids = [
+        bid
+        for bid, job in _batch_jobs.items()
+        if job.get("is_complete") and (now - job.get("_completed_at", 0)) > _BATCH_JOB_MAX_AGE
+    ]
+    for bid in stale_ids:
+        del _batch_jobs[bid]
+    if stale_ids:
+        logger.info("Cleaned up %d stale batch jobs", len(stale_ids))
 
 
 def _require_audit_service() -> "AuditService":
@@ -129,6 +147,12 @@ async def audit_single_prospect(
             detail="Prospect has no website URL — cannot audit.",
         )
 
+    # Validate and normalise URL
+    try:
+        validated_url = validate_url(prospect.website)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
     # Load user settings (for audit_prompt, min_wait)
     settings = (
         db.query(AutoresearchSettings)
@@ -150,57 +174,71 @@ async def audit_single_prospect(
     if learning_context:
         audit_prompt = audit_prompt + "\n\n" + learning_context
 
-    # Pass 1: capture screenshots
-    screenshots = await svc.capture_screenshots(prospect.website, min_wait=min_wait)
+    try:
+        # Pass 1: capture screenshots
+        screenshots = await svc.capture_screenshots(validated_url, min_wait=min_wait)
 
-    if screenshots.get("error") and not screenshots.get("desktop_screenshot"):
-        raise HTTPException(
-            status_code=502,
-            detail=f"Screenshot capture failed: {screenshots['error']}",
+        if screenshots.get("error") and not screenshots.get("desktop_screenshot"):
+            raise HTTPException(
+                status_code=502,
+                detail=f"Screenshot capture failed: {screenshots['error']}",
+            )
+
+        # Pass 1: analyse with Claude
+        analysis = await svc.analyze_with_claude(
+            screenshots=screenshots,
+            prospect_name=prospect.contact_name or prospect.agency_name,
+            prospect_company=prospect.agency_name,
+            prospect_niche=prospect.niche or "general",
+            prospect_city="",
+            audit_prompt=audit_prompt,
         )
 
-    # Pass 1: analyse with Claude
-    analysis = await svc.analyze_with_claude(
-        screenshots=screenshots,
-        prospect_name=prospect.contact_name or prospect.agency_name,
-        prospect_company=prospect.agency_name,
-        prospect_niche=prospect.niche or "general",
-        prospect_city="",
-        audit_prompt=audit_prompt,
-    )
+        if analysis.get("error") and not analysis.get("issue_type"):
+            raise HTTPException(
+                status_code=502,
+                detail=f"Claude analysis failed: {analysis['error']}",
+            )
 
-    if analysis.get("error") and not analysis.get("issue_type"):
-        raise HTTPException(
-            status_code=502,
-            detail=f"Claude analysis failed: {analysis['error']}",
+        # Persist AuditResult
+        meta = analysis.get("_meta", {})
+        audit_result = AuditResult(
+            prospect_id=prospect.id,
+            campaign_id=prospect.campaign_id,
+            issue_type=analysis.get("issue_type"),
+            issue_detail=analysis.get("issue_detail"),
+            secondary_issue=analysis.get("secondary_issue"),
+            secondary_detail=analysis.get("secondary_detail"),
+            confidence=analysis.get("confidence", "medium"),
+            site_quality=analysis.get("site_quality", "medium"),
+            needs_verification=analysis.get("needs_verification", False),
+            generated_subject=analysis.get("subject"),
+            generated_body=analysis.get("body"),
+            word_count=analysis.get("word_count"),
+            desktop_screenshot=screenshots.get("desktop_screenshot"),
+            mobile_screenshot=screenshots.get("mobile_screenshot"),
+            status="pending_review",
+            audit_duration_seconds=meta.get("duration_seconds"),
+            model_used=meta.get("model"),
+            tokens_used=(meta.get("input_tokens", 0) + meta.get("output_tokens", 0)),
+            ai_cost_estimate=meta.get("cost_usd"),
         )
+        db.add(audit_result)
+        db.commit()
+        db.refresh(audit_result)
 
-    # Persist AuditResult
-    meta = analysis.get("_meta", {})
-    audit_result = AuditResult(
-        prospect_id=prospect.id,
-        campaign_id=prospect.campaign_id,
-        issue_type=analysis.get("issue_type"),
-        issue_detail=analysis.get("issue_detail"),
-        secondary_issue=analysis.get("secondary_issue"),
-        secondary_detail=analysis.get("secondary_detail"),
-        confidence=analysis.get("confidence", "medium"),
-        site_quality=analysis.get("site_quality", "medium"),
-        needs_verification=analysis.get("needs_verification", False),
-        generated_subject=analysis.get("subject"),
-        generated_body=analysis.get("body"),
-        word_count=analysis.get("word_count"),
-        desktop_screenshot=screenshots.get("desktop_screenshot"),
-        mobile_screenshot=screenshots.get("mobile_screenshot"),
-        status="pending_review",
-        audit_duration_seconds=meta.get("duration_seconds"),
-        model_used=meta.get("model"),
-        tokens_used=(meta.get("input_tokens", 0) + meta.get("output_tokens", 0)),
-        ai_cost_estimate=meta.get("cost_usd"),
-    )
-    db.add(audit_result)
-    db.commit()
-    db.refresh(audit_result)
+    except HTTPException:
+        raise  # Re-raise HTTP exceptions as-is
+    except Exception as exc:
+        logger.error(
+            "Unexpected error auditing prospect %d (%s): %s",
+            prospect_id, validated_url, exc, exc_info=True,
+        )
+        db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Audit failed unexpectedly: {type(exc).__name__}: {exc}",
+        )
 
     # Build response with joined prospect info
     response = AuditResultResponse.model_validate(audit_result, from_attributes=True)
@@ -224,6 +262,9 @@ async def start_batch_audit(
 ):
     """Start a batch audit for all un-audited prospects with websites in a campaign."""
     _require_audit_service()
+
+    # Opportunistic cleanup of completed batch jobs older than 1 hour
+    _cleanup_stale_batch_jobs()
 
     # Count un-audited prospects with websites
     already_audited_ids = (
@@ -968,6 +1009,12 @@ async def reaudit_prospect(
             detail="Prospect has no website URL — cannot re-audit.",
         )
 
+    # Validate and normalise URL
+    try:
+        validated_url = validate_url(prospect.website)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
     # Load user settings
     settings = (
         db.query(AutoresearchSettings)
@@ -982,57 +1029,71 @@ async def reaudit_prospect(
     if old_audit.rejection_reason:
         rejection_context = f"\n\nPrevious audit was rejected: {old_audit.rejection_reason}"
 
-    # Re-capture screenshots
-    screenshots = await svc.capture_screenshots(prospect.website, min_wait=min_wait)
+    try:
+        # Re-capture screenshots
+        screenshots = await svc.capture_screenshots(validated_url, min_wait=min_wait)
 
-    if screenshots.get("error") and not screenshots.get("desktop_screenshot"):
-        raise HTTPException(
-            status_code=502,
-            detail=f"Screenshot capture failed: {screenshots['error']}",
+        if screenshots.get("error") and not screenshots.get("desktop_screenshot"):
+            raise HTTPException(
+                status_code=502,
+                detail=f"Screenshot capture failed: {screenshots['error']}",
+            )
+
+        # Re-analyse with Claude, passing rejection context
+        analysis = await svc.analyze_with_claude(
+            screenshots=screenshots,
+            prospect_name=prospect.contact_name or prospect.agency_name,
+            prospect_company=prospect.agency_name,
+            prospect_niche=prospect.niche or "general",
+            prospect_city="",
+            audit_prompt=audit_prompt + rejection_context,
         )
 
-    # Re-analyse with Claude, passing rejection context
-    analysis = await svc.analyze_with_claude(
-        screenshots=screenshots,
-        prospect_name=prospect.contact_name or prospect.agency_name,
-        prospect_company=prospect.agency_name,
-        prospect_niche=prospect.niche or "general",
-        prospect_city="",
-        audit_prompt=audit_prompt + rejection_context,
-    )
+        if analysis.get("error") and not analysis.get("issue_type"):
+            raise HTTPException(
+                status_code=502,
+                detail=f"Claude analysis failed: {analysis['error']}",
+            )
 
-    if analysis.get("error") and not analysis.get("issue_type"):
-        raise HTTPException(
-            status_code=502,
-            detail=f"Claude analysis failed: {analysis['error']}",
+        # Persist new AuditResult
+        meta = analysis.get("_meta", {})
+        new_audit = AuditResult(
+            prospect_id=prospect.id,
+            campaign_id=old_audit.campaign_id,
+            issue_type=analysis.get("issue_type"),
+            issue_detail=analysis.get("issue_detail"),
+            secondary_issue=analysis.get("secondary_issue"),
+            secondary_detail=analysis.get("secondary_detail"),
+            confidence=analysis.get("confidence", "medium"),
+            site_quality=analysis.get("site_quality", "medium"),
+            needs_verification=analysis.get("needs_verification", False),
+            generated_subject=analysis.get("subject"),
+            generated_body=analysis.get("body"),
+            word_count=analysis.get("word_count"),
+            desktop_screenshot=screenshots.get("desktop_screenshot"),
+            mobile_screenshot=screenshots.get("mobile_screenshot"),
+            status="pending_review",
+            audit_duration_seconds=meta.get("duration_seconds"),
+            model_used=meta.get("model"),
+            tokens_used=(meta.get("input_tokens", 0) + meta.get("output_tokens", 0)),
+            ai_cost_estimate=meta.get("cost_usd"),
         )
+        db.add(new_audit)
+        db.commit()
+        db.refresh(new_audit)
 
-    # Persist new AuditResult
-    meta = analysis.get("_meta", {})
-    new_audit = AuditResult(
-        prospect_id=prospect.id,
-        campaign_id=old_audit.campaign_id,
-        issue_type=analysis.get("issue_type"),
-        issue_detail=analysis.get("issue_detail"),
-        secondary_issue=analysis.get("secondary_issue"),
-        secondary_detail=analysis.get("secondary_detail"),
-        confidence=analysis.get("confidence", "medium"),
-        site_quality=analysis.get("site_quality", "medium"),
-        needs_verification=analysis.get("needs_verification", False),
-        generated_subject=analysis.get("subject"),
-        generated_body=analysis.get("body"),
-        word_count=analysis.get("word_count"),
-        desktop_screenshot=screenshots.get("desktop_screenshot"),
-        mobile_screenshot=screenshots.get("mobile_screenshot"),
-        status="pending_review",
-        audit_duration_seconds=meta.get("duration_seconds"),
-        model_used=meta.get("model"),
-        tokens_used=(meta.get("input_tokens", 0) + meta.get("output_tokens", 0)),
-        ai_cost_estimate=meta.get("cost_usd"),
-    )
-    db.add(new_audit)
-    db.commit()
-    db.refresh(new_audit)
+    except HTTPException:
+        raise  # Re-raise HTTP exceptions as-is
+    except Exception as exc:
+        logger.error(
+            "Unexpected error re-auditing prospect %d (%s): %s",
+            prospect.id, validated_url, exc, exc_info=True,
+        )
+        db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Re-audit failed unexpectedly: {type(exc).__name__}: {exc}",
+        )
 
     # Build response with prospect info
     resp = AuditResultResponse.model_validate(new_audit, from_attributes=True)
@@ -1406,9 +1467,21 @@ async def _run_batch_audit(
             job["current_prospect"] = prospect.contact_name or prospect.agency_name
 
             try:
+                # Validate URL before attempting capture
+                try:
+                    batch_validated_url = validate_url(prospect.website)
+                except ValueError as url_err:
+                    logger.warning(
+                        "Batch %s: invalid URL for prospect %d (%s): %s",
+                        batch_id, prospect.id, prospect.website, url_err,
+                    )
+                    job["errors"] += 1
+                    job["completed"] += 1
+                    continue
+
                 # Pass 1: capture screenshots
                 screenshots = await svc.capture_screenshots(
-                    prospect.website, min_wait=min_wait
+                    batch_validated_url, min_wait=min_wait
                 )
 
                 if screenshots.get("error") and not screenshots.get("desktop_screenshot"):
@@ -1489,6 +1562,7 @@ async def _run_batch_audit(
             job["completed"] += 1
 
         job["is_complete"] = True
+        job["_completed_at"] = time.monotonic()
         job["current_prospect"] = None
         logger.info(
             "Batch %s complete: %d/%d processed, %d errors.",
@@ -1500,5 +1574,6 @@ async def _run_batch_audit(
         job = _batch_jobs.get(batch_id)
         if job:
             job["is_complete"] = True
+            job["_completed_at"] = time.monotonic()
     finally:
         db.close()

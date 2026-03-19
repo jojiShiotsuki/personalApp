@@ -15,10 +15,63 @@ import os
 import re
 import time
 from typing import Any, Optional
+from urllib.parse import urlparse
 
 from anthropic import AsyncAnthropic
 
 logger = logging.getLogger(__name__)
+
+# ──────────────────────────────────────────────
+# Constants
+# ──────────────────────────────────────────────
+
+MAX_SCREENSHOT_SIZE = 5 * 1024 * 1024  # 5 MB in bytes
+
+BOT_DETECTION_INDICATORS = [
+    "captcha",
+    "verify you are human",
+    "access denied",
+    "blocked",
+    "cloudflare",
+    "just a moment",
+    "checking your browser",
+    "are you a robot",
+]
+
+
+# ──────────────────────────────────────────────
+# URL validation
+# ──────────────────────────────────────────────
+
+
+def validate_url(url: str) -> str:
+    """Validate and normalize a URL. Returns cleaned URL or raises ValueError."""
+    url = url.strip()
+
+    if not url:
+        raise ValueError("URL cannot be empty")
+
+    # Add https:// if no scheme
+    if not url.startswith(("http://", "https://")):
+        url = "https://" + url
+
+    parsed = urlparse(url)
+
+    # Must have a valid hostname
+    if not parsed.hostname:
+        raise ValueError(f"Invalid URL: no hostname found in '{url}'")
+
+    # Block internal/private IPs and file URLs
+    hostname = parsed.hostname.lower()
+    blocked = ["localhost", "127.0.0.1", "0.0.0.0", "::1"]
+    if hostname in blocked or hostname.startswith(("192.168.", "10.", "172.")):
+        raise ValueError(f"Internal URLs are not allowed: {hostname}")
+
+    if parsed.scheme not in ("http", "https"):
+        raise ValueError(f"Only http/https URLs are allowed, got: {parsed.scheme}")
+
+    return url
+
 
 # ──────────────────────────────────────────────
 # Default Audit Prompt
@@ -170,11 +223,29 @@ class AuditService:
             # Wait for JS rendering
             await asyncio.sleep(min_wait)
 
+            # Check for common bot detection / captcha pages
+            try:
+                page_title = await desktop_page.title()
+                page_text = await desktop_page.evaluate(
+                    "() => (document.body.innerText || '').substring(0, 500)"
+                )
+                combined = (page_title + " " + page_text).lower()
+                if any(indicator in combined for indicator in BOT_DETECTION_INDICATORS):
+                    logger.warning("Bot detection found on %s: title=%r", url, page_title)
+                    result["error"] = "Site has bot protection (captcha/Cloudflare). Manual audit needed."
+                    return result
+            except Exception as bd_err:
+                logger.debug("Bot detection check failed (non-fatal): %s", bd_err)
+
             # Scroll to bottom to trigger lazy-loading, then back to top
             await self._scroll_full_page(desktop_page)
 
             # Full-page screenshot
             desktop_png = await desktop_page.screenshot(full_page=True, type="png")
+            # Cap at 5 MB to avoid massive API calls
+            if len(desktop_png) > MAX_SCREENSHOT_SIZE:
+                logger.info("Desktop screenshot too large (%d bytes), retaking as JPEG", len(desktop_png))
+                desktop_png = await desktop_page.screenshot(full_page=True, type="jpeg", quality=50)
             result["desktop_screenshot"] = base64.b64encode(desktop_png).decode("ascii")
 
             # Extract visible text
@@ -192,6 +263,10 @@ class AuditService:
                 await asyncio.sleep(min_wait)
                 await self._scroll_full_page(mobile_page)
                 mobile_png = await mobile_page.screenshot(full_page=True, type="png")
+                # Cap at 5 MB to avoid massive API calls
+                if len(mobile_png) > MAX_SCREENSHOT_SIZE:
+                    logger.info("Mobile screenshot too large (%d bytes), retaking as JPEG", len(mobile_png))
+                    mobile_png = await mobile_page.screenshot(full_page=True, type="jpeg", quality=50)
                 result["mobile_screenshot"] = base64.b64encode(mobile_png).decode("ascii")
             except Exception as mob_err:
                 logger.warning("Mobile capture failed for %s: %s", url, mob_err)
