@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import AuditsTab from '@/components/autoresearch/AuditsTab';
+import ExperimentsTab from '@/components/autoresearch/ExperimentsTab';
 
 type TabType = 'audits' | 'insights' | 'experiments' | 'settings';
 
@@ -118,11 +119,7 @@ export default function Autoresearch() {
             Insights tab - coming soon
           </div>
         )}
-        {activeTab === 'experiments' && (
-          <div className="p-8 text-center text-[--exec-text-muted]">
-            Experiments tab - coming soon
-          </div>
-        )}
+        {activeTab === 'experiments' && <ExperimentsTab />}
         {activeTab === 'settings' && (
           <div className="p-8 text-center text-[--exec-text-muted]">
             Settings tab - coming soon
