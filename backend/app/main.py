@@ -13,6 +13,7 @@ from fastapi.responses import FileResponse, JSONResponse
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 from app.database import init_db
+from app.services.scheduler_service import start_scheduler, stop_scheduler
 from app.auth import get_current_user
 from app.routes import auth, tasks, crm, task_parser, export, goals, goal_parser, projects, project_templates, social_content, dashboard, time, outreach, cold_outreach, lead_discovery, daily_outreach, sprint, loom_audit, pipeline_calculator, discovery_call, search_planner, reports, autoresearch
 
@@ -194,8 +195,14 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 @app.on_event("startup")
 async def startup_event():
-    """Initialize database on startup"""
+    """Initialize database and background scheduler on startup"""
     init_db()
+    start_scheduler()
+
+@app.on_event("shutdown")
+def shutdown_event():
+    """Stop background scheduler"""
+    stop_scheduler()
 
 @app.get("/health")
 async def health_check():
