@@ -9,11 +9,13 @@ Provides:
 
 import asyncio
 import logging
+import os
 import uuid
 from datetime import datetime
 from typing import Optional
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
+from fastapi.responses import RedirectResponse
 from sqlalchemy import case, func
 from sqlalchemy.orm import Session
 
@@ -62,6 +64,23 @@ except Exception:
     )
     audit_service = None  # type: ignore[assignment]
     from app.services.audit_service import DEFAULT_AUDIT_PROMPT
+
+# ──────────────────────────────────────────────
+# Gmail service (module-level, lazy init)
+# ──────────────────────────────────────────────
+
+try:
+    from app.services.gmail_service import GmailService
+    gmail_service = GmailService()
+except Exception:
+    logger.warning(
+        "GmailService could not be initialised (GOOGLE_CLIENT_ID / "
+        "GMAIL_ENCRYPTION_KEY may not be set). Gmail endpoints will return 503."
+    )
+    gmail_service = None  # type: ignore[assignment]
+
+# OAuth state → user_id mapping (CSRF protection)
+_oauth_states: dict[str, int] = {}
 
 # ──────────────────────────────────────────────
 # In-memory batch tracking
@@ -1008,6 +1027,201 @@ async def reaudit_prospect(
     resp.prospect_niche = prospect.niche
     resp.prospect_email = prospect.email
     return resp
+
+
+# ──────────────────────────────────────────────
+# Gmail helper
+# ──────────────────────────────────────────────
+
+def _require_gmail_service() -> "GmailService":
+    """Raise 503 if the Gmail service is unavailable."""
+    if gmail_service is None:
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "Gmail service unavailable — required environment variables are not configured. "
+                "Set GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, and GMAIL_ENCRYPTION_KEY."
+            ),
+        )
+    return gmail_service
+
+
+# ──────────────────────────────────────────────
+# 17. GET /gmail/auth-url — start OAuth flow
+# ──────────────────────────────────────────────
+
+@router.get("/gmail/auth-url")
+def gmail_auth_url(
+    current_user: User = Depends(get_current_user),
+):
+    """Generate a Google OAuth authorization URL for Gmail integration."""
+    svc = _require_gmail_service()
+
+    redirect_uri = os.getenv(
+        "GOOGLE_REDIRECT_URI",
+        "http://localhost:8000/api/autoresearch/gmail/callback",
+    )
+
+    auth_url, state = svc.get_auth_url(redirect_uri)
+
+    # Store state → user_id for CSRF validation in the callback
+    _oauth_states[state] = current_user.id
+
+    return {"auth_url": auth_url}
+
+
+# ──────────────────────────────────────────────
+# 18. GET /gmail/callback — OAuth callback (no auth required)
+# ──────────────────────────────────────────────
+
+@router.get("/gmail/callback")
+def gmail_callback(
+    code: str,
+    state: str,
+    db: Session = Depends(get_db),
+):
+    """Handle Google OAuth callback — exchange code for tokens and store them."""
+    svc = _require_gmail_service()
+
+    # Validate state (CSRF protection)
+    user_id = _oauth_states.pop(state, None)
+    if user_id is None:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid or expired OAuth state parameter.",
+        )
+
+    redirect_uri = os.getenv(
+        "GOOGLE_REDIRECT_URI",
+        "http://localhost:8000/api/autoresearch/gmail/callback",
+    )
+
+    try:
+        result = svc.handle_callback(code, redirect_uri)
+    except Exception as exc:
+        logger.error("Gmail OAuth callback failed: %s", exc)
+        raise HTTPException(
+            status_code=502,
+            detail=f"Failed to complete Gmail OAuth: {exc}",
+        )
+
+    email_address = result["email"]
+    refresh_token = result["refresh_token"]
+
+    # Encrypt refresh token
+    encrypted_token = svc.encrypt_token(refresh_token)
+
+    # Upsert GmailToken for this user
+    existing = (
+        db.query(GmailToken)
+        .filter(GmailToken.user_id == user_id)
+        .first()
+    )
+    if existing:
+        existing.email_address = email_address
+        existing.encrypted_refresh_token = encrypted_token
+        existing.is_active = True
+    else:
+        gmail_token = GmailToken(
+            user_id=user_id,
+            email_address=email_address,
+            encrypted_refresh_token=encrypted_token,
+            is_active=True,
+        )
+        db.add(gmail_token)
+
+    db.commit()
+
+    # Redirect to frontend settings page
+    frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
+    return RedirectResponse(
+        url=f"{frontend_url}/autoresearch?tab=settings&gmail=connected"
+    )
+
+
+# ──────────────────────────────────────────────
+# 19. GET /gmail/status — check connection status
+# ──────────────────────────────────────────────
+
+@router.get("/gmail/status")
+def gmail_status(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Check whether Gmail is connected for the current user."""
+    token = (
+        db.query(GmailToken)
+        .filter(GmailToken.user_id == current_user.id)
+        .first()
+    )
+
+    if not token:
+        return {
+            "is_connected": False,
+            "email_address": None,
+            "last_poll_at": None,
+            "is_active": False,
+        }
+
+    return {
+        "is_connected": True,
+        "email_address": token.email_address,
+        "last_poll_at": token.last_poll_at.isoformat() if token.last_poll_at else None,
+        "is_active": token.is_active,
+    }
+
+
+# ──────────────────────────────────────────────
+# 20. POST /gmail/poll — manually trigger inbox polling
+# ──────────────────────────────────────────────
+
+@router.post("/gmail/poll")
+async def gmail_poll(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Manually trigger Gmail inbox polling for the current user."""
+    svc = _require_gmail_service()
+
+    try:
+        results = await svc.poll_inbox(db, current_user.id)
+    except Exception as exc:
+        logger.error("Gmail poll failed for user %d: %s", current_user.id, exc)
+        raise HTTPException(
+            status_code=502,
+            detail=f"Gmail polling failed: {exc}",
+        )
+
+    return {
+        "message": "Inbox poll complete.",
+        "new_replies": results.get("new_replies", 0),
+        "new_sent_matches": results.get("new_sent_matches", 0),
+        "errors": results.get("errors", []),
+    }
+
+
+# ──────────────────────────────────────────────
+# 21. POST /gmail/disconnect — remove Gmail integration
+# ──────────────────────────────────────────────
+
+@router.post("/gmail/disconnect")
+def gmail_disconnect(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Disconnect Gmail by deleting the stored token for the current user."""
+    token = (
+        db.query(GmailToken)
+        .filter(GmailToken.user_id == current_user.id)
+        .first()
+    )
+    if not token:
+        raise HTTPException(status_code=404, detail="No Gmail connection found.")
+
+    db.delete(token)
+    db.commit()
+
+    return {"message": "Gmail disconnected successfully."}
 
 
 # ──────────────────────────────────────────────
