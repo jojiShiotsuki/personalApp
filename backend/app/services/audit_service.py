@@ -398,10 +398,16 @@ class AuditService:
         # Parse JSON from response (handle ```json fences)
         audit_data = self._parse_json_response(raw_text)
 
-        # Token usage and cost calculation (Sonnet pricing: $3/M input, $15/M output)
+        # Token usage and cost calculation (per-model pricing)
+        MODEL_PRICING = {
+            "claude-sonnet-4-6-20250514": (3.0, 15.0),
+            "claude-haiku-4-5-20251001": (0.25, 1.25),
+            "claude-opus-4-20250514": (15.0, 75.0),
+        }
         input_tokens = getattr(response.usage, "input_tokens", 0)
         output_tokens = getattr(response.usage, "output_tokens", 0)
-        cost_usd = (input_tokens * 3.0 / 1_000_000) + (output_tokens * 15.0 / 1_000_000)
+        input_price, output_price = MODEL_PRICING.get(model, (3.0, 15.0))
+        cost_usd = (input_tokens * input_price / 1_000_000) + (output_tokens * output_price / 1_000_000)
 
         audit_data["_meta"] = {
             "input_tokens": input_tokens,
