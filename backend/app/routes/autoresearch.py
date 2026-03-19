@@ -14,7 +14,7 @@ from datetime import datetime
 from typing import Optional
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
-from sqlalchemy import func
+from sqlalchemy import case, func
 from sqlalchemy.orm import Session
 
 from app.auth import get_current_user
@@ -29,6 +29,7 @@ from app.models.autoresearch import (
 from app.models.outreach import OutreachProspect
 from app.models.user import User
 from app.schemas.autoresearch import (
+    AnalyticsOverview,
     AuditApproveRequest,
     AuditRejectRequest,
     AuditResultResponse,
@@ -36,6 +37,11 @@ from app.schemas.autoresearch import (
     AutoresearchSettingsUpdate,
     BatchAuditResponse,
     BatchProgressResponse,
+    ExperimentListResponse,
+    ExperimentResponse,
+    IssueTypeStats,
+    NicheStats,
+    TimingStats,
 )
 
 logger = logging.getLogger(__name__)
@@ -556,6 +562,451 @@ def update_settings(
     resp.gmail_email = gmail_token.email_address if gmail_token else None
     resp.monthly_cost = round(float(monthly_cost), 4)
     resp.total_audits = total_audits
+    return resp
+
+
+# ──────────────────────────────────────────────
+# 10. GET /experiments — list experiments with filters
+# ──────────────────────────────────────────────
+
+@router.get("/experiments", response_model=ExperimentListResponse)
+def list_experiments(
+    campaign_id: Optional[int] = Query(None),
+    niche: Optional[str] = Query(None),
+    issue_type: Optional[str] = Query(None),
+    status: Optional[str] = Query(None),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=200),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """List experiments with optional filters and pagination."""
+    query = db.query(Experiment)
+
+    if campaign_id is not None:
+        query = query.filter(Experiment.campaign_id == campaign_id)
+    if niche is not None:
+        query = query.filter(Experiment.niche == niche)
+    if issue_type is not None:
+        query = query.filter(Experiment.issue_type == issue_type)
+    if status is not None:
+        query = query.filter(Experiment.status == status)
+
+    total_count = query.count()
+
+    offset = (page - 1) * page_size
+    experiments = (
+        query.order_by(Experiment.created_at.desc())
+        .offset(offset)
+        .limit(page_size)
+        .all()
+    )
+
+    return ExperimentListResponse(
+        experiments=[
+            ExperimentResponse.model_validate(exp, from_attributes=True)
+            for exp in experiments
+        ],
+        total_count=total_count,
+        page=page,
+        page_size=page_size,
+    )
+
+
+# ──────────────────────────────────────────────
+# 11. GET /analytics/overview — aggregate stats
+# ──────────────────────────────────────────────
+
+@router.get("/analytics/overview", response_model=AnalyticsOverview)
+def analytics_overview(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Return aggregate experiment statistics."""
+    total_experiments = db.query(func.count(Experiment.id)).scalar() or 0
+    total_sent = (
+        db.query(func.count(Experiment.id))
+        .filter(Experiment.status != "draft")
+        .scalar()
+    ) or 0
+    total_replied = (
+        db.query(func.count(Experiment.id))
+        .filter(Experiment.replied == True)
+        .scalar()
+    ) or 0
+
+    overall_reply_rate = (total_replied / total_sent) if total_sent > 0 else 0.0
+
+    # Best issue_type (min 5 samples)
+    issue_type_stats = (
+        db.query(
+            Experiment.issue_type,
+            func.count(Experiment.id).label("sent"),
+            func.sum(case((Experiment.replied == True, 1), else_=0)).label("replied"),
+        )
+        .filter(
+            Experiment.status != "draft",
+            Experiment.issue_type.isnot(None),
+        )
+        .group_by(Experiment.issue_type)
+        .all()
+    )
+    best_issue_type = None
+    best_issue_rate = -1.0
+    for it, sent, replied in issue_type_stats:
+        if sent >= 5:
+            rate = (replied or 0) / sent
+            if rate > best_issue_rate:
+                best_issue_rate = rate
+                best_issue_type = it
+
+    # Best niche (min 5 samples)
+    niche_stats = (
+        db.query(
+            Experiment.niche,
+            func.count(Experiment.id).label("sent"),
+            func.sum(case((Experiment.replied == True, 1), else_=0)).label("replied"),
+        )
+        .filter(
+            Experiment.status != "draft",
+            Experiment.niche.isnot(None),
+        )
+        .group_by(Experiment.niche)
+        .all()
+    )
+    best_niche = None
+    best_niche_rate = -1.0
+    for n, sent, replied in niche_stats:
+        if sent >= 5:
+            rate = (replied or 0) / sent
+            if rate > best_niche_rate:
+                best_niche_rate = rate
+                best_niche = n
+
+    # Average response time
+    avg_response_time = (
+        db.query(func.avg(Experiment.response_time_minutes))
+        .filter(Experiment.response_time_minutes.isnot(None))
+        .scalar()
+    )
+    avg_response_time_minutes = round(float(avg_response_time), 1) if avg_response_time is not None else None
+
+    # Total AI cost from AuditResult
+    total_ai_cost = (
+        db.query(func.coalesce(func.sum(AuditResult.ai_cost_estimate), 0.0)).scalar()
+    ) or 0.0
+
+    return AnalyticsOverview(
+        total_experiments=total_experiments,
+        total_sent=total_sent,
+        total_replied=total_replied,
+        overall_reply_rate=round(overall_reply_rate, 4),
+        best_issue_type=best_issue_type,
+        best_niche=best_niche,
+        avg_response_time_minutes=avg_response_time_minutes,
+        total_ai_cost=round(float(total_ai_cost), 4),
+    )
+
+
+# ──────────────────────────────────────────────
+# 12. GET /analytics/by-issue-type — group by issue_type
+# ──────────────────────────────────────────────
+
+@router.get("/analytics/by-issue-type", response_model=list[IssueTypeStats])
+def analytics_by_issue_type(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Return experiment stats grouped by issue type."""
+    results = (
+        db.query(
+            Experiment.issue_type,
+            func.count(Experiment.id).label("sent"),
+            func.sum(case((Experiment.replied == True, 1), else_=0)).label("replied"),
+        )
+        .filter(
+            Experiment.status != "draft",
+            Experiment.issue_type.isnot(None),
+        )
+        .group_by(Experiment.issue_type)
+        .all()
+    )
+
+    stats = []
+    for issue_type, sent, replied in results:
+        replied_count = replied or 0
+        reply_rate = replied_count / sent if sent > 0 else 0.0
+        if sent >= 50:
+            confidence = "high"
+        elif sent >= 20:
+            confidence = "medium"
+        else:
+            confidence = "low"
+        stats.append(
+            IssueTypeStats(
+                issue_type=issue_type,
+                sent=sent,
+                replied=replied_count,
+                reply_rate=round(reply_rate, 4),
+                confidence=confidence,
+            )
+        )
+
+    stats.sort(key=lambda s: s.reply_rate, reverse=True)
+    return stats
+
+
+# ──────────────────────────────────────────────
+# 13. GET /analytics/by-niche — group by niche
+# ──────────────────────────────────────────────
+
+@router.get("/analytics/by-niche", response_model=list[NicheStats])
+def analytics_by_niche(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Return experiment stats grouped by niche."""
+    results = (
+        db.query(
+            Experiment.niche,
+            func.count(Experiment.id).label("sent"),
+            func.sum(case((Experiment.replied == True, 1), else_=0)).label("replied"),
+        )
+        .filter(
+            Experiment.status != "draft",
+            Experiment.niche.isnot(None),
+        )
+        .group_by(Experiment.niche)
+        .all()
+    )
+
+    stats = []
+    for niche, sent, replied in results:
+        replied_count = replied or 0
+        reply_rate = replied_count / sent if sent > 0 else 0.0
+
+        # Best issue_type per niche (sub-query)
+        best_issue = (
+            db.query(
+                Experiment.issue_type,
+                func.sum(case((Experiment.replied == True, 1), else_=0)).label("r"),
+            )
+            .filter(
+                Experiment.status != "draft",
+                Experiment.niche == niche,
+                Experiment.issue_type.isnot(None),
+            )
+            .group_by(Experiment.issue_type)
+            .order_by(
+                (func.sum(case((Experiment.replied == True, 1), else_=0))
+                 * 1.0
+                 / func.count(Experiment.id)).desc()
+            )
+            .first()
+        )
+
+        stats.append(
+            NicheStats(
+                niche=niche,
+                sent=sent,
+                replied=replied_count,
+                reply_rate=round(reply_rate, 4),
+                best_issue_type=best_issue[0] if best_issue else None,
+            )
+        )
+
+    stats.sort(key=lambda s: s.reply_rate, reverse=True)
+    return stats
+
+
+# ──────────────────────────────────────────────
+# 14. GET /analytics/by-timing — group by day_of_week
+# ──────────────────────────────────────────────
+
+@router.get("/analytics/by-timing", response_model=list[TimingStats])
+def analytics_by_timing(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Return experiment stats grouped by day of week."""
+    results = (
+        db.query(
+            Experiment.day_of_week,
+            func.count(Experiment.id).label("sent"),
+            func.sum(case((Experiment.replied == True, 1), else_=0)).label("replied"),
+        )
+        .filter(
+            Experiment.status != "draft",
+            Experiment.day_of_week.isnot(None),
+        )
+        .group_by(Experiment.day_of_week)
+        .all()
+    )
+
+    stats = []
+    for day_of_week, sent, replied in results:
+        replied_count = replied or 0
+        reply_rate = replied_count / sent if sent > 0 else 0.0
+        stats.append(
+            TimingStats(
+                day_of_week=day_of_week,
+                sent=sent,
+                replied=replied_count,
+                reply_rate=round(reply_rate, 4),
+            )
+        )
+
+    return stats
+
+
+# ──────────────────────────────────────────────
+# 15. GET /analytics/trends — performance over time
+# ──────────────────────────────────────────────
+
+@router.get("/analytics/trends")
+def analytics_trends(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Return experiment performance grouped by week."""
+    results = (
+        db.query(
+            func.strftime("%Y-%W", Experiment.sent_at).label("week"),
+            func.count(Experiment.id).label("sent"),
+            func.sum(case((Experiment.replied == True, 1), else_=0)).label("replied"),
+        )
+        .filter(
+            Experiment.status != "draft",
+            Experiment.sent_at.isnot(None),
+        )
+        .group_by(func.strftime("%Y-%W", Experiment.sent_at))
+        .order_by(func.strftime("%Y-%W", Experiment.sent_at))
+        .all()
+    )
+
+    trends = []
+    for week, sent, replied in results:
+        replied_count = replied or 0
+        reply_rate = replied_count / sent if sent > 0 else 0.0
+        trends.append({
+            "week": week,
+            "sent": sent,
+            "replied": replied_count,
+            "reply_rate": round(reply_rate, 4),
+        })
+
+    return trends
+
+
+# ──────────────────────────────────────────────
+# 16. POST /audits/{audit_id}/reaudit — re-audit a rejected prospect
+# ──────────────────────────────────────────────
+
+@router.post("/audits/{audit_id}/reaudit", response_model=AuditResultResponse)
+async def reaudit_prospect(
+    audit_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Re-audit a rejected prospect with the previous rejection reason as context."""
+    svc = _require_audit_service()
+
+    # Get the rejected audit
+    old_audit = db.query(AuditResult).filter(AuditResult.id == audit_id).first()
+    if not old_audit:
+        raise HTTPException(status_code=404, detail="Audit result not found")
+    if old_audit.status != "rejected":
+        raise HTTPException(
+            status_code=400,
+            detail="Only rejected audits can be re-audited.",
+        )
+
+    # Get the prospect
+    prospect = (
+        db.query(OutreachProspect)
+        .filter(OutreachProspect.id == old_audit.prospect_id)
+        .first()
+    )
+    if not prospect:
+        raise HTTPException(status_code=404, detail="Prospect not found")
+    if not prospect.website:
+        raise HTTPException(
+            status_code=400,
+            detail="Prospect has no website URL — cannot re-audit.",
+        )
+
+    # Load user settings
+    settings = (
+        db.query(AutoresearchSettings)
+        .filter(AutoresearchSettings.user_id == current_user.id)
+        .first()
+    )
+    audit_prompt = (settings.audit_prompt if settings and settings.audit_prompt else DEFAULT_AUDIT_PROMPT)
+    min_wait = (settings.min_page_load_wait if settings else 3)
+
+    # Build context with previous rejection reason
+    rejection_context = ""
+    if old_audit.rejection_reason:
+        rejection_context = f"\n\nPrevious audit was rejected: {old_audit.rejection_reason}"
+
+    # Re-capture screenshots
+    screenshots = await svc.capture_screenshots(prospect.website, min_wait=min_wait)
+
+    if screenshots.get("error") and not screenshots.get("desktop_screenshot"):
+        raise HTTPException(
+            status_code=502,
+            detail=f"Screenshot capture failed: {screenshots['error']}",
+        )
+
+    # Re-analyse with Claude, passing rejection context
+    analysis = await svc.analyze_with_claude(
+        screenshots=screenshots,
+        prospect_name=prospect.contact_name or prospect.agency_name,
+        prospect_company=prospect.agency_name,
+        prospect_niche=prospect.niche or "general",
+        prospect_city="",
+        audit_prompt=audit_prompt + rejection_context,
+    )
+
+    if analysis.get("error") and not analysis.get("issue_type"):
+        raise HTTPException(
+            status_code=502,
+            detail=f"Claude analysis failed: {analysis['error']}",
+        )
+
+    # Persist new AuditResult
+    meta = analysis.get("_meta", {})
+    new_audit = AuditResult(
+        prospect_id=prospect.id,
+        campaign_id=old_audit.campaign_id,
+        issue_type=analysis.get("issue_type"),
+        issue_detail=analysis.get("issue_detail"),
+        secondary_issue=analysis.get("secondary_issue"),
+        secondary_detail=analysis.get("secondary_detail"),
+        confidence=analysis.get("confidence", "medium"),
+        site_quality=analysis.get("site_quality", "medium"),
+        needs_verification=analysis.get("needs_verification", False),
+        generated_subject=analysis.get("subject"),
+        generated_body=analysis.get("body"),
+        word_count=analysis.get("word_count"),
+        desktop_screenshot=screenshots.get("desktop_screenshot"),
+        mobile_screenshot=screenshots.get("mobile_screenshot"),
+        status="pending_review",
+        audit_duration_seconds=meta.get("duration_seconds"),
+        model_used=meta.get("model"),
+        tokens_used=(meta.get("input_tokens", 0) + meta.get("output_tokens", 0)),
+        ai_cost_estimate=meta.get("cost_usd"),
+    )
+    db.add(new_audit)
+    db.commit()
+    db.refresh(new_audit)
+
+    # Build response with prospect info
+    resp = AuditResultResponse.model_validate(new_audit, from_attributes=True)
+    resp.prospect_name = prospect.contact_name or prospect.agency_name
+    resp.prospect_company = prospect.agency_name
+    resp.prospect_niche = prospect.niche
+    resp.prospect_email = prospect.email
     return resp
 
 
