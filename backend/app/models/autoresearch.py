@@ -204,9 +204,9 @@ class AutoresearchSettings(Base):
     audit_prompt = Column(Text, nullable=True)
 
     # Model selection
-    audit_model = Column(String(100), default="claude-sonnet-4-20250514")
-    classifier_model = Column(String(100), default="claude-haiku-4-5-20251001")
-    learning_model = Column(String(100), default="claude-sonnet-4-20250514")
+    audit_model = Column(String(100), default="claude-sonnet-4-6")
+    classifier_model = Column(String(100), default="claude-haiku-4-5")
+    learning_model = Column(String(100), default="claude-sonnet-4-6")
 
     # Audit behavior
     min_page_load_wait = Column(Integer, default=3)

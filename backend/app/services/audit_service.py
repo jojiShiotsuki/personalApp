@@ -474,7 +474,7 @@ class AuditService:
             }
 
         # Call Claude Vision
-        model = os.getenv("AUTORESEARCH_AUDIT_MODEL", "claude-sonnet-4-20250514")
+        model = os.getenv("AUTORESEARCH_AUDIT_MODEL", "claude-sonnet-4-6")
 
         try:
             response = await self.client.messages.create(
@@ -507,9 +507,10 @@ class AuditService:
 
         # Token usage and cost calculation (per-model pricing)
         MODEL_PRICING = {
+            "claude-sonnet-4-6": (3.0, 15.0),
             "claude-sonnet-4-20250514": (3.0, 15.0),
-            "claude-haiku-4-5-20251001": (0.25, 1.25),
-            "claude-opus-4-20250514": (15.0, 75.0),
+            "claude-haiku-4-5": (0.25, 1.25),
+            "claude-opus-4-6": (15.0, 75.0),
         }
         input_tokens = getattr(response.usage, "input_tokens", 0)
         output_tokens = getattr(response.usage, "output_tokens", 0)

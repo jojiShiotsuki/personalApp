@@ -409,7 +409,7 @@ class GmailService:
         # Truncate very long replies
         truncated = text[:3000]
 
-        model = os.getenv("AUTORESEARCH_CLASSIFIER_MODEL", "claude-haiku-4-5-20251001")
+        model = os.getenv("AUTORESEARCH_CLASSIFIER_MODEL", "claude-haiku-4-5")
 
         try:
             response = await self.anthropic_client.messages.create(

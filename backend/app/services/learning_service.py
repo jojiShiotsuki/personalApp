@@ -60,7 +60,7 @@ class LearningService:
         ) or 0
 
         # Call Claude for insight generation
-        model = os.getenv("AUTORESEARCH_LEARNING_MODEL", "claude-sonnet-4-20250514")
+        model = os.getenv("AUTORESEARCH_LEARNING_MODEL", "claude-sonnet-4-6")
 
         try:
             response = await self.client.messages.create(
