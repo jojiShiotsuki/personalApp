@@ -8,6 +8,7 @@ import {
   Settings,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import AuditsTab from '@/components/autoresearch/AuditsTab';
 
 type TabType = 'audits' | 'insights' | 'experiments' | 'settings';
 
@@ -111,11 +112,7 @@ export default function Autoresearch() {
 
       {/* Tab Content */}
       <div className="animate-fade-slide-up delay-5">
-        {activeTab === 'audits' && (
-          <div className="p-8 text-center text-[--exec-text-muted]">
-            Audits tab - coming soon
-          </div>
-        )}
+        {activeTab === 'audits' && <AuditsTab />}
         {activeTab === 'insights' && (
           <div className="p-8 text-center text-[--exec-text-muted]">
             Insights tab - coming soon
