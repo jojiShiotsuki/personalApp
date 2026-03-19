@@ -171,6 +171,9 @@ class AuditService:
         Launch headless Chromium, capture desktop (1440px) and mobile (375px)
         screenshots, extract visible text and a link map.
 
+        Uses sync Playwright in a thread to avoid Windows ProactorEventLoop
+        issues with asyncio.create_subprocess_exec inside uvicorn.
+
         Returns a dict with:
             desktop_screenshot  – base64-encoded PNG (or None)
             mobile_screenshot   – base64-encoded PNG (or None)
@@ -182,7 +185,7 @@ class AuditService:
         # Late import so the module can be loaded even when playwright
         # is not installed (e.g. during migrations or tests).
         try:
-            from playwright.async_api import async_playwright
+            from playwright.sync_api import sync_playwright  # noqa: F401
         except ImportError:
             logger.error("playwright is not installed — run: pip install playwright && playwright install chromium")
             return {
@@ -193,6 +196,12 @@ class AuditService:
                 "error": "playwright is not installed",
                 "duration_seconds": 0,
             }
+
+        return await asyncio.to_thread(self._capture_sync, url, min_wait)
+
+    def _capture_sync(self, url: str, min_wait: int) -> dict[str, Any]:
+        """Synchronous screenshot capture — runs in a worker thread."""
+        from playwright.sync_api import sync_playwright
 
         start = time.monotonic()
         result: dict[str, Any] = {
@@ -208,25 +217,25 @@ class AuditService:
         browser = None
 
         try:
-            playwright_instance = await async_playwright().start()
-            browser = await playwright_instance.chromium.launch(headless=True)
+            playwright_instance = sync_playwright().start()
+            browser = playwright_instance.chromium.launch(headless=True)
 
             # ── Desktop capture ────────────────────────
-            desktop_page = await browser.new_page(viewport={"width": 1440, "height": 900})
+            desktop_page = browser.new_page(viewport={"width": 1440, "height": 900})
             try:
-                await self._navigate_with_fallback(desktop_page, url)
+                self._navigate_with_fallback_sync(desktop_page, url)
             except Exception as nav_err:
                 logger.warning("Desktop navigation failed for %s: %s", url, nav_err)
                 result["error"] = f"Navigation failed: {nav_err}"
                 return result
 
             # Wait for JS rendering
-            await asyncio.sleep(min_wait)
+            time.sleep(min_wait)
 
             # Check for common bot detection / captcha pages
             try:
-                page_title = await desktop_page.title()
-                page_text = await desktop_page.evaluate(
+                page_title = desktop_page.title()
+                page_text = desktop_page.evaluate(
                     "() => (document.body.innerText || '').substring(0, 500)"
                 )
                 combined = (page_title + " " + page_text).lower()
@@ -238,72 +247,72 @@ class AuditService:
                 logger.debug("Bot detection check failed (non-fatal): %s", bd_err)
 
             # Scroll to bottom to trigger lazy-loading, then back to top
-            await self._scroll_full_page(desktop_page)
+            self._scroll_full_page_sync(desktop_page)
 
             # Full-page screenshot
-            desktop_png = await desktop_page.screenshot(full_page=True, type="png")
+            desktop_png = desktop_page.screenshot(full_page=True, type="png")
             # Cap at 5 MB to avoid massive API calls
             if len(desktop_png) > MAX_SCREENSHOT_SIZE:
                 logger.info("Desktop screenshot too large (%d bytes), retaking as JPEG", len(desktop_png))
-                desktop_png = await desktop_page.screenshot(full_page=True, type="jpeg", quality=50)
+                desktop_png = desktop_page.screenshot(full_page=True, type="jpeg", quality=50)
             result["desktop_screenshot"] = base64.b64encode(desktop_png).decode("ascii")
 
             # Extract visible text
-            result["extracted_text"] = await self._extract_text(desktop_page)
+            result["extracted_text"] = self._extract_text_sync(desktop_page)
 
             # Extract link map
-            result["link_map"] = await self._extract_links(desktop_page)
+            result["link_map"] = self._extract_links_sync(desktop_page)
 
-            await desktop_page.close()
+            desktop_page.close()
 
             # ── Mobile capture ─────────────────────────
-            mobile_page = await browser.new_page(viewport={"width": 375, "height": 812})
+            mobile_page = browser.new_page(viewport={"width": 375, "height": 812})
             try:
-                await self._navigate_with_fallback(mobile_page, url)
-                await asyncio.sleep(min_wait)
-                await self._scroll_full_page(mobile_page)
-                mobile_png = await mobile_page.screenshot(full_page=True, type="png")
+                self._navigate_with_fallback_sync(mobile_page, url)
+                time.sleep(min_wait)
+                self._scroll_full_page_sync(mobile_page)
+                mobile_png = mobile_page.screenshot(full_page=True, type="png")
                 # Cap at 5 MB to avoid massive API calls
                 if len(mobile_png) > MAX_SCREENSHOT_SIZE:
                     logger.info("Mobile screenshot too large (%d bytes), retaking as JPEG", len(mobile_png))
-                    mobile_png = await mobile_page.screenshot(full_page=True, type="jpeg", quality=50)
+                    mobile_png = mobile_page.screenshot(full_page=True, type="jpeg", quality=50)
                 result["mobile_screenshot"] = base64.b64encode(mobile_png).decode("ascii")
             except Exception as mob_err:
                 logger.warning("Mobile capture failed for %s: %s", url, mob_err)
                 # Non-fatal — we still have desktop data
             finally:
-                await mobile_page.close()
+                mobile_page.close()
 
         except Exception as exc:
             logger.error("Screenshot capture error for %s: %s", url, exc, exc_info=True)
             result["error"] = str(exc)
         finally:
             if browser:
-                await browser.close()
+                browser.close()
             if playwright_instance:
-                await playwright_instance.stop()
+                playwright_instance.stop()
             result["duration_seconds"] = round(time.monotonic() - start, 2)
 
         return result
 
     # ──────────────────────────────────────────
-    # Pass 1 helpers
+    # Pass 1 helpers (sync — for use in worker thread)
     # ──────────────────────────────────────────
 
     @staticmethod
-    async def _navigate_with_fallback(page: Any, url: str) -> None:
+    def _navigate_with_fallback_sync(page: Any, url: str) -> None:
         """Try networkidle first; fall back to load if it times out."""
         try:
-            await page.goto(url, wait_until="networkidle", timeout=30_000)
+            page.goto(url, wait_until="networkidle", timeout=30_000)
         except Exception:
             logger.info("networkidle timed out for %s — falling back to load", url)
-            await page.goto(url, wait_until="load", timeout=30_000)
+            page.goto(url, wait_until="load", timeout=30_000)
 
     @staticmethod
-    async def _scroll_full_page(page: Any) -> None:
+    def _scroll_full_page_sync(page: Any) -> None:
         """Scroll to the bottom then back to top to trigger lazy loaders."""
         try:
-            await page.evaluate("""
+            page.evaluate("""
                 async () => {
                     const delay = ms => new Promise(r => setTimeout(r, ms));
                     const height = document.body.scrollHeight;
@@ -319,20 +328,20 @@ class AuditService:
             logger.debug("Scroll helper failed (non-fatal): %s", exc)
 
     @staticmethod
-    async def _extract_text(page: Any) -> Optional[str]:
+    def _extract_text_sync(page: Any) -> Optional[str]:
         """Return the first 5 000 chars of visible body text."""
         try:
-            text = await page.evaluate("() => (document.body.innerText || '').substring(0, 5000)")
+            text = page.evaluate("() => (document.body.innerText || '').substring(0, 5000)")
             return text if text else None
         except Exception as exc:
             logger.debug("Text extraction failed: %s", exc)
             return None
 
     @staticmethod
-    async def _extract_links(page: Any) -> Optional[list[dict[str, Any]]]:
+    def _extract_links_sync(page: Any) -> Optional[list[dict[str, Any]]]:
         """Return up to 50 <a> tags with href, text, and visibility."""
         try:
-            links = await page.evaluate("""
+            links = page.evaluate("""
                 () => {
                     const anchors = Array.from(document.querySelectorAll('a[href]'));
                     return anchors.slice(0, 50).map(a => {
@@ -527,17 +536,26 @@ class AuditService:
         Pass 2 verification — click flagged elements and screenshot the
         destinations to confirm broken links, dead pages, etc.
 
+        Uses sync Playwright in a thread to avoid Windows ProactorEventLoop
+        issues with asyncio.create_subprocess_exec inside uvicorn.
+
         Returns:
             verifications – list of {action, destination_url, screenshot, error}
             error         – top-level error string (or None)
         """
         try:
-            from playwright.async_api import async_playwright
+            from playwright.sync_api import sync_playwright  # noqa: F401
         except ImportError:
             return {
                 "verifications": [],
                 "error": "playwright is not installed",
             }
+
+        return await asyncio.to_thread(self._verify_sync, url, verify_actions)
+
+    def _verify_sync(self, url: str, verify_actions: list[str]) -> dict[str, Any]:
+        """Synchronous verification — runs in a worker thread."""
+        from playwright.sync_api import sync_playwright
 
         verifications: list[dict[str, Any]] = []
         capped_actions = verify_actions[:5]  # max 5 actions per spec
@@ -546,12 +564,12 @@ class AuditService:
         browser = None
 
         try:
-            playwright_instance = await async_playwright().start()
-            browser = await playwright_instance.chromium.launch(headless=True)
-            page = await browser.new_page(viewport={"width": 1440, "height": 900})
+            playwright_instance = sync_playwright().start()
+            browser = playwright_instance.chromium.launch(headless=True)
+            page = browser.new_page(viewport={"width": 1440, "height": 900})
 
             try:
-                await self._navigate_with_fallback(page, url)
+                self._navigate_with_fallback_sync(page, url)
             except Exception as nav_err:
                 return {
                     "verifications": [],
@@ -569,17 +587,17 @@ class AuditService:
                 try:
                     # Find element by text content
                     element = page.get_by_text(action_text, exact=False).first
-                    await element.click(timeout=5000)
-                    await asyncio.sleep(2)
+                    element.click(timeout=5000)
+                    time.sleep(2)
 
                     # Capture destination
                     verification["destination_url"] = page.url
-                    dest_png = await page.screenshot(full_page=True, type="png")
+                    dest_png = page.screenshot(full_page=True, type="png")
                     verification["screenshot"] = base64.b64encode(dest_png).decode("ascii")
 
                     # Navigate back for the next action
-                    await page.go_back(timeout=10_000)
-                    await asyncio.sleep(1)
+                    page.go_back(timeout=10_000)
+                    time.sleep(1)
 
                 except Exception as click_err:
                     logger.warning(
@@ -598,9 +616,9 @@ class AuditService:
             }
         finally:
             if browser:
-                await browser.close()
+                browser.close()
             if playwright_instance:
-                await playwright_instance.stop()
+                playwright_instance.stop()
 
         return {
             "verifications": verifications,
