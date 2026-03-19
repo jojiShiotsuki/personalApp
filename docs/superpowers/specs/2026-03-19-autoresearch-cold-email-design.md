@@ -753,14 +753,187 @@ At 50 audits/day on Claude Sonnet 4.6:
 |----------|--------|-----------|
 | AI model for audits | Claude Sonnet 4.6 | Best balance of vision quality + natural writing + cost |
 | AI model for reply classification | Claude Haiku 4.5 | Simple classification task, 5x cheaper |
-| Browser automation | Playwright (Python) | Already proven in the codebase ecosystem, headless Chromium |
+| Browser automation | Playwright (Python) | Headless Chromium for screenshots + interaction |
 | Page load strategy | Wait for network idle + 3s minimum | Prevents false "blank section" findings |
 | Pass 2 verification | On-demand, only when Claude flags uncertainty | Saves time/cost on 80% of audits |
 | Gmail integration | Read-only OAuth | No sending scope, minimal permissions |
-| Token storage | Encrypted in database | Standard security practice |
-| Screenshot storage | Local filesystem (backend/screenshots/) | Simple, no external storage needed |
+| Token encryption | `cryptography.fernet` with `GMAIL_ENCRYPTION_KEY` env var | Standard symmetric encryption |
+| Screenshot storage | Base64 in database (production), filesystem (local dev) | Render has ephemeral filesystem; base64 avoids external storage dependency |
 | Experiment data | Denormalized from audit + prospect | Faster analytics queries, no complex joins |
 | Learning confidence | 50+ sample = high, 20-49 = medium, <20 = low | Prevents overreacting to small samples |
+| Background tasks | `apscheduler` inside uvicorn process | Lightweight, fits single-user/single-process deployment |
+| Database (production) | PostgreSQL via Render | Supports concurrent reads/writes from background tasks |
+| Database (local dev) | SQLite with WAL mode | WAL mode allows concurrent reads during batch writes |
+| Batch processing | Serial, one audit at a time | Limits memory to one Chromium instance (~300-500MB) |
+
+---
+
+## Infrastructure & Deployment
+
+### Background Task Strategy
+
+The system requires background processing for three operations:
+- **Batch audits** — user-triggered, processes 50 sites serially
+- **Gmail polling** — scheduled every 5 minutes
+- **Learning engine refresh** — triggered every 50 experiments or weekly
+
+**Approach:** Use `apscheduler` (AsyncIOScheduler) running inside the uvicorn process. This is the simplest approach for a single-user app.
+
+```python
+# Startup in main.py
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+
+scheduler = AsyncIOScheduler()
+
+@app.on_event("startup")
+def start_scheduler():
+    scheduler.add_job(poll_gmail, "interval", minutes=5, id="gmail_poll")
+    scheduler.add_job(check_learning_refresh, "cron", day_of_week="sun", hour=22, id="weekly_learn")
+    scheduler.start()
+
+@app.on_event("shutdown")
+def stop_scheduler():
+    scheduler.shutdown()
+```
+
+Batch audits use FastAPI `BackgroundTasks` (triggered by user click, not scheduled).
+
+**New dependency:** `apscheduler>=3.10` added to `requirements.txt`.
+
+### Playwright Deployment
+
+Playwright + headless Chromium (~400MB) must be installed on the server.
+
+**Render build command update:**
+```
+pip install -r requirements.txt && playwright install chromium && alembic upgrade head
+```
+
+**Memory:** One headless Chromium instance uses ~300-500MB. Audits run serially (one at a time), so only one instance is ever active. Render's Starter plan (512MB) may be tight — Standard plan (2GB) is recommended.
+
+**Local development:** Same `playwright install chromium` after pip install.
+
+### Screenshot Storage
+
+**Production (Render):** Render's filesystem is ephemeral (wiped on every deploy). Screenshots are stored as base64-encoded strings in the database. At ~200KB per screenshot, 2 screenshots per audit, 50 audits/day = ~20MB/day of database growth. Acceptable for PostgreSQL.
+
+**Local development:** Screenshots stored on filesystem at `backend/screenshots/` for convenience. The `audit_service` abstracts storage behind a common interface.
+
+**Security:** The screenshot serving endpoint must require authentication. Screenshots are NOT served via the static file mount in `main.py`.
+
+### Gmail OAuth Redirect URI
+
+**Configuration:** `GOOGLE_REDIRECT_URI` env var, set to:
+- Production: `https://{RENDER_BACKEND_URL}/api/autoresearch/gmail/callback`
+- Local dev: `http://localhost:8000/api/autoresearch/gmail/callback`
+
+Both URIs must be registered in Google Cloud Console under the OAuth 2.0 credentials.
+
+**Callback flow:**
+1. User clicks "Connect Gmail" → frontend opens `auth-url` in new window
+2. User authorizes → Google redirects to backend callback endpoint
+3. Backend exchanges code for tokens, stores encrypted refresh token
+4. Backend redirects browser to `{FRONTEND_URL}/autoresearch?tab=settings&gmail=connected`
+5. Frontend detects query param, shows success toast
+
+**CSRF protection:** The OAuth flow uses a `state` parameter (random string stored in session) validated on callback to prevent CSRF attacks.
+
+### Database Concurrency
+
+**Production (PostgreSQL):** No concurrency issues. Background tasks and user requests can read/write simultaneously.
+
+**Local dev (SQLite):** Enable WAL mode for concurrent reads during batch writes:
+```python
+# In database.py
+@event.listens_for(engine, "connect")
+def set_sqlite_pragma(dbapi_connection, connection_record):
+    cursor = dbapi_connection.cursor()
+    cursor.execute("PRAGMA journal_mode=WAL")
+    cursor.close()
+```
+
+### Security Notes
+
+- **Prospect PII in API calls:** Audit prompts contain prospect names, websites, and emails sent to Anthropic's API. This is acceptable under Anthropic's data policy (API inputs are not used for training). Note in privacy policy if applicable.
+- **Gmail token encryption:** Uses `cryptography.fernet` with `GMAIL_ENCRYPTION_KEY` env var. Startup check ensures the env var is set when `GmailToken` rows exist.
+- **OAuth state parameter:** Random 32-byte hex string, validated on callback.
+
+---
+
+## Data Model Addenda
+
+### Experiment Status Lifecycle
+
+The `Experiment` model includes a `status` field tracking its lifecycle:
+
+```
+draft → sent → replied | no_reply | bounced
+```
+
+- `draft`: Created when user clicks "Approve & Copy" on an audit
+- `sent`: Updated when Gmail outbox match confirms the email was sent
+- `replied`: Updated when Gmail inbox match detects a reply
+- `no_reply`: Updated when the prospect exhausts the sequence without replying
+- `bounced`: Updated when Gmail detects a bounce/delivery failure
+
+### Foreign Key Relationships
+
+All FKs specify `ondelete` behavior:
+
+| FK | ondelete | Rationale |
+|----|----------|-----------|
+| `AuditResult.prospect_id` → `outreach_prospects.id` | CASCADE | Audit is meaningless without prospect |
+| `AuditResult.campaign_id` → `outreach_campaigns.id` | CASCADE | Tied to campaign lifecycle |
+| `Experiment.prospect_id` → `outreach_prospects.id` | CASCADE | Experiment tied to prospect |
+| `Experiment.audit_id` → `audit_results.id` | CASCADE | Experiment derived from audit |
+| `Experiment.campaign_id` → `outreach_campaigns.id` | CASCADE | Tied to campaign |
+| `Experiment.deal_id` → `deals.id` | SET NULL | Deal may be deleted independently |
+| `EmailMatch.prospect_id` → `outreach_prospects.id` | CASCADE | Match tied to prospect |
+| `EmailMatch.experiment_id` → `experiments.id` | SET NULL | Match may outlive experiment |
+| `Insight.superseded_by` → `insights.id` | SET NULL | Old insight stays for history |
+| `GmailToken.user_id` → `users.id` | CASCADE | Token tied to user |
+
+### GmailToken User Scoping
+
+`GmailToken` includes a `user_id` FK referencing the existing users table with a unique constraint. Currently single-user, but this avoids a migration later.
+
+### Prospect Integration
+
+`AuditResult.prospect_id` references `outreach_prospects.id`. When an audit is approved:
+1. `OutreachProspect.custom_email_subject` and `custom_email_body` are updated with the final email (matching existing CopyEmailModal behavior)
+2. An `Experiment` record is created with status `draft`
+3. The user copies the email from the existing CopyEmailModal flow
+4. Gmail integration later confirms send and updates `Experiment.status` to `sent`
+
+### Batch Audit Controls
+
+- `max_batch_size` setting (default 50, configurable in Settings tab)
+- Progress endpoint: `GET /api/autoresearch/audit/batch/{batch_id}/progress` returns `{completed, total, errors, current_prospect}`
+- Cancel endpoint: `POST /api/autoresearch/audit/batch/{batch_id}/cancel`
+- Frontend shows progress bar with cancel button
+
+### Analytics Pagination
+
+The experiments list endpoint supports pagination:
+```
+GET /api/autoresearch/experiments?page=1&page_size=50&niche=HVAC&issue_type=broken_links
+```
+Response includes `total_count`, `page`, `page_size` for frontend pagination controls.
+
+### Cost Tracking
+
+Each `AuditResult` stores an `ai_cost_estimate` float (calculated from model pricing at audit time). Each `EmailMatch` stores a `classification_cost` float. Monthly aggregates computed via SQL sum on these fields.
+
+### Learning Engine Refresh Counter
+
+The most recent `Insight` row stores `experiment_count_at_refresh`. The `should_refresh()` function checks:
+```python
+current_count - last_refresh_count >= 50
+```
+
+### Data Retention
+
+Email reply text is stored indefinitely (user's responsibility). Users can purge old experiment data via a future "Data Management" section in Settings. `EmailMatch.body_text` stores the full reply for learning engine analysis. The `key_quote` field on the classification result provides a truncated version for display.
 
 ---
 
