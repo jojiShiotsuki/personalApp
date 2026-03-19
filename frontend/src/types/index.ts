@@ -1459,3 +1459,184 @@ export interface DiscoveryCallListResponse {
   calls: DiscoveryCall[];
   stats: DiscoveryCallStats;
 }
+
+// --- Autoresearch Types ---
+
+export enum AuditStatus {
+  PENDING_REVIEW = 'pending_review',
+  APPROVED = 'approved',
+  REJECTED = 'rejected',
+  SKIPPED = 'skipped',
+}
+
+export enum AuditConfidence {
+  HIGH = 'high',
+  MEDIUM = 'medium',
+  LOW = 'low',
+}
+
+export enum SiteQuality {
+  GOOD = 'good',
+  MEDIUM = 'medium',
+  POOR = 'poor',
+}
+
+export enum ExperimentStatus {
+  DRAFT = 'draft',
+  SENT = 'sent',
+  REPLIED = 'replied',
+  NO_REPLY = 'no_reply',
+  BOUNCED = 'bounced',
+}
+
+export interface AuditResult {
+  id: number;
+  prospect_id: number;
+  campaign_id: number;
+  issue_type: string | null;
+  issue_detail: string | null;
+  secondary_issue: string | null;
+  secondary_detail: string | null;
+  confidence: string;
+  site_quality: string;
+  needs_verification: boolean;
+  pass_2_completed: boolean;
+  generated_subject: string | null;
+  generated_body: string | null;
+  word_count: number | null;
+  desktop_screenshot: string | null;
+  mobile_screenshot: string | null;
+  status: string;
+  rejection_reason: string | null;
+  was_edited: boolean;
+  edited_subject: string | null;
+  edited_body: string | null;
+  audit_duration_seconds: number | null;
+  ai_cost_estimate: number | null;
+  created_at: string;
+  prospect_name: string | null;
+  prospect_company: string | null;
+  prospect_niche: string | null;
+  prospect_email: string | null;
+  prospect_city: string | null;
+}
+
+export interface AuditListResponse {
+  audits: AuditResult[];
+  total_count: number;
+  page: number;
+  page_size: number;
+}
+
+export interface BatchAuditResponse {
+  batch_id: string;
+  total: number;
+  message: string;
+}
+
+export interface BatchProgress {
+  batch_id: string;
+  completed: number;
+  total: number;
+  errors: number;
+  current_prospect: string | null;
+  is_complete: boolean;
+  is_cancelled: boolean;
+}
+
+export interface ExperimentRecord {
+  id: number;
+  prospect_id: number;
+  campaign_id: number;
+  audit_id: number;
+  status: string;
+  issue_type: string | null;
+  issue_detail: string | null;
+  secondary_issue: string | null;
+  confidence: string | null;
+  subject: string | null;
+  body: string | null;
+  word_count: number | null;
+  was_edited: boolean;
+  niche: string | null;
+  city: string | null;
+  company: string | null;
+  sent_at: string | null;
+  day_of_week: string | null;
+  step_number: number;
+  replied: boolean;
+  reply_at: string | null;
+  response_time_minutes: number | null;
+  sentiment: string | null;
+  category: string | null;
+  converted_to_call: boolean;
+  converted_to_client: boolean;
+  deal_value: number | null;
+  created_at: string;
+}
+
+export interface ExperimentListResponse {
+  experiments: ExperimentRecord[];
+  total_count: number;
+  page: number;
+  page_size: number;
+}
+
+export interface IssueTypeStats {
+  issue_type: string;
+  sent: number;
+  replied: number;
+  reply_rate: number;
+  confidence: string;
+}
+
+export interface NicheStats {
+  niche: string;
+  sent: number;
+  replied: number;
+  reply_rate: number;
+  best_issue_type: string | null;
+}
+
+export interface TimingStats {
+  day_of_week: string;
+  sent: number;
+  replied: number;
+  reply_rate: number;
+}
+
+export interface AnalyticsOverview {
+  total_experiments: number;
+  total_sent: number;
+  total_replied: number;
+  overall_reply_rate: number;
+  best_issue_type: string | null;
+  best_niche: string | null;
+  avg_response_time_minutes: number | null;
+  total_ai_cost: number;
+}
+
+export interface InsightRecord {
+  id: number;
+  insight: string;
+  confidence: string;
+  sample_size: number;
+  recommendation: string | null;
+  applies_to: string;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface AutoresearchSettings {
+  audit_prompt: string | null;
+  audit_model: string;
+  classifier_model: string;
+  learning_model: string;
+  min_page_load_wait: number;
+  enable_pass_2: boolean;
+  max_batch_size: number;
+  gmail_connected: boolean;
+  gmail_email: string | null;
+  monthly_cost: number;
+  total_audits: number;
+}

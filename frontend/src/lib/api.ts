@@ -82,6 +82,16 @@ import type {
   MultiTouchStep,
   MultiTouchStepCreate,
   CampaignSearchKeyword,
+  AuditListResponse,
+  BatchAuditResponse,
+  BatchProgress,
+  ExperimentListResponse,
+  AnalyticsOverview,
+  IssueTypeStats,
+  NicheStats,
+  TimingStats,
+  InsightRecord,
+  AutoresearchSettings,
 } from '../types/index';
 import {
   TaskStatus,
@@ -1366,6 +1376,90 @@ export const reportsApi = {
   getPipeline: async (startDate: string, endDate: string) => {
     const res = await api.get('/api/reports/pipeline', { params: { start_date: startDate, end_date: endDate } });
     return res.data;
+  },
+};
+
+// Autoresearch API
+export const autoresearchApi = {
+  auditProspect: async (prospectId: number) => {
+    const { data } = await api.post(`/api/autoresearch/audit/${prospectId}`);
+    return data;
+  },
+  batchAudit: async (campaignId: number): Promise<BatchAuditResponse> => {
+    const { data } = await api.post(`/api/autoresearch/audit/batch/${campaignId}`);
+    return data;
+  },
+  getBatchProgress: async (batchId: string): Promise<BatchProgress> => {
+    const { data } = await api.get(`/api/autoresearch/audit/batch/${batchId}/progress`);
+    return data;
+  },
+  cancelBatch: async (batchId: string) => {
+    const { data } = await api.post(`/api/autoresearch/audit/batch/${batchId}/cancel`);
+    return data;
+  },
+  listAudits: async (params?: { campaign_id?: number; status?: string; confidence?: string; page?: number; page_size?: number }): Promise<AuditListResponse> => {
+    const { data } = await api.get('/api/autoresearch/audits', { params });
+    return data;
+  },
+  approveAudit: async (auditId: number, body?: { edited_subject?: string; edited_body?: string }) => {
+    const { data } = await api.put(`/api/autoresearch/audits/${auditId}/approve`, body || {});
+    return data;
+  },
+  rejectAudit: async (auditId: number, reason: string) => {
+    const { data } = await api.put(`/api/autoresearch/audits/${auditId}/reject`, { rejection_reason: reason });
+    return data;
+  },
+  listExperiments: async (params?: { campaign_id?: number; niche?: string; issue_type?: string; status?: string; page?: number; page_size?: number }): Promise<ExperimentListResponse> => {
+    const { data } = await api.get('/api/autoresearch/experiments', { params });
+    return data;
+  },
+  getAnalyticsOverview: async (): Promise<AnalyticsOverview> => {
+    const { data } = await api.get('/api/autoresearch/analytics/overview');
+    return data;
+  },
+  getAnalyticsByIssueType: async (): Promise<{ stats: IssueTypeStats[] }> => {
+    const { data } = await api.get('/api/autoresearch/analytics/by-issue-type');
+    return data;
+  },
+  getAnalyticsByNiche: async (): Promise<{ stats: NicheStats[] }> => {
+    const { data } = await api.get('/api/autoresearch/analytics/by-niche');
+    return data;
+  },
+  getAnalyticsByTiming: async (): Promise<{ stats: TimingStats[] }> => {
+    const { data } = await api.get('/api/autoresearch/analytics/by-timing');
+    return data;
+  },
+  getInsights: async (): Promise<InsightRecord[]> => {
+    const { data } = await api.get('/api/autoresearch/insights');
+    return data;
+  },
+  refreshInsights: async () => {
+    const { data } = await api.post('/api/autoresearch/insights/refresh');
+    return data;
+  },
+  getGmailAuthUrl: async (): Promise<{ auth_url: string }> => {
+    const { data } = await api.get('/api/autoresearch/gmail/auth-url');
+    return data;
+  },
+  getGmailStatus: async () => {
+    const { data } = await api.get('/api/autoresearch/gmail/status');
+    return data;
+  },
+  disconnectGmail: async () => {
+    const { data } = await api.post('/api/autoresearch/gmail/disconnect');
+    return data;
+  },
+  pollGmail: async () => {
+    const { data } = await api.post('/api/autoresearch/gmail/poll');
+    return data;
+  },
+  getSettings: async (): Promise<AutoresearchSettings> => {
+    const { data } = await api.get('/api/autoresearch/settings');
+    return data;
+  },
+  updateSettings: async (updates: Partial<AutoresearchSettings>) => {
+    const { data } = await api.put('/api/autoresearch/settings', updates);
+    return data;
   },
 };
 
