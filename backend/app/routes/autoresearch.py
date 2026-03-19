@@ -27,6 +27,7 @@ from app.models.autoresearch import (
     AutoresearchSettings,
     Experiment,
     GmailToken,
+    Insight,
 )
 from app.models.outreach import OutreachProspect
 from app.models.user import User
@@ -41,6 +42,7 @@ from app.schemas.autoresearch import (
     BatchProgressResponse,
     ExperimentListResponse,
     ExperimentResponse,
+    InsightResponse,
     IssueTypeStats,
     NicheStats,
     TimingStats,
@@ -135,6 +137,18 @@ async def audit_single_prospect(
     )
     audit_prompt = (settings.audit_prompt if settings and settings.audit_prompt else DEFAULT_AUDIT_PROMPT)
     min_wait = (settings.min_page_load_wait if settings else 3)
+
+    # Inject learning context into audit prompt
+    learning_context = None
+    try:
+        from app.services.learning_service import LearningService
+        learning_svc = LearningService()
+        learning_context = learning_svc.build_learning_context(db, prospect.niche)
+    except Exception as e:
+        logger.warning("Could not build learning context: %s", e)
+
+    if learning_context:
+        audit_prompt = audit_prompt + "\n\n" + learning_context
 
     # Pass 1: capture screenshots
     screenshots = await svc.capture_screenshots(prospect.website, min_wait=min_wait)
@@ -1225,6 +1239,102 @@ def gmail_disconnect(
 
 
 # ──────────────────────────────────────────────
+# 22. GET /insights — list active insights
+# ──────────────────────────────────────────────
+
+@router.get("/insights", response_model=list[InsightResponse])
+def list_active_insights(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """List active insights ordered by confidence priority then sample_size."""
+    confidence_order = case(
+        (Insight.confidence == "high", 1),
+        (Insight.confidence == "medium", 2),
+        (Insight.confidence == "low", 3),
+        else_=4,
+    )
+    insights = (
+        db.query(Insight)
+        .filter(Insight.is_active.is_(True))
+        .order_by(confidence_order, Insight.sample_size.desc())
+        .all()
+    )
+    return [InsightResponse.model_validate(i, from_attributes=True) for i in insights]
+
+
+# ──────────────────────────────────────────────
+# 23. POST /insights/refresh — trigger insight re-analysis
+# ──────────────────────────────────────────────
+
+@router.post("/insights/refresh", response_model=list[InsightResponse])
+async def refresh_insights(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Trigger insight re-analysis from experiment data."""
+    try:
+        from app.services.learning_service import LearningService
+        learning_service = LearningService()
+    except Exception as exc:
+        raise HTTPException(
+            status_code=503,
+            detail=f"Learning service unavailable: {exc}",
+        )
+
+    new_insights = await learning_service.generate_insights(db)
+
+    # Re-query from DB to get the persisted Insight records
+    active = (
+        db.query(Insight)
+        .filter(Insight.is_active.is_(True))
+        .order_by(Insight.created_at.desc())
+        .all()
+    )
+    return [InsightResponse.model_validate(i, from_attributes=True) for i in active]
+
+
+# ──────────────────────────────────────────────
+# 24. GET /insights/history — all insights including superseded
+# ──────────────────────────────────────────────
+
+@router.get("/insights/history", response_model=list[InsightResponse])
+def insights_history(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """List all insights including superseded ones, newest first."""
+    insights = (
+        db.query(Insight)
+        .order_by(Insight.created_at.desc())
+        .all()
+    )
+    return [InsightResponse.model_validate(i, from_attributes=True) for i in insights]
+
+
+# ──────────────────────────────────────────────
+# 25. GET /learning-context/{niche} — get learning context block
+# ──────────────────────────────────────────────
+
+@router.get("/learning-context/{niche}")
+def get_learning_context(
+    niche: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Get the learning context block for a specific niche."""
+    try:
+        from app.services.learning_service import LearningService
+        learning_svc = LearningService()
+        context = learning_svc.build_learning_context(db, niche)
+    except Exception as exc:
+        logger.warning("Could not build learning context: %s", exc)
+        return {"context": None}
+
+    return {"context": context}
+
+
+# ──────────────────────────────────────────────
 # Background batch audit function
 # ──────────────────────────────────────────────
 
@@ -1257,6 +1367,14 @@ async def _run_batch_audit(
         )
         audit_prompt = (settings.audit_prompt if settings and settings.audit_prompt else DEFAULT_AUDIT_PROMPT)
         min_wait = (settings.min_page_load_wait if settings else 3)
+
+        # Init learning service for context injection
+        _learning_svc = None
+        try:
+            from app.services.learning_service import LearningService
+            _learning_svc = LearningService()
+        except Exception as e:
+            logger.warning("Batch %s: learning service unavailable: %s", batch_id, e)
 
         # Find un-audited prospects with websites
         already_audited_ids = (
@@ -1302,6 +1420,19 @@ async def _run_batch_audit(
                     job["completed"] += 1
                     continue
 
+                # Inject learning context per-prospect niche
+                prospect_audit_prompt = audit_prompt
+                if _learning_svc:
+                    try:
+                        lc = _learning_svc.build_learning_context(db, prospect.niche)
+                        if lc:
+                            prospect_audit_prompt = audit_prompt + "\n\n" + lc
+                    except Exception as lc_err:
+                        logger.warning(
+                            "Batch %s: learning context failed for prospect %d: %s",
+                            batch_id, prospect.id, lc_err,
+                        )
+
                 # Pass 1: analyse with Claude
                 analysis = await svc.analyze_with_claude(
                     screenshots=screenshots,
@@ -1309,7 +1440,7 @@ async def _run_batch_audit(
                     prospect_company=prospect.agency_name,
                     prospect_niche=prospect.niche or "general",
                     prospect_city="",
-                    audit_prompt=audit_prompt,
+                    audit_prompt=prospect_audit_prompt,
                 )
 
                 if analysis.get("error") and not analysis.get("issue_type"):
