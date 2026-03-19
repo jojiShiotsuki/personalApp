@@ -13,6 +13,7 @@ from .discovery_call import DiscoveryCall, CallOutcome
 from .outreach import SearchPlannerCombination
 from .project_template import ProjectTemplate, ProjectTemplateTask
 from .user import User
+from .autoresearch import AuditResult, Experiment, GmailToken, EmailMatch, Insight, AutoresearchSettings
 
 __all__ = [
     "Task", "TaskPriority", "TaskStatus",
@@ -31,4 +32,5 @@ __all__ = [
     "DiscoveryCall", "CallOutcome",
     "SearchPlannerCombination",
     "User",
+    "AuditResult", "Experiment", "GmailToken", "EmailMatch", "Insight", "AutoresearchSettings",
 ]
