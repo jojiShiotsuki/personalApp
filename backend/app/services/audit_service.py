@@ -446,12 +446,17 @@ class AuditService:
 
         extracted_text = (screenshots.get("extracted_text") or "")[:5000]
 
+        # Page load time (for speed-based issues as last resort)
+        load_time = screenshots.get("duration_seconds", 0)
+
         context_block = (
             f"PROSPECT INFO:\n"
             f"  Name: {prospect_name}\n"
             f"  Company: {prospect_company}\n"
             f"  Niche: {prospect_niche}\n"
             f"  City: {prospect_city}\n\n"
+            f"PAGE LOAD TIME: {load_time} seconds "
+            f"{'(SLOW — over 5 seconds, customers may leave)' if load_time > 5 else '(acceptable)'}\n\n"
             f"EXTRACTED TEXT (first 5000 chars):\n{extracted_text}\n\n"
             f"LINK MAP (JSON, max 3000 chars):\n{link_map_str}"
         )
