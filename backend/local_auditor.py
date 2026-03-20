@@ -82,12 +82,14 @@ async def get_prospects_to_audit(
     for a in audits_list:
         audited_ids.add(a.get("prospect_id"))
 
-    # Filter to un-audited with websites
+    # Filter to un-audited prospects on step 1 (QUEUED) with websites
     candidates = [
         p for p in all_prospects
         if p.get("website")
         and p["website"].strip()
         and p["id"] not in audited_ids
+        and p.get("current_step", 1) == 1
+        and p.get("status") in (None, "QUEUED", "queued")
     ]
 
     selected = candidates[:count]
