@@ -400,6 +400,64 @@ def cancel_batch_audit(
 
 
 # ──────────────────────────────────────────────
+# 4b. POST /audits/ingest — accept pre-computed audit from local auditor
+# ──────────────────────────────────────────────
+
+@router.post("/audits/ingest")
+async def ingest_audit(
+    payload: dict,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Accept a pre-computed audit result from the local auditor script."""
+    prospect_id = payload.get("prospect_id")
+    if not prospect_id:
+        raise HTTPException(status_code=400, detail="prospect_id is required")
+
+    prospect = db.query(OutreachProspect).filter(OutreachProspect.id == prospect_id).first()
+    if not prospect:
+        raise HTTPException(status_code=404, detail="Prospect not found")
+
+    status = "pending_review"
+    if payload.get("site_quality") == "good":
+        status = "skipped"
+
+    audit_result = AuditResult(
+        prospect_id=prospect_id,
+        campaign_id=payload.get("campaign_id", prospect.campaign_id),
+        issue_type=payload.get("issue_type"),
+        issue_detail=payload.get("issue_detail"),
+        secondary_issue=payload.get("secondary_issue"),
+        secondary_detail=payload.get("secondary_detail"),
+        confidence=payload.get("confidence", "medium"),
+        site_quality=payload.get("site_quality", "medium"),
+        needs_verification=payload.get("needs_verification", False),
+        generated_subject=payload.get("generated_subject"),
+        generated_body=payload.get("generated_body"),
+        word_count=payload.get("word_count"),
+        desktop_screenshot=payload.get("desktop_screenshot"),
+        mobile_screenshot=payload.get("mobile_screenshot"),
+        status=status,
+        audit_duration_seconds=payload.get("audit_duration_seconds"),
+        model_used=payload.get("model_used"),
+        tokens_used=payload.get("tokens_used"),
+        ai_cost_estimate=payload.get("ai_cost_estimate"),
+    )
+    db.add(audit_result)
+    db.commit()
+    db.refresh(audit_result)
+
+    return {
+        "id": audit_result.id,
+        "prospect_id": prospect_id,
+        "status": audit_result.status,
+        "issue_type": audit_result.issue_type,
+        "confidence": audit_result.confidence,
+        "subject": audit_result.generated_subject,
+    }
+
+
+# ──────────────────────────────────────────────
 # 5. GET /audits — list audits with filters
 # ──────────────────────────────────────────────
 
