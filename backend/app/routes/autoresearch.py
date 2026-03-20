@@ -175,15 +175,22 @@ async def audit_single_prospect(
         audit_prompt = audit_prompt + "\n\n" + learning_context
 
     try:
-        # Pass 1: capture screenshots
-        logger.info("Starting screenshot capture for %s", validated_url)
-        screenshots = await svc.capture_screenshots(validated_url, min_wait=min_wait)
+        # Run screenshots and PageSpeed in parallel
+        import asyncio as _asyncio
+        logger.info("Starting screenshot capture + PageSpeed for %s", validated_url)
+        screenshots_task = _asyncio.create_task(svc.capture_screenshots(validated_url, min_wait=min_wait))
+        pagespeed_task = _asyncio.create_task(svc.run_pagespeed_test(validated_url))
+
+        screenshots = await screenshots_task
+        pagespeed = await pagespeed_task
+
         logger.info(
-            "Screenshot result: desktop=%s, mobile=%s, error=%s, duration=%s",
+            "Screenshot result: desktop=%s, mobile=%s, error=%s, duration=%s | PageSpeed: %s/100",
             bool(screenshots.get("desktop_screenshot")),
             bool(screenshots.get("mobile_screenshot")),
             screenshots.get("error"),
             screenshots.get("duration_seconds"),
+            pagespeed.get("score"),
         )
 
         if screenshots.get("error") and not screenshots.get("desktop_screenshot"):
@@ -192,7 +199,7 @@ async def audit_single_prospect(
                 detail=f"Screenshot capture failed: {screenshots['error']}",
             )
 
-        # Pass 1: analyse with Claude
+        # Analyse with Claude (screenshots + PageSpeed data)
         logger.info("Starting Claude analysis...")
         analysis = await svc.analyze_with_claude(
             screenshots=screenshots,
@@ -201,6 +208,7 @@ async def audit_single_prospect(
             prospect_niche=prospect.niche or "general",
             prospect_city="",
             audit_prompt=audit_prompt,
+            pagespeed=pagespeed,
         )
 
         if analysis.get("error") and not analysis.get("issue_type"):

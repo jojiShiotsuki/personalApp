@@ -17,6 +17,7 @@ import time
 from typing import Any, Optional
 from urllib.parse import urlparse
 
+import httpx
 from anthropic import AsyncAnthropic
 
 logger = logging.getLogger(__name__)
@@ -383,6 +384,69 @@ class AuditService:
             return None
 
     # ──────────────────────────────────────────
+    # PageSpeed Insights
+    # ──────────────────────────────────────────
+
+    async def run_pagespeed_test(self, url: str) -> dict[str, Any]:
+        """
+        Run Google PageSpeed Insights on a URL.
+        Free API, no auth needed. Returns performance score and key metrics.
+        """
+        api_url = "https://www.googleapis.com/pagespeedonline/v5/runPagespeed"
+        params = {
+            "url": url,
+            "category": "performance",
+            "strategy": "mobile",  # Mobile is what matters for tradies' customers
+        }
+        # Use API key if available for higher quota (25,000 queries/day vs 60/min)
+        google_api_key = os.getenv("GOOGLE_API_KEY")
+        if google_api_key:
+            params["key"] = google_api_key
+
+        try:
+            async with httpx.AsyncClient(timeout=60) as client:
+                response = await client.get(api_url, params=params)
+                response.raise_for_status()
+                data = response.json()
+
+            lighthouse = data.get("lighthouseResult", {})
+            categories = lighthouse.get("categories", {})
+            audits = lighthouse.get("audits", {})
+
+            perf_score = categories.get("performance", {}).get("score")
+            perf_score_100 = round(perf_score * 100) if perf_score is not None else None
+
+            # Extract key metrics
+            fcp = audits.get("first-contentful-paint", {}).get("displayValue")
+            lcp = audits.get("largest-contentful-paint", {}).get("displayValue")
+            speed_index = audits.get("speed-index", {}).get("displayValue")
+            tti = audits.get("interactive", {}).get("displayValue")
+            cls = audits.get("cumulative-layout-shift", {}).get("displayValue")
+
+            # Get the actual load time in seconds from speed-index numeric value
+            speed_index_seconds = audits.get("speed-index", {}).get("numericValue")
+            load_seconds = round(speed_index_seconds / 1000, 1) if speed_index_seconds else None
+
+            return {
+                "score": perf_score_100,  # 0-100
+                "first_contentful_paint": fcp,
+                "largest_contentful_paint": lcp,
+                "speed_index": speed_index,
+                "time_to_interactive": tti,
+                "cumulative_layout_shift": cls,
+                "load_seconds": load_seconds,
+                "is_slow": perf_score_100 is not None and perf_score_100 < 50,
+                "error": None,
+            }
+
+        except httpx.TimeoutException:
+            logger.warning("PageSpeed test timed out for %s", url)
+            return {"score": None, "error": "PageSpeed test timed out", "is_slow": False}
+        except Exception as e:
+            logger.warning("PageSpeed test failed for %s: %s", url, e)
+            return {"score": None, "error": str(e), "is_slow": False}
+
+    # ──────────────────────────────────────────
     # Claude Vision analysis
     # ──────────────────────────────────────────
 
@@ -395,6 +459,7 @@ class AuditService:
         prospect_city: str,
         audit_prompt: str,
         learning_context: Optional[str] = None,
+        pagespeed: Optional[dict[str, Any]] = None,
     ) -> dict[str, Any]:
         """
         Send desktop + mobile screenshots and extracted data to Claude
@@ -446,8 +511,23 @@ class AuditService:
 
         extracted_text = (screenshots.get("extracted_text") or "")[:5000]
 
-        # Page load time (for speed-based issues as last resort)
-        load_time = screenshots.get("duration_seconds", 0)
+        # PageSpeed data
+        speed_block = ""
+        if pagespeed and not pagespeed.get("error"):
+            score = pagespeed.get("score")
+            load_secs = pagespeed.get("load_seconds")
+            speed_block = (
+                f"GOOGLE PAGESPEED RESULTS (mobile):\n"
+                f"  Performance Score: {score}/100 {'— POOR, site is slow' if score and score < 50 else '— OK' if score else '— unknown'}\n"
+                f"  Speed Index: {pagespeed.get('speed_index', 'N/A')}\n"
+                f"  First Contentful Paint: {pagespeed.get('first_contentful_paint', 'N/A')}\n"
+                f"  Largest Contentful Paint: {pagespeed.get('largest_contentful_paint', 'N/A')}\n"
+                f"  Time to Interactive: {pagespeed.get('time_to_interactive', 'N/A')}\n"
+                f"  Estimated Load Time: {load_secs}s {('— customers leave after 3 seconds' if load_secs and load_secs > 5 else '') if load_secs else ''}\n"
+                f"  NOTE: Only lead with speed if the score is under 50 AND you cannot find a stronger visible problem.\n\n"
+            )
+        elif pagespeed and pagespeed.get("error"):
+            speed_block = f"GOOGLE PAGESPEED: Test failed ({pagespeed['error']}). Skip speed as an issue.\n\n"
 
         context_block = (
             f"PROSPECT INFO:\n"
@@ -455,8 +535,7 @@ class AuditService:
             f"  Company: {prospect_company}\n"
             f"  Niche: {prospect_niche}\n"
             f"  City: {prospect_city}\n\n"
-            f"PAGE LOAD TIME: {load_time} seconds "
-            f"{'(SLOW — over 5 seconds, customers may leave)' if load_time > 5 else '(acceptable)'}\n\n"
+            f"{speed_block}"
             f"EXTRACTED TEXT (first 5000 chars):\n{extracted_text}\n\n"
             f"LINK MAP (JSON, max 3000 chars):\n{link_map_str}"
         )
