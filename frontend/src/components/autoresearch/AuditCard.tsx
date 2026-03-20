@@ -13,6 +13,7 @@ import {
   X,
   MessageSquare,
   Trash2,
+  ExternalLink,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { AuditResult } from '@/types';
@@ -166,12 +167,25 @@ export default function AuditCard({ audit, onApprove, onReject, onFeedback, onDe
           )}
 
           {/* Prospect info */}
-          <div className="min-w-0">
+          <div className="min-w-0 flex items-center gap-2">
             <span className="text-sm font-semibold text-[--exec-text] truncate">
               {audit.prospect_company || audit.prospect_name || `Prospect #${audit.prospect_id}`}
             </span>
+            {audit.prospect_website && (
+              <a
+                href={audit.prospect_website.startsWith('http') ? audit.prospect_website : `https://${audit.prospect_website}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className="inline-flex items-center gap-1 px-2 py-0.5 text-xs text-blue-400 hover:text-blue-300 bg-blue-900/20 hover:bg-blue-900/30 rounded-md transition-colors"
+                title="View website"
+              >
+                <ExternalLink className="w-3 h-3" />
+                Visit
+              </a>
+            )}
             {(audit.prospect_niche || audit.prospect_city) && (
-              <span className="text-xs text-[--exec-text-muted] ml-2">
+              <span className="text-xs text-[--exec-text-muted]">
                 {[audit.prospect_niche, audit.prospect_city].filter(Boolean).join(' \u2014 ')}
               </span>
             )}

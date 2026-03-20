@@ -1518,6 +1518,7 @@ export interface AuditResult {
   prospect_company: string | null;
   prospect_niche: string | null;
   prospect_email: string | null;
+  prospect_website: string | null;
   prospect_city: string | null;
 }
 

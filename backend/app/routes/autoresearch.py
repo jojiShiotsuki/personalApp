@@ -283,6 +283,7 @@ async def audit_single_prospect(
         "prospect_company": prospect.agency_name,
         "prospect_niche": prospect.niche,
         "prospect_email": prospect.email,
+        "prospect_website": prospect.website,
     }
 
 
@@ -479,6 +480,7 @@ def list_audits(
             OutreachProspect.agency_name,
             OutreachProspect.niche,
             OutreachProspect.email,
+            OutreachProspect.website,
         )
         .join(OutreachProspect, AuditResult.prospect_id == OutreachProspect.id)
     )
@@ -497,12 +499,13 @@ def list_audits(
     rows = query.offset(offset).limit(page_size).all()
 
     results = []
-    for audit, contact_name, agency_name, niche, email in rows:
+    for audit, contact_name, agency_name, niche, email, website in rows:
         resp = AuditResultResponse.model_validate(audit, from_attributes=True)
         resp.prospect_name = contact_name or agency_name
         resp.prospect_company = agency_name
         resp.prospect_niche = niche
         resp.prospect_email = email
+        resp.prospect_website = website
         results.append(resp)
 
     return {"audits": results, "total_count": total_count, "page": page, "page_size": page_size}
@@ -595,6 +598,7 @@ def approve_audit(
         resp.prospect_company = prospect.agency_name
         resp.prospect_niche = prospect.niche
         resp.prospect_email = prospect.email
+        resp.prospect_website = prospect.website
     return resp
 
 
@@ -631,6 +635,7 @@ def reject_audit(
         resp.prospect_company = prospect.agency_name
         resp.prospect_niche = prospect.niche
         resp.prospect_email = prospect.email
+        resp.prospect_website = prospect.website
     return resp
 
 

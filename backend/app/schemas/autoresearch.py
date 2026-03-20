@@ -59,6 +59,7 @@ class AuditResultResponse(BaseModel):
     prospect_niche: Optional[str] = None
     prospect_city: Optional[str] = None
     prospect_email: Optional[str] = None
+    prospect_website: Optional[str] = None
 
     class Config:
         from_attributes = True
