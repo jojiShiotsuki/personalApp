@@ -75,10 +75,15 @@ except Exception:
 try:
     from app.services.gmail_service import GmailService
     gmail_service = GmailService()
-except Exception:
+    logger.info("GmailService initialized successfully")
+except Exception as gmail_init_err:
     logger.warning(
-        "GmailService could not be initialised (GOOGLE_CLIENT_ID / "
-        "GMAIL_ENCRYPTION_KEY may not be set). Gmail endpoints will return 503."
+        "GmailService could not be initialised: %s. "
+        "ENV check: GOOGLE_CLIENT_ID=%s, GOOGLE_CLIENT_SECRET=%s, GMAIL_ENCRYPTION_KEY=%s",
+        gmail_init_err,
+        "SET" if os.getenv("GOOGLE_CLIENT_ID") else "MISSING",
+        "SET" if os.getenv("GOOGLE_CLIENT_SECRET") else "MISSING",
+        "SET" if os.getenv("GMAIL_ENCRYPTION_KEY") else "MISSING",
     )
     gmail_service = None  # type: ignore[assignment]
 
