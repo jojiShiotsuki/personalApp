@@ -72,7 +72,7 @@ async def get_prospects_to_audit(
     # Get already-audited prospect IDs
     resp2 = await client.get(
         f"{API_URL}/api/autoresearch/audits",
-        params={"campaign_id": campaign_id, "page": 1, "page_size": 1000},
+        params={"campaign_id": campaign_id, "page": 1, "page_size": 200},
         headers={"Authorization": f"Bearer {token}"},
     )
     resp2.raise_for_status()
@@ -225,9 +225,13 @@ async def main():
 
         total_cost = 0.0
         success_count = 0
+        audited_ids: set[int] = set()
         start_time = time.time()
 
         for i, prospect in enumerate(prospects):
+            if prospect["id"] in audited_ids:
+                continue
+            audited_ids.add(prospect["id"])
             name = prospect.get("agency_name") or prospect.get("contact_name") or f"#{prospect['id']}"
             logger.info(
                 "[%d/%d] Auditing %s (%s)...",
