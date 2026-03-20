@@ -4,7 +4,6 @@ import { autoresearchApi, coldOutreachApi } from '@/lib/api';
 import type { AuditResult, OutreachCampaign } from '@/types';
 import { AuditStatus } from '@/types';
 import {
-  Search,
   Play,
   ChevronLeft,
   ChevronRight,
