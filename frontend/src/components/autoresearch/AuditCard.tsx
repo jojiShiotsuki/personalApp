@@ -11,6 +11,7 @@ import {
   AlertTriangle,
   SkipForward,
   X,
+  MessageSquare,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { AuditResult } from '@/types';
@@ -68,15 +69,18 @@ interface AuditCardProps {
   audit: AuditResult;
   onApprove: (auditId: number, editedSubject?: string, editedBody?: string) => void;
   onReject: (auditId: number, reason: string) => void;
+  onFeedback: (auditId: number, feedback: string) => void;
   onViewScreenshots: (audit: AuditResult) => void;
 }
 
-export default function AuditCard({ audit, onApprove, onReject, onViewScreenshots }: AuditCardProps) {
+export default function AuditCard({ audit, onApprove, onReject, onFeedback, onViewScreenshots }: AuditCardProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedSubject, setEditedSubject] = useState(audit.edited_subject || audit.generated_subject || '');
   const [editedBody, setEditedBody] = useState(audit.edited_body || audit.generated_body || '');
   const [showRejectInput, setShowRejectInput] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
+  const [showFeedback, setShowFeedback] = useState(false);
+  const [feedbackText, setFeedbackText] = useState('');
   const [isExpanded, setIsExpanded] = useState(true);
 
   const isSkipped = audit.site_quality === 'good' || audit.status === AuditStatus.SKIPPED;
@@ -368,6 +372,19 @@ export default function AuditCard({ audit, onApprove, onReject, onViewScreenshot
                 {isEditing ? 'Editing...' : 'Edit'}
               </button>
 
+              <button
+                onClick={() => setShowFeedback((prev) => !prev)}
+                className={cn(
+                  'inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors',
+                  showFeedback
+                    ? 'text-blue-400 bg-blue-900/30 border border-blue-800/40'
+                    : 'text-[--exec-text-secondary] bg-stone-700/50 hover:bg-stone-600/50'
+                )}
+              >
+                <MessageSquare className="w-3.5 h-3.5" />
+                Feedback
+              </button>
+
               {!showRejectInput && (
                 <button
                   onClick={() => setShowRejectInput(true)}
@@ -384,6 +401,43 @@ export default function AuditCard({ audit, onApprove, onReject, onViewScreenshot
                   Needs verification
                 </span>
               )}
+            </div>
+          )}
+
+          {/* Feedback textarea */}
+          {showFeedback && (
+            <div className="mt-3 pt-3 border-t border-stone-700/30">
+              <label className="text-xs font-medium text-stone-400 mb-1.5 block">
+                Correction / Feedback for the AI
+              </label>
+              <textarea
+                value={feedbackText}
+                onChange={(e) => setFeedbackText(e.target.value)}
+                placeholder="e.g. Secondary issue was wrong — mobile cards load fine, just slow to render..."
+                className={cn(
+                  'w-full px-3 py-2 rounded-lg text-sm',
+                  'bg-stone-800/50 border border-stone-600/40',
+                  'text-[--exec-text] placeholder:text-stone-500',
+                  'focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]/50',
+                  'resize-none'
+                )}
+                rows={2}
+              />
+              <div className="flex gap-2 mt-2">
+                <button
+                  onClick={() => { onFeedback(audit.id, feedbackText); setShowFeedback(false); setFeedbackText(''); }}
+                  disabled={!feedbackText.trim()}
+                  className="px-3 py-1.5 text-xs font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Submit Feedback
+                </button>
+                <button
+                  onClick={() => { setShowFeedback(false); setFeedbackText(''); }}
+                  className="px-3 py-1.5 text-xs font-medium text-stone-400 bg-stone-700/50 rounded-lg hover:bg-stone-600/50 transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
             </div>
           )}
 

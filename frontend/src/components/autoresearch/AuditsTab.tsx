@@ -115,6 +115,19 @@ export default function AuditsTab() {
     },
   });
 
+  // Feedback mutation
+  const feedbackMutation = useMutation({
+    mutationFn: ({ auditId, feedback }: { auditId: number; feedback: string }) =>
+      autoresearchApi.submitFeedback(auditId, feedback),
+    onSuccess: () => {
+      toast.success('Feedback submitted');
+      queryClient.invalidateQueries({ queryKey: ['autoresearch-audits'] });
+    },
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Failed to submit feedback'));
+    },
+  });
+
   const handleApprove = useCallback(
     (auditId: number, editedSubject?: string, editedBody?: string) => {
       approveMutation.mutate({ auditId, editedSubject, editedBody });
@@ -127,6 +140,13 @@ export default function AuditsTab() {
       rejectMutation.mutate({ auditId, reason });
     },
     [rejectMutation]
+  );
+
+  const handleFeedback = useCallback(
+    (auditId: number, feedback: string) => {
+      feedbackMutation.mutate({ auditId, feedback });
+    },
+    [feedbackMutation]
   );
 
   const handleBatchComplete = useCallback(() => {
@@ -182,8 +202,8 @@ export default function AuditsTab() {
               className={cn(
                 'px-3 py-1.5 text-xs font-medium rounded-lg transition-all duration-200',
                 statusFilter === f.value
-                  ? 'bg-[--exec-accent] text-white shadow-sm'
-                  : 'text-[--exec-text-muted] hover:text-[--exec-text] hover:bg-stone-700/50'
+                  ? 'bg-stone-600/80 text-white shadow-sm font-semibold'
+                  : 'text-stone-400 hover:text-stone-200 hover:bg-stone-700/50'
               )}
             >
               {f.label}
@@ -256,6 +276,7 @@ export default function AuditsTab() {
               audit={audit}
               onApprove={handleApprove}
               onReject={handleReject}
+              onFeedback={handleFeedback}
               onViewScreenshots={setScreenshotAudit}
             />
           ))}

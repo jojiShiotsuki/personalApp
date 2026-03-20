@@ -1409,6 +1409,10 @@ export const autoresearchApi = {
     const { data } = await api.put(`/api/autoresearch/audits/${auditId}/reject`, { rejection_reason: reason });
     return data;
   },
+  submitFeedback: async (auditId: number, feedback: string) => {
+    const { data } = await api.put(`/api/autoresearch/audits/${auditId}/feedback`, { feedback });
+    return data;
+  },
   listExperiments: async (params?: { campaign_id?: number; niche?: string; issue_type?: string; status?: string; page?: number; page_size?: number }): Promise<ExperimentListResponse> => {
     const { data } = await api.get('/api/autoresearch/experiments', { params });
     return data;

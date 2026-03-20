@@ -567,6 +567,37 @@ def reject_audit(
 
 
 # ──────────────────────────────────────────────
+# 7b. PUT /audits/{audit_id}/feedback
+# ──────────────────────────────────────────────
+
+@router.put("/audits/{audit_id}/feedback")
+def submit_audit_feedback(
+    audit_id: int,
+    request: dict,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Submit correction/feedback for an audit without rejecting it."""
+    audit = db.query(AuditResult).filter(AuditResult.id == audit_id).first()
+    if not audit:
+        raise HTTPException(status_code=404, detail="Audit not found")
+
+    feedback = request.get("feedback", "")
+    if not feedback or not feedback.strip():
+        raise HTTPException(status_code=400, detail="Feedback cannot be empty")
+
+    # Store feedback in rejection_reason field, prefixed with [FEEDBACK]
+    existing = audit.rejection_reason or ""
+    if existing:
+        audit.rejection_reason = existing + "\n[FEEDBACK] " + feedback.strip()
+    else:
+        audit.rejection_reason = "[FEEDBACK] " + feedback.strip()
+
+    db.commit()
+    return {"message": "Feedback submitted", "audit_id": audit_id}
+
+
+# ──────────────────────────────────────────────
 # 8. GET /settings — get or create settings
 # ──────────────────────────────────────────────
 
