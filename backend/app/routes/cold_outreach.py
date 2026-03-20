@@ -25,7 +25,85 @@ from app.schemas.outreach import (
     SearchKeywordBulkCreate, SearchKeywordResponse, SearchKeywordUpdate,
 )
 
+from app.models.autoresearch import Experiment, AuditResult
+
 router = APIRouter(prefix="/api/outreach/campaigns", tags=["cold-outreach"])
+
+
+def _create_step_experiment(
+    db: Session,
+    prospect: OutreachProspect,
+    step_number: int,
+    subject: str | None = None,
+    body: str | None = None,
+    channel: str = "email",
+) -> None:
+    """
+    Auto-create an Experiment record when a step is sent/advanced.
+    This feeds the autoresearch learning engine with data from ALL steps,
+    not just the AI-audited step 1.
+    """
+    try:
+        # Check if an experiment already exists for this prospect + step
+        existing = (
+            db.query(Experiment)
+            .filter(
+                Experiment.prospect_id == prospect.id,
+                Experiment.step_number == step_number,
+            )
+            .first()
+        )
+        if existing:
+            # Update sent_at if it was a draft
+            if existing.status == "draft":
+                existing.status = "sent"
+                existing.sent_at = datetime.utcnow()
+                existing.day_of_week = datetime.utcnow().strftime("%A")
+            return
+
+        # Try to find the audit for this prospect (for linking)
+        audit = (
+            db.query(AuditResult)
+            .filter(AuditResult.prospect_id == prospect.id)
+            .order_by(AuditResult.created_at.desc())
+            .first()
+        )
+
+        experiment = Experiment(
+            prospect_id=prospect.id,
+            campaign_id=prospect.campaign_id,
+            audit_id=audit.id if audit else None,
+            status="sent",
+            step_number=step_number,
+            # Denormalized audit data (from the original audit if available)
+            issue_type=audit.issue_type if audit else None,
+            issue_detail=audit.issue_detail if audit else None,
+            secondary_issue=audit.secondary_issue if audit else None,
+            secondary_detail=audit.secondary_detail if audit else None,
+            confidence=audit.confidence if audit else None,
+            site_quality=audit.site_quality if audit else None,
+            # Email content for this specific step
+            subject=subject or prospect.custom_email_subject,
+            body=body or prospect.custom_email_body,
+            word_count=len((body or prospect.custom_email_body or "").split()) if (body or prospect.custom_email_body) else None,
+            was_edited=False,
+            # Prospect context snapshot
+            niche=prospect.niche,
+            city=None,
+            state=None,
+            company=prospect.agency_name,
+            # Send data
+            sent_at=datetime.utcnow(),
+            day_of_week=datetime.utcnow().strftime("%A"),
+        )
+        db.add(experiment)
+        db.flush()
+        logger.info(
+            "Auto-created experiment for prospect %d step %d (experiment #%d)",
+            prospect.id, step_number, experiment.id,
+        )
+    except Exception as e:
+        logger.warning("Failed to auto-create experiment for prospect %d step %d: %s", prospect.id, step_number, e)
 
 
 # ============== HELPER FUNCTIONS ==============
@@ -616,6 +694,9 @@ def mark_email_sent(prospect_id: int, db: Session = Depends(get_db)):
         prospect.next_action_date = calc_next_action_date(prospect.next_action_date, delay)
         message = f"Email {current_step} sent. Next follow-up scheduled for {prospect.next_action_date}."
 
+    # Auto-create experiment for autoresearch learning
+    _create_step_experiment(db, prospect, step_number=current_step)
+
     db.commit()
     db.refresh(prospect)
 
@@ -695,6 +776,30 @@ def mark_replied(prospect_id: int, data: MarkRepliedRequest, db: Session = Depen
     else:  # OTHER
         prospect.status = ProspectStatus.REPLIED
         message = "Response recorded. Review notes and decide on next steps."
+
+    # Update the most recent experiment for this prospect with reply data
+    try:
+        latest_experiment = (
+            db.query(Experiment)
+            .filter(Experiment.prospect_id == prospect.id)
+            .order_by(Experiment.step_number.desc())
+            .first()
+        )
+        if latest_experiment:
+            latest_experiment.replied = True
+            latest_experiment.reply_at = datetime.utcnow()
+            latest_experiment.status = "replied"
+            latest_experiment.sentiment = "positive" if data.response_type == ResponseType.INTERESTED else "negative" if data.response_type == ResponseType.NOT_INTERESTED else "neutral"
+            latest_experiment.category = data.response_type.value if data.response_type else None
+            if latest_experiment.sent_at:
+                diff = datetime.utcnow() - latest_experiment.sent_at
+                latest_experiment.response_time_minutes = int(diff.total_seconds() / 60)
+            if data.response_type == ResponseType.INTERESTED:
+                latest_experiment.converted_to_call = True
+                latest_experiment.deal_id = deal_id
+            logger.info("Updated experiment #%d with reply data for prospect %d", latest_experiment.id, prospect.id)
+    except Exception as e:
+        logger.warning("Failed to update experiment with reply data for prospect %d: %s", prospect.id, e)
 
     db.commit()
     db.refresh(prospect)
@@ -902,6 +1007,14 @@ def advance_multi_touch_prospect(campaign_id: int, prospect_id: int, db: Session
         prospect.status = ProspectStatus.IN_SEQUENCE
 
         message = f"Step {current_step} complete. Next: step {next_step_num} ({next_step.channel_type}) on {prospect.next_action_date}."
+
+    # Auto-create experiment for autoresearch learning
+    current_mt_step = steps.get(current_step)
+    _create_step_experiment(
+        db, prospect, step_number=current_step,
+        subject=current_mt_step.template_subject if current_mt_step else None,
+        body=current_mt_step.template_content if current_mt_step else None,
+    )
 
     db.commit()
     db.refresh(prospect)

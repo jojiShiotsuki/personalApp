@@ -67,7 +67,7 @@ class Experiment(Base):
     id = Column(Integer, primary_key=True, index=True)
     prospect_id = Column(Integer, ForeignKey("outreach_prospects.id", ondelete="CASCADE"), nullable=False, index=True)
     campaign_id = Column(Integer, ForeignKey("outreach_campaigns.id", ondelete="CASCADE"), nullable=False, index=True)
-    audit_id = Column(Integer, ForeignKey("audit_results.id", ondelete="CASCADE"), nullable=False, index=True)
+    audit_id = Column(Integer, ForeignKey("audit_results.id", ondelete="SET NULL"), nullable=True, index=True)
 
     # Experiment status
     status = Column(String(30), default="draft")  # draft/sent/replied/no_reply/bounced

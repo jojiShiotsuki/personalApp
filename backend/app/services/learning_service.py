@@ -218,6 +218,28 @@ class LearningService:
                 )
                 parts.append("")
 
+        # Step performance section
+        step_stats = (
+            db.query(
+                Experiment.step_number,
+                func.count(Experiment.id).label("total"),
+                func.sum(case((Experiment.replied.is_(True), 1), else_=0)).label("replied"),
+            )
+            .filter(
+                Experiment.status.in_(["sent", "replied", "no_reply"]),
+                Experiment.step_number.isnot(None),
+            )
+            .group_by(Experiment.step_number)
+            .order_by(Experiment.step_number)
+            .all()
+        )
+        if step_stats and len(step_stats) > 1:
+            parts.append("SEQUENCE STEP PERFORMANCE:")
+            for row in step_stats:
+                rate = round((row.replied / row.total) * 100, 1) if row.total else 0.0
+                parts.append(f"- Step {row.step_number}: {rate}% reply rate (n={row.total})")
+            parts.append("")
+
         if style_lines:
             parts.append("STYLE INSIGHTS:")
             parts.extend(style_lines)
@@ -329,7 +351,30 @@ class LearningService:
                 sections.append(f"  {row.niche}: {row.replied}/{row.total} replied ({rate}%)")
             sections.append("")
 
-        # 3. Reply rate by day_of_week
+        # 3. Reply rate by step_number (CRITICAL for sequence optimization)
+        step_stats = (
+            db.query(
+                Experiment.step_number,
+                func.count(Experiment.id).label("total"),
+                func.sum(case((Experiment.replied.is_(True), 1), else_=0)).label("replied"),
+            )
+            .filter(
+                Experiment.status.in_(sent_statuses),
+                Experiment.step_number.isnot(None),
+            )
+            .group_by(Experiment.step_number)
+            .order_by(Experiment.step_number)
+            .all()
+        )
+
+        if step_stats:
+            sections.append("REPLY RATE BY SEQUENCE STEP:")
+            for row in step_stats:
+                rate = round((row.replied / row.total) * 100, 1) if row.total else 0
+                sections.append(f"  Step {row.step_number}: {row.replied}/{row.total} replied ({rate}%)")
+            sections.append("")
+
+        # 4. Reply rate by day_of_week
         day_stats = (
             db.query(
                 Experiment.day_of_week,
