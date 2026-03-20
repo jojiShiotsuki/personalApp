@@ -12,6 +12,7 @@ import {
   SkipForward,
   X,
   MessageSquare,
+  Trash2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { AuditResult } from '@/types';
@@ -70,10 +71,11 @@ interface AuditCardProps {
   onApprove: (auditId: number, editedSubject?: string, editedBody?: string) => void;
   onReject: (auditId: number, reason: string) => void;
   onFeedback: (auditId: number, feedback: string) => void;
+  onDelete: (auditId: number) => void;
   onViewScreenshots: (audit: AuditResult) => void;
 }
 
-export default function AuditCard({ audit, onApprove, onReject, onFeedback, onViewScreenshots }: AuditCardProps) {
+export default function AuditCard({ audit, onApprove, onReject, onFeedback, onDelete, onViewScreenshots }: AuditCardProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedSubject, setEditedSubject] = useState(audit.edited_subject || audit.generated_subject || '');
   const [editedBody, setEditedBody] = useState(audit.edited_body || audit.generated_body || '');
@@ -395,12 +397,21 @@ export default function AuditCard({ audit, onApprove, onReject, onFeedback, onVi
                 </button>
               )}
 
-              {audit.needs_verification && (
-                <span className="ml-auto inline-flex items-center gap-1 text-xs text-yellow-400">
-                  <Eye className="w-3 h-3" />
-                  Needs verification
-                </span>
-              )}
+              <div className="ml-auto flex items-center gap-2">
+                {audit.needs_verification && (
+                  <span className="inline-flex items-center gap-1 text-xs text-yellow-400">
+                    <Eye className="w-3 h-3" />
+                    Needs verification
+                  </span>
+                )}
+                <button
+                  onClick={() => onDelete(audit.id)}
+                  className="inline-flex items-center gap-1 p-1.5 text-stone-500 hover:text-red-400 hover:bg-red-900/20 rounded-md transition-colors"
+                  title="Delete audit"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
             </div>
           )}
 
@@ -486,6 +497,13 @@ export default function AuditCard({ audit, onApprove, onReject, onFeedback, onVi
                     Move to Rejected
                   </button>
                 )}
+                <button
+                  onClick={() => onDelete(audit.id)}
+                  className="inline-flex items-center gap-1 p-1.5 text-stone-500 hover:text-red-400 hover:bg-red-900/20 rounded-md transition-colors"
+                  title="Delete audit"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
               </div>
             </div>
           )}

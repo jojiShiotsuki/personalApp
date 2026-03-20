@@ -1413,6 +1413,10 @@ export const autoresearchApi = {
     const { data } = await api.put(`/api/autoresearch/audits/${auditId}/feedback`, { feedback });
     return data;
   },
+  deleteAudit: async (auditId: number) => {
+    const { data } = await api.delete(`/api/autoresearch/audits/${auditId}`);
+    return data;
+  },
   listExperiments: async (params?: { campaign_id?: number; niche?: string; issue_type?: string; status?: string; page?: number; page_size?: number }): Promise<ExperimentListResponse> => {
     const { data } = await api.get('/api/autoresearch/experiments', { params });
     return data;

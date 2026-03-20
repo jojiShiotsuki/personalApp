@@ -666,6 +666,29 @@ def submit_audit_feedback(
 
 
 # ──────────────────────────────────────────────
+# 7b. DELETE /audits/{audit_id} — delete an audit
+# ──────────────────────────────────────────────
+
+@router.delete("/audits/{audit_id}")
+def delete_audit(
+    audit_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Delete an audit and its associated experiment."""
+    audit = db.query(AuditResult).filter(AuditResult.id == audit_id).first()
+    if not audit:
+        raise HTTPException(status_code=404, detail="Audit not found")
+
+    # Delete associated experiment if exists
+    db.query(Experiment).filter(Experiment.audit_id == audit_id).delete()
+    db.delete(audit)
+    db.commit()
+
+    return {"message": "Audit deleted", "audit_id": audit_id}
+
+
+# ──────────────────────────────────────────────
 # 8. GET /settings — get or create settings
 # ──────────────────────────────────────────────
 

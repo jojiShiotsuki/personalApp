@@ -149,6 +149,26 @@ export default function AuditsTab() {
     [feedbackMutation]
   );
 
+  const deleteMutation = useMutation({
+    mutationFn: (auditId: number) => autoresearchApi.deleteAudit(auditId),
+    onSuccess: () => {
+      toast.success('Audit deleted');
+      queryClient.invalidateQueries({ queryKey: ['autoresearch-audits'] });
+    },
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Failed to delete audit'));
+    },
+  });
+
+  const handleDelete = useCallback(
+    (auditId: number) => {
+      if (window.confirm('Delete this audit? This cannot be undone.')) {
+        deleteMutation.mutate(auditId);
+      }
+    },
+    [deleteMutation]
+  );
+
   const handleBatchComplete = useCallback(() => {
     setActiveBatchId(null);
     queryClient.invalidateQueries({ queryKey: ['autoresearch-audits'] });
@@ -292,6 +312,7 @@ export default function AuditsTab() {
               onApprove={handleApprove}
               onReject={handleReject}
               onFeedback={handleFeedback}
+              onDelete={handleDelete}
               onViewScreenshots={setScreenshotAudit}
             />
           ))}
