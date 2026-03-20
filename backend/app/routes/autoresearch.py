@@ -493,7 +493,15 @@ def list_audits(
         query = query.filter(AuditResult.confidence == confidence)
 
     total_count = query.count()
-    query = query.order_by(AuditResult.created_at.desc())
+    # Sort: pending_review first, then approved, then rejected/skipped last
+    status_order = case(
+        (AuditResult.status == "pending_review", 0),
+        (AuditResult.status == "approved", 1),
+        (AuditResult.status == "skipped", 2),
+        (AuditResult.status == "rejected", 3),
+        else_=4,
+    )
+    query = query.order_by(status_order, AuditResult.created_at.desc())
 
     offset = (page - 1) * page_size
     rows = query.offset(offset).limit(page_size).all()

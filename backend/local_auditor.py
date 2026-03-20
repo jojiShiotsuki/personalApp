@@ -69,7 +69,7 @@ async def get_prospects_to_audit(
     if isinstance(all_prospects, dict):
         all_prospects = all_prospects.get("prospects", all_prospects.get("items", []))
 
-    # Get already-audited prospect IDs
+    # Get already-audited prospect IDs (skip approved/pending, allow re-audit of rejected)
     resp2 = await client.get(
         f"{API_URL}/api/autoresearch/audits",
         params={"campaign_id": campaign_id, "page": 1, "page_size": 200},
@@ -80,7 +80,10 @@ async def get_prospects_to_audit(
     audited_ids = set()
     audits_list = audits_data.get("audits", audits_data) if isinstance(audits_data, dict) else audits_data
     for a in audits_list:
-        audited_ids.add(a.get("prospect_id"))
+        # Only skip prospects with approved or pending_review audits
+        # Rejected prospects can be re-audited
+        if a.get("status") in ("approved", "pending_review"):
+            audited_ids.add(a.get("prospect_id"))
 
     # Filter to un-audited prospects on step 1 (QUEUED) with websites
     candidates = [
