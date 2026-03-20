@@ -1206,10 +1206,10 @@ def gmail_auth_url(
         "http://localhost:8000/api/autoresearch/gmail/callback",
     )
 
-    auth_url, state = svc.get_auth_url(redirect_uri)
+    auth_url, state, code_verifier = svc.get_auth_url(redirect_uri)
 
-    # Store state → user_id for CSRF validation in the callback
-    _oauth_states[state] = current_user.id
+    # Store state → (user_id, code_verifier) for CSRF validation + PKCE in the callback
+    _oauth_states[state] = {"user_id": current_user.id, "code_verifier": code_verifier}
 
     return {"auth_url": auth_url}
 
@@ -1227,13 +1227,15 @@ def gmail_callback(
     """Handle Google OAuth callback — exchange code for tokens and store them."""
     svc = _require_gmail_service()
 
-    # Validate state (CSRF protection)
-    user_id = _oauth_states.pop(state, None)
-    if user_id is None:
+    # Validate state (CSRF protection) and retrieve code_verifier (PKCE)
+    state_data = _oauth_states.pop(state, None)
+    if state_data is None:
         raise HTTPException(
             status_code=400,
             detail="Invalid or expired OAuth state parameter.",
         )
+    user_id = state_data["user_id"]
+    code_verifier = state_data.get("code_verifier")
 
     redirect_uri = os.getenv(
         "GOOGLE_REDIRECT_URI",
@@ -1241,7 +1243,7 @@ def gmail_callback(
     )
 
     try:
-        result = svc.handle_callback(code, redirect_uri)
+        result = svc.handle_callback(code, redirect_uri, code_verifier=code_verifier)
     except Exception as exc:
         logger.error("Gmail OAuth callback failed: %s", exc)
         raise HTTPException(

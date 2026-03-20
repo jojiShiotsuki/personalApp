@@ -87,12 +87,12 @@ class GmailService:
             }
         }
 
-    def get_auth_url(self, redirect_uri: str) -> tuple[str, str]:
+    def get_auth_url(self, redirect_uri: str) -> tuple[str, str, str]:
         """
         Generate a Google OAuth authorization URL.
 
         Returns:
-            (auth_url, state) tuple where state is a random 32-byte hex string.
+            (auth_url, state, code_verifier) tuple.
         """
         state = os.urandom(16).hex()
 
@@ -108,9 +108,12 @@ class GmailService:
             prompt="consent",
         )
 
-        return (auth_url, state)
+        # Store code_verifier for PKCE — needed in handle_callback
+        code_verifier = flow.code_verifier
 
-    def handle_callback(self, code: str, redirect_uri: str) -> dict[str, str]:
+        return (auth_url, state, code_verifier)
+
+    def handle_callback(self, code: str, redirect_uri: str, code_verifier: Optional[str] = None) -> dict[str, str]:
         """
         Exchange the authorization code for tokens and retrieve the user's email.
 
@@ -122,6 +125,8 @@ class GmailService:
             scopes=self.scopes,
         )
         flow.redirect_uri = redirect_uri
+        if code_verifier:
+            flow.code_verifier = code_verifier
         flow.fetch_token(code=code)
 
         credentials = flow.credentials
