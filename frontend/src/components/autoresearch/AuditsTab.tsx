@@ -37,6 +37,7 @@ export default function AuditsTab() {
 
   // Batch state
   const [activeBatchId, setActiveBatchId] = useState<string | null>(null);
+  const [auditCount, setAuditCount] = useState<number>(5);
 
   // Screenshot modal state
   const [screenshotAudit, setScreenshotAudit] = useState<AuditResult | null>(null);
@@ -65,7 +66,7 @@ export default function AuditsTab() {
 
   // Batch audit mutation
   const batchAuditMutation = useMutation({
-    mutationFn: (cId: number) => autoresearchApi.batchAudit(cId),
+    mutationFn: ({ cId, limit }: { cId: number; limit: number }) => autoresearchApi.batchAudit(cId, limit),
     onSuccess: (data) => {
       setActiveBatchId(data.batch_id);
       toast.success(`Batch started: ${data.total} prospects queued`);
@@ -158,7 +159,7 @@ export default function AuditsTab() {
       toast.error('Select a campaign first');
       return;
     }
-    batchAuditMutation.mutate(campaignId);
+    batchAuditMutation.mutate({ cId: campaignId, limit: auditCount });
   };
 
   return (
@@ -213,19 +214,34 @@ export default function AuditsTab() {
         {/* Spacer */}
         <div className="flex-1" />
 
-        {/* Batch audit button */}
-        <button
-          onClick={handleStartBatch}
-          disabled={!campaignId || batchAuditMutation.isPending || !!activeBatchId}
-          className={cn(
-            'inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-xl shadow-sm transition-all duration-200',
-            'bg-[--exec-accent] text-white hover:bg-[--exec-accent-dark] hover:shadow-md',
-            'disabled:opacity-50 disabled:cursor-not-allowed'
-          )}
-        >
-          <Play className="w-4 h-4" />
-          Audit All Queued
-        </button>
+        {/* Batch audit: number picker + button */}
+        <div className="flex items-center gap-2">
+          <input
+            type="number"
+            min={1}
+            max={100}
+            value={auditCount}
+            onChange={(e) => setAuditCount(Math.max(1, Math.min(100, parseInt(e.target.value) || 1)))}
+            className={cn(
+              'w-16 px-2 py-2 text-sm text-center rounded-lg',
+              'bg-stone-800/50 border border-stone-600/40',
+              'text-[--exec-text]',
+              'focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]/50',
+            )}
+          />
+          <button
+            onClick={handleStartBatch}
+            disabled={!campaignId || batchAuditMutation.isPending || !!activeBatchId}
+            className={cn(
+              'inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-xl shadow-sm transition-all duration-200',
+              'bg-[--exec-accent] text-white hover:bg-[--exec-accent-dark] hover:shadow-md',
+              'disabled:opacity-50 disabled:cursor-not-allowed'
+            )}
+          >
+            <Play className="w-4 h-4" />
+            Audit {auditCount}
+          </button>
+        </div>
       </div>
 
       {/* Batch Progress */}

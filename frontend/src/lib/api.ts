@@ -1385,8 +1385,8 @@ export const autoresearchApi = {
     const { data } = await api.post(`/api/autoresearch/audit/${prospectId}`);
     return data;
   },
-  batchAudit: async (campaignId: number): Promise<BatchAuditResponse> => {
-    const { data } = await api.post(`/api/autoresearch/audit/batch/${campaignId}`);
+  batchAudit: async (campaignId: number, limit: number = 50): Promise<BatchAuditResponse> => {
+    const { data } = await api.post(`/api/autoresearch/audit/batch/${campaignId}?limit=${limit}`);
     return data;
   },
   getBatchProgress: async (batchId: string): Promise<BatchProgress> => {

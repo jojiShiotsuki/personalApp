@@ -294,10 +294,11 @@ async def audit_single_prospect(
 async def start_batch_audit(
     campaign_id: int,
     background_tasks: BackgroundTasks,
+    limit: int = Query(50, ge=1, le=500, description="Max number of prospects to audit"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Start a batch audit for all un-audited prospects with websites in a campaign."""
+    """Start a batch audit for un-audited prospects with websites in a campaign."""
     _require_audit_service()
 
     # Opportunistic cleanup of completed batch jobs older than 1 hour
@@ -326,10 +327,13 @@ async def start_batch_audit(
             detail="No un-audited prospects with websites found in this campaign.",
         )
 
+    # Apply the user's limit
+    actual_count = min(total, limit)
+
     batch_id = str(uuid.uuid4())
     _batch_jobs[batch_id] = {
         "completed": 0,
-        "total": total,
+        "total": actual_count,
         "errors": 0,
         "current_prospect": None,
         "is_complete": False,
@@ -342,12 +346,13 @@ async def start_batch_audit(
         campaign_id=campaign_id,
         session_factory=SessionLocal,
         user_id=current_user.id,
+        max_count=actual_count,
     )
 
     return BatchAuditResponse(
         batch_id=batch_id,
-        total=total,
-        message=f"Batch audit started for {total} prospects.",
+        total=actual_count,
+        message=f"Batch audit started for {actual_count} prospects (of {total} available).",
     )
 
 
@@ -1475,6 +1480,7 @@ async def _run_batch_audit(
     campaign_id: int,
     session_factory,
     user_id: int,
+    max_count: int = 50,
 ) -> None:
     """
     Process all un-audited prospects in a campaign serially.
@@ -1522,6 +1528,7 @@ async def _run_batch_audit(
                 OutreachProspect.website != "",
                 ~OutreachProspect.id.in_(already_audited_ids),
             )
+            .limit(max_count)
             .all()
         )
 
