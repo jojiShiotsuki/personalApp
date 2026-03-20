@@ -123,7 +123,7 @@ def _require_audit_service() -> "AuditService":
 # 1. POST /audit/{prospect_id} — single audit
 # ──────────────────────────────────────────────
 
-@router.post("/audit/{prospect_id}", response_model=AuditResultResponse)
+@router.post("/audit/{prospect_id}")
 async def audit_single_prospect(
     prospect_id: int,
     db: Session = Depends(get_db),
@@ -176,7 +176,15 @@ async def audit_single_prospect(
 
     try:
         # Pass 1: capture screenshots
+        logger.info("Starting screenshot capture for %s", validated_url)
         screenshots = await svc.capture_screenshots(validated_url, min_wait=min_wait)
+        logger.info(
+            "Screenshot result: desktop=%s, mobile=%s, error=%s, duration=%s",
+            bool(screenshots.get("desktop_screenshot")),
+            bool(screenshots.get("mobile_screenshot")),
+            screenshots.get("error"),
+            screenshots.get("duration_seconds"),
+        )
 
         if screenshots.get("error") and not screenshots.get("desktop_screenshot"):
             raise HTTPException(
@@ -185,6 +193,7 @@ async def audit_single_prospect(
             )
 
         # Pass 1: analyse with Claude
+        logger.info("Starting Claude analysis...")
         analysis = await svc.analyze_with_claude(
             screenshots=screenshots,
             prospect_name=prospect.contact_name or prospect.agency_name,
@@ -240,13 +249,28 @@ async def audit_single_prospect(
             detail=f"Audit failed unexpectedly: {type(exc).__name__}: {exc}",
         )
 
-    # Build response with joined prospect info
-    response = AuditResultResponse.model_validate(audit_result, from_attributes=True)
-    response.prospect_name = prospect.contact_name or prospect.agency_name
-    response.prospect_company = prospect.agency_name
-    response.prospect_niche = prospect.niche
-    response.prospect_email = prospect.email
-    return response
+    # Build response dict
+    return {
+        "id": audit_result.id,
+        "prospect_id": audit_result.prospect_id,
+        "campaign_id": audit_result.campaign_id,
+        "issue_type": audit_result.issue_type,
+        "issue_detail": audit_result.issue_detail,
+        "secondary_issue": audit_result.secondary_issue,
+        "secondary_detail": audit_result.secondary_detail,
+        "confidence": audit_result.confidence,
+        "site_quality": audit_result.site_quality,
+        "generated_subject": audit_result.generated_subject,
+        "generated_body": audit_result.generated_body,
+        "word_count": audit_result.word_count,
+        "status": audit_result.status,
+        "ai_cost_estimate": audit_result.ai_cost_estimate,
+        "created_at": str(audit_result.created_at),
+        "prospect_name": prospect.contact_name or prospect.agency_name,
+        "prospect_company": prospect.agency_name,
+        "prospect_niche": prospect.niche,
+        "prospect_email": prospect.email,
+    }
 
 
 # ──────────────────────────────────────────────
@@ -361,7 +385,7 @@ def cancel_batch_audit(
 # 5. GET /audits — list audits with filters
 # ──────────────────────────────────────────────
 
-@router.get("/audits", response_model=list[AuditResultResponse])
+@router.get("/audits")
 def list_audits(
     campaign_id: Optional[int] = Query(None),
     status: Optional[str] = Query(None),
@@ -390,12 +414,13 @@ def list_audits(
     if confidence is not None:
         query = query.filter(AuditResult.confidence == confidence)
 
+    total_count = query.count()
     query = query.order_by(AuditResult.created_at.desc())
 
     offset = (page - 1) * page_size
     rows = query.offset(offset).limit(page_size).all()
 
-    results: list[AuditResultResponse] = []
+    results = []
     for audit, contact_name, agency_name, niche, email in rows:
         resp = AuditResultResponse.model_validate(audit, from_attributes=True)
         resp.prospect_name = contact_name or agency_name
@@ -404,7 +429,7 @@ def list_audits(
         resp.prospect_email = email
         results.append(resp)
 
-    return results
+    return {"audits": results, "total_count": total_count, "page": page, "page_size": page_size}
 
 
 # ──────────────────────────────────────────────
