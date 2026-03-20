@@ -32,8 +32,8 @@ async def poll_gmail_job():
     finally:
         db.close()
 
-async def weekly_learning_refresh():
-    """Weekly job: refresh learning insights."""
+async def daily_learning_refresh():
+    """Daily job: refresh learning insights and style patterns."""
     from app.database.connection import SessionLocal
     from app.services.learning_service import LearningService
 
@@ -42,7 +42,7 @@ async def weekly_learning_refresh():
         learning_service = LearningService()
         if learning_service.should_refresh(db):
             await learning_service.generate_insights(db)
-            logger.info("Weekly learning refresh completed")
+            logger.info("Daily learning refresh completed")
     except Exception as e:
         logger.error("Weekly learning refresh failed: %s", e)
     finally:
@@ -59,15 +59,14 @@ def start_scheduler():
         replace_existing=True
     )
     scheduler.add_job(
-        weekly_learning_refresh,
+        daily_learning_refresh,
         "cron",
-        day_of_week="sun",
         hour=22,
-        id="weekly_learn",
+        id="daily_learn",
         replace_existing=True,
     )
     scheduler.start()
-    logger.info("Scheduler started with Gmail polling every 5 minutes and weekly learning refresh")
+    logger.info("Scheduler started with Gmail polling every 5 minutes and daily learning refresh at 22:00")
 
 def stop_scheduler():
     """Gracefully shut down the scheduler."""

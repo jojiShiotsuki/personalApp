@@ -22,14 +22,25 @@ logger = logging.getLogger(__name__)
 
 INSIGHT_SYSTEM_PROMPT = (
     "You are a cold email performance analyst. Analyze these outreach experiment "
-    "results and identify actionable patterns. Return JSON array of insights, each "
-    "with: insight (string), confidence (high/medium/low based on sample size: "
-    "50+=high, 20-49=medium, <20=low), sample_size (int), recommendation (string), "
+    "results and identify actionable patterns. Include BOTH:\n"
+    "1. Strategic insights (which issue types, niches, timing work best)\n"
+    "2. Writing STYLE insights (word count, tone, punctuation, phrasing patterns "
+    "that differ between successful and unsuccessful emails, and patterns from "
+    "user edits showing what the user prefers)\n\n"
+    "For style insights, be SPECIFIC: instead of 'keep it short', say "
+    "'keep under 65 words — replied emails averaged 62 vs 74 for non-replied'. "
+    "Instead of 'be specific', say 'use exact numbers and quotes from the site "
+    "(e.g. 07 4124 799 not just a wrong phone number)'. "
+    "If the user consistently removes em dashes, say 'do NOT use em dashes'.\n\n"
+    "Return JSON array of insights, each with: insight (string), "
+    "confidence (high/medium/low based on sample size: 50+=high, 20-49=medium, <20=low), "
+    "sample_size (int), recommendation (string — this gets injected into the audit prompt, "
+    "so write it as a direct instruction to the AI), "
     "applies_to (niche name or 'all_niches')."
 )
 
-MIN_EXPERIMENTS_FOR_CONTEXT = 20
-REFRESH_THRESHOLD = 50
+MIN_EXPERIMENTS_FOR_CONTEXT = 10
+REFRESH_THRESHOLD = 10  # Daily refresh, lower threshold
 
 
 class LearningService:
@@ -408,6 +419,74 @@ class LearningService:
                 avg_time = round(row.avg_response_time, 0) if row.avg_response_time else "N/A"
                 sections.append(f"  {row.sentiment}: {avg_time} min avg (n={row.total})")
             sections.append("")
+
+        # 7. Style patterns from successful vs unsuccessful emails
+        replied_emails = (
+            db.query(Experiment.body, Experiment.subject, Experiment.word_count)
+            .filter(Experiment.replied.is_(True), Experiment.body.isnot(None))
+            .all()
+        )
+        not_replied_emails = (
+            db.query(Experiment.body, Experiment.subject, Experiment.word_count)
+            .filter(
+                Experiment.replied.is_(False),
+                Experiment.status.in_(sent_statuses),
+                Experiment.body.isnot(None),
+            )
+            .limit(50)  # Sample to keep prompt size manageable
+            .all()
+        )
+
+        if replied_emails:
+            sections.append("SUCCESSFUL EMAIL BODIES (these got replies — analyze their style):")
+            for i, row in enumerate(replied_emails[:10]):
+                sections.append(f"  Email {i+1} (subject: {row.subject}, {row.word_count} words):")
+                sections.append(f"  {row.body[:300]}")
+                sections.append("")
+
+        if not_replied_emails:
+            sections.append("SAMPLE UNSUCCESSFUL EMAIL BODIES (no reply — what's different?):")
+            for i, row in enumerate(not_replied_emails[:5]):
+                sections.append(f"  Email {i+1} (subject: {row.subject}, {row.word_count} words):")
+                sections.append(f"  {row.body[:300]}")
+                sections.append("")
+
+        # 8. Edit patterns — what does the user change?
+        from app.models.autoresearch import AuditResult
+        edited_audits = (
+            db.query(
+                AuditResult.generated_body,
+                AuditResult.edited_body,
+                AuditResult.generated_subject,
+                AuditResult.edited_subject,
+            )
+            .filter(
+                AuditResult.was_edited.is_(True),
+                AuditResult.edited_body.isnot(None),
+            )
+            .limit(20)
+            .all()
+        )
+
+        if edited_audits:
+            sections.append("USER EDITS (the user changed the AI draft — learn from these corrections):")
+            for i, row in enumerate(edited_audits[:10]):
+                sections.append(f"  Edit {i+1}:")
+                if row.generated_subject != row.edited_subject:
+                    sections.append(f"    Subject BEFORE: {row.generated_subject}")
+                    sections.append(f"    Subject AFTER:  {row.edited_subject}")
+                if row.generated_body and row.edited_body:
+                    sections.append(f"    Body BEFORE (first 200 chars): {row.generated_body[:200]}")
+                    sections.append(f"    Body AFTER  (first 200 chars): {row.edited_body[:200]}")
+                sections.append("")
+
+        sections.append(
+            "IMPORTANT: Analyze the WRITING STYLE differences between successful and "
+            "unsuccessful emails. Look for: sentence length, use of specific numbers/quotes, "
+            "punctuation patterns (em dashes, exclamation marks), tone (casual vs formal), "
+            "how the problem is framed, and what the user consistently edits out or adds. "
+            "Include style insights in your response."
+        )
 
         return "\n".join(sections)
 
