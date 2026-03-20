@@ -441,16 +441,52 @@ export default function AuditCard({ audit, onApprove, onReject, onFeedback, onVi
             </div>
           )}
 
-          {/* Reviewed cards: show screenshots only */}
-          {isReviewed && (audit.desktop_screenshot || audit.mobile_screenshot) && (
-            <div className="pt-2 border-t border-stone-700/30">
+          {/* Reviewed cards: show status change + screenshots + feedback */}
+          {isReviewed && (
+            <div className="flex items-center gap-2 pt-2 border-t border-stone-700/30">
+              {(audit.desktop_screenshot || audit.mobile_screenshot) && (
+                <button
+                  onClick={() => onViewScreenshots(audit)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-[--exec-text-secondary] bg-stone-700/50 rounded-lg hover:bg-stone-600/50 transition-colors"
+                >
+                  <Monitor className="w-3.5 h-3.5" />
+                  View Screenshots
+                </button>
+              )}
+
               <button
-                onClick={() => onViewScreenshots(audit)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-[--exec-text-secondary] bg-stone-700/50 rounded-lg hover:bg-stone-600/50 transition-colors"
+                onClick={() => setShowFeedback((prev) => !prev)}
+                className={cn(
+                  'inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors',
+                  showFeedback
+                    ? 'text-blue-400 bg-blue-900/30 border border-blue-800/40'
+                    : 'text-[--exec-text-secondary] bg-stone-700/50 hover:bg-stone-600/50'
+                )}
               >
-                <Monitor className="w-3.5 h-3.5" />
-                View Screenshots
+                <MessageSquare className="w-3.5 h-3.5" />
+                Feedback
               </button>
+
+              <div className="ml-auto flex items-center gap-2">
+                {isRejected && (
+                  <button
+                    onClick={handleApprove}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-green-400 bg-green-900/20 rounded-lg hover:bg-green-900/30 transition-colors"
+                  >
+                    <CheckCircle className="w-3.5 h-3.5" />
+                    Move to Approved
+                  </button>
+                )}
+                {isApproved && (
+                  <button
+                    onClick={() => setShowRejectInput(true)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-400 bg-red-900/20 rounded-lg hover:bg-red-900/30 transition-colors"
+                  >
+                    <XCircle className="w-3.5 h-3.5" />
+                    Move to Rejected
+                  </button>
+                )}
+              </div>
             </div>
           )}
         </div>
