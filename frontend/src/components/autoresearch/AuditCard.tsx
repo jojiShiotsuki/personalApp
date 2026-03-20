@@ -84,7 +84,7 @@ export default function AuditCard({ audit, onApprove, onReject, onFeedback, onDe
   const [rejectionReason, setRejectionReason] = useState('');
   const [showFeedback, setShowFeedback] = useState(false);
   const [feedbackText, setFeedbackText] = useState('');
-  const [isExpanded, setIsExpanded] = useState(true);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   const isSkipped = audit.site_quality === 'good' || audit.status === AuditStatus.SKIPPED;
   const isApproved = audit.status === AuditStatus.APPROVED;
