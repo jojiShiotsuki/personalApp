@@ -42,6 +42,9 @@ export default function AuditsTab() {
   // Screenshot modal state
   const [screenshotAudit, setScreenshotAudit] = useState<AuditResult | null>(null);
 
+  // Track which audit is currently being sent
+  const [sendingAuditId, setSendingAuditId] = useState<number | null>(null);
+
   // Fetch campaigns for filter dropdown
   const { data: campaigns = [] } = useQuery<OutreachCampaign[]>({
     queryKey: ['outreach-campaigns-for-filter'],
@@ -183,6 +186,54 @@ export default function AuditsTab() {
       }
     },
     [deleteMutation]
+  );
+
+  // Gmail status query
+  const { data: gmailStatus } = useQuery({
+    queryKey: ['gmail-status'],
+    queryFn: () => autoresearchApi.getGmailStatus(),
+  });
+
+  const gmailConnected = gmailStatus?.is_connected && gmailStatus?.is_active;
+
+  // Send email mutation
+  const sendMutation = useMutation({
+    mutationFn: ({ prospectId, subject, body }: { prospectId: number; subject: string; body: string }) =>
+      autoresearchApi.sendEmail(prospectId, subject, body),
+    onMutate: (variables) => {
+      // Find the audit that matches this prospect to track sending state
+      const audit = audits.find((a) => a.prospect_id === variables.prospectId);
+      if (audit) setSendingAuditId(audit.id);
+    },
+    onSuccess: (data) => {
+      setSendingAuditId(null);
+      toast.success(`Email sent to ${data.to}`);
+      queryClient.invalidateQueries({ queryKey: ['autoresearch-audits'] });
+    },
+    onError: (error) => {
+      setSendingAuditId(null);
+      toast.error(getErrorMessage(error, 'Failed to send email'));
+    },
+  });
+
+  const handleSend = useCallback(
+    (auditId: number, prospectId: number, subject: string, body: string) => {
+      // Find the audit to get the prospect email for confirmation
+      const audit = audits.find((a) => a.id === auditId);
+      const email = audit?.prospect_email || 'this prospect';
+      if (!window.confirm(`Send this email to ${email}?`)) return;
+
+      // First approve the audit (creates experiment), then send
+      approveMutation.mutate(
+        { auditId },
+        {
+          onSuccess: () => {
+            sendMutation.mutate({ prospectId, subject, body });
+          },
+        }
+      );
+    },
+    [audits, approveMutation, sendMutation]
   );
 
   const handleBatchComplete = useCallback(() => {
@@ -329,7 +380,10 @@ export default function AuditsTab() {
               onReject={handleReject}
               onFeedback={handleFeedback}
               onDelete={handleDelete}
+              onSend={handleSend}
               onViewScreenshots={setScreenshotAudit}
+              isSending={sendingAuditId === audit.id}
+              gmailConnected={!!gmailConnected}
             />
           ))}
         </div>

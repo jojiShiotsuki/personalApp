@@ -14,6 +14,7 @@ import {
   MessageSquare,
   Trash2,
   ExternalLink,
+  Send,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { AuditResult } from '@/types';
@@ -73,10 +74,13 @@ interface AuditCardProps {
   onReject: (auditId: number, reason: string, category?: string) => void;
   onFeedback: (auditId: number, feedback: string) => void;
   onDelete: (auditId: number) => void;
+  onSend?: (auditId: number, prospectId: number, subject: string, body: string) => void;
   onViewScreenshots: (audit: AuditResult) => void;
+  isSending?: boolean;
+  gmailConnected?: boolean;
 }
 
-export default function AuditCard({ audit, onApprove, onReject, onFeedback, onDelete, onViewScreenshots }: AuditCardProps) {
+export default function AuditCard({ audit, onApprove, onReject, onFeedback, onDelete, onSend, onViewScreenshots, isSending, gmailConnected }: AuditCardProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedSubject, setEditedSubject] = useState(audit.edited_subject || audit.generated_subject || '');
   const [editedBody, setEditedBody] = useState(audit.edited_body || audit.generated_body || '');
@@ -109,6 +113,17 @@ export default function AuditCard({ audit, onApprove, onReject, onFeedback, onDe
     const finalBody = isEditing ? editedBody : undefined;
     const variantUsed = hasVariant ? selectedVariant : undefined;
     onApprove(audit.id, finalSubject ?? undefined, finalBody, variantUsed);
+    setIsEditing(false);
+  };
+
+  const handleSend = () => {
+    if (!onSend) return;
+    const finalSubject = isEditing
+      ? editedSubject
+      : (hasVariant && selectedVariant === 'variant' ? audit.generated_subject_variant : displaySubject);
+    const finalBody = isEditing ? editedBody : displayBody;
+    if (!finalSubject || !finalBody) return;
+    onSend(audit.id, audit.prospect_id, finalSubject, finalBody);
     setIsEditing(false);
   };
 
@@ -454,6 +469,18 @@ export default function AuditCard({ audit, onApprove, onReject, onFeedback, onDe
                 <Copy className="w-3.5 h-3.5" />
                 Approve & Copy
               </button>
+
+              {onSend && gmailConnected && audit.prospect_email && (
+                <button
+                  onClick={handleSend}
+                  disabled={isSending}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  title={`Send to ${audit.prospect_email}`}
+                >
+                  <Send className="w-3.5 h-3.5" />
+                  {isSending ? 'Sending...' : `Send to ${audit.prospect_email}`}
+                </button>
+              )}
 
               <button
                 onClick={() => setIsEditing((prev) => !prev)}

@@ -33,7 +33,7 @@ from app.models.autoresearch import (
     GmailToken,
     Insight,
 )
-from app.models.outreach import OutreachProspect
+from app.models.outreach import OutreachProspect, ProspectStatus
 from app.models.user import User
 from app.schemas.autoresearch import (
     AnalyticsOverview,
@@ -1665,6 +1665,91 @@ def gmail_disconnect(
     db.commit()
 
     return {"message": "Gmail disconnected successfully."}
+
+
+# ──────────────────────────────────────────────
+# 21b. POST /send-email/{prospect_id} — send email via Gmail
+# ──────────────────────────────────────────────
+
+@router.post("/send-email/{prospect_id}")
+async def send_email_to_prospect(
+    prospect_id: int,
+    payload: dict,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Send an email to a prospect via the Gmail API with auto tracking pixel."""
+    svc = _require_gmail_service()
+
+    prospect = db.query(OutreachProspect).filter(OutreachProspect.id == prospect_id).first()
+    if not prospect:
+        raise HTTPException(status_code=404, detail="Prospect not found")
+    if not prospect.email:
+        raise HTTPException(status_code=400, detail="Prospect has no email address")
+
+    subject = payload.get("subject")
+    body = payload.get("body")
+    if not subject or not body:
+        raise HTTPException(status_code=400, detail="Subject and body are required")
+
+    # Generate tracking pixel
+    tracking_id = uuid.uuid4().hex
+
+    experiment = (
+        db.query(Experiment)
+        .filter(Experiment.prospect_id == prospect_id)
+        .order_by(Experiment.created_at.desc())
+        .first()
+    )
+
+    email_open = EmailOpen(
+        tracking_id=tracking_id,
+        prospect_id=prospect_id,
+        experiment_id=experiment.id if experiment else None,
+    )
+    db.add(email_open)
+
+    base_url = os.getenv(
+        "RENDER_API_URL",
+        os.getenv("API_BASE_URL", "https://vertex-api-smg3.onrender.com"),
+    )
+    pixel_url = f"{base_url}/api/autoresearch/track/open/{tracking_id}"
+    tracking_html = f'<img src="{pixel_url}" width="1" height="1" style="display:none" />'
+
+    # Send the email
+    try:
+        result = await svc.send_email(
+            db=db,
+            user_id=current_user.id,
+            to_email=prospect.email,
+            subject=subject,
+            body=body,
+            tracking_pixel_html=tracking_html,
+        )
+    except Exception as exc:
+        logger.error("Failed to send email to prospect %d: %s", prospect_id, exc)
+        raise HTTPException(status_code=502, detail=f"Failed to send email: {exc}")
+
+    # Update experiment status
+    if experiment:
+        experiment.status = "sent"
+        experiment.sent_at = datetime.utcnow()
+        experiment.day_of_week = datetime.utcnow().strftime("%A")
+        experiment.sent_hour = datetime.utcnow().hour
+
+    # Update prospect status
+    prospect.last_contacted_at = datetime.utcnow()
+    if prospect.current_step == 1:
+        prospect.status = ProspectStatus.IN_SEQUENCE
+
+    db.commit()
+
+    return {
+        "message": "Email sent successfully",
+        "gmail_message_id": result.get("message_id"),
+        "tracking_id": tracking_id,
+        "to": prospect.email,
+    }
 
 
 # ──────────────────────────────────────────────

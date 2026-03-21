@@ -1,17 +1,20 @@
 """
-Gmail OAuth service for read-only inbox polling and reply classification.
+Gmail OAuth service for inbox polling, reply classification, and sending emails.
 
 Handles Google OAuth flow, encrypts refresh tokens, polls for new messages,
-matches them to known outreach prospects, and classifies inbound replies
-using Claude Haiku.
+matches them to known outreach prospects, classifies inbound replies using
+Claude Haiku, and sends outbound emails via the Gmail API.
 """
 
+import asyncio
 import json
 import logging
 import os
 import re
 import base64
 from datetime import datetime, timedelta
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 from email.utils import parseaddr
 from typing import Any, Optional
 
@@ -70,7 +73,10 @@ class GmailService:
                 "GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET environment variables are required"
             )
 
-        self.scopes = ["https://www.googleapis.com/auth/gmail.readonly"]
+        self.scopes = [
+            "https://www.googleapis.com/auth/gmail.readonly",
+            "https://www.googleapis.com/auth/gmail.send",
+        ]
 
     # ──────────────────────────────────────────────
     # OAuth Flow
@@ -155,6 +161,86 @@ class GmailService:
         """Decrypt a stored refresh token."""
         raw = base64.urlsafe_b64decode(encrypted.encode("utf-8"))
         return self.cipher.decrypt(raw).decode("utf-8")
+
+    # ──────────────────────────────────────────────
+    # Send Email
+    # ──────────────────────────────────────────────
+
+    async def send_email(
+        self,
+        db: Session,
+        user_id: int,
+        to_email: str,
+        subject: str,
+        body: str,
+        tracking_pixel_html: str | None = None,
+    ) -> dict[str, Any]:
+        """
+        Send an email via the Gmail API.
+
+        Builds a multipart/alternative message with plain text and HTML
+        (for tracking pixel support). Uses asyncio.to_thread to avoid
+        blocking the event loop with the synchronous Google API client.
+
+        Returns:
+            {"message_id": "...", "thread_id": "...", "to": "...", "subject": "..."}
+        """
+        gmail_token = (
+            db.query(GmailToken)
+            .filter(GmailToken.user_id == user_id, GmailToken.is_active == True)
+            .first()
+        )
+        if not gmail_token:
+            raise ValueError("No active Gmail token found for this user")
+
+        refresh_token = self.decrypt_token(gmail_token.encrypted_refresh_token)
+        credentials = Credentials(
+            token=None,
+            refresh_token=refresh_token,
+            token_uri="https://oauth2.googleapis.com/token",
+            client_id=self.google_client_id,
+            client_secret=self.google_client_secret,
+            scopes=self.scopes,
+        )
+        service = build("gmail", "v1", credentials=credentials)
+
+        # Build multipart/alternative email (plain text + HTML for tracking pixel)
+        msg = MIMEMultipart("alternative")
+        msg["To"] = to_email
+        msg["Subject"] = subject
+        msg["From"] = gmail_token.email_address
+
+        # Plain text version
+        msg.attach(MIMEText(body, "plain"))
+
+        # HTML version (preserves line breaks + appends tracking pixel)
+        html_body = body.replace("\n", "<br>")
+        if tracking_pixel_html:
+            html_body += tracking_pixel_html
+        msg.attach(MIMEText(html_body, "html"))
+
+        # Encode and send (wrap synchronous call in a thread)
+        raw = base64.urlsafe_b64encode(msg.as_bytes()).decode("utf-8")
+
+        def _send() -> dict[str, Any]:
+            return service.users().messages().send(
+                userId="me", body={"raw": raw}
+            ).execute()
+
+        sent = await asyncio.to_thread(_send)
+
+        logger.info(
+            "Email sent via Gmail to %s (message_id=%s)",
+            to_email,
+            sent.get("id"),
+        )
+
+        return {
+            "message_id": sent.get("id"),
+            "thread_id": sent.get("threadId"),
+            "to": to_email,
+            "subject": subject,
+        }
 
     # ──────────────────────────────────────────────
     # Inbox Polling
