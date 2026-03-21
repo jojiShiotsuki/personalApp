@@ -141,6 +141,7 @@ RESPONSE FORMAT — Return ONLY valid JSON, no markdown fences:
   "needs_verification": <true if a link/form needs clicking to confirm>,
   "verify_actions": ["<text of element to click>", ...],
   "subject": "<email subject, under 8 words>",
+  "subject_variant": "<alternative subject line, different angle/framing, under 8 words>",
   "body": "<full email body, under 80 words, Australian English>",
   "word_count": <integer word count of body>,
   "site_quality": "<poor|below_average|average|above_average|good|not_target>"

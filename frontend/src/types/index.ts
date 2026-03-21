@@ -1502,6 +1502,7 @@ export interface AuditResult {
   needs_verification: boolean;
   pass_2_completed: boolean;
   generated_subject: string | null;
+  generated_subject_variant: string | null;
   generated_body: string | null;
   word_count: number | null;
   desktop_screenshot: string | null;
@@ -1559,6 +1560,7 @@ export interface ExperimentRecord {
   body: string | null;
   word_count: number | null;
   was_edited: boolean;
+  subject_variant_used: string | null;
   niche: string | null;
   city: string | null;
   company: string | null;

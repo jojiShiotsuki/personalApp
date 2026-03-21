@@ -69,7 +69,7 @@ function getIssueLabel(issueType: string | null): { label: string; color: string
 
 interface AuditCardProps {
   audit: AuditResult;
-  onApprove: (auditId: number, editedSubject?: string, editedBody?: string) => void;
+  onApprove: (auditId: number, editedSubject?: string, editedBody?: string, subjectVariantUsed?: string) => void;
   onReject: (auditId: number, reason: string, category?: string) => void;
   onFeedback: (auditId: number, feedback: string) => void;
   onDelete: (auditId: number) => void;
@@ -86,6 +86,7 @@ export default function AuditCard({ audit, onApprove, onReject, onFeedback, onDe
   const [showFeedback, setShowFeedback] = useState(false);
   const [feedbackText, setFeedbackText] = useState('');
   const [isExpanded, setIsExpanded] = useState(false);
+  const [selectedVariant, setSelectedVariant] = useState<'original' | 'variant'>('original');
 
   const isSkipped = audit.site_quality === 'good' || audit.status === AuditStatus.SKIPPED;
   const isApproved = audit.status === AuditStatus.APPROVED;
@@ -96,13 +97,18 @@ export default function AuditCard({ audit, onApprove, onReject, onFeedback, onDe
   const issueConfig = getIssueLabel(audit.issue_type);
   const secondaryIssueConfig = audit.secondary_issue ? getIssueLabel(audit.secondary_issue) : null;
 
-  const displaySubject = editedSubject || audit.edited_subject || audit.generated_subject;
+  const hasVariant = !!audit.generated_subject_variant;
+  const activeSubject = selectedVariant === 'variant' && hasVariant
+    ? audit.generated_subject_variant
+    : audit.generated_subject;
+  const displaySubject = editedSubject || audit.edited_subject || activeSubject;
   const displayBody = editedBody || audit.edited_body || audit.generated_body;
 
   const handleApprove = () => {
-    const finalSubject = isEditing ? editedSubject : undefined;
+    const finalSubject = isEditing ? editedSubject : (hasVariant && selectedVariant === 'variant' ? audit.generated_subject_variant : undefined);
     const finalBody = isEditing ? editedBody : undefined;
-    onApprove(audit.id, finalSubject, finalBody);
+    const variantUsed = hasVariant ? selectedVariant : undefined;
+    onApprove(audit.id, finalSubject ?? undefined, finalBody, variantUsed);
     setIsEditing(false);
   };
 
@@ -273,6 +279,59 @@ export default function AuditCard({ audit, onApprove, onReject, onFeedback, onDe
                     'transition-all text-sm'
                   )}
                 />
+              ) : hasVariant && !isReviewed ? (
+                <div className="space-y-1.5">
+                  {/* Variant A (original) */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedVariant('original');
+                      setEditedSubject(audit.generated_subject || '');
+                    }}
+                    className={cn(
+                      'w-full text-left text-sm rounded-lg px-4 py-2.5 border transition-all duration-200 flex items-center gap-2.5',
+                      selectedVariant === 'original'
+                        ? 'bg-[--exec-accent]/10 border-[--exec-accent]/40 text-[--exec-text]'
+                        : 'bg-stone-800/30 border-stone-700/30 text-[--exec-text-muted] hover:border-stone-600/40'
+                    )}
+                  >
+                    <span className={cn(
+                      'flex-shrink-0 w-4 h-4 rounded-full border-2 flex items-center justify-center',
+                      selectedVariant === 'original' ? 'border-[--exec-accent]' : 'border-stone-600'
+                    )}>
+                      {selectedVariant === 'original' && (
+                        <span className="w-2 h-2 rounded-full bg-[--exec-accent]" />
+                      )}
+                    </span>
+                    <span className="flex-1">{audit.generated_subject}</span>
+                    <span className="text-xs text-[--exec-text-muted] flex-shrink-0">A</span>
+                  </button>
+                  {/* Variant B */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedVariant('variant');
+                      setEditedSubject(audit.generated_subject_variant || '');
+                    }}
+                    className={cn(
+                      'w-full text-left text-sm rounded-lg px-4 py-2.5 border transition-all duration-200 flex items-center gap-2.5',
+                      selectedVariant === 'variant'
+                        ? 'bg-[--exec-accent]/10 border-[--exec-accent]/40 text-[--exec-text]'
+                        : 'bg-stone-800/30 border-stone-700/30 text-[--exec-text-muted] hover:border-stone-600/40'
+                    )}
+                  >
+                    <span className={cn(
+                      'flex-shrink-0 w-4 h-4 rounded-full border-2 flex items-center justify-center',
+                      selectedVariant === 'variant' ? 'border-[--exec-accent]' : 'border-stone-600'
+                    )}>
+                      {selectedVariant === 'variant' && (
+                        <span className="w-2 h-2 rounded-full bg-[--exec-accent]" />
+                      )}
+                    </span>
+                    <span className="flex-1">{audit.generated_subject_variant}</span>
+                    <span className="text-xs text-[--exec-text-muted] flex-shrink-0">B</span>
+                  </button>
+                </div>
               ) : (
                 <div className="text-sm text-[--exec-text] bg-stone-800/30 rounded-lg px-4 py-2.5 border border-stone-700/30">
                   {displaySubject}

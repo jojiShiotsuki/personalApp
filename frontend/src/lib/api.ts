@@ -1401,7 +1401,7 @@ export const autoresearchApi = {
     const { data } = await api.get('/api/autoresearch/audits', { params });
     return data;
   },
-  approveAudit: async (auditId: number, body?: { edited_subject?: string; edited_body?: string }) => {
+  approveAudit: async (auditId: number, body?: { edited_subject?: string; edited_body?: string; subject_variant_used?: string }) => {
     const { data } = await api.put(`/api/autoresearch/audits/${auditId}/approve`, body || {});
     return data;
   },

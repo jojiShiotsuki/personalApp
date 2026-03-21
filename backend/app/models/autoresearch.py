@@ -28,6 +28,7 @@ class AuditResult(Base):
 
     # Generated email content
     generated_subject = Column(String(500), nullable=True)
+    generated_subject_variant = Column(String(500), nullable=True)
     generated_body = Column(Text, nullable=True)
     word_count = Column(Integer, nullable=True)
 
@@ -88,6 +89,7 @@ class Experiment(Base):
     word_count = Column(Integer, nullable=True)
     was_edited = Column(Boolean, default=False)
     edit_type = Column(String(30), nullable=True)  # none/minor/major/rewrite
+    subject_variant_used = Column(String(10), nullable=True)  # "original" or "variant"
 
     # Prospect context (snapshot at send time)
     niche = Column(String(255), nullable=True, index=True)

@@ -28,6 +28,7 @@ class AuditResultResponse(BaseModel):
 
     # Generated email content
     generated_subject: Optional[str] = None
+    generated_subject_variant: Optional[str] = None
     generated_body: Optional[str] = None
     word_count: Optional[int] = None
 
@@ -68,6 +69,7 @@ class AuditResultResponse(BaseModel):
 class AuditApproveRequest(BaseModel):
     edited_subject: Optional[str] = None
     edited_body: Optional[str] = None
+    subject_variant_used: Optional[str] = None  # "original" or "variant"
 
 
 class AuditRejectRequest(BaseModel):
@@ -119,6 +121,7 @@ class ExperimentResponse(BaseModel):
     word_count: Optional[int] = None
     was_edited: bool = False
     edit_type: Optional[str] = None
+    subject_variant_used: Optional[str] = None  # "original" or "variant"
 
     # Prospect context
     niche: Optional[str] = None

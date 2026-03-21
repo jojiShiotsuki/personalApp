@@ -235,6 +235,7 @@ async def audit_single_prospect(
             site_quality=analysis.get("site_quality", "medium"),
             needs_verification=analysis.get("needs_verification", False),
             generated_subject=analysis.get("subject"),
+            generated_subject_variant=analysis.get("subject_variant"),
             generated_body=analysis.get("body"),
             word_count=analysis.get("word_count"),
             desktop_screenshot=screenshots.get("desktop_screenshot"),
@@ -434,6 +435,7 @@ async def ingest_audit(
         site_quality=payload.get("site_quality", "medium"),
         needs_verification=payload.get("needs_verification", False),
         generated_subject=payload.get("generated_subject"),
+        generated_subject_variant=payload.get("generated_subject_variant"),
         generated_body=payload.get("generated_body"),
         word_count=payload.get("word_count"),
         desktop_screenshot=payload.get("desktop_screenshot"),
@@ -455,6 +457,7 @@ async def ingest_audit(
         "issue_type": audit_result.issue_type,
         "confidence": audit_result.confidence,
         "subject": audit_result.generated_subject,
+        "subject_variant": audit_result.generated_subject_variant,
     }
 
 
@@ -592,6 +595,7 @@ def approve_audit(
         word_count=audit.word_count,
         was_edited=audit.was_edited,
         edit_type=edit_type,
+        subject_variant_used=body.subject_variant_used,
         niche=prospect.niche if prospect else None,
         company=prospect.agency_name if prospect else None,
     )
@@ -1315,6 +1319,7 @@ async def reaudit_prospect(
             site_quality=analysis.get("site_quality", "medium"),
             needs_verification=analysis.get("needs_verification", False),
             generated_subject=analysis.get("subject"),
+            generated_subject_variant=analysis.get("subject_variant"),
             generated_body=analysis.get("body"),
             word_count=analysis.get("word_count"),
             desktop_screenshot=screenshots.get("desktop_screenshot"),
@@ -1789,6 +1794,7 @@ async def _run_batch_audit(
                     site_quality=analysis.get("site_quality", "medium"),
                     needs_verification=analysis.get("needs_verification", False),
                     generated_subject=analysis.get("subject"),
+                    generated_subject_variant=analysis.get("subject_variant"),
                     generated_body=analysis.get("body"),
                     word_count=analysis.get("word_count"),
                     desktop_screenshot=screenshots.get("desktop_screenshot"),

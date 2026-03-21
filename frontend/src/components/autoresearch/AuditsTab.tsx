@@ -78,10 +78,11 @@ export default function AuditsTab() {
 
   // Approve mutation
   const approveMutation = useMutation({
-    mutationFn: ({ auditId, editedSubject, editedBody }: { auditId: number; editedSubject?: string; editedBody?: string }) =>
+    mutationFn: ({ auditId, editedSubject, editedBody, subjectVariantUsed }: { auditId: number; editedSubject?: string; editedBody?: string; subjectVariantUsed?: string }) =>
       autoresearchApi.approveAudit(auditId, {
         edited_subject: editedSubject,
         edited_body: editedBody,
+        subject_variant_used: subjectVariantUsed,
       }),
     onSuccess: (_data, variables) => {
       // Find the audit to get the email body for clipboard
@@ -129,8 +130,8 @@ export default function AuditsTab() {
   });
 
   const handleApprove = useCallback(
-    (auditId: number, editedSubject?: string, editedBody?: string) => {
-      approveMutation.mutate({ auditId, editedSubject, editedBody });
+    (auditId: number, editedSubject?: string, editedBody?: string, subjectVariantUsed?: string) => {
+      approveMutation.mutate({ auditId, editedSubject, editedBody, subjectVariantUsed });
     },
     [approveMutation]
   );
