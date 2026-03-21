@@ -540,7 +540,7 @@ function PipelineProspectCard({
           {prospect.email && (
             <button
               onClick={() => onViewMessage(prospect)}
-              className="p-1.5 text-[--exec-text-muted] hover:text-blue-400 hover:bg-blue-500/15 rounded-md transition-colors opacity-0 group-hover:opacity-100"
+              className="p-1.5 text-[--exec-text-muted] hover:text-blue-400 hover:bg-blue-500/15 rounded-md transition-colors"
               title="View email"
             >
               <Mail className="w-3.5 h-3.5" />
@@ -553,7 +553,7 @@ function PipelineProspectCard({
                 'p-1.5 rounded-md transition-colors',
                 prospect.linkedin_connected
                   ? 'text-emerald-400 bg-emerald-500/15'
-                  : 'text-[--exec-text-muted] hover:text-emerald-400 hover:bg-emerald-500/15 opacity-0 group-hover:opacity-100'
+                  : 'text-[--exec-text-muted] hover:text-emerald-400 hover:bg-emerald-500/15'
               )}
               title={prospect.linkedin_connected ? 'LinkedIn connected (click to undo)' : 'Mark LinkedIn accepted'}
             >
@@ -563,7 +563,7 @@ function PipelineProspectCard({
           {!isMuted && (
             <button
               onClick={() => onMarkResponse(prospect)}
-              className="p-1.5 text-[--exec-text-muted] hover:text-green-400 hover:bg-green-500/15 rounded-md transition-colors opacity-0 group-hover:opacity-100"
+              className="p-1.5 text-[--exec-text-muted] hover:text-green-400 hover:bg-green-500/15 rounded-md transition-colors"
               title="Mark response"
             >
               <MessageSquare className="w-3.5 h-3.5" />
@@ -587,7 +587,7 @@ function PipelineProspectCard({
                   toast.error('Failed to update Loom status');
                 }
               }}
-              className="p-1.5 text-[--exec-text-muted] hover:text-purple-400 hover:bg-purple-500/15 rounded-md transition-colors opacity-0 group-hover:opacity-100"
+              className="p-1.5 text-[--exec-text-muted] hover:text-purple-400 hover:bg-purple-500/15 rounded-md transition-colors"
               title="Mark Loom sent"
             >
               <Video className="w-3.5 h-3.5" />
@@ -595,7 +595,7 @@ function PipelineProspectCard({
           )}
           <button
             onClick={() => onEdit(prospect)}
-            className="p-1.5 text-[--exec-text-muted] hover:text-[--exec-text] hover:bg-[--exec-surface-alt] rounded-md transition-colors opacity-0 group-hover:opacity-100"
+            className="p-1.5 text-[--exec-text-muted] hover:text-[--exec-text] hover:bg-[--exec-surface-alt] rounded-md transition-colors"
             title="Edit prospect"
           >
             <Edit2 className="w-3.5 h-3.5" />
