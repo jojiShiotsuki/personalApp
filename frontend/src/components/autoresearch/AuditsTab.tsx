@@ -104,8 +104,8 @@ export default function AuditsTab() {
 
   // Reject mutation
   const rejectMutation = useMutation({
-    mutationFn: ({ auditId, reason }: { auditId: number; reason: string }) =>
-      autoresearchApi.rejectAudit(auditId, reason),
+    mutationFn: ({ auditId, reason, category }: { auditId: number; reason: string; category?: string }) =>
+      autoresearchApi.rejectAudit(auditId, reason, category),
     onSuccess: () => {
       toast.success('Audit rejected');
       queryClient.invalidateQueries({ queryKey: ['autoresearch-audits'] });
@@ -136,8 +136,8 @@ export default function AuditsTab() {
   );
 
   const handleReject = useCallback(
-    (auditId: number, reason: string) => {
-      rejectMutation.mutate({ auditId, reason });
+    (auditId: number, reason: string, category?: string) => {
+      rejectMutation.mutate({ auditId, reason, category });
     },
     [rejectMutation]
   );

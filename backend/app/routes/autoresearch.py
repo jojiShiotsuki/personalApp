@@ -628,6 +628,7 @@ def reject_audit(
 
     audit.status = "rejected"
     audit.rejection_reason = body.rejection_reason
+    audit.rejection_category = body.rejection_category
     db.commit()
     db.refresh(audit)
 

@@ -275,6 +275,26 @@ class GmailService:
             prospect = prospect_by_email.get(match_email)
 
             if not prospect:
+                # Check for bounces even if no prospect match (from mailer-daemon)
+                bounce_senders = ["mailer-daemon", "postmaster", "mail delivery"]
+                if any(b in from_email.lower() for b in bounce_senders):
+                    # Try to find the bounced recipient in the body
+                    body_text = self._extract_email_body(msg_data.get("payload", {}))
+                    for email_addr, p in prospect_by_email.items():
+                        if email_addr in (body_text or "").lower():
+                            # Found the bounced prospect
+                            bounce_exp = (
+                                db.query(Experiment)
+                                .filter(Experiment.prospect_id == p.id)
+                                .order_by(Experiment.sent_at.desc())
+                                .first()
+                            )
+                            if bounce_exp:
+                                bounce_exp.status = "bounced"
+                                bounce_exp.replied = False
+                                logger.info("Detected bounce for prospect %d (%s)", p.id, email_addr)
+                                result["new_replies"] += 1
+                            break
                 continue
 
             # Extract body text
@@ -309,7 +329,8 @@ class GmailService:
                     classification_cost=classification.get("classification_cost"),
                 )
 
-                # Find linked experiment (most recent sent experiment for this prospect)
+                # Find linked experiment (most recent sent OR replied experiment for this prospect)
+                # Check "sent" first, fall back to "replied" for multi-reply threads
                 experiment = (
                     db.query(Experiment)
                     .filter(
@@ -319,6 +340,17 @@ class GmailService:
                     .order_by(Experiment.sent_at.desc())
                     .first()
                 )
+                if not experiment:
+                    # Multi-reply: prospect already replied before, update the latest replied experiment
+                    experiment = (
+                        db.query(Experiment)
+                        .filter(
+                            Experiment.prospect_id == prospect.id,
+                            Experiment.status == "replied",
+                        )
+                        .order_by(Experiment.reply_at.desc())
+                        .first()
+                    )
                 if experiment:
                     email_match.experiment_id = experiment.id
 
@@ -377,6 +409,23 @@ class GmailService:
                     email_match.experiment_id = experiment.id
                     experiment.status = "sent"
                     experiment.sent_at = received_at
+                    experiment.day_of_week = received_at.strftime("%A") if received_at else None
+                    experiment.sent_hour = received_at.hour if received_at else None
+
+                    # Compare actual sent content vs what was tracked at copy time
+                    if body_text and experiment.body:
+                        actual_body = body_text[:2000].strip()
+                        tracked_body = experiment.body[:2000].strip()
+                        if actual_body != tracked_body:
+                            # User edited after copying — capture the real version
+                            experiment.was_edited = True
+                            experiment.edit_type = "post_copy_edit"
+                            experiment.body = actual_body
+                            experiment.word_count = len(actual_body.split())
+                            logger.info(
+                                "Detected post-copy edit for prospect %d (experiment %d)",
+                                prospect.id, experiment.id,
+                            )
 
                 db.add(email_match)
                 result["new_sent_matches"] += 1

@@ -72,6 +72,7 @@ class AuditApproveRequest(BaseModel):
 
 class AuditRejectRequest(BaseModel):
     rejection_reason: str
+    rejection_category: Optional[str] = None  # carousel_false_positive, slow_load_false_positive, not_target_audience, issue_not_real, email_too_long, other
 
 
 class BatchAuditResponse(BaseModel):

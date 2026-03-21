@@ -70,7 +70,7 @@ function getIssueLabel(issueType: string | null): { label: string; color: string
 interface AuditCardProps {
   audit: AuditResult;
   onApprove: (auditId: number, editedSubject?: string, editedBody?: string) => void;
-  onReject: (auditId: number, reason: string) => void;
+  onReject: (auditId: number, reason: string, category?: string) => void;
   onFeedback: (auditId: number, feedback: string) => void;
   onDelete: (auditId: number) => void;
   onViewScreenshots: (audit: AuditResult) => void;
@@ -82,6 +82,7 @@ export default function AuditCard({ audit, onApprove, onReject, onFeedback, onDe
   const [editedBody, setEditedBody] = useState(audit.edited_body || audit.generated_body || '');
   const [showRejectInput, setShowRejectInput] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
+  const [rejectionCategory, setRejectionCategory] = useState('');
   const [showFeedback, setShowFeedback] = useState(false);
   const [feedbackText, setFeedbackText] = useState('');
   const [isExpanded, setIsExpanded] = useState(false);
@@ -107,9 +108,10 @@ export default function AuditCard({ audit, onApprove, onReject, onFeedback, onDe
 
   const handleReject = () => {
     if (!rejectionReason.trim()) return;
-    onReject(audit.id, rejectionReason.trim());
+    onReject(audit.id, rejectionReason.trim(), rejectionCategory || undefined);
     setShowRejectInput(false);
     setRejectionReason('');
+    setRejectionCategory('');
   };
 
   const wordCount = displayBody ? displayBody.trim().split(/\s+/).filter(Boolean).length : 0;
@@ -322,7 +324,26 @@ export default function AuditCard({ audit, onApprove, onReject, onFeedback, onDe
 
           {/* Rejection reason input */}
           {showRejectInput && (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              <select
+                value={rejectionCategory}
+                onChange={(e) => setRejectionCategory(e.target.value)}
+                className={cn(
+                  'px-2 py-2 rounded-lg text-xs',
+                  'bg-stone-800/50 border border-stone-600/40',
+                  'text-[--exec-text]',
+                  'focus:outline-none focus:ring-2 focus:ring-red-500/20',
+                  'cursor-pointer'
+                )}
+              >
+                <option value="">Category...</option>
+                <option value="carousel_false_positive">Carousel false positive</option>
+                <option value="slow_load_false_positive">Slow load false positive</option>
+                <option value="not_target_audience">Not target audience</option>
+                <option value="issue_not_real">Issue not real</option>
+                <option value="email_too_long">Email too long</option>
+                <option value="other">Other</option>
+              </select>
               <input
                 type="text"
                 placeholder="Rejection reason..."

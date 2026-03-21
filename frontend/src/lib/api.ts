@@ -1405,8 +1405,8 @@ export const autoresearchApi = {
     const { data } = await api.put(`/api/autoresearch/audits/${auditId}/approve`, body || {});
     return data;
   },
-  rejectAudit: async (auditId: number, reason: string) => {
-    const { data } = await api.put(`/api/autoresearch/audits/${auditId}/reject`, { rejection_reason: reason });
+  rejectAudit: async (auditId: number, reason: string, category?: string) => {
+    const { data } = await api.put(`/api/autoresearch/audits/${auditId}/reject`, { rejection_reason: reason, rejection_category: category });
     return data;
   },
   submitFeedback: async (auditId: number, feedback: string) => {

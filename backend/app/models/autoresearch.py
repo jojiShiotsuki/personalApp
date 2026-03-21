@@ -39,6 +39,7 @@ class AuditResult(Base):
     # Review status
     status = Column(String(30), default="pending_review")
     rejection_reason = Column(Text, nullable=True)
+    rejection_category = Column(String(50), nullable=True)  # carousel_false_positive, slow_load_false_positive, not_target_audience, issue_not_real, email_too_long, other
 
     # Edit tracking
     was_edited = Column(Boolean, default=False)

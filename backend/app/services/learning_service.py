@@ -467,6 +467,28 @@ class LearningService:
                 sections.append(f"  {row.issue_type}: {row.total_converted} conversions, ${rev} total revenue")
             sections.append("")
 
+        # 8. Audit rejection patterns (what the AI gets wrong)
+        from app.models.autoresearch import AuditResult
+        rejection_stats = (
+            db.query(
+                AuditResult.rejection_category,
+                func.count(AuditResult.id).label("count"),
+            )
+            .filter(
+                AuditResult.status == "rejected",
+                AuditResult.rejection_category.isnot(None),
+            )
+            .group_by(AuditResult.rejection_category)
+            .order_by(func.count(AuditResult.id).desc())
+            .all()
+        )
+
+        if rejection_stats:
+            sections.append("AUDIT REJECTION PATTERNS (what the AI gets wrong — AVOID these):")
+            for row in rejection_stats:
+                sections.append(f"  {row.rejection_category}: {row.count} rejections")
+            sections.append("")
+
         # 4. Average word count of replied vs non-replied
         replied_wc = (
             db.query(func.avg(Experiment.word_count))
