@@ -702,6 +702,84 @@ def delete_audit(
 
 
 # ──────────────────────────────────────────────
+# 7c. POST /track-email — capture final email content at copy time
+# ──────────────────────────────────────────────
+
+@router.post("/track-email")
+def track_email_content(
+    payload: dict,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Capture the exact email content when copied from CopyEmailModal.
+    Updates existing experiment or creates one if none exists.
+    This ensures the learning engine sees the ACTUAL email sent, not just the template.
+    """
+    prospect_id = payload.get("prospect_id")
+    step_number = payload.get("step_number", 1)
+    subject = payload.get("subject")
+    body = payload.get("body")
+    was_edited = payload.get("was_edited", False)
+
+    if not prospect_id:
+        raise HTTPException(status_code=400, detail="prospect_id is required")
+
+    prospect = db.query(OutreachProspect).filter(OutreachProspect.id == prospect_id).first()
+    if not prospect:
+        raise HTTPException(status_code=404, detail="Prospect not found")
+
+    # Find existing experiment for this prospect + step
+    experiment = (
+        db.query(Experiment)
+        .filter(
+            Experiment.prospect_id == prospect_id,
+            Experiment.step_number == step_number,
+        )
+        .first()
+    )
+
+    if experiment:
+        # Update with the actual content that was copied
+        experiment.subject = subject
+        experiment.body = body
+        experiment.word_count = len((body or "").split()) if body else None
+        experiment.was_edited = was_edited
+        if was_edited:
+            experiment.edit_type = "minor_tweak"
+    else:
+        # Create new experiment for this step
+        audit = (
+            db.query(AuditResult)
+            .filter(AuditResult.prospect_id == prospect_id)
+            .order_by(AuditResult.created_at.desc())
+            .first()
+        )
+
+        experiment = Experiment(
+            prospect_id=prospect_id,
+            campaign_id=prospect.campaign_id,
+            audit_id=audit.id if audit else None,
+            status="draft",
+            step_number=step_number,
+            subject=subject,
+            body=body,
+            word_count=len((body or "").split()) if body else None,
+            was_edited=was_edited,
+            edit_type="minor_tweak" if was_edited else None,
+            issue_type=audit.issue_type if audit else None,
+            issue_detail=audit.issue_detail if audit else None,
+            niche=prospect.niche,
+            company=prospect.agency_name,
+        )
+        db.add(experiment)
+
+    db.commit()
+
+    return {"message": "Email content tracked", "experiment_id": experiment.id}
+
+
+# ──────────────────────────────────────────────
 # 8. GET /settings — get or create settings
 # ──────────────────────────────────────────────
 

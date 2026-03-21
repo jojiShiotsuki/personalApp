@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { coldOutreachApi } from '@/lib/api';
+import { coldOutreachApi, autoresearchApi } from '@/lib/api';
 import type { OutreachProspect, RenderedEmail, MultiTouchStep } from '@/types';
 import { X, Mail, Copy, Check, Loader2, ChevronDown, AlertTriangle, Edit2, RotateCcw, ArrowRight } from 'lucide-react';
 import { toast } from 'sonner';
@@ -331,11 +331,25 @@ export default function CopyEmailModal({
       toast.success('Full email copied!');
 
       // Save custom values before advancing (await to avoid race condition)
-      if (editSubject !== email.subject || editBody !== email.body) {
+      const wasEdited = editSubject !== email.subject || editBody !== email.body;
+      if (wasEdited) {
         await coldOutreachApi.updateProspect(prospect.id, {
           custom_email_subject: editSubject,
           custom_email_body: editBody,
         });
+      }
+
+      // Track the exact email content for autoresearch learning
+      try {
+        await autoresearchApi.trackEmail(
+          prospect.id,
+          prospect.current_step || 1,
+          replaceVars(editSubject),
+          replaceVars(editBody),
+          wasEdited,
+        );
+      } catch {
+        // Non-fatal — don't block the copy flow
       }
 
       advanceMutation.mutate();

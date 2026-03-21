@@ -1417,6 +1417,16 @@ export const autoresearchApi = {
     const { data } = await api.delete(`/api/autoresearch/audits/${auditId}`);
     return data;
   },
+  trackEmail: async (prospectId: number, stepNumber: number, subject: string, body: string, wasEdited: boolean) => {
+    const { data } = await api.post('/api/autoresearch/track-email', {
+      prospect_id: prospectId,
+      step_number: stepNumber,
+      subject,
+      body,
+      was_edited: wasEdited,
+    });
+    return data;
+  },
   listExperiments: async (params?: { campaign_id?: number; niche?: string; issue_type?: string; status?: string; page?: number; page_size?: number }): Promise<ExperimentListResponse> => {
     const { data } = await api.get('/api/autoresearch/experiments', { params });
     return data;
