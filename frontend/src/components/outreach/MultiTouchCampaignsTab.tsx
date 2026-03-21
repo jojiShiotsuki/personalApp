@@ -528,14 +528,12 @@ function PipelineProspectCard({
       )}
     >
       {/* Action buttons row */}
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-1">
-          {dueToday && !isMuted && (
-            <span className="px-2 py-0.5 text-[10px] font-bold uppercase rounded-md bg-[--exec-accent]/20 text-[--exec-accent] tracking-wide">
-              Today
-            </span>
-          )}
-        </div>
+      <div className="flex items-center justify-center gap-1 mb-2 flex-wrap">
+        {dueToday && !isMuted && (
+          <span className="px-2 py-0.5 text-[10px] font-bold uppercase rounded-md bg-[--exec-accent]/20 text-[--exec-accent] tracking-wide">
+            Today
+          </span>
+        )}
         <div className="flex items-center gap-0.5">
           {prospect.email && (
             <button
