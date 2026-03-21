@@ -85,7 +85,7 @@ async def get_prospects_to_audit(
         if a.get("status") in ("approved", "pending_review"):
             audited_ids.add(a.get("prospect_id"))
 
-    # Filter to un-audited prospects on step 1 (QUEUED) with websites
+    # Filter to un-audited prospects on step 1 (QUEUED) with websites, no existing custom email
     candidates = [
         p for p in all_prospects
         if p.get("website")
@@ -93,6 +93,7 @@ async def get_prospects_to_audit(
         and p["id"] not in audited_ids
         and p.get("current_step", 1) == 1
         and p.get("status") in (None, "QUEUED", "queued")
+        and not p.get("custom_email_subject")  # Skip if already has an email (manually written or previously audited)
     ]
 
     selected = candidates[:count]
