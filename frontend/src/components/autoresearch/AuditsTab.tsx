@@ -84,11 +84,26 @@ export default function AuditsTab() {
         edited_body: editedBody,
         subject_variant_used: subjectVariantUsed,
       }),
-    onSuccess: (_data, variables) => {
+    onSuccess: async (_data, variables) => {
       // Find the audit to get the email body for clipboard
       const audit = audits.find((a) => a.id === variables.auditId);
       const bodyToCopy = variables.editedBody || audit?.edited_body || audit?.generated_body || '';
-      if (bodyToCopy) {
+
+      if (bodyToCopy && audit) {
+        // Generate tracking pixel and append to email body
+        try {
+          const pixel = await autoresearchApi.generateTrackingPixel(audit.prospect_id);
+          const bodyWithPixel = bodyToCopy + '\n\n' + pixel.img_tag;
+          await navigator.clipboard.writeText(bodyWithPixel);
+          toast.success('Approved and copied with tracking pixel');
+        } catch {
+          // Fallback: copy without pixel if generation fails
+          navigator.clipboard.writeText(bodyToCopy).then(
+            () => toast.success('Approved and copied (pixel generation failed)'),
+            () => toast.success('Approved (clipboard copy failed)')
+          );
+        }
+      } else if (bodyToCopy) {
         navigator.clipboard.writeText(bodyToCopy).then(
           () => toast.success('Approved and copied to clipboard'),
           () => toast.success('Approved (clipboard copy failed)')

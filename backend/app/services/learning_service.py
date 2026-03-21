@@ -617,6 +617,28 @@ class LearningService:
                     sections.append(f"    Body AFTER  (first 200 chars): {row.edited_body[:200]}")
                 sections.append("")
 
+        # 9. Loom video correlation
+        loom_stats = (
+            db.query(
+                func.count(Experiment.id).label("total_loom_sent"),
+                func.sum(case((Experiment.loom_watched.is_(True), 1), else_=0)).label("watched"),
+                func.sum(case((Experiment.replied.is_(True), 1), else_=0)).label("replied_after_loom"),
+            )
+            .filter(Experiment.loom_sent.is_(True))
+            .first()
+        )
+
+        if loom_stats and loom_stats.total_loom_sent and loom_stats.total_loom_sent > 0:
+            sections.append("LOOM VIDEO STATS:")
+            sections.append(f"  Total Loom videos sent: {loom_stats.total_loom_sent}")
+            sections.append(f"  Watched: {loom_stats.watched or 0}")
+            sections.append(f"  Replied after Loom: {loom_stats.replied_after_loom or 0}")
+            watch_rate = round(((loom_stats.watched or 0) / loom_stats.total_loom_sent) * 100, 1)
+            reply_rate = round(((loom_stats.replied_after_loom or 0) / loom_stats.total_loom_sent) * 100, 1)
+            sections.append(f"  Watch rate: {watch_rate}%")
+            sections.append(f"  Reply rate (Loom recipients): {reply_rate}%")
+            sections.append("")
+
         sections.append(
             "IMPORTANT: Analyze the WRITING STYLE differences between successful and "
             "unsuccessful emails. Look for: sentence length, use of specific numbers/quotes, "

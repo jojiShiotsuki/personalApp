@@ -15,8 +15,10 @@ import uuid
 from datetime import datetime
 from typing import Optional
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
-from fastapi.responses import RedirectResponse
+import base64
+
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request
+from fastapi.responses import RedirectResponse, Response
 from sqlalchemy import case, func
 from sqlalchemy.orm import Session
 
@@ -26,6 +28,7 @@ from app.database.connection import SessionLocal
 from app.models.autoresearch import (
     AuditResult,
     AutoresearchSettings,
+    EmailOpen,
     Experiment,
     GmailToken,
     Insight,
@@ -45,8 +48,10 @@ from app.schemas.autoresearch import (
     ExperimentResponse,
     InsightResponse,
     IssueTypeStats,
+    LoomStatusUpdate,
     NicheStats,
     TimingStats,
+    TrackingPixelResponse,
 )
 
 logger = logging.getLogger(__name__)
@@ -98,6 +103,11 @@ _batch_jobs: dict[str, dict] = {}
 
 # Batch job cleanup interval (seconds)
 _BATCH_JOB_MAX_AGE = 3600  # 1 hour
+
+# 1x1 transparent PNG for email open tracking
+TRANSPARENT_PIXEL = base64.b64decode(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+)
 
 
 def _cleanup_stale_batch_jobs() -> None:
@@ -1361,6 +1371,103 @@ async def reaudit_prospect(
     resp.prospect_niche = prospect.niche
     resp.prospect_email = prospect.email
     return resp
+
+
+# ──────────────────────────────────────────────
+# Email Open Tracking (Pixel)
+# ──────────────────────────────────────────────
+
+@router.get("/track/open/{tracking_id}")
+async def track_email_open(
+    tracking_id: str,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    """Track email open via invisible pixel. No auth required."""
+    email_open = db.query(EmailOpen).filter(EmailOpen.tracking_id == tracking_id).first()
+    if email_open:
+        email_open.open_count = (email_open.open_count or 0) + 1
+        if not email_open.opened_at:
+            email_open.opened_at = datetime.utcnow()
+        email_open.user_agent = (request.headers.get("user-agent", "") or "")[:500]
+        email_open.ip_address = request.client.host if request.client else None
+        db.commit()
+
+    return Response(
+        content=TRANSPARENT_PIXEL,
+        media_type="image/png",
+        headers={"Cache-Control": "no-cache, no-store, must-revalidate", "Pragma": "no-cache"},
+    )
+
+
+@router.post("/track/generate/{prospect_id}", response_model=TrackingPixelResponse)
+async def generate_tracking_pixel(
+    prospect_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Generate a unique tracking pixel URL for a prospect's email."""
+    prospect = db.query(OutreachProspect).filter(OutreachProspect.id == prospect_id).first()
+    if not prospect:
+        raise HTTPException(status_code=404, detail="Prospect not found")
+
+    tracking_id = uuid.uuid4().hex
+
+    # Find latest experiment for this prospect
+    experiment = (
+        db.query(Experiment)
+        .filter(Experiment.prospect_id == prospect_id)
+        .order_by(Experiment.created_at.desc())
+        .first()
+    )
+
+    email_open = EmailOpen(
+        tracking_id=tracking_id,
+        prospect_id=prospect_id,
+        experiment_id=experiment.id if experiment else None,
+    )
+    db.add(email_open)
+    db.commit()
+
+    # Build the pixel URL
+    base_url = os.getenv("RENDER_API_URL", os.getenv("API_BASE_URL", "https://vertex-api-smg3.onrender.com"))
+    pixel_url = f"{base_url}/api/autoresearch/track/open/{tracking_id}"
+    img_tag = f'<img src="{pixel_url}" width="1" height="1" style="display:none" />'
+
+    return TrackingPixelResponse(
+        tracking_id=tracking_id,
+        pixel_url=pixel_url,
+        img_tag=img_tag,
+    )
+
+
+# ──────────────────────────────────────────────
+# Loom Video Tracking
+# ──────────────────────────────────────────────
+
+@router.put("/experiments/{experiment_id}/loom")
+async def update_loom_status(
+    experiment_id: int,
+    payload: LoomStatusUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Update Loom video tracking status on an experiment."""
+    experiment = db.query(Experiment).filter(Experiment.id == experiment_id).first()
+    if not experiment:
+        raise HTTPException(status_code=404, detail="Experiment not found")
+
+    if payload.loom_sent is not None:
+        experiment.loom_sent = payload.loom_sent
+    if payload.loom_url is not None:
+        experiment.loom_url = payload.loom_url
+    if payload.loom_watched is not None:
+        experiment.loom_watched = payload.loom_watched
+
+    db.commit()
+    db.refresh(experiment)
+
+    return {"message": "Loom status updated", "experiment_id": experiment_id}
 
 
 # ──────────────────────────────────────────────

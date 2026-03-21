@@ -1575,7 +1575,16 @@ export interface ExperimentRecord {
   converted_to_call: boolean;
   converted_to_client: boolean;
   deal_value: number | null;
+  loom_sent: boolean;
+  loom_url: string | null;
+  loom_watched: boolean | null;
   created_at: string;
+}
+
+export interface TrackingPixelResponse {
+  tracking_id: string;
+  pixel_url: string;
+  img_tag: string;
 }
 
 export interface ExperimentListResponse {

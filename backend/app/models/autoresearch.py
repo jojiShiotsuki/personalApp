@@ -121,6 +121,11 @@ class Experiment(Base):
     deal_id = Column(Integer, ForeignKey("crm_deals.id", ondelete="SET NULL"), nullable=True)
     deal_value = Column(Float, nullable=True)
 
+    # Loom video tracking
+    loom_sent = Column(Boolean, default=False)
+    loom_url = Column(String(500), nullable=True)
+    loom_watched = Column(Boolean, nullable=True)  # null = unknown, True = watched, False = not watched
+
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -225,3 +230,21 @@ class AutoresearchSettings(Base):
 
     def __repr__(self):
         return f"<AutoresearchSettings(id={self.id}, user_id={self.user_id})>"
+
+
+class EmailOpen(Base):
+    """Tracks email opens via invisible tracking pixel."""
+    __tablename__ = "email_opens"
+
+    id = Column(Integer, primary_key=True, index=True)
+    tracking_id = Column(String(64), unique=True, nullable=False, index=True)
+    prospect_id = Column(Integer, ForeignKey("outreach_prospects.id", ondelete="CASCADE"), nullable=False, index=True)
+    experiment_id = Column(Integer, ForeignKey("experiments.id", ondelete="SET NULL"), nullable=True, index=True)
+    opened_at = Column(DateTime, nullable=True)
+    open_count = Column(Integer, default=0)  # Track multiple opens
+    user_agent = Column(String(500), nullable=True)
+    ip_address = Column(String(45), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    def __repr__(self):
+        return f"<EmailOpen(id={self.id}, tracking_id={self.tracking_id}, opens={self.open_count})>"

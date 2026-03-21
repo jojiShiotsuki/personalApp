@@ -92,6 +92,7 @@ import type {
   TimingStats,
   InsightRecord,
   AutoresearchSettings,
+  TrackingPixelResponse,
 } from '../types/index';
 import {
   TaskStatus,
@@ -1477,6 +1478,14 @@ export const autoresearchApi = {
   },
   updateSettings: async (updates: Partial<AutoresearchSettings>) => {
     const { data } = await api.put('/api/autoresearch/settings', updates);
+    return data;
+  },
+  generateTrackingPixel: async (prospectId: number): Promise<TrackingPixelResponse> => {
+    const { data } = await api.post(`/api/autoresearch/track/generate/${prospectId}`);
+    return data;
+  },
+  updateLoomStatus: async (experimentId: number, payload: { loom_sent?: boolean; loom_url?: string; loom_watched?: boolean }) => {
+    const { data } = await api.put(`/api/autoresearch/experiments/${experimentId}/loom`, payload);
     return data;
   },
 };

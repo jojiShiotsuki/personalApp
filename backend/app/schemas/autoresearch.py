@@ -149,6 +149,11 @@ class ExperimentResponse(BaseModel):
     deal_id: Optional[int] = None
     deal_value: Optional[float] = None
 
+    # Loom tracking
+    loom_sent: bool = False
+    loom_url: Optional[str] = None
+    loom_watched: Optional[bool] = None
+
     created_at: datetime
     updated_at: datetime
 
@@ -308,3 +313,38 @@ class AutoresearchSettingsUpdate(BaseModel):
     min_page_load_wait: Optional[int] = None
     enable_pass_2: Optional[bool] = None
     max_batch_size: Optional[int] = None
+
+
+# ──────────────────────────────────────────────
+# Email Open Tracking Schemas
+# ──────────────────────────────────────────────
+
+class EmailOpenResponse(BaseModel):
+    id: int
+    tracking_id: str
+    prospect_id: int
+    experiment_id: Optional[int] = None
+    opened_at: Optional[datetime] = None
+    open_count: int = 0
+    user_agent: Optional[str] = None
+    ip_address: Optional[str] = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class TrackingPixelResponse(BaseModel):
+    tracking_id: str
+    pixel_url: str
+    img_tag: str
+
+
+# ──────────────────────────────────────────────
+# Loom Tracking Schemas
+# ──────────────────────────────────────────────
+
+class LoomStatusUpdate(BaseModel):
+    loom_sent: Optional[bool] = None
+    loom_url: Optional[str] = None
+    loom_watched: Optional[bool] = None
