@@ -115,7 +115,6 @@ export default function CopyEmailModal({
   const {
     data: aiFollowUp,
     isLoading: isGeneratingFollowUp,
-    error: followUpError,
   } = useQuery({
     queryKey: ['ai-followup', prospect.id, prospect.current_step],
     queryFn: () => autoresearchApi.generateFollowup(prospect.id),
