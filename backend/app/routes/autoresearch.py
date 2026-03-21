@@ -1860,6 +1860,28 @@ async def generate_followup_email(
     default_angle = 'Very short one-liner. "Still happy to help if you need it." Under 20 words.'
     angle = angle_guidance.get(follow_up_number, default_angle)
 
+    # --- Get learning context for follow-up style ---
+    followup_learning = ""
+    try:
+        from app.services.learning_service import LearningService
+        learning_svc = LearningService()
+        # Get active insights that relate to follow-ups
+        active_insights = (
+            db.query(Insight)
+            .filter(Insight.is_active.is_(True))
+            .all()
+        )
+        followup_insights = [
+            ins for ins in active_insights
+            if any(word in (ins.insight or "").lower() for word in ["follow", "step", "delay", "short", "word"])
+        ]
+        if followup_insights:
+            followup_learning = "\n\nLEARNED INSIGHTS (from past follow-ups that worked):\n"
+            for ins in followup_insights[:5]:
+                followup_learning += f"- {ins.recommendation or ins.insight}\n"
+    except Exception:
+        pass  # Non-fatal
+
     # --- Build the prompt ---
     first_name = (prospect.contact_name or prospect.agency_name or "there").split()[0]
 
@@ -1877,14 +1899,14 @@ FOLLOW-UP ANGLE FOR THIS STEP:
 {angle}
 
 RULES:
+- Start with "G'day {first_name}," greeting
 - Reference the original issue naturally, don't repeat the full explanation
 - Under 50 words total
 - Australian English, conversational
-- No em dashes (—)
-- Same sign-off style as original (e.g. "Cheers,\\nJoji")
+- No em dashes
+- End with: Cheers,\nJoji Shiotsuki | Joji Web Solutions | jojishiotsuki.com\n\nNot interested? Just reply "stop" and I won't email again.
 - Subject MUST be exactly "Re: {original_subject}"
-- Do NOT include a greeting like "Hi {first_name}," in the body — just start with the message content, the greeting is added automatically by the email system
-
+{followup_learning}
 Return ONLY valid JSON (no markdown fences):
 {{"subject": "Re: {original_subject}", "body": "follow-up email body here", "word_count": N}}"""
 

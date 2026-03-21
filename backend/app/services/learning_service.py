@@ -575,16 +575,28 @@ class LearningService:
         )
 
         if replied_emails:
-            sections.append("SUCCESSFUL EMAIL BODIES (these got replies — analyze their style):")
-            for i, row in enumerate(replied_emails[:10]):
-                sections.append(f"  Email {i+1} (subject: {row.subject}, {row.word_count} words):")
-                sections.append(f"  {row.body[:300]}")
-                sections.append("")
+            # Split into step 1 (initial audit) and follow-ups
+            step1_replied = [r for r in replied_emails if (r.step_number or 1) == 1]
+            followup_replied = [r for r in replied_emails if (r.step_number or 1) > 1]
+
+            if step1_replied:
+                sections.append("SUCCESSFUL STEP 1 EMAILS (initial audit emails that got replies):")
+                for i, row in enumerate(step1_replied[:5]):
+                    sections.append(f"  Email {i+1} (subject: {row.subject}, {row.word_count} words, step {row.step_number}):")
+                    sections.append(f"  {row.body[:300]}")
+                    sections.append("")
+
+            if followup_replied:
+                sections.append("SUCCESSFUL FOLLOW-UP EMAILS (steps 2+ that got replies — learn what follow-up angles work):")
+                for i, row in enumerate(followup_replied[:5]):
+                    sections.append(f"  Follow-up {i+1} (step {row.step_number}, subject: {row.subject}, {row.word_count} words):")
+                    sections.append(f"  {row.body[:300]}")
+                    sections.append("")
 
         if not_replied_emails:
             sections.append("SAMPLE UNSUCCESSFUL EMAIL BODIES (no reply — what's different?):")
             for i, row in enumerate(not_replied_emails[:5]):
-                sections.append(f"  Email {i+1} (subject: {row.subject}, {row.word_count} words):")
+                sections.append(f"  Email {i+1} (step {row.step_number or 1}, subject: {row.subject}, {row.word_count} words):")
                 sections.append(f"  {row.body[:300]}")
                 sections.append("")
 
