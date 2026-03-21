@@ -8,8 +8,10 @@ Provides:
 """
 
 import asyncio
+import json
 import logging
 import os
+import re
 import time
 import uuid
 from datetime import datetime
@@ -1769,6 +1771,169 @@ async def send_email_to_prospect(
         "tracking_id": tracking_id,
         "to": prospect.email,
         "is_followup": is_followup,
+    }
+
+
+# ──────────────────────────────────────────────
+# 21c. POST /generate-followup/{prospect_id} — AI follow-up email
+# ──────────────────────────────────────────────
+
+# Haiku pricing for follow-up generation
+_HAIKU_INPUT_PRICE_PER_M = 0.25
+_HAIKU_OUTPUT_PRICE_PER_M = 1.25
+
+
+def _parse_followup_json(raw_text: str) -> dict:
+    """Parse JSON from Claude's follow-up response, handling markdown fences."""
+    text = raw_text.strip()
+    fence = re.compile(r"```(?:json)?\s*\n?(.*?)\n?\s*```", re.DOTALL)
+    m = fence.search(text)
+    if m:
+        text = m.group(1).strip()
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError as exc:
+        logger.warning("Failed to parse follow-up JSON: %s", exc)
+        return {"error": str(exc), "raw_response": raw_text[:500]}
+
+
+@router.post("/generate-followup/{prospect_id}")
+async def generate_followup_email(
+    prospect_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Generate an AI-personalised follow-up email that references the original
+    audit issue. Uses Claude Haiku for cost efficiency.
+
+    Returns JSON with subject, body, word_count, step_number, and cost_usd.
+    """
+    svc = _require_audit_service()  # ensures ANTHROPIC_API_KEY is set
+
+    # --- Fetch prospect ---
+    prospect = (
+        db.query(OutreachProspect)
+        .filter(OutreachProspect.id == prospect_id)
+        .first()
+    )
+    if not prospect:
+        raise HTTPException(status_code=404, detail="Prospect not found")
+
+    step_number = prospect.current_step or 1
+    if step_number < 2:
+        raise HTTPException(
+            status_code=400,
+            detail="Follow-ups are only generated for step 2 and above.",
+        )
+
+    # --- Find the step 1 experiment (original audit email) ---
+    step1_experiment = (
+        db.query(Experiment)
+        .filter(
+            Experiment.prospect_id == prospect_id,
+            Experiment.step_number == 1,
+        )
+        .order_by(Experiment.created_at.desc())
+        .first()
+    )
+
+    if not step1_experiment or not step1_experiment.subject:
+        raise HTTPException(
+            status_code=404,
+            detail="No step 1 audit email found for this prospect. Fall back to template.",
+        )
+
+    original_subject = step1_experiment.subject or ""
+    original_body = step1_experiment.body or ""
+    issue_type = step1_experiment.issue_type or "unknown"
+    issue_detail = step1_experiment.issue_detail or ""
+
+    # --- Build follow-up angle guidance per step ---
+    follow_up_number = step_number - 1
+    angle_guidance = {
+        1: 'Brief check-in. "Just making sure this landed in your inbox." Keep it under 30 words.',
+        2: 'Offer the free Loom video walkthrough again, add gentle urgency. Keep it under 40 words.',
+        3: 'New angle: mention what competitors are doing or what opportunities they are missing. Keep it under 45 words.',
+        4: 'Final attempt. "Last one from me" tone. Make it easy to say yes or no. Keep it under 35 words.',
+    }
+    default_angle = 'Very short one-liner. "Still happy to help if you need it." Under 20 words.'
+    angle = angle_guidance.get(follow_up_number, default_angle)
+
+    # --- Build the prompt ---
+    first_name = (prospect.contact_name or prospect.agency_name or "there").split()[0]
+
+    prompt = f"""You are writing a follow-up cold email for Joji Shiotsuki, an Australian WordPress developer.
+
+ORIGINAL EMAIL (Step 1):
+Subject: {original_subject}
+Body: {original_body}
+Issue found: {issue_type} — {issue_detail}
+
+This is follow-up #{follow_up_number}. The prospect has NOT replied to the previous emails.
+The prospect's first name is "{first_name}".
+
+FOLLOW-UP ANGLE FOR THIS STEP:
+{angle}
+
+RULES:
+- Reference the original issue naturally, don't repeat the full explanation
+- Under 50 words total
+- Australian English, conversational
+- No em dashes (—)
+- Same sign-off style as original (e.g. "Cheers,\\nJoji")
+- Subject MUST be exactly "Re: {original_subject}"
+- Do NOT include a greeting like "Hi {first_name}," in the body — just start with the message content, the greeting is added automatically by the email system
+
+Return ONLY valid JSON (no markdown fences):
+{{"subject": "Re: {original_subject}", "body": "follow-up email body here", "word_count": N}}"""
+
+    # --- Call Claude Haiku ---
+    model = os.getenv("AUTORESEARCH_FOLLOWUP_MODEL", "claude-haiku-4-5")
+
+    try:
+        response = await svc.client.messages.create(
+            model=model,
+            max_tokens=300,
+            messages=[{"role": "user", "content": prompt}],
+        )
+    except Exception as api_err:
+        logger.error("Follow-up generation failed: %s", api_err, exc_info=True)
+        raise HTTPException(
+            status_code=502,
+            detail=f"Claude API error: {api_err}",
+        )
+
+    # --- Parse response ---
+    raw_text = ""
+    for block in response.content:
+        if hasattr(block, "text"):
+            raw_text += block.text
+
+    result = _parse_followup_json(raw_text)
+
+    if "error" in result:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Failed to parse follow-up: {result.get('error')}",
+        )
+
+    # --- Calculate cost ---
+    input_tokens = getattr(response.usage, "input_tokens", 0)
+    output_tokens = getattr(response.usage, "output_tokens", 0)
+    cost_usd = (
+        (input_tokens * _HAIKU_INPUT_PRICE_PER_M / 1_000_000)
+        + (output_tokens * _HAIKU_OUTPUT_PRICE_PER_M / 1_000_000)
+    )
+
+    return {
+        "subject": result.get("subject", f"Re: {original_subject}"),
+        "body": result.get("body", ""),
+        "word_count": result.get("word_count", len(result.get("body", "").split())),
+        "step_number": step_number,
+        "follow_up_number": follow_up_number,
+        "model": model,
+        "cost_usd": round(cost_usd, 6),
     }
 
 

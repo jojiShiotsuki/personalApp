@@ -1492,5 +1492,9 @@ export const autoresearchApi = {
     const { data } = await api.post(`/api/autoresearch/send-email/${prospectId}`, { subject, body });
     return data;
   },
+  generateFollowup: async (prospectId: number): Promise<{ subject: string; body: string; word_count: number; step_number: number; follow_up_number: number; model: string; cost_usd: number }> => {
+    const { data } = await api.post(`/api/autoresearch/generate-followup/${prospectId}`);
+    return data;
+  },
 };
 

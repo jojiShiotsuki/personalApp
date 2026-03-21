@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { coldOutreachApi, autoresearchApi } from '@/lib/api';
 import type { OutreachProspect, RenderedEmail, MultiTouchStep } from '@/types';
-import { X, Mail, Copy, Check, Loader2, ChevronDown, AlertTriangle, Edit2, RotateCcw, Send } from 'lucide-react';
+import { X, Mail, Copy, Check, Loader2, ChevronDown, AlertTriangle, Edit2, RotateCcw, Send, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -106,6 +106,33 @@ export default function CopyEmailModal({
   });
 
   const rawEmail = hasStepTemplates ? stepEmail : rawEmailFromApi;
+
+  // --- AI Follow-up generation for step 2+ ---
+  // Eligible when prospect has been audited (custom_email_subject exists from step 1 approval)
+  const isFollowUpEligible = (prospect.current_step || 1) > 1 && !!prospect.custom_email_subject;
+  const [aiFollowUpUsed, setAiFollowUpUsed] = useState(false);
+
+  const {
+    data: aiFollowUp,
+    isLoading: isGeneratingFollowUp,
+    error: followUpError,
+  } = useQuery({
+    queryKey: ['ai-followup', prospect.id, prospect.current_step],
+    queryFn: () => autoresearchApi.generateFollowup(prospect.id),
+    enabled: isOpen && isFollowUpEligible,
+    staleTime: 5 * 60 * 1000, // cache for 5 minutes
+    retry: false, // fall back to template on failure
+  });
+
+  // When AI follow-up arrives, populate the editable fields (once)
+  useEffect(() => {
+    if (aiFollowUp && !aiFollowUpUsed && isFollowUpEligible) {
+      setEditSubject(aiFollowUp.subject);
+      setEditBody(aiFollowUp.body);
+      setAiFollowUpUsed(true);
+      setHasInitializedFromTemplate(true); // prevent template overwrite
+    }
+  }, [aiFollowUp, aiFollowUpUsed, isFollowUpEligible]);
 
   // Build prospect variable replacements
   const prospectVars = useMemo(() => {
@@ -305,6 +332,7 @@ export default function CopyEmailModal({
     if (!email) return;
     setEditSubject(email.subject);
     setEditBody(email.body);
+    setAiFollowUpUsed(false);
     // Clear saved custom values
     saveCustomEmailMutation.mutate({ custom_email_subject: '', custom_email_body: '' });
     toast.success('Reset to template');
@@ -438,6 +466,18 @@ export default function CopyEmailModal({
                   <span className="text-xs text-[--exec-text-muted] px-2 py-0.5 bg-[--exec-surface-alt] rounded-full">
                     Step {prospect.current_step}
                   </span>
+                  {aiFollowUpUsed && (
+                    <span className="text-xs text-purple-400 px-2 py-0.5 bg-purple-900/30 border border-purple-800 rounded-full flex items-center gap-1">
+                      <Sparkles className="w-3 h-3" />
+                      AI Follow-up
+                    </span>
+                  )}
+                  {isGeneratingFollowUp && (
+                    <span className="text-xs text-blue-400 px-2 py-0.5 bg-blue-900/30 border border-blue-800 rounded-full flex items-center gap-1">
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                      Generating...
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
@@ -610,9 +650,14 @@ export default function CopyEmailModal({
           )}
 
           {/* Content */}
-          {isLoading ? (
-            <div className="flex items-center justify-center py-12">
+          {(isLoading || (isGeneratingFollowUp && !aiFollowUpUsed)) ? (
+            <div className="flex flex-col items-center justify-center py-12 gap-3">
               <Loader2 className="w-8 h-8 text-[--exec-accent] animate-spin" />
+              {isGeneratingFollowUp && (
+                <p className="text-sm text-[--exec-text-muted]">
+                  Generating AI follow-up...
+                </p>
+              )}
             </div>
           ) : error ? (
             <div className="text-center py-12">
