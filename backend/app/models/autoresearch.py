@@ -97,7 +97,9 @@ class Experiment(Base):
     # Send data
     sent_at = Column(DateTime, nullable=True)
     day_of_week = Column(String(10), nullable=True)
+    sent_hour = Column(Integer, nullable=True)  # 0-23, hour of day email was sent
     step_number = Column(Integer, nullable=False, default=1)
+    step_delay_days = Column(Integer, nullable=True)  # Days since previous step
 
     # Outcome tracking
     replied = Column(Boolean, default=False)

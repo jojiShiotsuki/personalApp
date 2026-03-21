@@ -397,6 +397,76 @@ class LearningService:
                 sections.append(f"  {row.day_of_week}: {row.replied}/{row.total} replied ({rate}%)")
             sections.append("")
 
+        # 5. Reply rate by TIME OF DAY (hour buckets)
+        hour_stats = (
+            db.query(
+                Experiment.sent_hour,
+                func.count(Experiment.id).label("total"),
+                func.sum(case((Experiment.replied.is_(True), 1), else_=0)).label("replied"),
+            )
+            .filter(
+                Experiment.status.in_(sent_statuses),
+                Experiment.sent_hour.isnot(None),
+            )
+            .group_by(Experiment.sent_hour)
+            .order_by(Experiment.sent_hour)
+            .all()
+        )
+
+        if hour_stats:
+            sections.append("REPLY RATE BY TIME OF DAY (hour sent):")
+            for row in hour_stats:
+                rate = round((row.replied / row.total) * 100, 1) if row.total else 0
+                hour_label = f"{row.sent_hour:02d}:00"
+                sections.append(f"  {hour_label}: {row.replied}/{row.total} replied ({rate}%)")
+            sections.append("")
+
+        # 6. Reply rate by FOLLOW-UP DELAY (days between steps)
+        delay_stats = (
+            db.query(
+                Experiment.step_delay_days,
+                func.count(Experiment.id).label("total"),
+                func.sum(case((Experiment.replied.is_(True), 1), else_=0)).label("replied"),
+            )
+            .filter(
+                Experiment.status.in_(sent_statuses),
+                Experiment.step_delay_days.isnot(None),
+                Experiment.step_number > 1,
+            )
+            .group_by(Experiment.step_delay_days)
+            .order_by(Experiment.step_delay_days)
+            .all()
+        )
+
+        if delay_stats:
+            sections.append("REPLY RATE BY FOLLOW-UP DELAY (days between steps):")
+            for row in delay_stats:
+                rate = round((row.replied / row.total) * 100, 1) if row.total else 0
+                sections.append(f"  {row.step_delay_days} day delay: {row.replied}/{row.total} replied ({rate}%)")
+            sections.append("")
+
+        # 7. Revenue attribution by issue type
+        revenue_stats = (
+            db.query(
+                Experiment.issue_type,
+                func.count(Experiment.id).label("total_converted"),
+                func.sum(Experiment.deal_value).label("total_revenue"),
+            )
+            .filter(
+                Experiment.converted_to_client.is_(True),
+                Experiment.issue_type.isnot(None),
+            )
+            .group_by(Experiment.issue_type)
+            .all()
+        )
+
+        if revenue_stats:
+            sections.append("REVENUE BY ISSUE TYPE (from converted clients):")
+            for row in revenue_stats:
+                rev = round(row.total_revenue, 2) if row.total_revenue else 0
+                sections.append(f"  {row.issue_type}: {row.total_converted} conversions, ${rev} total revenue")
+            sections.append("")
+
         # 4. Average word count of replied vs non-replied
         replied_wc = (
             db.query(func.avg(Experiment.word_count))

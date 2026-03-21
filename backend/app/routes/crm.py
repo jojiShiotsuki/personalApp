@@ -225,6 +225,18 @@ def update_deal(deal_id: int, deal_update: DealUpdate, db: Session = Depends(get
                 "value": db_deal.value,
                 "contact_id": db_deal.contact_id
             })
+            # Update autoresearch experiments linked to this deal
+            try:
+                from app.models.autoresearch import Experiment
+                experiments = db.query(Experiment).filter(Experiment.deal_id == deal_id).all()
+                for exp in experiments:
+                    exp.converted_to_client = (new_stage == DealStage.CLOSED_WON)
+                    exp.deal_value = db_deal.value
+                if experiments:
+                    db.commit()
+                    logger.info("Updated %d experiments for deal %d (%s)", len(experiments), deal_id, new_stage)
+            except Exception as e:
+                logger.warning("Failed to update experiments for deal %d: %s", deal_id, e)
     db.refresh(db_deal)
     return DealResponse.model_validate(db_deal)
 

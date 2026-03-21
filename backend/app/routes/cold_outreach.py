@@ -57,8 +57,10 @@ def _create_step_experiment(
             # Update sent_at if it was a draft
             if existing.status == "draft":
                 existing.status = "sent"
-                existing.sent_at = datetime.utcnow()
-                existing.day_of_week = datetime.utcnow().strftime("%A")
+                now = datetime.utcnow()
+                existing.sent_at = now
+                existing.day_of_week = now.strftime("%A")
+                existing.sent_hour = now.hour
             return
 
         # Try to find the audit for this prospect (for linking)
@@ -95,6 +97,12 @@ def _create_step_experiment(
             # Send data
             sent_at=datetime.utcnow(),
             day_of_week=datetime.utcnow().strftime("%A"),
+            sent_hour=datetime.utcnow().hour,
+            step_delay_days=(
+                (datetime.utcnow() - prospect.last_contacted_at).days
+                if prospect.last_contacted_at and step_number > 1
+                else None
+            ),
         )
         db.add(experiment)
         db.flush()
