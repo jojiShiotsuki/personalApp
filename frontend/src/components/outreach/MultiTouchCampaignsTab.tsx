@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { coldOutreachApi } from '@/lib/api';
+import { coldOutreachApi, autoresearchApi } from '@/lib/api';
 import type {
   OutreachCampaign,
   CampaignWithStats,
@@ -37,6 +37,7 @@ import {
   Reply,
   XCircle,
   Search,
+  Video,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -567,6 +568,31 @@ function PipelineProspectCard({
               title="Mark response"
             >
               <MessageSquare className="w-3.5 h-3.5" />
+            </button>
+          )}
+          {!isMuted && (
+            <button
+              onClick={async () => {
+                const url = prompt('Paste the Loom URL (or leave empty to just mark as sent):');
+                if (url === null) return; // cancelled
+                try {
+                  // Find experiment for this prospect
+                  const exps = await autoresearchApi.listExperiments({ campaign_id: prospect.campaign_id, page: 1, page_size: 5 });
+                  const exp = exps.experiments?.find((e: any) => e.prospect_id === prospect.id);
+                  if (exp) {
+                    await autoresearchApi.updateLoomStatus(exp.id, { loom_sent: true, loom_url: url || undefined });
+                    toast.success('Loom marked as sent');
+                  } else {
+                    toast.error('No experiment found for this prospect');
+                  }
+                } catch {
+                  toast.error('Failed to update Loom status');
+                }
+              }}
+              className="p-1.5 text-[--exec-text-muted] hover:text-purple-400 hover:bg-purple-500/15 rounded-md transition-colors opacity-0 group-hover:opacity-100"
+              title="Mark Loom sent"
+            >
+              <Video className="w-3.5 h-3.5" />
             </button>
           )}
           <button
