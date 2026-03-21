@@ -1716,7 +1716,20 @@ async def send_email_to_prospect(
     pixel_url = f"{base_url}/api/autoresearch/track/open/{tracking_id}"
     tracking_html = f'<img src="{pixel_url}" width="1" height="1" style="display:none" />'
 
-    # Send the email
+    # Look up previous thread for this prospect (for follow-up threading)
+    previous_experiment = (
+        db.query(Experiment)
+        .filter(
+            Experiment.prospect_id == prospect_id,
+            Experiment.gmail_thread_id.isnot(None),
+        )
+        .order_by(Experiment.sent_at.desc())
+        .first()
+    )
+    thread_id = previous_experiment.gmail_thread_id if previous_experiment else None
+    in_reply_to = previous_experiment.gmail_message_id_header if previous_experiment else None
+
+    # Send the email (threaded if follow-up)
     try:
         result = await svc.send_email(
             db=db,
@@ -1725,17 +1738,21 @@ async def send_email_to_prospect(
             subject=subject,
             body=body,
             tracking_pixel_html=tracking_html,
+            thread_id=thread_id,
+            in_reply_to=in_reply_to,
         )
     except Exception as exc:
         logger.error("Failed to send email to prospect %d: %s", prospect_id, exc)
         raise HTTPException(status_code=502, detail=f"Failed to send email: {exc}")
 
-    # Update experiment status
+    # Update experiment status + store thread info for future follow-ups
     if experiment:
         experiment.status = "sent"
         experiment.sent_at = datetime.utcnow()
         experiment.day_of_week = datetime.utcnow().strftime("%A")
         experiment.sent_hour = datetime.utcnow().hour
+        experiment.gmail_thread_id = result.get("thread_id")
+        experiment.gmail_message_id_header = result.get("gmail_message_id_header")
 
     # Update prospect status
     prospect.last_contacted_at = datetime.utcnow()
@@ -1744,11 +1761,14 @@ async def send_email_to_prospect(
 
     db.commit()
 
+    is_followup = thread_id is not None
     return {
-        "message": "Email sent successfully",
+        "message": f"{'Follow-up' if is_followup else 'Email'} sent successfully (same thread)" if is_followup else "Email sent successfully",
         "gmail_message_id": result.get("message_id"),
+        "thread_id": result.get("thread_id"),
         "tracking_id": tracking_id,
         "to": prospect.email,
+        "is_followup": is_followup,
     }
 
 

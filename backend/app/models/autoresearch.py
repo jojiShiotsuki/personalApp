@@ -100,6 +100,8 @@ class Experiment(Base):
     company = Column(String(255), nullable=True)
 
     # Send data
+    gmail_thread_id = Column(String(100), nullable=True)  # For email threading
+    gmail_message_id_header = Column(String(200), nullable=True)  # Message-ID header for In-Reply-To
     sent_at = Column(DateTime, nullable=True)
     day_of_week = Column(String(10), nullable=True)
     sent_hour = Column(Integer, nullable=True)  # 0-23, hour of day email was sent

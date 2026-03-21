@@ -174,6 +174,8 @@ class GmailService:
         subject: str,
         body: str,
         tracking_pixel_html: str | None = None,
+        thread_id: str | None = None,
+        in_reply_to: str | None = None,
     ) -> dict[str, Any]:
         """
         Send an email via the Gmail API.
@@ -182,8 +184,11 @@ class GmailService:
         (for tracking pixel support). Uses asyncio.to_thread to avoid
         blocking the event loop with the synchronous Google API client.
 
+        If thread_id and in_reply_to are provided, sends as a reply in the
+        same email thread (follow-ups appear in the same conversation).
+
         Returns:
-            {"message_id": "...", "thread_id": "...", "to": "...", "subject": "..."}
+            {"message_id": "...", "thread_id": "...", "gmail_message_id_header": "...", "to": "...", "subject": "..."}
         """
         gmail_token = (
             db.query(GmailToken)
@@ -207,8 +212,15 @@ class GmailService:
         # Build multipart/alternative email (plain text + HTML for tracking pixel)
         msg = MIMEMultipart("alternative")
         msg["To"] = to_email
-        msg["Subject"] = subject
         msg["From"] = gmail_token.email_address
+
+        # For threading: prefix subject with "Re:" and add reply headers
+        if thread_id and in_reply_to:
+            msg["Subject"] = subject if subject.lower().startswith("re:") else f"Re: {subject}"
+            msg["In-Reply-To"] = in_reply_to
+            msg["References"] = in_reply_to
+        else:
+            msg["Subject"] = subject
 
         # Plain text version
         msg.attach(MIMEText(body, "plain"))
@@ -221,10 +233,13 @@ class GmailService:
 
         # Encode and send (wrap synchronous call in a thread)
         raw = base64.urlsafe_b64encode(msg.as_bytes()).decode("utf-8")
+        send_body: dict[str, Any] = {"raw": raw}
+        if thread_id:
+            send_body["threadId"] = thread_id
 
         def _send() -> dict[str, Any]:
             return service.users().messages().send(
-                userId="me", body={"raw": raw}
+                userId="me", body=send_body
             ).execute()
 
         sent = await asyncio.to_thread(_send)
@@ -235,9 +250,25 @@ class GmailService:
             sent.get("id"),
         )
 
+        # Get the Message-ID header from the sent message for future threading
+        gmail_message_id_header = None
+        try:
+            sent_detail = await asyncio.to_thread(
+                lambda: service.users().messages().get(
+                    userId="me", id=sent["id"], format="metadata", metadataHeaders=["Message-ID"]
+                ).execute()
+            )
+            for h in sent_detail.get("payload", {}).get("headers", []):
+                if h["name"].lower() == "message-id":
+                    gmail_message_id_header = h["value"]
+                    break
+        except Exception:
+            pass  # Non-fatal
+
         return {
             "message_id": sent.get("id"),
             "thread_id": sent.get("threadId"),
+            "gmail_message_id_header": gmail_message_id_header,
             "to": to_email,
             "subject": subject,
         }
