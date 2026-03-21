@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { coldOutreachApi, autoresearchApi } from '@/lib/api';
 import type { OutreachProspect, RenderedEmail, MultiTouchStep } from '@/types';
-import { X, Mail, Copy, Check, Loader2, ChevronDown, AlertTriangle, Edit2, RotateCcw, ArrowRight } from 'lucide-react';
+import { X, Mail, Copy, Check, Loader2, ChevronDown, AlertTriangle, Edit2, RotateCcw, Send } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -321,16 +321,21 @@ export default function CopyEmailModal({
     }
   };
 
-  const handleCopyAndAdvance = async () => {
+  const [isSending, setIsSending] = useState(false);
+
+  const handleSendAndAdvance = async () => {
     if (!email) return;
+    if (!prospect.email) {
+      toast.error('Prospect has no email address');
+      return;
+    }
 
+    setIsSending(true);
     try {
-      const fullEmail = `To: ${email.to_email}\nSubject: ${replaceVars(editSubject)}\n\n${replaceVars(editBody)}`;
-      await navigator.clipboard.writeText(fullEmail);
-      setCopiedField('all');
-      toast.success('Full email copied!');
+      const finalSubject = replaceVars(editSubject);
+      const finalBody = replaceVars(editBody);
 
-      // Save custom values before advancing (await to avoid race condition)
+      // Save custom values before sending
       const wasEdited = editSubject !== email.subject || editBody !== email.body;
       if (wasEdited) {
         await coldOutreachApi.updateProspect(prospect.id, {
@@ -339,22 +344,30 @@ export default function CopyEmailModal({
         });
       }
 
+      // Send via Gmail API
+      await autoresearchApi.sendEmail(prospect.id, finalSubject, finalBody);
+      toast.success(`Email sent to ${prospect.email}`);
+
       // Track the exact email content for autoresearch learning
       try {
         await autoresearchApi.trackEmail(
           prospect.id,
           prospect.current_step || 1,
-          replaceVars(editSubject),
-          replaceVars(editBody),
+          finalSubject,
+          finalBody,
           wasEdited,
         );
       } catch {
-        // Non-fatal — don't block the copy flow
+        // Non-fatal
       }
 
+      // Advance to next step
       advanceMutation.mutate();
-    } catch {
-      toast.error('Failed to copy email');
+    } catch (err: any) {
+      const msg = err?.response?.data?.detail || err?.message || 'Failed to send email';
+      toast.error(msg);
+    } finally {
+      setIsSending(false);
     }
   };
 
@@ -675,6 +688,12 @@ export default function CopyEmailModal({
           ) : null}
 
           {/* Footer */}
+          {(() => {
+            // Check if current step is an email step
+            const currentStep = multiTouchSteps?.find(s => s.step_number === (prospect.current_step || 1));
+            const isEmailStep = !currentStep || ['EMAIL', 'FOLLOW_UP_EMAIL'].includes(currentStep.channel_type);
+
+            return (
           <div className="flex gap-3 justify-end pt-6 border-t border-stone-700/30 mt-6">
             <button
               type="button"
@@ -683,9 +702,38 @@ export default function CopyEmailModal({
             >
               Cancel
             </button>
+            {isEmailStep ? (
             <button
-              onClick={handleCopyAndAdvance}
-              disabled={!email || advanceMutation.isPending}
+              onClick={handleSendAndAdvance}
+              disabled={!email || !prospect.email || isSending || advanceMutation.isPending}
+              className={cn(
+                'flex items-center gap-2 px-4 py-2 text-sm font-medium text-white rounded-lg',
+                'bg-green-600 hover:bg-green-700',
+                'shadow-sm hover:shadow-md transition-all',
+                'disabled:opacity-50 disabled:cursor-not-allowed'
+              )}
+            >
+              {isSending ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Sending...
+                </>
+              ) : advanceMutation.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Advancing...
+                </>
+              ) : (
+                <>
+                  <Send className="w-4 h-4" />
+                  Send & Next Step
+                </>
+              )}
+            </button>
+            ) : (
+            <button
+              onClick={() => advanceMutation.mutate()}
+              disabled={advanceMutation.isPending}
               className={cn(
                 'flex items-center gap-2 px-4 py-2 text-sm font-medium text-white rounded-lg',
                 'bg-[--exec-accent] hover:bg-[--exec-accent-dark]',
@@ -698,19 +746,17 @@ export default function CopyEmailModal({
                   <Loader2 className="w-4 h-4 animate-spin" />
                   Advancing...
                 </>
-              ) : copiedField === 'all' ? (
-                <>
-                  <Check className="w-4 h-4" />
-                  Copied & Advancing...
-                </>
               ) : (
                 <>
-                  <ArrowRight className="w-4 h-4" />
-                  Copy & Next Step
+                  <Send className="w-4 h-4" />
+                  Mark Done & Next Step
                 </>
               )}
             </button>
+            )}
           </div>
+            );
+          })()}
         </div>
       </div>
     </div>,

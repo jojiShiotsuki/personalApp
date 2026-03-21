@@ -527,17 +527,16 @@ function PipelineProspectCard({
         isHighlighted && 'ring-2 ring-amber-400 shadow-[0_0_20px_rgba(251,191,36,0.3)] animate-pulse'
       )}
     >
-      {/* Header row: agency name + actions */}
-      <div className="flex items-start justify-between gap-2 mb-2">
-        <h4 className="text-sm font-semibold text-[--exec-text] flex-1 line-clamp-2 leading-tight">
-          {prospect.agency_name}
-        </h4>
-        <div className="flex items-center gap-1 flex-shrink-0">
+      {/* Action buttons row */}
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-1">
           {dueToday && !isMuted && (
             <span className="px-2 py-0.5 text-[10px] font-bold uppercase rounded-md bg-[--exec-accent]/20 text-[--exec-accent] tracking-wide">
               Today
             </span>
           )}
+        </div>
+        <div className="flex items-center gap-0.5">
           {prospect.email && (
             <button
               onClick={() => onViewMessage(prospect)}
@@ -574,9 +573,8 @@ function PipelineProspectCard({
             <button
               onClick={async () => {
                 const url = prompt('Paste the Loom URL (or leave empty to just mark as sent):');
-                if (url === null) return; // cancelled
+                if (url === null) return;
                 try {
-                  // Find experiment for this prospect
                   const exps = await autoresearchApi.listExperiments({ campaign_id: prospect.campaign_id, page: 1, page_size: 5 });
                   const exp = exps.experiments?.find((e: any) => e.prospect_id === prospect.id);
                   if (exp) {
@@ -604,6 +602,11 @@ function PipelineProspectCard({
           </button>
         </div>
       </div>
+
+      {/* Company name */}
+      <h4 className="text-sm font-semibold text-[--exec-text] line-clamp-2 leading-tight mb-1">
+        {prospect.agency_name}
+      </h4>
 
       {/* Contact name */}
       {prospect.contact_name && (
