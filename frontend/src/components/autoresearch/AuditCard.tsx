@@ -95,8 +95,8 @@ export default function AuditCard({ audit, onApprove, onReject, onFeedback, onDe
   const issueConfig = getIssueLabel(audit.issue_type);
   const secondaryIssueConfig = audit.secondary_issue ? getIssueLabel(audit.secondary_issue) : null;
 
-  const displaySubject = isEditing ? editedSubject : (audit.edited_subject || audit.generated_subject);
-  const displayBody = isEditing ? editedBody : (audit.edited_body || audit.generated_body);
+  const displaySubject = editedSubject || audit.edited_subject || audit.generated_subject;
+  const displayBody = editedBody || audit.edited_body || audit.generated_body;
 
   const handleApprove = () => {
     const finalSubject = isEditing ? editedSubject : undefined;
