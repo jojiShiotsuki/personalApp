@@ -236,6 +236,8 @@ async def audit_single_prospect(
             needs_verification=analysis.get("needs_verification", False),
             generated_subject=analysis.get("subject"),
             generated_subject_variant=analysis.get("subject_variant"),
+            detected_city=analysis.get("detected_city"),
+            detected_trade=analysis.get("detected_trade"),
             generated_body=analysis.get("body"),
             word_count=analysis.get("word_count"),
             desktop_screenshot=screenshots.get("desktop_screenshot"),
@@ -445,6 +447,8 @@ async def ingest_audit(
         model_used=payload.get("model_used"),
         tokens_used=payload.get("tokens_used"),
         ai_cost_estimate=payload.get("ai_cost_estimate"),
+        detected_city=payload.get("detected_city"),
+        detected_trade=payload.get("detected_trade"),
     )
     db.add(audit_result)
     db.commit()
@@ -596,7 +600,8 @@ def approve_audit(
         was_edited=audit.was_edited,
         edit_type=edit_type,
         subject_variant_used=body.subject_variant_used,
-        niche=prospect.niche if prospect else None,
+        niche=audit.detected_trade or (prospect.niche if prospect else None),
+        city=audit.detected_city,
         company=prospect.agency_name if prospect else None,
     )
     db.add(experiment)
@@ -1320,6 +1325,8 @@ async def reaudit_prospect(
             needs_verification=analysis.get("needs_verification", False),
             generated_subject=analysis.get("subject"),
             generated_subject_variant=analysis.get("subject_variant"),
+            detected_city=analysis.get("detected_city"),
+            detected_trade=analysis.get("detected_trade"),
             generated_body=analysis.get("body"),
             word_count=analysis.get("word_count"),
             desktop_screenshot=screenshots.get("desktop_screenshot"),
@@ -1795,6 +1802,8 @@ async def _run_batch_audit(
                     needs_verification=analysis.get("needs_verification", False),
                     generated_subject=analysis.get("subject"),
                     generated_subject_variant=analysis.get("subject_variant"),
+            detected_city=analysis.get("detected_city"),
+            detected_trade=analysis.get("detected_trade"),
                     generated_body=analysis.get("body"),
                     word_count=analysis.get("word_count"),
                     desktop_screenshot=screenshots.get("desktop_screenshot"),

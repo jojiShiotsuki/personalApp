@@ -144,7 +144,9 @@ RESPONSE FORMAT — Return ONLY valid JSON, no markdown fences:
   "subject_variant": "<alternative subject line, different angle/framing, under 8 words>",
   "body": "<full email body, under 80 words, Australian English>",
   "word_count": <integer word count of body>,
-  "site_quality": "<poor|below_average|average|above_average|good|not_target>"
+  "site_quality": "<poor|below_average|average|above_average|good|not_target>",
+  "detected_city": "<city/suburb extracted from the website, e.g. 'Sydney', 'Melbourne', 'Ormeau QLD', or null if not found>",
+  "detected_trade": "<specific trade extracted from the website, e.g. 'HVAC', 'plumbing', 'electrical', 'roofing', or null>"
 }
 
 If the site is genuinely good (site_quality = "good"), return null issue/subject/body.

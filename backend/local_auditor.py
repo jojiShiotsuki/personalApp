@@ -135,6 +135,9 @@ async def post_audit_result(
         "tokens_used": (meta.get("input_tokens", 0) + meta.get("output_tokens", 0)),
         "ai_cost_estimate": meta.get("cost_usd"),
         "pagespeed_score": pagespeed.get("score") if pagespeed else None,
+        "detected_city": audit_data.get("detected_city"),
+        "detected_trade": audit_data.get("detected_trade"),
+        "generated_subject_variant": audit_data.get("subject_variant"),
     }
 
     resp = await client.post(

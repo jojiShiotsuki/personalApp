@@ -31,6 +31,8 @@ class AuditResult(Base):
     generated_subject_variant = Column(String(500), nullable=True)
     generated_body = Column(Text, nullable=True)
     word_count = Column(Integer, nullable=True)
+    detected_city = Column(String(200), nullable=True)  # City/suburb extracted from website
+    detected_trade = Column(String(100), nullable=True)  # Specific trade extracted from website
 
     # Screenshots
     desktop_screenshot = Column(Text, nullable=True)
