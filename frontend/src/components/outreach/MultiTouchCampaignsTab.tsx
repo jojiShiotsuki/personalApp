@@ -588,9 +588,9 @@ function PipelineProspectCard({
       <div className="flex items-center gap-2 mb-2">
         <ProspectStatusBadge status={prospect.status} />
         {hasCustomMessage ? (
-          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/25">
+          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium rounded bg-blue-500/15 text-blue-400 border border-blue-500/25">
             <Mail className="w-2.5 h-2.5" />
-            Custom
+            Audited
           </span>
         ) : prospect.email ? (
           <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium rounded bg-stone-700/40 text-stone-500 border border-stone-600/30">
