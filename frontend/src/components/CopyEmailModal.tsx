@@ -107,33 +107,26 @@ export default function CopyEmailModal({
 
   const rawEmail = hasStepTemplates ? stepEmail : rawEmailFromApi;
 
-  // --- AI Follow-up generation for step 2+ ---
-  // Eligible when prospect has been audited (custom_email_subject exists from step 1 approval)
-  const currentMtStep = multiTouchSteps?.find(s => s.step_number === (prospect.current_step || 1));
-  const isCurrentStepEmail = !currentMtStep || ['EMAIL', 'FOLLOW_UP_EMAIL', 'email', 'follow_up_email'].includes(currentMtStep.channel_type);
-  const isFollowUpEligible = (prospect.current_step || 1) > 1 && !!prospect.custom_email_subject && isCurrentStepEmail;
+  // --- AI Follow-up generation (manual, via button) ---
+  const canGenerateFollowUp = (prospect.current_step || 1) > 1 && !!prospect.custom_email_subject;
+  const [isGeneratingFollowUp, setIsGeneratingFollowUp] = useState(false);
   const [aiFollowUpUsed, setAiFollowUpUsed] = useState(false);
 
-  const {
-    data: aiFollowUp,
-    isLoading: isGeneratingFollowUp,
-  } = useQuery({
-    queryKey: ['ai-followup', prospect.id, prospect.current_step],
-    queryFn: () => autoresearchApi.generateFollowup(prospect.id),
-    enabled: isOpen && isFollowUpEligible,
-    staleTime: 5 * 60 * 1000, // cache for 5 minutes
-    retry: false, // fall back to template on failure
-  });
-
-  // When AI follow-up arrives, populate the editable fields (once)
-  useEffect(() => {
-    if (aiFollowUp && !aiFollowUpUsed && isFollowUpEligible) {
-      setEditSubject(aiFollowUp.subject);
-      setEditBody(aiFollowUp.body);
+  const handleGenerateFollowUp = async () => {
+    setIsGeneratingFollowUp(true);
+    try {
+      const result = await autoresearchApi.generateFollowup(prospect.id);
+      setEditSubject(result.subject);
+      setEditBody(result.body);
       setAiFollowUpUsed(true);
-      setHasInitializedFromTemplate(true); // prevent template overwrite
+      setHasInitializedFromTemplate(true);
+      toast.success('AI follow-up generated');
+    } catch {
+      toast.error('Failed to generate follow-up');
+    } finally {
+      setIsGeneratingFollowUp(false);
     }
-  }, [aiFollowUp, aiFollowUpUsed, isFollowUpEligible]);
+  };
 
   // Build prospect variable replacements
   const prospectVars = useMemo(() => {
@@ -473,11 +466,24 @@ export default function CopyEmailModal({
                       AI Follow-up
                     </span>
                   )}
-                  {isGeneratingFollowUp && (
-                    <span className="text-xs text-blue-400 px-2 py-0.5 bg-blue-900/30 border border-blue-800 rounded-full flex items-center gap-1">
-                      <Loader2 className="w-3 h-3 animate-spin" />
-                      Generating...
-                    </span>
+                  {canGenerateFollowUp && !aiFollowUpUsed && (
+                    <button
+                      onClick={handleGenerateFollowUp}
+                      disabled={isGeneratingFollowUp}
+                      className="text-xs text-purple-400 px-2 py-0.5 bg-purple-900/30 border border-purple-800 rounded-full flex items-center gap-1 hover:bg-purple-900/50 transition-colors disabled:opacity-50"
+                    >
+                      {isGeneratingFollowUp ? (
+                        <>
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                          Generating...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="w-3 h-3" />
+                          Generate AI Follow-up
+                        </>
+                      )}
+                    </button>
                   )}
                 </div>
               </div>
