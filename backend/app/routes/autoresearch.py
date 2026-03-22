@@ -1924,11 +1924,15 @@ Return ONLY valid JSON: {{"subject": "LinkedIn Engage", "body": "suggested comme
     }
 
     # Email follow-up angle guidance
+    # Email follow-up angles — based on follow-up NUMBER (how many emails sent before this one)
+    # These match the user's multi-touch sequence strategy:
+    # Follow-up 1 = Customer Perspective Reframe
+    # Follow-up 2 = Competitor Urgency
+    # Follow-up 3 = Unsolicited Loom Drop
     email_angle_guidance = {
-        1: 'Brief check-in. "Just making sure this landed in your inbox." Keep it under 30 words.',
-        2: 'Offer the free Loom video walkthrough again, add gentle urgency. Keep it under 40 words.',
-        3: 'New angle: mention what competitors are doing or what opportunities they are missing. Keep it under 45 words.',
-        4: 'Final attempt. "Last one from me" tone. Make it easy to say yes or no. Keep it under 35 words.',
+        1: """CUSTOMER PERSPECTIVE REFRAME: Reframe the SAME problem from Step 1, but from the customer's point of view. What does their potential customer actually experience when they hit this issue? Make it visceral and specific. No new problems. No self-promotion. No Loom offer. Under 50 words.""",
+        2: """COMPETITOR URGENCY: Same problem from Step 1, but now add urgency by pointing out that while this is broken, competitors are picking up the leads instead. Don't name specific competitors. Keep it implied. No self-promotion. No Loom offer yet. Under 50 words.""",
+        3: """UNSOLICITED LOOM DROP: Announce that you recorded a free 3-minute Loom video showing exactly what's wrong and what a fix looks like. No permission asked. Just drop it. Include "[LOOM LINK]" as a placeholder where the Loom URL will go. Under 40 words.""",
     }
     default_email_angle = 'Very short one-liner. "Still happy to help if you need it." Under 20 words.'
 
