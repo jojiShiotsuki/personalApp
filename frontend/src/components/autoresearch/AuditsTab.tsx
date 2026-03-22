@@ -346,12 +346,11 @@ export default function AuditsTab() {
               }
             }}
             className={cn(
-              'inline-flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-xl transition-all duration-200',
-              'bg-purple-600/80 text-white hover:bg-purple-600 shadow-sm hover:shadow-md',
+              'px-3 py-2 text-sm font-medium rounded-xl transition-all duration-200',
+              'text-[--exec-text-secondary] bg-stone-700/50 hover:bg-stone-600/50',
             )}
             title="Force the AI to learn from all your feedback, edits, and rejections right now"
           >
-            <Sparkles className="w-4 h-4" />
             Learn Now
           </button>
         </div>
