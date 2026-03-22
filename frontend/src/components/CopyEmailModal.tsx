@@ -109,7 +109,9 @@ export default function CopyEmailModal({
 
   // --- AI Follow-up generation for step 2+ ---
   // Eligible when prospect has been audited (custom_email_subject exists from step 1 approval)
-  const isFollowUpEligible = (prospect.current_step || 1) > 1 && !!prospect.custom_email_subject;
+  const currentMtStep = multiTouchSteps?.find(s => s.step_number === (prospect.current_step || 1));
+  const isCurrentStepEmail = !currentMtStep || ['EMAIL', 'FOLLOW_UP_EMAIL', 'email', 'follow_up_email'].includes(currentMtStep.channel_type);
+  const isFollowUpEligible = (prospect.current_step || 1) > 1 && !!prospect.custom_email_subject && isCurrentStepEmail;
   const [aiFollowUpUsed, setAiFollowUpUsed] = useState(false);
 
   const {
