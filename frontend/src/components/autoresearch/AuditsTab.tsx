@@ -9,6 +9,7 @@ import {
   ChevronRight,
   ClipboardCheck,
   Filter,
+  Sparkles,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -327,6 +328,31 @@ export default function AuditsTab() {
           >
             <Play className="w-4 h-4" />
             Audit {auditCount}
+          </button>
+          <button
+            onClick={async () => {
+              try {
+                toast.info('Learning from your data...');
+                const insights = await autoresearchApi.refreshInsights();
+                if (insights && insights.length > 0) {
+                  const topInsight = insights[0]?.insight || 'Patterns analyzed';
+                  toast.success(`Learned ${insights.length} new insights. Top: "${topInsight.substring(0, 100)}..."`, { duration: 8000 });
+                } else {
+                  toast.info('Not enough data to generate insights yet. Keep auditing!');
+                }
+                queryClient.invalidateQueries({ queryKey: ['autoresearch-audits'] });
+              } catch {
+                toast.error('Failed to refresh learning');
+              }
+            }}
+            className={cn(
+              'inline-flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-xl transition-all duration-200',
+              'bg-purple-600/80 text-white hover:bg-purple-600 shadow-sm hover:shadow-md',
+            )}
+            title="Force the AI to learn from all your feedback, edits, and rejections right now"
+          >
+            <Sparkles className="w-4 h-4" />
+            Learn Now
           </button>
         </div>
       </div>
