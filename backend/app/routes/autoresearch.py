@@ -1827,6 +1827,20 @@ async def generate_followup_email(
             detail="Follow-ups are only generated for step 2 and above.",
         )
 
+    # --- Determine channel type for this step ---
+    from app.models.outreach import OutreachCampaign, MultiTouchStep as MTStep
+    campaign = db.query(OutreachCampaign).filter(OutreachCampaign.id == prospect.campaign_id).first()
+    current_mt_step = None
+    channel_type = "email"
+    if campaign:
+        current_mt_step = (
+            db.query(MTStep)
+            .filter(MTStep.campaign_id == campaign.id, MTStep.step_number == step_number)
+            .first()
+        )
+        if current_mt_step:
+            channel_type = (current_mt_step.channel_type or "email").lower()
+
     # --- Find the step 1 experiment (original audit email) ---
     step1_experiment = (
         db.query(Experiment)
@@ -1849,16 +1863,68 @@ async def generate_followup_email(
     issue_type = step1_experiment.issue_type or "unknown"
     issue_detail = step1_experiment.issue_detail or ""
 
-    # --- Build follow-up angle guidance per step ---
+    # --- Build channel-specific guidance ---
     follow_up_number = step_number - 1
-    angle_guidance = {
+    first_name = (prospect.contact_name or prospect.agency_name or "there").split()[0]
+
+    # Channel-specific prompt templates
+    channel_prompts = {
+        "linkedin_connect": f"""You are writing a LinkedIn connection request note for Joji Shiotsuki, an Australian WordPress developer.
+
+The prospect is "{first_name}" from "{prospect.agency_name}". Joji previously found this issue on their website: {issue_type} — {issue_detail}
+
+Write a SHORT LinkedIn connection request note (under 20 words). Do NOT mention the cold email or the website issue directly. Just be friendly and professional. Mention their trade/industry naturally.
+
+Examples of good connection notes:
+- "Hey {first_name}, fellow web dev working with tradies in Sydney. Would love to connect!"
+- "G'day {first_name}, saw your HVAC work — impressive projects. Let's connect!"
+
+RULES:
+- Under 20 words
+- No em dashes
+- No mention of emails or website audits
+- Casual, friendly, Australian
+
+Return ONLY valid JSON: {{"subject": "LinkedIn Connect", "body": "connection note here", "word_count": N}}""",
+
+        "linkedin_message": f"""You are writing a LinkedIn direct message for Joji Shiotsuki, an Australian WordPress developer.
+
+The prospect is "{first_name}" from "{prospect.agency_name}". They are already connected on LinkedIn. Joji previously emailed them about: {issue_type} — {issue_detail}
+
+Write a SHORT LinkedIn DM (under 30 words) that naturally references the website issue without being pushy. This is a different channel, so don't say "following up on my email."
+
+RULES:
+- Under 30 words
+- Casual LinkedIn tone
+- Reference the issue naturally (e.g. "noticed your site's [issue] — happy to help sort it")
+- No em dashes
+- No sign-off block (it's a DM, not an email)
+
+Return ONLY valid JSON: {{"subject": "LinkedIn Message", "body": "DM text here", "word_count": N}}""",
+
+        "linkedin_engage": f"""You are writing a comment/engagement idea for Joji Shiotsuki to use on the prospect's LinkedIn posts.
+
+The prospect is "{first_name}" from "{prospect.agency_name}" in the {prospect.niche or 'trades'} industry.
+
+Suggest a genuine, helpful comment Joji could leave on their LinkedIn post. Keep it relevant to their trade, not about websites.
+
+RULES:
+- Under 25 words
+- Genuine, not salesy
+- Related to their industry, not web development
+- Shows Joji is paying attention to their content
+
+Return ONLY valid JSON: {{"subject": "LinkedIn Engage", "body": "suggested comment here", "word_count": N}}""",
+    }
+
+    # Email follow-up angle guidance
+    email_angle_guidance = {
         1: 'Brief check-in. "Just making sure this landed in your inbox." Keep it under 30 words.',
         2: 'Offer the free Loom video walkthrough again, add gentle urgency. Keep it under 40 words.',
         3: 'New angle: mention what competitors are doing or what opportunities they are missing. Keep it under 45 words.',
         4: 'Final attempt. "Last one from me" tone. Make it easy to say yes or no. Keep it under 35 words.',
     }
-    default_angle = 'Very short one-liner. "Still happy to help if you need it." Under 20 words.'
-    angle = angle_guidance.get(follow_up_number, default_angle)
+    default_email_angle = 'Very short one-liner. "Still happy to help if you need it." Under 20 words.'
 
     # --- Get learning context for follow-up style ---
     followup_learning = ""
@@ -1882,10 +1948,14 @@ async def generate_followup_email(
     except Exception:
         pass  # Non-fatal
 
-    # --- Build the prompt ---
-    first_name = (prospect.contact_name or prospect.agency_name or "there").split()[0]
-
-    prompt = f"""You are writing a follow-up cold email for Joji Shiotsuki, an Australian WordPress developer.
+    # --- Build the prompt based on channel type ---
+    if channel_type in channel_prompts:
+        # LinkedIn steps — use channel-specific prompt
+        prompt = channel_prompts[channel_type]
+    else:
+        # Email steps — use follow-up email prompt
+        angle = email_angle_guidance.get(follow_up_number, default_email_angle)
+        prompt = f"""You are writing a follow-up cold email for Joji Shiotsuki, an Australian WordPress developer.
 
 ORIGINAL EMAIL (Step 1):
 Subject: {original_subject}
@@ -1904,7 +1974,7 @@ RULES:
 - Under 50 words total
 - Australian English, conversational
 - No em dashes
-- End with: Cheers,\nJoji Shiotsuki | Joji Web Solutions | jojishiotsuki.com\n\nNot interested? Just reply "stop" and I won't email again.
+- End with: Cheers,\\nJoji Shiotsuki | Joji Web Solutions | jojishiotsuki.com\\n\\nNot interested? Just reply "stop" and I won't email again.
 - Subject MUST be exactly "Re: {original_subject}"
 {followup_learning}
 Return ONLY valid JSON (no markdown fences):
