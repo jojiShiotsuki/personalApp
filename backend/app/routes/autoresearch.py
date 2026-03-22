@@ -1841,7 +1841,7 @@ async def generate_followup_email(
         if current_mt_step:
             channel_type = (current_mt_step.channel_type or "email").lower()
 
-    # --- Find the step 1 experiment (original audit email) ---
+    # --- Find the step 1 context (experiment OR custom email fields) ---
     step1_experiment = (
         db.query(Experiment)
         .filter(
@@ -1852,16 +1852,22 @@ async def generate_followup_email(
         .first()
     )
 
-    if not step1_experiment or not step1_experiment.subject:
+    if step1_experiment and step1_experiment.subject:
+        original_subject = step1_experiment.subject or ""
+        original_body = step1_experiment.body or ""
+        issue_type = step1_experiment.issue_type or "unknown"
+        issue_detail = step1_experiment.issue_detail or ""
+    elif prospect.custom_email_subject:
+        # Fallback: use the manually written email from the prospect record
+        original_subject = prospect.custom_email_subject or ""
+        original_body = prospect.custom_email_body or ""
+        issue_type = "unknown"
+        issue_detail = "Previously identified website issue (details in original email)"
+    else:
         raise HTTPException(
             status_code=404,
-            detail="No step 1 audit email found for this prospect. Fall back to template.",
+            detail="No step 1 email found for this prospect. Write a custom email first.",
         )
-
-    original_subject = step1_experiment.subject or ""
-    original_body = step1_experiment.body or ""
-    issue_type = step1_experiment.issue_type or "unknown"
-    issue_detail = step1_experiment.issue_detail or ""
 
     # --- Build channel-specific guidance ---
     follow_up_number = step_number - 1
