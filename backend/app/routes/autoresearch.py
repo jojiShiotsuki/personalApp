@@ -1953,8 +1953,19 @@ Return ONLY valid JSON: {{"subject": "LinkedIn Engage", "body": "suggested comme
         # LinkedIn steps — use channel-specific prompt
         prompt = channel_prompts[channel_type]
     else:
-        # Email steps — use follow-up email prompt
-        angle = email_angle_guidance.get(follow_up_number, default_email_angle)
+        # Email steps — count how many EMAIL steps came before this one
+        email_followup_number = 0
+        if campaign:
+            all_steps = (
+                db.query(MTStep)
+                .filter(MTStep.campaign_id == campaign.id, MTStep.step_number < step_number)
+                .all()
+            )
+            email_followup_number = sum(
+                1 for s in all_steps
+                if (s.channel_type or "").lower() in ("email", "follow_up_email")
+            )
+        angle = email_angle_guidance.get(email_followup_number, default_email_angle)
         prompt = f"""You are writing a follow-up cold email for Joji Shiotsuki, an Australian WordPress developer.
 
 ORIGINAL EMAIL (Step 1):
@@ -1962,7 +1973,7 @@ Subject: {original_subject}
 Body: {original_body}
 Issue found: {issue_type} — {issue_detail}
 
-This is follow-up #{follow_up_number}. The prospect has NOT replied to the previous emails.
+This is email follow-up #{email_followup_number}. The prospect has NOT replied to the previous emails.
 The prospect's first name is "{first_name}".
 
 FOLLOW-UP ANGLE FOR THIS STEP:
