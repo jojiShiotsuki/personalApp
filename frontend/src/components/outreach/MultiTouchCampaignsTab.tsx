@@ -570,23 +570,37 @@ function PipelineProspectCard({
           {!isMuted && (
             <button
               onClick={async () => {
-                const url = prompt('Paste the Loom URL (or leave empty to just mark as sent):');
-                if (url === null) return;
                 try {
-                  const exps = await autoresearchApi.listExperiments({ campaign_id: prospect.campaign_id, page: 1, page_size: 5 });
+                  const exps = await autoresearchApi.listExperiments({ campaign_id: prospect.campaign_id, page: 1, page_size: 10 });
                   const exp = exps.experiments?.find((e: any) => e.prospect_id === prospect.id);
-                  if (exp) {
+                  if (!exp) {
+                    // No experiment — just mark as sent
+                    const url = prompt('Paste the Loom URL (or leave empty to just mark as sent):');
+                    if (url === null) return;
+                    toast.error('No experiment found for this prospect');
+                    return;
+                  }
+
+                  if (exp.loom_sent) {
+                    // Already sent — ask if watched
+                    const watched = confirm('Loom already sent. Mark as watched by the prospect?');
+                    if (watched) {
+                      await autoresearchApi.updateLoomStatus(exp.id, { loom_watched: true });
+                      toast.success('Loom marked as watched');
+                    }
+                  } else {
+                    // Not sent yet — paste URL
+                    const url = prompt('Paste the Loom URL (or leave empty to just mark as sent):');
+                    if (url === null) return;
                     await autoresearchApi.updateLoomStatus(exp.id, { loom_sent: true, loom_url: url || undefined });
                     toast.success('Loom marked as sent');
-                  } else {
-                    toast.error('No experiment found for this prospect');
                   }
                 } catch {
                   toast.error('Failed to update Loom status');
                 }
               }}
               className="p-1.5 text-[--exec-text-muted] hover:text-purple-400 hover:bg-purple-500/15 rounded-md transition-colors"
-              title="Mark Loom sent"
+              title="Loom tracking"
             >
               <Video className="w-3.5 h-3.5" />
             </button>
