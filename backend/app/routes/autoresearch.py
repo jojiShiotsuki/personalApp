@@ -1869,15 +1869,15 @@ async def generate_followup_email(
 
     # Channel-specific prompt templates
     channel_prompts = {
-        "linkedin_connect": f"""You are writing a LinkedIn connection request note for Joji Shiotsuki, an Australian WordPress developer.
+        "linkedin_connect": f"""You are writing a LinkedIn connection request note for Joji Shiotsuki, who works with trade businesses across Australia on their web presence.
 
-The prospect is "{first_name}" from "{prospect.agency_name}". Joji previously found this issue on their website: {issue_type} — {issue_detail}
+The prospect is "{first_name}" from "{prospect.agency_name}" in the {prospect.niche or 'trades'} industry.
 
-Write a SHORT LinkedIn connection request note (under 20 words). Do NOT mention the cold email or the website issue directly. Just be friendly and professional. Mention their trade/industry naturally.
+Write a SHORT LinkedIn connection request note (under 20 words). Do NOT mention cold emails, website audits, or website issues. Position Joji as someone who works with businesses in their industry, not as a developer.
 
 Examples of good connection notes:
-- "Hey {first_name}, fellow web dev working with tradies in Sydney. Would love to connect!"
-- "G'day {first_name}, saw your HVAC work — impressive projects. Let's connect!"
+- "Hi {first_name}, I work with {prospect.niche or 'trade'} businesses across Australia on their web presence. Would love to connect."
+- "G'day {first_name}, great to see your work in {prospect.niche or 'the trades'}. Let's connect!"
 
 RULES:
 - Under 20 words
@@ -1887,7 +1887,7 @@ RULES:
 
 Return ONLY valid JSON: {{"subject": "LinkedIn Connect", "body": "connection note here", "word_count": N}}""",
 
-        "linkedin_message": f"""You are writing a LinkedIn direct message for Joji Shiotsuki, an Australian WordPress developer.
+        "linkedin_message": f"""You are writing a LinkedIn direct message for Joji Shiotsuki, who works with trade businesses across Australia on their web presence.
 
 The prospect is "{first_name}" from "{prospect.agency_name}". They are already connected on LinkedIn. Joji previously emailed them about: {issue_type} — {issue_detail}
 
@@ -1966,7 +1966,7 @@ Return ONLY valid JSON: {{"subject": "LinkedIn Engage", "body": "suggested comme
                 if (s.channel_type or "").lower() in ("email", "follow_up_email")
             )
         angle = email_angle_guidance.get(email_followup_number, default_email_angle)
-        prompt = f"""You are writing a follow-up cold email for Joji Shiotsuki, an Australian WordPress developer.
+        prompt = f"""You are writing a follow-up cold email for Joji Shiotsuki, who works with trade businesses across Australia on their web presence.
 
 ORIGINAL EMAIL (Step 1):
 Subject: {original_subject}
