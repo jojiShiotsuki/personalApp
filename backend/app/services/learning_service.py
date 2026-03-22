@@ -557,46 +557,49 @@ class LearningService:
                 sections.append(f"  {row.sentiment}: {avg_time} min avg (n={row.total})")
             sections.append("")
 
-        # 7. Style patterns from successful vs unsuccessful emails
-        replied_emails = (
-            db.query(Experiment.body, Experiment.subject, Experiment.word_count)
-            .filter(Experiment.replied.is_(True), Experiment.body.isnot(None))
-            .all()
-        )
-        not_replied_emails = (
-            db.query(Experiment.body, Experiment.subject, Experiment.word_count)
+        # 7. Style patterns from ALL sent messages (emails + LinkedIn)
+        all_sent = (
+            db.query(Experiment.body, Experiment.subject, Experiment.word_count, Experiment.step_number, Experiment.replied, Experiment.was_edited)
             .filter(
-                Experiment.replied.is_(False),
                 Experiment.status.in_(sent_statuses),
                 Experiment.body.isnot(None),
             )
-            .limit(50)  # Sample to keep prompt size manageable
+            .order_by(Experiment.created_at.desc())
+            .limit(100)
             .all()
         )
 
-        if replied_emails:
-            # Split into step 1 (initial audit) and follow-ups
-            step1_replied = [r for r in replied_emails if (r.step_number or 1) == 1]
-            followup_replied = [r for r in replied_emails if (r.step_number or 1) > 1]
+        # Split by outcome and type
+        step1_replied = [r for r in all_sent if r.replied and (r.step_number or 1) == 1]
+        followup_replied = [r for r in all_sent if r.replied and (r.step_number or 1) > 1]
+        not_replied = [r for r in all_sent if not r.replied]
+        user_edited = [r for r in all_sent if r.was_edited]
 
-            if step1_replied:
-                sections.append("SUCCESSFUL STEP 1 EMAILS (initial audit emails that got replies):")
-                for i, row in enumerate(step1_replied[:5]):
-                    sections.append(f"  Email {i+1} (subject: {row.subject}, {row.word_count} words, step {row.step_number}):")
-                    sections.append(f"  {row.body[:300]}")
-                    sections.append("")
+        if step1_replied:
+            sections.append("SUCCESSFUL STEP 1 EMAILS (initial audit emails that got replies):")
+            for i, row in enumerate(step1_replied[:5]):
+                sections.append(f"  Email {i+1} (subject: {row.subject}, {row.word_count} words):")
+                sections.append(f"  {row.body[:300]}")
+                sections.append("")
 
-            if followup_replied:
-                sections.append("SUCCESSFUL FOLLOW-UP EMAILS (steps 2+ that got replies — learn what follow-up angles work):")
-                for i, row in enumerate(followup_replied[:5]):
-                    sections.append(f"  Follow-up {i+1} (step {row.step_number}, subject: {row.subject}, {row.word_count} words):")
-                    sections.append(f"  {row.body[:300]}")
-                    sections.append("")
+        if followup_replied:
+            sections.append("SUCCESSFUL FOLLOW-UP MESSAGES (steps 2+ that got replies — learn what works):")
+            for i, row in enumerate(followup_replied[:5]):
+                sections.append(f"  Step {row.step_number} (subject: {row.subject}, {row.word_count} words):")
+                sections.append(f"  {row.body[:300]}")
+                sections.append("")
 
-        if not_replied_emails:
-            sections.append("SAMPLE UNSUCCESSFUL EMAIL BODIES (no reply — what's different?):")
-            for i, row in enumerate(not_replied_emails[:5]):
-                sections.append(f"  Email {i+1} (step {row.step_number or 1}, subject: {row.subject}, {row.word_count} words):")
+        if user_edited:
+            sections.append("USER-EDITED MESSAGES (the user changed the AI draft — THIS IS THEIR PREFERRED STYLE):")
+            for i, row in enumerate(user_edited[:10]):
+                sections.append(f"  Step {row.step_number or 1} ({row.word_count} words, {'replied' if row.replied else 'no reply'}):")
+                sections.append(f"  {row.body[:300]}")
+                sections.append("")
+
+        if not_replied:
+            sections.append("SAMPLE UNSUCCESSFUL MESSAGES (no reply — what's different?):")
+            for i, row in enumerate(not_replied[:5]):
+                sections.append(f"  Step {row.step_number or 1} ({row.word_count} words):")
                 sections.append(f"  {row.body[:300]}")
                 sections.append("")
 
