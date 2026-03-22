@@ -28,10 +28,7 @@ def upgrade() -> None:
     op.add_column('experiments', sa.Column('gmail_message_id_header', sa.String(200), nullable=True))
     op.add_column('experiments', sa.Column('sent_hour', sa.Integer(), nullable=True))
     op.add_column('experiments', sa.Column('step_delay_days', sa.Integer(), nullable=True))
-    op.add_column('experiments', sa.Column('loom_sent', sa.Boolean(), server_default='false', nullable=True))
-    op.add_column('experiments', sa.Column('loom_url', sa.String(500), nullable=True))
-    op.add_column('experiments', sa.Column('loom_watched', sa.Boolean(), nullable=True))
-    op.add_column('experiments', sa.Column('subject_variant_used', sa.String(10), nullable=True))
+    # loom_sent, loom_url, loom_watched, subject_variant_used already added in previous migration f1a2b3c4d5e6
 
     # EmailOpen table
     op.create_table(
@@ -51,10 +48,6 @@ def upgrade() -> None:
 def downgrade() -> None:
     op.drop_table('email_opens')
 
-    op.drop_column('experiments', 'subject_variant_used')
-    op.drop_column('experiments', 'loom_watched')
-    op.drop_column('experiments', 'loom_url')
-    op.drop_column('experiments', 'loom_sent')
     op.drop_column('experiments', 'step_delay_days')
     op.drop_column('experiments', 'sent_hour')
     op.drop_column('experiments', 'gmail_message_id_header')
