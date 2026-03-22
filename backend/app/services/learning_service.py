@@ -654,6 +654,27 @@ class LearningService:
             sections.append(f"  Reply rate (Loom recipients): {reply_rate}%")
             sections.append("")
 
+        # 10. LinkedIn acceptance patterns
+        linkedin_stats = (
+            db.query(
+                Experiment.issue_type,
+                func.count(Experiment.id).label("total"),
+                func.sum(case((Experiment.category == "linkedin_accepted", 1), else_=0)).label("accepted"),
+            )
+            .filter(
+                Experiment.category == "linkedin_accepted",
+                Experiment.issue_type.isnot(None),
+            )
+            .group_by(Experiment.issue_type)
+            .all()
+        )
+
+        if linkedin_stats:
+            sections.append("LINKEDIN ACCEPTANCE BY ISSUE TYPE (which audit angles lead to LinkedIn accepts):")
+            for row in linkedin_stats:
+                sections.append(f"  {row.issue_type}: {row.accepted}/{row.total} accepted")
+            sections.append("")
+
         sections.append(
             "IMPORTANT: Analyze the WRITING STYLE differences between successful and "
             "unsuccessful emails. Look for: sentence length, use of specific numbers/quotes, "

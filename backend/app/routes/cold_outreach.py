@@ -1087,6 +1087,31 @@ def mark_mt_connected(campaign_id: int, prospect_id: int, db: Session = Depends(
     prospect.linkedin_connected = not prospect.linkedin_connected
     message = "LinkedIn connection confirmed" if prospect.linkedin_connected else "LinkedIn connection unmarked"
 
+    # Track LinkedIn acceptance in autoresearch experiments
+    if prospect.linkedin_connected:
+        try:
+            # Find the linkedin_connect experiment for this prospect
+            linkedin_exp = (
+                db.query(Experiment)
+                .filter(
+                    Experiment.prospect_id == prospect.id,
+                    Experiment.step_number == prospect.current_step,
+                )
+                .order_by(Experiment.created_at.desc())
+                .first()
+            )
+            if linkedin_exp:
+                linkedin_exp.replied = True
+                linkedin_exp.reply_at = datetime.utcnow()
+                linkedin_exp.sentiment = "positive"
+                linkedin_exp.category = "linkedin_accepted"
+                if linkedin_exp.sent_at:
+                    diff = datetime.utcnow() - linkedin_exp.sent_at
+                    linkedin_exp.response_time_minutes = int(diff.total_seconds() / 60)
+                logger.info("Tracked LinkedIn acceptance for prospect %d (experiment %d)", prospect.id, linkedin_exp.id)
+        except Exception as e:
+            logger.warning("Failed to track LinkedIn acceptance for prospect %d: %s", prospect.id, e)
+
     db.commit()
     db.refresh(prospect)
 
