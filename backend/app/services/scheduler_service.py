@@ -32,6 +32,41 @@ async def poll_gmail_job():
     finally:
         db.close()
 
+async def vault_sync_job():
+    """Scheduled job: sync Obsidian vault from GitHub for all configured users."""
+    from app.database.connection import SessionLocal
+    from app.models.joji_ai import JojiAISettings
+    from app.services.vault_sync_service import VaultSyncService
+
+    db = SessionLocal()
+    try:
+        settings_list = (
+            db.query(JojiAISettings)
+            .filter(JojiAISettings.github_repo_url.isnot(None))
+            .all()
+        )
+        if not settings_list:
+            return
+
+        vault_service = VaultSyncService()
+
+        for settings in settings_list:
+            try:
+                result = await vault_service.sync_vault(db, settings)
+                if result.get("files_synced", 0) > 0:
+                    logger.info(
+                        "Vault sync for user %d: %s", settings.user_id, result
+                    )
+            except Exception as e:
+                logger.error(
+                    "Vault sync failed for user %d: %s", settings.user_id, e
+                )
+    except Exception as e:
+        logger.error("Vault sync job failed: %s", e)
+    finally:
+        db.close()
+
+
 async def daily_learning_refresh():
     """Daily job: refresh learning insights and style patterns."""
     from app.database.connection import SessionLocal
@@ -59,6 +94,13 @@ def start_scheduler():
         replace_existing=True
     )
     scheduler.add_job(
+        vault_sync_job,
+        "interval",
+        minutes=30,
+        id="vault_sync",
+        replace_existing=True,
+    )
+    scheduler.add_job(
         daily_learning_refresh,
         "cron",
         hour=22,
@@ -66,7 +108,10 @@ def start_scheduler():
         replace_existing=True,
     )
     scheduler.start()
-    logger.info("Scheduler started with Gmail polling every 5 minutes and daily learning refresh at 22:00")
+    logger.info(
+        "Scheduler started with Gmail polling every 5 min, "
+        "vault sync every 30 min, and daily learning refresh at 22:00"
+    )
 
 def stop_scheduler():
     """Gracefully shut down the scheduler."""
