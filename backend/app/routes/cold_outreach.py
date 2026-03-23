@@ -300,12 +300,13 @@ def create_campaign(data: CampaignCreate, db: Session = Depends(get_db)):
             step = MultiTouchStep(
                 campaign_id=campaign.id,
                 step_number=step_data.step_number,
-                channel_type=step_data.channel_type.value,
+                channel_type=step_data.channel_type,
                 delay_days=step_data.delay_days,
                 template_subject=step_data.template_subject,
                 template_content=step_data.template_content,
                 instruction_text=step_data.instruction_text,
                 requires_linkedin_connected=step_data.requires_linkedin_connected,
+                loom_script=step_data.loom_script,
             )
             db.add(step)
 
@@ -964,12 +965,13 @@ def update_campaign_steps(campaign_id: int, steps: List[MultiTouchStepCreate], d
         step = MultiTouchStep(
             campaign_id=campaign_id,
             step_number=step_data.step_number,
-            channel_type=step_data.channel_type.value,
+            channel_type=step_data.channel_type,
             delay_days=step_data.delay_days,
             template_subject=step_data.template_subject,
             template_content=step_data.template_content,
             instruction_text=step_data.instruction_text,
             requires_linkedin_connected=step_data.requires_linkedin_connected,
+            loom_script=step_data.loom_script,
         )
         db.add(step)
         new_steps.append(step)
