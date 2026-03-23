@@ -1896,11 +1896,6 @@ async def generate_followup_email(
         raise HTTPException(status_code=404, detail="Prospect not found")
 
     step_number = prospect.current_step or 1
-    if step_number < 2:
-        raise HTTPException(
-            status_code=400,
-            detail="Follow-ups are only generated for step 2 and above.",
-        )
 
     # --- Determine channel type for this step ---
     from app.models.outreach import OutreachCampaign, MultiTouchStep as MTStep
@@ -1916,7 +1911,104 @@ async def generate_followup_email(
         if current_mt_step:
             channel_type = (current_mt_step.channel_type or "email").lower()
 
-    # --- Find the step 1 context (experiment OR custom email fields) ---
+    # --- STEP 1: Generate initial cold email (no previous email to reference) ---
+    if step_number == 1:
+        first_name = (prospect.contact_name or prospect.agency_name or "there").split()[0]
+
+        # Get audit result if available
+        audit = (
+            db.query(AuditResult)
+            .filter(AuditResult.prospect_id == prospect_id)
+            .order_by(AuditResult.created_at.desc())
+            .first()
+        )
+
+        # Get website issues
+        website_issues = prospect.website_issues or []
+        issues_text = ", ".join(website_issues) if website_issues else "general website issues"
+
+        audit_context = ""
+        if audit:
+            audit_context = f"""
+AUDIT FINDINGS:
+- Primary issue: {audit.issue_type or 'unknown'} - {audit.issue_detail or 'N/A'}
+- Secondary issue: {audit.secondary_issue or 'none'} - {audit.secondary_detail or 'N/A'}
+- Site quality: {audit.site_quality or 'unknown'}"""
+
+        # Get learning context
+        step1_learning = ""
+        try:
+            from app.services.learning_service import LearningService
+            learning_svc = LearningService()
+            step1_learning = learning_svc.build_learning_context(db, prospect.niche) or ""
+        except Exception:
+            pass
+
+        step1_prompt = f"""You are writing an initial cold email for Joji Shiotsuki, who works with trade businesses across Australia on their web presence.
+
+PROSPECT:
+- Name: {first_name}
+- Company: {prospect.agency_name}
+- Industry: {prospect.niche or 'trades'}
+- Website: {prospect.website or 'unknown'}
+- Detected issues: {issues_text}
+{audit_context}
+
+Write a short, punchy initial cold email that identifies a specific problem with their website and offers to help fix it.
+
+{custom_instruction if custom_instruction else ''}
+
+RULES:
+- Start with "G'day {first_name},"
+- Lead with the most impactful issue found (be SPECIFIC to their site, not generic)
+- Use a funny analogy or witty comparison to make the issue memorable
+- Australian English, conversational, pub banter tone
+- No em dashes
+- Under 50 words total (excluding sign-off)
+- End with: Cheers,\\nJoji Shiotsuki | Joji Web Solutions | jojishiotsuki.com\\n\\nNot interested? Just reply "stop" and I won't email again.
+{step1_learning}
+Return ONLY valid JSON (no markdown fences):
+{{"subject": "short punchy subject about the issue", "body": "email body here", "word_count": N}}"""
+
+        model = os.getenv("AUTORESEARCH_FOLLOWUP_MODEL", "claude-sonnet-4-6")
+        try:
+            response = await svc.client.messages.create(
+                model=model,
+                max_tokens=400,
+                messages=[{"role": "user", "content": step1_prompt}],
+            )
+        except Exception as api_err:
+            logger.error("Step 1 generation failed: %s", api_err, exc_info=True)
+            raise HTTPException(status_code=502, detail=f"Claude API error: {api_err}")
+
+        raw_text = ""
+        for block in response.content:
+            if hasattr(block, "text"):
+                raw_text += block.text
+
+        result = _parse_followup_json(raw_text)
+        if "error" in result:
+            raise HTTPException(status_code=502, detail=f"Failed to parse: {result.get('error')}")
+
+        input_tokens = getattr(response.usage, "input_tokens", 0)
+        output_tokens = getattr(response.usage, "output_tokens", 0)
+        cost_usd = (
+            (input_tokens * _FOLLOWUP_INPUT_PRICE_PER_M / 1_000_000)
+            + (output_tokens * _FOLLOWUP_OUTPUT_PRICE_PER_M / 1_000_000)
+        )
+
+        return {
+            "subject": result.get("subject", ""),
+            "body": result.get("body", ""),
+            "loom_script": "",
+            "word_count": result.get("word_count", len(result.get("body", "").split())),
+            "step_number": 1,
+            "follow_up_number": 0,
+            "model": model,
+            "cost_usd": round(cost_usd, 6),
+        }
+
+    # --- STEP 2+: Find the step 1 context (experiment OR custom email fields) ---
     step1_experiment = (
         db.query(Experiment)
         .filter(
@@ -1928,7 +2020,6 @@ async def generate_followup_email(
     )
 
     if step1_experiment and step1_experiment.subject:
-        # Strip any existing "Re:" prefixes to get the clean original subject
         original_subject = step1_experiment.subject or ""
         while original_subject.lower().startswith("re:"):
             original_subject = original_subject[3:].strip()
@@ -1936,7 +2027,6 @@ async def generate_followup_email(
         issue_type = step1_experiment.issue_type or "unknown"
         issue_detail = step1_experiment.issue_detail or ""
     elif prospect.custom_email_subject:
-        # Fallback: use the manually written email from the prospect record
         original_subject = prospect.custom_email_subject or ""
         while original_subject.lower().startswith("re:"):
             original_subject = original_subject[3:].strip()

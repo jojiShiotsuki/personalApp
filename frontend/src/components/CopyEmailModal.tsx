@@ -110,7 +110,8 @@ export default function CopyEmailModal({
   const rawEmail = hasStepTemplates ? stepEmail : rawEmailFromApi;
 
   // --- AI Follow-up generation (manual, via button) ---
-  const canGenerateFollowUp = (prospect.current_step || 1) > 1 && !!prospect.custom_email_subject;
+  const isStep1 = (prospect.current_step || 1) === 1;
+  const canGenerateFollowUp = isStep1 || !!prospect.custom_email_subject;
   const [isGeneratingFollowUp, setIsGeneratingFollowUp] = useState(false);
   const [aiFollowUpUsed, setAiFollowUpUsed] = useState(false);
   const [regenerateInstruction, setRegenerateInstruction] = useState('');
@@ -529,7 +530,7 @@ export default function CopyEmailModal({
                 'disabled:opacity-50 disabled:cursor-not-allowed'
               )}
             >
-              {isGeneratingFollowUp ? 'Generating...' : 'Generate AI Follow-up'}
+              {isGeneratingFollowUp ? 'Generating...' : isStep1 ? 'Generate AI Email' : 'Generate AI Follow-up'}
             </button>
           )}
 
