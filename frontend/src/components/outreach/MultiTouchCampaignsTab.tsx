@@ -56,6 +56,7 @@ const CHANNEL_COLORS: Record<StepChannelType, { bg: string; text: string; dot: s
   [StepChannelType.LINKEDIN_MESSAGE]: { bg: 'bg-indigo-500/20', text: 'text-indigo-400', dot: 'bg-indigo-400' },
   [StepChannelType.LINKEDIN_ENGAGE]: { bg: 'bg-amber-500/20', text: 'text-amber-400', dot: 'bg-amber-400' },
   [StepChannelType.FOLLOW_UP_EMAIL]: { bg: 'bg-purple-500/20', text: 'text-purple-400', dot: 'bg-purple-400' },
+  [StepChannelType.LOOM_EMAIL]: { bg: 'bg-rose-500/20', text: 'text-rose-400', dot: 'bg-rose-400' },
 };
 
 const CHANNEL_LABELS: Record<StepChannelType, string> = {
@@ -64,6 +65,7 @@ const CHANNEL_LABELS: Record<StepChannelType, string> = {
   [StepChannelType.LINKEDIN_MESSAGE]: 'LI Message',
   [StepChannelType.LINKEDIN_ENGAGE]: 'LI Engage',
   [StepChannelType.FOLLOW_UP_EMAIL]: 'Follow-up',
+  [StepChannelType.LOOM_EMAIL]: 'Loom Email',
 };
 
 const CHANNEL_ICONS: Record<StepChannelType, typeof Mail> = {
@@ -72,6 +74,7 @@ const CHANNEL_ICONS: Record<StepChannelType, typeof Mail> = {
   [StepChannelType.LINKEDIN_MESSAGE]: MessageSquare,
   [StepChannelType.LINKEDIN_ENGAGE]: Heart,
   [StepChannelType.FOLLOW_UP_EMAIL]: Reply,
+  [StepChannelType.LOOM_EMAIL]: Video,
 };
 
 // Helpers
