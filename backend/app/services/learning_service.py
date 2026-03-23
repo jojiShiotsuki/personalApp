@@ -31,7 +31,12 @@ INSIGHT_SYSTEM_PROMPT = (
     "3. Loom VIDEO SCRIPT insights (what script styles, lengths, structures, and "
     "talking points correlate with replies/conversions. Compare scripts from Loom "
     "steps that got replies vs those that didn't. Look at how specific vs generic "
-    "the scripts are, how they reference the audit issue, and CTA phrasing.)\n\n"
+    "the scripts are, how they reference the audit issue, and CTA phrasing.)\n"
+    "4. REJECTION insights — if audit rejection data is provided, identify which "
+    "niches, business types, or patterns the user keeps rejecting as not_target_audience "
+    "or for other reasons. Generate recommendations like 'SKIP businesses in the X niche' "
+    "or 'do NOT audit companies that appear to be Y'. These are critical for the AI "
+    "auditor to avoid wasting time on prospects the user will reject.\n\n"
     "For style insights, be SPECIFIC: instead of 'keep it short', say "
     "'keep under 65 words — replied emails averaged 62 vs 74 for non-replied'. "
     "Instead of 'be specific', say 'use exact numbers and quotes from the site "
@@ -65,12 +70,25 @@ class LearningService:
     # ──────────────────────────────────────────
 
     async def generate_insights(self, db: Session) -> list[dict[str, Any]]:
-        """Analyze all experiment data, generate insights via Claude, store them."""
+        """Analyze experiment data and rejection patterns, generate insights via Claude."""
 
-        summary = self._build_experiment_summary(db)
-        if summary is None:
-            logger.info("Not enough experiment data to generate insights")
+        summary_parts: list[str] = []
+
+        # Source 1: Experiment performance data (if enough exists)
+        experiment_summary = self._build_experiment_summary(db)
+        if experiment_summary:
+            summary_parts.append(experiment_summary)
+
+        # Source 2: Rejection patterns (always included)
+        rejection_summary = self._build_rejection_summary(db)
+        if rejection_summary:
+            summary_parts.append(rejection_summary)
+
+        if not summary_parts:
+            logger.info("No experiment or rejection data to generate insights from")
             return []
+
+        summary = "\n\n".join(summary_parts)
 
         total_experiments = (
             db.query(func.count(Experiment.id))
@@ -304,7 +322,119 @@ class LearningService:
         return current_count - last_refresh_count >= REFRESH_THRESHOLD
 
     # ──────────────────────────────────────────
-    # Rejection-based learning
+    # Rejection summaries (for insight generation)
+    # ──────────────────────────────────────────
+
+    def _build_rejection_summary(self, db: Session) -> Optional[str]:
+        """Build a text summary of rejection patterns for Claude to analyze.
+
+        This feeds into generate_insights() so Claude can produce
+        actionable insights from rejection data (separate from the
+        _build_rejection_context which feeds directly into audit prompts).
+        """
+
+        total_rejections = (
+            db.query(func.count(AuditResult.id))
+            .filter(AuditResult.status == "rejected")
+            .scalar()
+        ) or 0
+
+        if total_rejections == 0:
+            return None
+
+        sections: list[str] = [
+            f"AUDIT REJECTION DATA ({total_rejections} total rejections)\n",
+            "The user reviewed AI-generated audits and rejected them. "
+            "Analyze these patterns to generate insights that prevent the AI "
+            "from making the same mistakes.\n",
+        ]
+
+        # Rejection counts by category
+        category_stats = (
+            db.query(
+                AuditResult.rejection_category,
+                func.count(AuditResult.id).label("count"),
+            )
+            .filter(
+                AuditResult.status == "rejected",
+                AuditResult.rejection_category.isnot(None),
+            )
+            .group_by(AuditResult.rejection_category)
+            .order_by(func.count(AuditResult.id).desc())
+            .all()
+        )
+
+        if category_stats:
+            sections.append("REJECTION COUNTS BY CATEGORY:")
+            for row in category_stats:
+                sections.append(f"  {row.rejection_category}: {row.count}")
+            sections.append("")
+
+        # Detailed rejection data with prospect info
+        rejection_details = (
+            db.query(
+                AuditResult.rejection_category,
+                AuditResult.rejection_reason,
+                AuditResult.issue_type,
+                OutreachProspect.agency_name,
+                OutreachProspect.niche,
+            )
+            .join(OutreachProspect, AuditResult.prospect_id == OutreachProspect.id)
+            .filter(AuditResult.status == "rejected")
+            .order_by(AuditResult.created_at.desc())
+            .limit(50)
+            .all()
+        )
+
+        if rejection_details:
+            sections.append("DETAILED REJECTIONS (most recent first):")
+            for row in rejection_details:
+                parts = [f"  Category: {row.rejection_category}"]
+                if row.agency_name:
+                    parts.append(f"Company: {row.agency_name}")
+                if row.niche:
+                    parts.append(f"Niche: {row.niche}")
+                if row.issue_type:
+                    parts.append(f"Issue flagged: {row.issue_type}")
+                if row.rejection_reason:
+                    parts.append(f"Reason: {row.rejection_reason}")
+                sections.append(" | ".join(parts))
+            sections.append("")
+
+        # Niche-level rejection patterns
+        niche_rejections = (
+            db.query(
+                OutreachProspect.niche,
+                func.count(AuditResult.id).label("count"),
+            )
+            .join(OutreachProspect, AuditResult.prospect_id == OutreachProspect.id)
+            .filter(
+                AuditResult.status == "rejected",
+                AuditResult.rejection_category == "not_target_audience",
+                OutreachProspect.niche.isnot(None),
+            )
+            .group_by(OutreachProspect.niche)
+            .order_by(func.count(AuditResult.id).desc())
+            .all()
+        )
+
+        if niche_rejections:
+            sections.append("NICHES REJECTED AS NOT TARGET AUDIENCE:")
+            for row in niche_rejections:
+                sections.append(f"  {row.niche}: {row.count}x rejected")
+            sections.append("")
+
+        sections.append(
+            "IMPORTANT: Generate insights that instruct the AI auditor to SKIP "
+            "these types of businesses and niches. Each recommendation should be "
+            "a direct instruction like 'SKIP businesses in the X niche — user "
+            "rejected N prospects in this category'."
+        )
+
+        return "\n".join(sections)
+
+    # ──────────────────────────────────────────
+    # Rejection context (for audit prompts)
     # ──────────────────────────────────────────
 
     def _build_rejection_context(self, db: Session, niche: str | None = None) -> list[str]:
