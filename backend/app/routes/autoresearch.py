@@ -2172,51 +2172,52 @@ Return ONLY valid JSON (no markdown fences):
         + (output_tokens * _HAIKU_OUTPUT_PRICE_PER_M / 1_000_000)
     )
 
-    # --- Generate Loom script alongside the email ---
+    # --- Generate Loom script only for LOOM_EMAIL steps ---
     loom_script = ""
     loom_cost = 0.0
-    try:
-        # Gather full conversation history for this prospect
-        all_experiments = (
-            db.query(Experiment)
-            .filter(Experiment.prospect_id == prospect_id)
-            .order_by(Experiment.step_number)
-            .all()
-        )
-        email_history = ""
-        for exp in all_experiments:
-            status_label = exp.status or "unknown"
-            channel_label = exp.channel or "email"
-            email_history += f"\nStep {exp.step_number} ({channel_label}, {status_label}):"
-            if exp.subject:
-                email_history += f"\n  Subject: {exp.subject}"
-            if exp.body:
-                body_preview = (exp.body or "")[:200]
-                email_history += f"\n  Body: {body_preview}"
-            if exp.was_edited:
-                email_history += "\n  (User edited this before sending)"
+    if channel_type == "loom_email":
+        try:
+            # Gather full conversation history for this prospect
+            all_experiments = (
+                db.query(Experiment)
+                .filter(Experiment.prospect_id == prospect_id)
+                .order_by(Experiment.step_number)
+                .all()
+            )
+            email_history = ""
+            for exp in all_experiments:
+                status_label = exp.status or "unknown"
+                channel_label = exp.channel or "email"
+                email_history += f"\nStep {exp.step_number} ({channel_label}, {status_label}):"
+                if exp.subject:
+                    email_history += f"\n  Subject: {exp.subject}"
+                if exp.body:
+                    body_preview = (exp.body or "")[:200]
+                    email_history += f"\n  Body: {body_preview}"
+                if exp.was_edited:
+                    email_history += "\n  (User edited this before sending)"
 
-        # Get audit result for deeper issue context
-        audit = (
-            db.query(AuditResult)
-            .filter(AuditResult.prospect_id == prospect_id)
-            .order_by(AuditResult.created_at.desc())
-            .first()
-        )
-        audit_context = ""
-        if audit:
-            audit_context = f"""
+            # Get audit result for deeper issue context
+            audit = (
+                db.query(AuditResult)
+                .filter(AuditResult.prospect_id == prospect_id)
+                .order_by(AuditResult.created_at.desc())
+                .first()
+            )
+            audit_context = ""
+            if audit:
+                audit_context = f"""
 WEBSITE AUDIT FINDINGS:
 - Primary issue: {audit.issue_type or 'unknown'} — {audit.issue_detail or 'N/A'}
 - Secondary issue: {audit.secondary_issue or 'none'} — {audit.secondary_detail or 'N/A'}
 - Site quality: {audit.site_quality or 'unknown'}
 - Confidence: {audit.confidence or 'unknown'}"""
 
-        # Get website issues from prospect record
-        website_issues = prospect.website_issues or []
-        issues_text = ", ".join(website_issues) if website_issues else "none detected"
+            # Get website issues from prospect record
+            website_issues = prospect.website_issues or []
+            issues_text = ", ".join(website_issues) if website_issues else "none detected"
 
-        loom_prompt = f"""You are writing a Loom video script for Joji Shiotsuki to record a personalised website walkthrough.
+            loom_prompt = f"""You are writing a Loom video script for Joji Shiotsuki to record a personalised website walkthrough.
 
 PROSPECT CONTEXT:
 - Name: {first_name}
@@ -2254,28 +2255,28 @@ RULES:
 
 Return ONLY valid JSON: {{"loom_script": "script text here"}}"""
 
-        if custom_instruction:
-            loom_prompt += f"\n\nUSER INSTRUCTION (follow this closely for the Loom script): {custom_instruction}"
+            if custom_instruction:
+                loom_prompt += f"\n\nUSER INSTRUCTION (follow this closely for the Loom script): {custom_instruction}"
 
-        loom_resp = await svc.client.messages.create(
-            model=model,
-            max_tokens=300,
-            messages=[{"role": "user", "content": loom_prompt}],
-        )
-        loom_raw = ""
-        for block in loom_resp.content:
-            if hasattr(block, "text"):
-                loom_raw += block.text
-        loom_result = _parse_followup_json(loom_raw)
-        loom_script = loom_result.get("loom_script", "")
-        loom_input = getattr(loom_resp.usage, "input_tokens", 0)
-        loom_output = getattr(loom_resp.usage, "output_tokens", 0)
-        loom_cost = (
-            (loom_input * _HAIKU_INPUT_PRICE_PER_M / 1_000_000)
-            + (loom_output * _HAIKU_OUTPUT_PRICE_PER_M / 1_000_000)
-        )
-    except Exception as loom_err:
-        logger.warning("Loom script generation failed (non-fatal): %s", loom_err)
+            loom_resp = await svc.client.messages.create(
+                model=model,
+                max_tokens=300,
+                messages=[{"role": "user", "content": loom_prompt}],
+            )
+            loom_raw = ""
+            for block in loom_resp.content:
+                if hasattr(block, "text"):
+                    loom_raw += block.text
+            loom_result = _parse_followup_json(loom_raw)
+            loom_script = loom_result.get("loom_script", "")
+            loom_input = getattr(loom_resp.usage, "input_tokens", 0)
+            loom_output = getattr(loom_resp.usage, "output_tokens", 0)
+            loom_cost = (
+                (loom_input * _HAIKU_INPUT_PRICE_PER_M / 1_000_000)
+                + (loom_output * _HAIKU_OUTPUT_PRICE_PER_M / 1_000_000)
+            )
+        except Exception as loom_err:
+            logger.warning("Loom script generation failed (non-fatal): %s", loom_err)
 
     total_cost = cost_usd + loom_cost
 
