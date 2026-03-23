@@ -1992,20 +1992,45 @@ RULES:
 Return ONLY valid JSON: {{"subject": "LinkedIn Engage", "body": "suggested comment here", "word_count": N}}""",
     }
 
-    # Email follow-up angle guidance
+    # Check if there are more steps after this one (to determine if this is the last email)
+    has_more_steps = False
+    if campaign:
+        remaining_steps = (
+            db.query(MTStep)
+            .filter(MTStep.campaign_id == campaign.id, MTStep.step_number > step_number)
+            .all()
+        )
+        # If prospect is LinkedIn connected, any remaining LinkedIn steps count
+        # If not connected, only email steps count
+        for rs in remaining_steps:
+            ch = (rs.channel_type or "").lower()
+            if ch in ("email", "follow_up_email"):
+                has_more_steps = True
+                break
+            if ch in ("linkedin_message",) and getattr(prospect, "linkedin_connected", False):
+                has_more_steps = True
+                break
+
+    is_last_email = not has_more_steps
+
     # Email follow-up angles — based on follow-up NUMBER (how many emails sent before this one)
     # These match the user's multi-touch sequence strategy:
     # Follow-up 1 = Customer Perspective Reframe
     # Follow-up 2 = Competitor Urgency
     # Follow-up 3 = Unsolicited Loom Drop
-    # Follow-up 4 = Clean Exit (final email)
+    # Follow-up 4 = Clean Exit (only if this is actually the last email)
     email_angle_guidance = {
         1: """CUSTOMER PERSPECTIVE REFRAME: Reframe the SAME problem from Step 1, but from the customer's point of view. What does their potential customer actually experience when they hit this issue? Make it visceral and specific. No new problems. No self-promotion. No Loom offer. Under 50 words.""",
         2: """COMPETITOR URGENCY: Same problem from Step 1, but now add urgency by pointing out that while this is broken, competitors are picking up the leads instead. Don't name specific competitors. Keep it implied. No self-promotion. No Loom offer yet. Under 50 words.""",
         3: """UNSOLICITED LOOM DROP: Announce that you recorded a free 3-minute Loom video showing exactly what's wrong and what a fix looks like. No permission asked. Just drop it. Include "[LOOM LINK]" as a placeholder where the Loom URL will go. Under 40 words.""",
-        4: """CLEAN EXIT (final email): This is the LAST email. Be gracious. Acknowledge that fixing the issue might not be a priority right now and that's fine. Leave the door open without being pushy. Make it easy to say yes or no. Tone: respectful, no pressure, wish them well. Under 35 words. Example tone: "Last one from me. If fixing [issue] isn't a priority right now, no worries at all. But if it ever moves up the list, the offer still stands. Either way, good luck with the business." """,
     }
-    default_email_angle = """CLEAN EXIT: This is a late-stage follow-up. Keep it very short. Acknowledge they're busy, leave the door open, wish them well. Under 25 words."""
+
+    if is_last_email:
+        email_angle_guidance[4] = """CLEAN EXIT (final email): This is the LAST email. Be gracious. Acknowledge that fixing the issue might not be a priority right now and that's fine. Leave the door open without being pushy. Make it easy to say yes or no. Tone: respectful, no pressure, wish them well. Under 35 words. Example tone: "Last one from me. If fixing [issue] isn't a priority right now, no worries at all. But if it ever moves up the list, the offer still stands. Either way, good luck with the business." """
+        default_email_angle = """CLEAN EXIT: This is a late-stage follow-up. Keep it very short. Acknowledge they're busy, leave the door open, wish them well. Under 25 words."""
+    else:
+        email_angle_guidance[4] = """GENTLE NUDGE: This is NOT the last touchpoint — there are more steps coming. Keep it light, reference the original issue briefly, and hint that you'll be in touch through other channels too. Under 35 words."""
+        default_email_angle = """GENTLE NUDGE: Brief check-in referencing the original issue. Keep it conversational and short. Under 25 words."""
 
     # --- Get learning context for follow-up style ---
     followup_learning = ""
