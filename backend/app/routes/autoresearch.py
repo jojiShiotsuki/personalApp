@@ -664,15 +664,19 @@ def reject_audit(
     audit.status = "rejected"
     audit.rejection_reason = body.rejection_reason
     audit.rejection_category = body.rejection_category
-    db.commit()
-    db.refresh(audit)
 
-    # Build response with prospect info
+    # If not a target, auto-skip the prospect from the campaign
     prospect = (
         db.query(OutreachProspect)
         .filter(OutreachProspect.id == audit.prospect_id)
         .first()
     )
+    if body.rejection_category == "not_target_audience" and prospect:
+        prospect.status = ProspectStatus.SKIPPED
+        prospect.next_action_date = None
+
+    db.commit()
+    db.refresh(audit)
     resp = AuditResultResponse.model_validate(audit, from_attributes=True)
     if prospect:
         resp.prospect_name = prospect.contact_name or prospect.agency_name
