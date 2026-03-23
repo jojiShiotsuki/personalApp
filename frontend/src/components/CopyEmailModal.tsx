@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { coldOutreachApi, autoresearchApi } from '@/lib/api';
 import type { OutreachProspect, RenderedEmail, MultiTouchStep } from '@/types';
-import { X, Mail, Copy, Check, Loader2, ChevronDown, AlertTriangle, Edit2, RotateCcw, Send, Sparkles, Video } from 'lucide-react';
+import { X, Mail, Copy, Check, Loader2, ChevronDown, ChevronUp, AlertTriangle, Edit2, RotateCcw, Send, Sparkles, Video } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -66,6 +66,7 @@ export default function CopyEmailModal({
   const [selectedTemplate, setSelectedTemplate] = useState(defaultType);
   const [copiedField, setCopiedField] = useState<'to' | 'subject' | 'body' | 'all' | null>(null);
   const [selectedIssue, setSelectedIssue] = useState<string | null>(null);
+  const [loomExpanded, setLoomExpanded] = useState(false);
   const [isEditingIssues, setIsEditingIssues] = useState(false);
   const [customDescriptions, setCustomDescriptions] = useState<Record<string, string>>(loadCustomDescriptions);
   const [editDrafts, setEditDrafts] = useState<Record<string, string>>({});
@@ -673,25 +674,46 @@ export default function CopyEmailModal({
             </div>
           )}
 
-          {/* Loom Script (per-prospect, always visible) */}
-          <div className="mb-4 bg-rose-950/30 rounded-xl p-4 border border-rose-800/40">
-            <div className="flex items-center justify-between mb-2">
+          {/* Loom Script (per-prospect, collapsible) */}
+          <div className="mb-4 bg-rose-950/30 rounded-xl border border-rose-800/40 overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setLoomExpanded(!loomExpanded)}
+              className="w-full flex items-center justify-between px-4 py-3 hover:bg-rose-950/20 transition-colors"
+            >
               <div className="flex items-center gap-2">
                 <Video className="w-4 h-4 text-rose-400" />
-                <label className="text-xs font-medium text-rose-400 uppercase tracking-wider">
+                <span className="text-xs font-medium text-rose-400 uppercase tracking-wider">
                   Loom Script
-                </label>
+                </span>
+                {!loomExpanded && editLoomScript && (
+                  <span className="text-xs text-[--exec-text-muted] ml-2 truncate max-w-[300px]">
+                    {editLoomScript.split('\n')[0]}
+                  </span>
+                )}
               </div>
-              <CopyButton field="body" value={editLoomScript} />
-            </div>
-            <textarea
-              value={editLoomScript}
-              onChange={(e) => setEditLoomScript(e.target.value)}
-              onBlur={handleLoomScriptBlur}
-              className={cn(editableFieldClasses, 'resize-none leading-relaxed bg-rose-950/20 border-rose-800/30 focus:ring-rose-500/20 focus:border-rose-500/50')}
-              rows={4}
-              placeholder="Write your Loom script here, or click Generate AI Follow-up to auto-generate one..."
-            />
+              <div className="flex items-center gap-1">
+                {editLoomScript && (
+                  <span className="text-[10px] text-rose-400/60 mr-2">{editLoomScript.split(/\s+/).filter(Boolean).length} words</span>
+                )}
+                {loomExpanded ? <ChevronUp className="w-4 h-4 text-rose-400" /> : <ChevronDown className="w-4 h-4 text-rose-400" />}
+              </div>
+            </button>
+            {loomExpanded && (
+              <div className="px-4 pb-4">
+                <div className="flex justify-end mb-1">
+                  <CopyButton field="body" value={editLoomScript} />
+                </div>
+                <textarea
+                  value={editLoomScript}
+                  onChange={(e) => setEditLoomScript(e.target.value)}
+                  onBlur={handleLoomScriptBlur}
+                  className={cn(editableFieldClasses, 'leading-relaxed bg-rose-950/20 border-rose-800/30 focus:ring-rose-500/20 focus:border-rose-500/50')}
+                  style={{ minHeight: '120px', height: editLoomScript ? `${Math.min(Math.max(editLoomScript.split('\n').length * 24 + 40, 120), 400)}px` : '120px' }}
+                  placeholder="Write your Loom script here, or click Generate AI Follow-up to auto-generate one..."
+                />
+              </div>
+            )}
           </div>
 
           {/* Content */}
