@@ -66,5 +66,8 @@ response.txt
 # Database backups
 *.backup-*
 
+# Vault sync data (cloned repos, embeddings cache)
+backend/data/
+
 # One-off scripts
 check_port.ps1
