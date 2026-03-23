@@ -117,6 +117,7 @@ ISSUE TYPES (pick the most accurate):
 CRITICAL RULES:
 - NEVER lead with alt text, meta descriptions, schema markup, image formats, or any invisible code issues
 - NEVER mention SEO jargon like "meta tags", "schema", "alt attributes"
+- NEVER flag nav links that point to the homepage as "broken" — many single-page sites use anchor/scroll links (e.g. a "Contact" link that scrolls to a contact section on the homepage). This is NORMAL, not a bug. Only flag a link as broken if it leads to a genuine 404 page or an actual dead end with no content.
 - The issue MUST be something the tradie can see by looking at their own website
 - Use Australian English (favour, colour, organisation, etc.)
 - The email body MUST be under 80 words
