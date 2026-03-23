@@ -226,9 +226,14 @@ class GmailService:
         msg.attach(MIMEText(body, "plain"))
 
         # HTML version (preserves line breaks + appends tracking pixel)
-        # Collapse 3+ consecutive newlines into 2 (one blank line) to avoid huge gaps
-        cleaned_body = re.sub(r"\n{3,}", "\n\n", body)
-        html_body = cleaned_body.replace("\n", "<br>")
+        # Collapse 3+ consecutive newlines into 2 max
+        cleaned_body = re.sub(r"\n{3,}", "\n\n", body.strip())
+        # Split into paragraphs on double newlines, single newlines become <br>
+        paragraphs = cleaned_body.split("\n\n")
+        html_body = "".join(
+            f"<p style='margin:0 0 10px 0'>{p.replace(chr(10), '<br>')}</p>"
+            for p in paragraphs
+        )
         if tracking_pixel_html:
             html_body += tracking_pixel_html
         msg.attach(MIMEText(html_body, "html"))
