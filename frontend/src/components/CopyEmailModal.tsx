@@ -524,8 +524,8 @@ export default function CopyEmailModal({
               disabled={isGeneratingFollowUp}
               className={cn(
                 'w-full mb-4 px-4 py-2.5 text-sm font-medium rounded-lg transition-all',
-                'bg-blue-600 text-white',
-                'hover:bg-blue-700 shadow-sm hover:shadow-md',
+                'bg-[#E07A5F] text-white',
+                'hover:bg-[#C65D42] shadow-sm hover:shadow-md',
                 'disabled:opacity-50 disabled:cursor-not-allowed'
               )}
             >
@@ -755,7 +755,7 @@ export default function CopyEmailModal({
                   <button
                     onClick={handleRegenerateLoom}
                     disabled={isRegeneratingLoom}
-                    className="px-3 py-1.5 text-xs font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-3 py-1.5 text-xs font-medium text-white bg-blue-600 rounded-lg hover:bg-[#C65D42] shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isRegeneratingLoom ? 'Generating...' : 'Regenerate'}
                   </button>
