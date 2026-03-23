@@ -19,3 +19,6 @@ cryptography>=42.0.0
 google-auth>=2.25.0
 google-auth-oauthlib>=1.2.0
 google-api-python-client>=2.100.0
+voyageai>=0.3.0
+gitpython>=3.1.0
+numpy>=1.24.0
