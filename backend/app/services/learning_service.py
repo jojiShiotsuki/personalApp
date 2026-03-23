@@ -21,21 +21,28 @@ from app.models.autoresearch import Experiment, Insight
 logger = logging.getLogger(__name__)
 
 INSIGHT_SYSTEM_PROMPT = (
-    "You are a cold email performance analyst. Analyze these outreach experiment "
-    "results and identify actionable patterns. Include BOTH:\n"
+    "You are a cold outreach performance analyst. Analyze these outreach experiment "
+    "results and identify actionable patterns. Include ALL of:\n"
     "1. Strategic insights (which issue types, niches, timing work best)\n"
     "2. Writing STYLE insights (word count, tone, punctuation, phrasing patterns "
     "that differ between successful and unsuccessful emails, and patterns from "
-    "user edits showing what the user prefers)\n\n"
+    "user edits showing what the user prefers)\n"
+    "3. Loom VIDEO SCRIPT insights (what script styles, lengths, structures, and "
+    "talking points correlate with replies/conversions. Compare scripts from Loom "
+    "steps that got replies vs those that didn't. Look at how specific vs generic "
+    "the scripts are, how they reference the audit issue, and CTA phrasing.)\n\n"
     "For style insights, be SPECIFIC: instead of 'keep it short', say "
     "'keep under 65 words — replied emails averaged 62 vs 74 for non-replied'. "
     "Instead of 'be specific', say 'use exact numbers and quotes from the site "
     "(e.g. 07 4124 799 not just a wrong phone number)'. "
     "If the user consistently removes em dashes, say 'do NOT use em dashes'.\n\n"
+    "For Loom script insights, be equally specific: 'Loom scripts under 120 words "
+    "had 25% reply rate vs 10% for longer ones' or 'scripts that opened the website "
+    "within the first 10 seconds correlated with more replies'.\n\n"
     "Return JSON array of insights, each with: insight (string), "
     "confidence (high/medium/low based on sample size: 50+=high, 20-49=medium, <20=low), "
-    "sample_size (int), recommendation (string — this gets injected into the audit prompt, "
-    "so write it as a direct instruction to the AI), "
+    "sample_size (int), recommendation (string — this gets injected into the audit prompt "
+    "and Loom script generator, so write it as a direct instruction to the AI), "
     "applies_to (niche name or 'all_niches')."
 )
 
@@ -653,6 +660,47 @@ class LearningService:
             sections.append(f"  Watch rate: {watch_rate}%")
             sections.append(f"  Reply rate (Loom recipients): {reply_rate}%")
             sections.append("")
+
+        # 9b. Loom SCRIPT analysis — compare scripts that led to replies vs not
+        loom_scripts_replied = (
+            db.query(Experiment.loom_script, Experiment.issue_type, Experiment.niche, Experiment.company)
+            .filter(
+                Experiment.loom_script.isnot(None),
+                Experiment.loom_script != "",
+                Experiment.replied.is_(True),
+            )
+            .order_by(Experiment.created_at.desc())
+            .limit(10)
+            .all()
+        )
+        loom_scripts_no_reply = (
+            db.query(Experiment.loom_script, Experiment.issue_type, Experiment.niche, Experiment.company)
+            .filter(
+                Experiment.loom_script.isnot(None),
+                Experiment.loom_script != "",
+                Experiment.replied.is_(False),
+                Experiment.status.in_(["sent", "no_reply"]),
+            )
+            .order_by(Experiment.created_at.desc())
+            .limit(10)
+            .all()
+        )
+
+        if loom_scripts_replied:
+            sections.append("SUCCESSFUL LOOM SCRIPTS (prospect replied after receiving Loom video):")
+            for i, row in enumerate(loom_scripts_replied[:5]):
+                wc = len((row.loom_script or "").split())
+                sections.append(f"  Script {i+1} ({row.issue_type or 'unknown'}, {row.niche or 'unknown'}, {wc} words):")
+                sections.append(f"  {row.loom_script[:400]}")
+                sections.append("")
+
+        if loom_scripts_no_reply:
+            sections.append("UNSUCCESSFUL LOOM SCRIPTS (no reply after Loom video — what's different?):")
+            for i, row in enumerate(loom_scripts_no_reply[:5]):
+                wc = len((row.loom_script or "").split())
+                sections.append(f"  Script {i+1} ({row.issue_type or 'unknown'}, {row.niche or 'unknown'}, {wc} words):")
+                sections.append(f"  {row.loom_script[:400]}")
+                sections.append("")
 
         # 10. LinkedIn acceptance patterns
         linkedin_stats = (

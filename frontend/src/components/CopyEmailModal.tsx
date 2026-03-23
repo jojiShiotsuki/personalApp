@@ -386,7 +386,7 @@ export default function CopyEmailModal({
       await autoresearchApi.sendEmail(prospect.id, finalSubject, finalBody);
       toast.success(`Email sent to ${prospect.email}`);
 
-      // Track the exact email content for autoresearch learning
+      // Track the exact email content + loom script for autoresearch learning
       try {
         await autoresearchApi.trackEmail(
           prospect.id,
@@ -394,6 +394,7 @@ export default function CopyEmailModal({
           finalSubject,
           finalBody,
           wasEdited,
+          editLoomScript || undefined,
         );
       } catch {
         // Non-fatal

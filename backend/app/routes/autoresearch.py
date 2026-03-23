@@ -757,6 +757,7 @@ def track_email_content(
     subject = payload.get("subject")
     body = payload.get("body")
     was_edited = payload.get("was_edited", False)
+    loom_script = payload.get("loom_script")
 
     if not prospect_id:
         raise HTTPException(status_code=400, detail="prospect_id is required")
@@ -764,6 +765,10 @@ def track_email_content(
     prospect = db.query(OutreachProspect).filter(OutreachProspect.id == prospect_id).first()
     if not prospect:
         raise HTTPException(status_code=404, detail="Prospect not found")
+
+    # Also pull loom_script from prospect custom_fields if not in payload
+    if not loom_script and prospect.custom_fields:
+        loom_script = (prospect.custom_fields or {}).get("loom_script")
 
     # Find existing experiment for this prospect + step
     experiment = (
@@ -783,6 +788,8 @@ def track_email_content(
         experiment.was_edited = was_edited
         if was_edited:
             experiment.edit_type = "minor_tweak"
+        if loom_script:
+            experiment.loom_script = loom_script
     else:
         # Create new experiment for this step
         audit = (
@@ -807,6 +814,7 @@ def track_email_content(
             issue_detail=audit.issue_detail if audit else None,
             niche=prospect.niche,
             company=prospect.agency_name,
+            loom_script=loom_script,
         )
         db.add(experiment)
 

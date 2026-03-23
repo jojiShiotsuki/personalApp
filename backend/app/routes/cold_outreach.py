@@ -37,6 +37,7 @@ def _create_step_experiment(
     subject: str | None = None,
     body: str | None = None,
     channel: str = "email",
+    loom_script: str | None = None,
 ) -> None:
     """
     Auto-create an Experiment record when a step is sent/advanced.
@@ -103,6 +104,9 @@ def _create_step_experiment(
                 if prospect.last_contacted_at and step_number > 1
                 else None
             ),
+            # Loom data
+            loom_script=loom_script or (prospect.custom_fields or {}).get("loom_script"),
+            loom_sent=channel.lower() == "loom_email",
         )
         db.add(experiment)
         db.flush()

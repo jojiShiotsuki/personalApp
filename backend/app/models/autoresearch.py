@@ -127,6 +127,7 @@ class Experiment(Base):
     loom_sent = Column(Boolean, default=False)
     loom_url = Column(String(500), nullable=True)
     loom_watched = Column(Boolean, nullable=True)  # null = unknown, True = watched, False = not watched
+    loom_script = Column(Text, nullable=True)  # The script used for the Loom recording
 
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

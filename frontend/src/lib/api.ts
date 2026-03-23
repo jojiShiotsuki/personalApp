@@ -1418,13 +1418,14 @@ export const autoresearchApi = {
     const { data } = await api.delete(`/api/autoresearch/audits/${auditId}`);
     return data;
   },
-  trackEmail: async (prospectId: number, stepNumber: number, subject: string, body: string, wasEdited: boolean) => {
+  trackEmail: async (prospectId: number, stepNumber: number, subject: string, body: string, wasEdited: boolean, loomScript?: string) => {
     const { data } = await api.post('/api/autoresearch/track-email', {
       prospect_id: prospectId,
       step_number: stepNumber,
       subject,
       body,
       was_edited: wasEdited,
+      loom_script: loomScript || undefined,
     });
     return data;
   },
