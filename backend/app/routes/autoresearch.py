@@ -2157,14 +2157,64 @@ Return ONLY valid JSON (no markdown fences):
         + (output_tokens * _HAIKU_OUTPUT_PRICE_PER_M / 1_000_000)
     )
 
+    # --- Generate Loom script alongside the email ---
+    loom_script = ""
+    loom_cost = 0.0
+    try:
+        loom_prompt = f"""You are writing a short Loom video script for Joji Shiotsuki to record a personalised website walkthrough for a prospect.
+
+Prospect: "{first_name}" from "{prospect.agency_name}" ({prospect.niche or 'trades'} industry)
+Website: {prospect.website or 'unknown'}
+Issue found: {issue_type} — {issue_detail}
+
+Write a natural, conversational script (60-90 seconds when spoken). Structure:
+1. Quick intro: "Hey {first_name}, Joji here from Joji Web Solutions"
+2. Open their website and point out the specific issue
+3. Show what it looks like on mobile (if relevant)
+4. Briefly explain what the fix looks like
+5. Soft CTA: "If you want me to sort this out, just reply to the email"
+
+RULES:
+- Conversational, not scripted-sounding
+- Australian English
+- No em dashes
+- Reference the specific issue, not generic advice
+- Under 150 words
+- Use [OPEN WEBSITE], [SHOW MOBILE], [SHOW ISSUE] as action cues
+
+Return ONLY valid JSON: {{"loom_script": "script text here"}}"""
+
+        loom_resp = await svc.client.messages.create(
+            model=model,
+            max_tokens=300,
+            messages=[{"role": "user", "content": loom_prompt}],
+        )
+        loom_raw = ""
+        for block in loom_resp.content:
+            if hasattr(block, "text"):
+                loom_raw += block.text
+        loom_result = _parse_followup_json(loom_raw)
+        loom_script = loom_result.get("loom_script", "")
+        loom_input = getattr(loom_resp.usage, "input_tokens", 0)
+        loom_output = getattr(loom_resp.usage, "output_tokens", 0)
+        loom_cost = (
+            (loom_input * _HAIKU_INPUT_PRICE_PER_M / 1_000_000)
+            + (loom_output * _HAIKU_OUTPUT_PRICE_PER_M / 1_000_000)
+        )
+    except Exception as loom_err:
+        logger.warning("Loom script generation failed (non-fatal): %s", loom_err)
+
+    total_cost = cost_usd + loom_cost
+
     return {
         "subject": result.get("subject", f"Re: {original_subject}"),
         "body": result.get("body", ""),
+        "loom_script": loom_script,
         "word_count": result.get("word_count", len(result.get("body", "").split())),
         "step_number": step_number,
         "follow_up_number": follow_up_number,
         "model": model,
-        "cost_usd": round(cost_usd, 6),
+        "cost_usd": round(total_cost, 6),
     }
 
 

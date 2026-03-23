@@ -73,6 +73,7 @@ export default function CopyEmailModal({
   // Editable subject/body — initialized from saved custom values or template
   const [editSubject, setEditSubject] = useState(prospect.custom_email_subject || '');
   const [editBody, setEditBody] = useState(prospect.custom_email_body || '');
+  const [editLoomScript, setEditLoomScript] = useState((prospect.custom_fields as any)?.loom_script || '');
   const [hasInitializedFromTemplate, setHasInitializedFromTemplate] = useState(false);
 
   const queryClient = useQueryClient();
@@ -118,6 +119,9 @@ export default function CopyEmailModal({
       const result = await autoresearchApi.generateFollowup(prospect.id);
       setEditSubject(result.subject);
       setEditBody(result.body);
+      if (result.loom_script) {
+        setEditLoomScript(result.loom_script);
+      }
       setAiFollowUpUsed(true);
       setHasInitializedFromTemplate(true);
       toast.success('AI follow-up generated');
@@ -307,17 +311,29 @@ export default function CopyEmailModal({
     }
   };
 
+  const handleLoomScriptBlur = () => {
+    const saved = (prospect.custom_fields as any)?.loom_script || '';
+    if (editLoomScript !== saved) {
+      const updatedFields = { ...(prospect.custom_fields || {}), loom_script: editLoomScript };
+      saveCustomEmailMutation.mutate({ custom_fields: updatedFields } as any);
+    }
+  };
+
   // Save any unsaved custom edits before closing
   const handleClose = () => {
+    const updates: any = {};
     if (email) {
       const subjectChanged = editSubject !== (prospect.custom_email_subject || email.subject || '');
       const bodyChanged = editBody !== (prospect.custom_email_body || email.body || '');
-      if (subjectChanged || bodyChanged) {
-        saveCustomEmailMutation.mutate({
-          custom_email_subject: editSubject,
-          custom_email_body: editBody,
-        });
-      }
+      if (subjectChanged) updates.custom_email_subject = editSubject;
+      if (bodyChanged) updates.custom_email_body = editBody;
+    }
+    const savedLoom = (prospect.custom_fields as any)?.loom_script || '';
+    if (editLoomScript !== savedLoom) {
+      updates.custom_fields = { ...(prospect.custom_fields || {}), loom_script: editLoomScript };
+    }
+    if (Object.keys(updates).length > 0) {
+      saveCustomEmailMutation.mutate(updates);
     }
     onClose();
   };
@@ -656,35 +672,26 @@ export default function CopyEmailModal({
             </div>
           )}
 
-          {/* Loom Script Section (only for LOOM_EMAIL steps) */}
-          {(() => {
-            const stepNum = parseInt(selectedTemplate, 10);
-            const currentStepObj = multiTouchSteps?.find(s => s.step_number === stepNum);
-            const isLoomStep = currentStepObj && ['LOOM_EMAIL', 'loom_email'].includes(currentStepObj.channel_type);
-            if (!isLoomStep) return null;
-            return (
-              <div className="mb-4 bg-rose-950/30 rounded-xl p-4 border border-rose-800/40">
-                <div className="flex items-center gap-2 mb-3">
-                  <Video className="w-4 h-4 text-rose-400" />
-                  <label className="text-xs font-medium text-rose-400 uppercase tracking-wider">
-                    Loom Script
-                  </label>
-                </div>
-                {currentStepObj.loom_script ? (
-                  <div className="text-sm text-[--exec-text] whitespace-pre-wrap leading-relaxed bg-stone-800/50 rounded-lg p-3 border border-stone-600/30">
-                    {replaceVars(currentStepObj.loom_script)}
-                  </div>
-                ) : (
-                  <p className="text-sm text-[--exec-text-muted] italic">
-                    No script set. Add one by editing the campaign sequence (step {stepNum}).
-                  </p>
-                )}
-                <p className="text-[10px] text-rose-400/60 mt-2">
-                  Record your Loom video following this script, then paste the link in the email body below.
-                </p>
+          {/* Loom Script (per-prospect, always visible) */}
+          <div className="mb-4 bg-rose-950/30 rounded-xl p-4 border border-rose-800/40">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <Video className="w-4 h-4 text-rose-400" />
+                <label className="text-xs font-medium text-rose-400 uppercase tracking-wider">
+                  Loom Script
+                </label>
               </div>
-            );
-          })()}
+              <CopyButton field="body" value={editLoomScript} />
+            </div>
+            <textarea
+              value={editLoomScript}
+              onChange={(e) => setEditLoomScript(e.target.value)}
+              onBlur={handleLoomScriptBlur}
+              className={cn(editableFieldClasses, 'resize-none leading-relaxed bg-rose-950/20 border-rose-800/30 focus:ring-rose-500/20 focus:border-rose-500/50')}
+              rows={4}
+              placeholder="Write your Loom script here, or click Generate AI Follow-up to auto-generate one..."
+            />
+          </div>
 
           {/* Content */}
           {(isLoading || (isGeneratingFollowUp && !aiFollowUpUsed)) ? (
