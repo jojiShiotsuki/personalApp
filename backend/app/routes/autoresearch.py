@@ -1951,12 +1951,14 @@ Return ONLY valid JSON: {{"subject": "LinkedIn Engage", "body": "suggested comme
     # Follow-up 1 = Customer Perspective Reframe
     # Follow-up 2 = Competitor Urgency
     # Follow-up 3 = Unsolicited Loom Drop
+    # Follow-up 4 = Clean Exit (final email)
     email_angle_guidance = {
         1: """CUSTOMER PERSPECTIVE REFRAME: Reframe the SAME problem from Step 1, but from the customer's point of view. What does their potential customer actually experience when they hit this issue? Make it visceral and specific. No new problems. No self-promotion. No Loom offer. Under 50 words.""",
         2: """COMPETITOR URGENCY: Same problem from Step 1, but now add urgency by pointing out that while this is broken, competitors are picking up the leads instead. Don't name specific competitors. Keep it implied. No self-promotion. No Loom offer yet. Under 50 words.""",
         3: """UNSOLICITED LOOM DROP: Announce that you recorded a free 3-minute Loom video showing exactly what's wrong and what a fix looks like. No permission asked. Just drop it. Include "[LOOM LINK]" as a placeholder where the Loom URL will go. Under 40 words.""",
+        4: """CLEAN EXIT (final email): This is the LAST email. Be gracious. Acknowledge that fixing the issue might not be a priority right now and that's fine. Leave the door open without being pushy. Make it easy to say yes or no. Tone: respectful, no pressure, wish them well. Under 35 words. Example tone: "Last one from me. If fixing [issue] isn't a priority right now, no worries at all. But if it ever moves up the list, the offer still stands. Either way, good luck with the business." """,
     }
-    default_email_angle = 'Very short one-liner. "Still happy to help if you need it." Under 20 words.'
+    default_email_angle = """CLEAN EXIT: This is a late-stage follow-up. Keep it very short. Acknowledge they're busy, leave the door open, wish them well. Under 25 words."""
 
     # --- Get learning context for follow-up style ---
     followup_learning = ""
