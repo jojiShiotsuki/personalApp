@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ChevronDown, ChevronUp, FileText } from 'lucide-react';
-import { cn } from '@/lib/utils';
+
 import type { VaultChunkRef } from '@/types';
 
 interface VaultRefCardProps {
