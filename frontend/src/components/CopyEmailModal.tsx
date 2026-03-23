@@ -693,7 +693,12 @@ export default function CopyEmailModal({
             </div>
           )}
 
-          {/* Loom Script (per-prospect, collapsible) */}
+          {/* Loom Script (only for LOOM_EMAIL steps) */}
+          {(() => {
+            const stepNum = parseInt(selectedTemplate, 10);
+            const curStep = multiTouchSteps?.find(s => s.step_number === stepNum);
+            return curStep && ['LOOM_EMAIL', 'loom_email'].includes(curStep.channel_type);
+          })() && (
           <div className="mb-4 bg-rose-950/30 rounded-xl border border-rose-800/40 overflow-hidden">
             <button
               type="button"
@@ -758,6 +763,7 @@ export default function CopyEmailModal({
               </div>
             )}
           </div>
+          )}
 
           {/* Content */}
           {(isLoading || (isGeneratingFollowUp && !aiFollowUpUsed)) ? (
