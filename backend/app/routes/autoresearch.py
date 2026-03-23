@@ -236,6 +236,15 @@ async def audit_single_prospect(
 
         # Persist AuditResult
         meta = analysis.get("_meta", {})
+        audit_site_quality = analysis.get("site_quality", "medium")
+        audit_status = "pending_review"
+        if audit_site_quality in ("good", "not_target"):
+            audit_status = "skipped"
+            # Auto-skip not-target prospects in outreach pipeline
+            if audit_site_quality == "not_target":
+                prospect.status = ProspectStatus.SKIPPED
+                prospect.next_action_date = None
+
         audit_result = AuditResult(
             prospect_id=prospect.id,
             campaign_id=prospect.campaign_id,
@@ -244,7 +253,7 @@ async def audit_single_prospect(
             secondary_issue=analysis.get("secondary_issue"),
             secondary_detail=analysis.get("secondary_detail"),
             confidence=analysis.get("confidence", "medium"),
-            site_quality=analysis.get("site_quality", "medium"),
+            site_quality=audit_site_quality,
             needs_verification=analysis.get("needs_verification", False),
             generated_subject=analysis.get("subject"),
             generated_subject_variant=analysis.get("subject_variant"),
@@ -254,7 +263,7 @@ async def audit_single_prospect(
             word_count=analysis.get("word_count"),
             desktop_screenshot=screenshots.get("desktop_screenshot"),
             mobile_screenshot=screenshots.get("mobile_screenshot"),
-            status="pending_review",
+            status=audit_status,
             audit_duration_seconds=meta.get("duration_seconds"),
             model_used=meta.get("model"),
             tokens_used=(meta.get("input_tokens", 0) + meta.get("output_tokens", 0)),
@@ -435,8 +444,13 @@ async def ingest_audit(
         raise HTTPException(status_code=404, detail="Prospect not found")
 
     status = "pending_review"
-    if payload.get("site_quality") == "good":
+    site_quality = payload.get("site_quality", "medium")
+    if site_quality in ("good", "not_target"):
         status = "skipped"
+        # Auto-skip prospect in outreach pipeline
+        if site_quality == "not_target":
+            prospect.status = ProspectStatus.SKIPPED
+            prospect.next_action_date = None
 
     audit_result = AuditResult(
         prospect_id=prospect_id,
@@ -1325,6 +1339,14 @@ async def reaudit_prospect(
 
         # Persist new AuditResult
         meta = analysis.get("_meta", {})
+        reaudit_quality = analysis.get("site_quality", "medium")
+        reaudit_status = "pending_review"
+        if reaudit_quality in ("good", "not_target"):
+            reaudit_status = "skipped"
+            if reaudit_quality == "not_target":
+                prospect.status = ProspectStatus.SKIPPED
+                prospect.next_action_date = None
+
         new_audit = AuditResult(
             prospect_id=prospect.id,
             campaign_id=old_audit.campaign_id,
@@ -1333,7 +1355,7 @@ async def reaudit_prospect(
             secondary_issue=analysis.get("secondary_issue"),
             secondary_detail=analysis.get("secondary_detail"),
             confidence=analysis.get("confidence", "medium"),
-            site_quality=analysis.get("site_quality", "medium"),
+            site_quality=reaudit_quality,
             needs_verification=analysis.get("needs_verification", False),
             generated_subject=analysis.get("subject"),
             generated_subject_variant=analysis.get("subject_variant"),
@@ -1343,7 +1365,7 @@ async def reaudit_prospect(
             word_count=analysis.get("word_count"),
             desktop_screenshot=screenshots.get("desktop_screenshot"),
             mobile_screenshot=screenshots.get("mobile_screenshot"),
-            status="pending_review",
+            status=reaudit_status,
             audit_duration_seconds=meta.get("duration_seconds"),
             model_used=meta.get("model"),
             tokens_used=(meta.get("input_tokens", 0) + meta.get("output_tokens", 0)),
@@ -2290,6 +2312,14 @@ async def _run_batch_audit(
 
                 # Persist AuditResult
                 meta = analysis.get("_meta", {})
+                batch_quality = analysis.get("site_quality", "medium")
+                batch_status = "pending_review"
+                if batch_quality in ("good", "not_target"):
+                    batch_status = "skipped"
+                    if batch_quality == "not_target":
+                        prospect.status = ProspectStatus.SKIPPED
+                        prospect.next_action_date = None
+
                 audit_result = AuditResult(
                     prospect_id=prospect.id,
                     campaign_id=prospect.campaign_id,
@@ -2298,17 +2328,17 @@ async def _run_batch_audit(
                     secondary_issue=analysis.get("secondary_issue"),
                     secondary_detail=analysis.get("secondary_detail"),
                     confidence=analysis.get("confidence", "medium"),
-                    site_quality=analysis.get("site_quality", "medium"),
+                    site_quality=batch_quality,
                     needs_verification=analysis.get("needs_verification", False),
                     generated_subject=analysis.get("subject"),
                     generated_subject_variant=analysis.get("subject_variant"),
-            detected_city=analysis.get("detected_city"),
-            detected_trade=analysis.get("detected_trade"),
+                    detected_city=analysis.get("detected_city"),
+                    detected_trade=analysis.get("detected_trade"),
                     generated_body=analysis.get("body"),
                     word_count=analysis.get("word_count"),
                     desktop_screenshot=screenshots.get("desktop_screenshot"),
                     mobile_screenshot=screenshots.get("mobile_screenshot"),
-                    status="pending_review",
+                    status=batch_status,
                     audit_duration_seconds=meta.get("duration_seconds"),
                     model_used=meta.get("model"),
                     tokens_used=(meta.get("input_tokens", 0) + meta.get("output_tokens", 0)),
