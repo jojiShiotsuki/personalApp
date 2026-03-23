@@ -18,7 +18,6 @@ from email.mime.text import MIMEText
 from email.utils import parseaddr
 from typing import Any, Optional
 
-from cryptography.fernet import Fernet
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import Flow
 from googleapiclient.discovery import build
@@ -27,6 +26,7 @@ from sqlalchemy.orm import Session
 
 from app.models.autoresearch import GmailToken, EmailMatch, Experiment
 from app.models.outreach import OutreachProspect, ProspectStatus
+from app.services.encryption_service import EncryptionService
 
 logger = logging.getLogger(__name__)
 
@@ -50,14 +50,8 @@ class GmailService:
     """Manages Gmail OAuth, inbox polling, prospect matching, and reply classification."""
 
     def __init__(self) -> None:
-        # Encryption key for storing refresh tokens
-        encryption_key = os.getenv("GMAIL_ENCRYPTION_KEY")
-        if not encryption_key:
-            raise ValueError(
-                "GMAIL_ENCRYPTION_KEY environment variable is not set. "
-                "Generate one with: python -c \"from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())\""
-            )
-        self.cipher = Fernet(encryption_key.encode() if isinstance(encryption_key, str) else encryption_key)
+        # Shared encryption service for storing refresh tokens
+        self._encryption = EncryptionService()
 
         # Anthropic client for Haiku classification
         anthropic_key = os.getenv("ANTHROPIC_API_KEY")
@@ -149,18 +143,16 @@ class GmailService:
         }
 
     # ──────────────────────────────────────────────
-    # Token Encryption
+    # Token Encryption (delegates to shared EncryptionService)
     # ──────────────────────────────────────────────
 
     def encrypt_token(self, token: str) -> str:
         """Encrypt a refresh token for database storage."""
-        encrypted = self.cipher.encrypt(token.encode("utf-8"))
-        return base64.urlsafe_b64encode(encrypted).decode("utf-8")
+        return self._encryption.encrypt(token)
 
     def decrypt_token(self, encrypted: str) -> str:
         """Decrypt a stored refresh token."""
-        raw = base64.urlsafe_b64decode(encrypted.encode("utf-8"))
-        return self.cipher.decrypt(raw).decode("utf-8")
+        return self._encryption.decrypt(encrypted)
 
     # ──────────────────────────────────────────────
     # Send Email
