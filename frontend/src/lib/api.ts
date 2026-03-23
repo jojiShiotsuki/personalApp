@@ -93,6 +93,12 @@ import type {
   InsightRecord,
   AutoresearchSettings,
   TrackingPixelResponse,
+  AIConversation,
+  AIConversationWithMessages,
+  VaultFile,
+  VaultSyncStatus,
+  JojiAISettings,
+  JojiAISettingsUpdate,
 } from '../types/index';
 import {
   TaskStatus,
@@ -1497,6 +1503,76 @@ export const autoresearchApi = {
     const { data } = await api.post(`/api/autoresearch/generate-followup/${prospectId}`, {
       custom_instruction: customInstruction || undefined,
     });
+    return data;
+  },
+};
+
+// ============ Joji AI API ============
+
+export const jojiAiApi = {
+  // Chat -- returns raw Response for SSE streaming
+  chat: async (message: string, conversationId?: number, model?: string): Promise<Response> => {
+    const token = localStorage.getItem('auth_token');
+    const response = await fetch(`${API_URL}/api/ai/chat`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({
+        message,
+        conversation_id: conversationId,
+        model,
+      }),
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ detail: 'Chat request failed' }));
+      throw new Error(error.detail || 'Chat request failed');
+    }
+    return response;
+  },
+
+  getConversations: async (limit = 20, offset = 0): Promise<AIConversation[]> => {
+    const { data } = await api.get('/api/ai/conversations', { params: { limit, offset } });
+    return data;
+  },
+
+  getConversation: async (id: number, limit = 50, offset = 0): Promise<AIConversationWithMessages> => {
+    const { data } = await api.get(`/api/ai/conversations/${id}`, { params: { limit, offset } });
+    return data;
+  },
+
+  deleteConversation: async (id: number): Promise<void> => {
+    await api.delete(`/api/ai/conversations/${id}`);
+  },
+
+  renameConversation: async (id: number, title: string): Promise<AIConversation> => {
+    const { data } = await api.post(`/api/ai/conversations/${id}/title`, { title });
+    return data;
+  },
+
+  syncVault: async (): Promise<{ status: string }> => {
+    const { data } = await api.post('/api/ai/vault/sync');
+    return data;
+  },
+
+  getVaultStatus: async (): Promise<VaultSyncStatus> => {
+    const { data } = await api.get('/api/ai/vault/status');
+    return data;
+  },
+
+  getVaultFiles: async (): Promise<VaultFile[]> => {
+    const { data } = await api.get('/api/ai/vault/files');
+    return data;
+  },
+
+  getSettings: async (): Promise<JojiAISettings> => {
+    const { data } = await api.get('/api/ai/settings');
+    return data;
+  },
+
+  updateSettings: async (settings: JojiAISettingsUpdate): Promise<JojiAISettings> => {
+    const { data } = await api.put('/api/ai/settings', settings);
     return data;
   },
 };

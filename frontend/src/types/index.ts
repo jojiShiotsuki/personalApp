@@ -1655,3 +1655,85 @@ export interface AutoresearchSettings {
   monthly_cost: number;
   total_audits: number;
 }
+
+// ============ Joji AI Types ============
+
+export interface AIConversation {
+  id: number;
+  title: string | null;
+  created_at: string;
+  updated_at: string;
+  message_count: number;
+}
+
+export interface AIConversationMessage {
+  id: number;
+  role: 'user' | 'assistant';
+  content: string;
+  model: string | null;
+  tool_calls_json: any | null;
+  vault_chunks_used: number[] | null;
+  tokens_used: number | null;
+  cost_usd: number | null;
+  created_at: string;
+}
+
+export interface AIConversationWithMessages {
+  conversation: AIConversation;
+  messages: AIConversationMessage[];
+  total_messages: number;
+}
+
+export interface VaultFile {
+  id: number;
+  file_path: string;
+  content_hash: string;
+  last_synced_at: string | null;
+  created_at: string;
+}
+
+export interface VaultChunkRef {
+  chunk_id: number;
+  content: string;
+  file_path: string;
+  heading_context: string | null;
+  score?: number;
+}
+
+export interface VaultSyncStatus {
+  status: string;
+  file_count: number;
+  last_sync_at: string | null;
+}
+
+export interface JojiAISettings {
+  id: number;
+  github_repo_url: string | null;
+  has_github_token: boolean;
+  sync_interval_minutes: number;
+  last_sync_at: string | null;
+  last_sync_status: string | null;
+  last_sync_file_count: number;
+  default_model: string;
+  system_prompt_override: string | null;
+  total_tokens_used: number;
+  total_cost_usd: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface JojiAISettingsUpdate {
+  github_repo_url?: string;
+  github_token?: string;
+  sync_interval_minutes?: number;
+  default_model?: string;
+  system_prompt_override?: string;
+}
+
+// SSE Event types from Joji AI chat stream
+export type AISSEEventType = 'text' | 'tool_call' | 'tool_result' | 'vault_ref' | 'error' | 'done';
+
+export interface AISSEEvent {
+  event: AISSEEventType;
+  data: any;
+}
