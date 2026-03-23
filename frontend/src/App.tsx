@@ -22,12 +22,14 @@ const Settings = lazy(() => import('./pages/Settings'));
 const Sprint = lazy(() => import('./pages/Sprint'));
 const Reports = lazy(() => import('./pages/Reports'));
 const Autoresearch = lazy(() => import('./pages/Autoresearch'));
+const JojiAI = lazy(() => import('./pages/JojiAI'));
 import QuickAddModal from './components/QuickAddModal';
 import CommandPalette from './components/CommandPalette';
 import ShortcutsModal from './components/ShortcutsModal';
 import { ThemeProvider } from './components/ThemeProvider';
 import { TimerProvider } from './contexts/TimerContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { ChatProvider } from './contexts/ChatContext';
 import ErrorBoundary from './components/ErrorBoundary';
 
 const NAV_SHORTCUTS: Record<string, string> = {
@@ -105,6 +107,7 @@ function AuthenticatedApp() {
 
   return (
     <TimerProvider>
+      <ChatProvider>
       <Layout>
         <Suspense fallback={<div className="min-h-screen bg-[--exec-bg] flex items-center justify-center"><div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[--exec-accent]" /></div>}>
         <Routes>
@@ -124,6 +127,7 @@ function AuthenticatedApp() {
           <Route path="/sprint" element={<Sprint />} />
           <Route path="/reports" element={<Reports />} />
           <Route path="/autoresearch" element={<Autoresearch />} />
+          <Route path="/ai" element={<JojiAI />} />
           <Route path="/login" element={<Navigate to="/" replace />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
@@ -143,6 +147,7 @@ function AuthenticatedApp() {
         open={showShortcuts}
         onClose={() => setShowShortcuts(false)}
       />
+      </ChatProvider>
     </TimerProvider>
   );
 }

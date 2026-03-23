@@ -13,6 +13,7 @@ import {
   Send,
   RefreshCw,
   FlaskConical,
+  Brain,
   Settings,
   ChevronLeft,
   ChevronRight,
@@ -33,6 +34,12 @@ interface LayoutProps {
 }
 
 const navigationGroups = [
+  {
+    label: 'AI',
+    items: [
+      { name: 'Joji AI', href: '/ai', icon: Brain },
+    ],
+  },
   {
     label: 'Command',
     items: [
