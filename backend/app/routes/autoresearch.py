@@ -1753,6 +1753,48 @@ async def send_email_to_prospect(
     thread_id = previous_experiment.gmail_thread_id if previous_experiment else None
     in_reply_to = previous_experiment.gmail_message_id_header if previous_experiment else None
 
+    # Fallback: if no stored thread, search Gmail for existing conversation with this prospect
+    if not thread_id and prospect.email:
+        try:
+            gmail_token = (
+                db.query(GmailToken)
+                .filter(GmailToken.user_id == current_user.id, GmailToken.is_active == True)
+                .first()
+            )
+            if gmail_token:
+                from app.services.gmail_service import GmailService
+                gmail_svc = GmailService()
+                refresh_token = gmail_svc.decrypt_token(gmail_token.encrypted_refresh_token)
+                from google.oauth2.credentials import Credentials
+                from googleapiclient.discovery import build as gmail_build
+                creds = Credentials(
+                    token=None,
+                    refresh_token=refresh_token,
+                    token_uri="https://oauth2.googleapis.com/token",
+                    client_id=gmail_svc.google_client_id,
+                    client_secret=gmail_svc.google_client_secret,
+                    scopes=gmail_svc.scopes,
+                )
+                service = gmail_build("gmail", "v1", credentials=creds)
+                # Search for emails to this prospect
+                results = service.users().messages().list(
+                    userId="me", q=f"to:{prospect.email}", maxResults=1
+                ).execute()
+                messages = results.get("messages", [])
+                if messages:
+                    msg = service.users().messages().get(
+                        userId="me", id=messages[0]["id"], format="metadata",
+                        metadataHeaders=["Message-ID"]
+                    ).execute()
+                    thread_id = msg.get("threadId")
+                    for h in msg.get("payload", {}).get("headers", []):
+                        if h["name"].lower() == "message-id":
+                            in_reply_to = h["value"]
+                            break
+                    logger.info("Found Gmail thread %s for prospect %d via search", thread_id, prospect_id)
+        except Exception as e:
+            logger.warning("Gmail thread search failed for prospect %d: %s", prospect_id, e)
+
     # Send the email (threaded if follow-up)
     try:
         result = await svc.send_email(
@@ -1875,13 +1917,18 @@ async def generate_followup_email(
     )
 
     if step1_experiment and step1_experiment.subject:
+        # Strip any existing "Re:" prefixes to get the clean original subject
         original_subject = step1_experiment.subject or ""
+        while original_subject.lower().startswith("re:"):
+            original_subject = original_subject[3:].strip()
         original_body = step1_experiment.body or ""
         issue_type = step1_experiment.issue_type or "unknown"
         issue_detail = step1_experiment.issue_detail or ""
     elif prospect.custom_email_subject:
         # Fallback: use the manually written email from the prospect record
         original_subject = prospect.custom_email_subject or ""
+        while original_subject.lower().startswith("re:"):
+            original_subject = original_subject[3:].strip()
         original_body = prospect.custom_email_body or ""
         issue_type = "unknown"
         issue_detail = "Previously identified website issue (details in original email)"
