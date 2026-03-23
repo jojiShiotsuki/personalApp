@@ -2363,7 +2363,7 @@ Return ONLY valid JSON: {{"loom_script": "script text here"}}"""
 
             loom_resp = await svc.client.messages.create(
                 model=model,
-                max_tokens=300,
+                max_tokens=600,
                 messages=[{"role": "user", "content": loom_prompt}],
             )
             loom_raw = ""
@@ -2372,6 +2372,12 @@ Return ONLY valid JSON: {{"loom_script": "script text here"}}"""
                     loom_raw += block.text
             loom_result = _parse_followup_json(loom_raw)
             loom_script = loom_result.get("loom_script", "")
+            if not loom_script:
+                logger.warning(
+                    "Loom script empty after parse. stop_reason=%s, raw=%s",
+                    getattr(loom_resp, "stop_reason", "unknown"),
+                    loom_raw[:300],
+                )
             loom_input = getattr(loom_resp.usage, "input_tokens", 0)
             loom_output = getattr(loom_resp.usage, "output_tokens", 0)
             loom_cost = (
@@ -2379,7 +2385,7 @@ Return ONLY valid JSON: {{"loom_script": "script text here"}}"""
                 + (loom_output * _FOLLOWUP_OUTPUT_PRICE_PER_M / 1_000_000)
             )
         except Exception as loom_err:
-            logger.warning("Loom script generation failed (non-fatal): %s", loom_err)
+            logger.error("Loom script generation failed: %s", loom_err, exc_info=True)
 
     total_cost = cost_usd + loom_cost
 
