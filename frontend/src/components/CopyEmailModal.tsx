@@ -509,7 +509,7 @@ export default function CopyEmailModal({
                   )}
                   {canGenerateFollowUp && !aiFollowUpUsed && (
                     <button
-                      onClick={handleGenerateFollowUp}
+                      onClick={() => handleGenerateFollowUp()}
                       disabled={isGeneratingFollowUp}
                       className="text-xs text-purple-400 px-2 py-0.5 bg-purple-900/30 border border-purple-800 rounded-full flex items-center gap-1 hover:bg-purple-900/50 transition-colors disabled:opacity-50"
                     >
