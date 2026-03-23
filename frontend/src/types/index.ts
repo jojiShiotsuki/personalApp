@@ -782,6 +782,7 @@ export enum StepChannelType {
   LINKEDIN_MESSAGE = "LINKEDIN_MESSAGE",
   LINKEDIN_ENGAGE = "LINKEDIN_ENGAGE",
   FOLLOW_UP_EMAIL = "FOLLOW_UP_EMAIL",
+  LOOM_EMAIL = "LOOM_EMAIL",
 }
 
 export interface MultiTouchStep {
@@ -794,6 +795,7 @@ export interface MultiTouchStep {
   template_content?: string;
   instruction_text?: string;
   requires_linkedin_connected?: boolean;
+  loom_script?: string;
 }
 
 export interface MultiTouchStepCreate {
@@ -804,6 +806,7 @@ export interface MultiTouchStepCreate {
   template_content?: string;
   instruction_text?: string;
   requires_linkedin_connected?: boolean;
+  loom_script?: string;
 }
 
 export interface OutreachCampaign {

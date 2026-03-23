@@ -1990,6 +1990,28 @@ RULES:
 - Shows Joji is paying attention to their content
 
 Return ONLY valid JSON: {{"subject": "LinkedIn Engage", "body": "suggested comment here", "word_count": N}}""",
+
+        "loom_email": f"""You are writing an email for Joji Shiotsuki that accompanies a Loom video walkthrough of a prospect's website.
+
+The prospect is "{first_name}" from "{prospect.agency_name}". Joji previously identified this issue: {issue_type} — {issue_detail}
+
+Joji has recorded a 3-minute Loom video showing exactly what's wrong and what to fix. Write the email that sends with the Loom link.
+
+The email should:
+- Reference the original issue briefly
+- Tell them you recorded a quick video walkthrough
+- Include [LOOM LINK] as placeholder for the Loom URL
+- Keep it under 40 words
+- No pressure, just dropping value
+
+RULES:
+- Start with "G'day {first_name},"
+- Under 40 words
+- Australian English, conversational
+- No em dashes
+- End with: Cheers,\\nJoji Shiotsuki | Joji Web Solutions | jojishiotsuki.com\\n\\nNot interested? Just reply "stop" and I won't email again.
+
+Return ONLY valid JSON: {{"subject": "Re: {original_subject}", "body": "email body here", "word_count": N}}""",
     }
 
     # Check if there are more steps after this one (to determine if this is the last email)
@@ -2004,7 +2026,7 @@ Return ONLY valid JSON: {{"subject": "LinkedIn Engage", "body": "suggested comme
         # If not connected, only email steps count
         for rs in remaining_steps:
             ch = (rs.channel_type or "").lower()
-            if ch in ("email", "follow_up_email"):
+            if ch in ("email", "follow_up_email", "loom_email"):
                 has_more_steps = True
                 break
             if ch in ("linkedin_message",) and getattr(prospect, "linkedin_connected", False):
@@ -2069,7 +2091,7 @@ Return ONLY valid JSON: {{"subject": "LinkedIn Engage", "body": "suggested comme
             )
             email_followup_number = sum(
                 1 for s in all_steps
-                if (s.channel_type or "").lower() in ("email", "follow_up_email")
+                if (s.channel_type or "").lower() in ("email", "follow_up_email", "loom_email")
             )
         angle = email_angle_guidance.get(email_followup_number, default_email_angle)
         prompt = f"""You are writing a follow-up cold email for Joji Shiotsuki, who works with trade businesses across Australia on their web presence.

@@ -743,7 +743,7 @@ export default function CopyEmailModal({
           {(() => {
             // Check if current step is an email step
             const currentStep = multiTouchSteps?.find(s => s.step_number === (prospect.current_step || 1));
-            const isEmailStep = !currentStep || ['EMAIL', 'FOLLOW_UP_EMAIL', 'email', 'follow_up_email'].includes(currentStep.channel_type);
+            const isEmailStep = !currentStep || ['EMAIL', 'FOLLOW_UP_EMAIL', 'LOOM_EMAIL', 'email', 'follow_up_email', 'loom_email'].includes(currentStep.channel_type);
 
             return (
           <div className="flex gap-3 justify-end pt-6 border-t border-stone-700/30 mt-6">

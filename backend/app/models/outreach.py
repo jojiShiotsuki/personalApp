@@ -18,6 +18,7 @@ class StepChannelType(str, enum.Enum):
     LINKEDIN_MESSAGE = "LINKEDIN_MESSAGE"
     LINKEDIN_ENGAGE = "LINKEDIN_ENGAGE"
     FOLLOW_UP_EMAIL = "FOLLOW_UP_EMAIL"
+    LOOM_EMAIL = "LOOM_EMAIL"
 
 
 class ProspectStatus(str, enum.Enum):
@@ -198,6 +199,7 @@ class MultiTouchStep(Base):
     template_content = Column(Text, nullable=True)  # for email/message steps
     instruction_text = Column(String(500), nullable=True)  # guidance shown in queue
     requires_linkedin_connected = Column(Boolean, default=False, server_default="0")  # only runs if prospect accepted LinkedIn connection
+    loom_script = Column(Text, nullable=True)  # script for Loom video recording on LOOM_EMAIL steps
 
     campaign = relationship("OutreachCampaign", back_populates="multi_touch_steps")
 

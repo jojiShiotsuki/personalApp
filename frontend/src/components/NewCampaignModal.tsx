@@ -5,7 +5,7 @@ import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea
 import { coldOutreachApi } from '@/lib/api';
 import type { OutreachCampaign, MultiTouchStepCreate } from '@/types';
 import { CampaignType, StepChannelType } from '@/types';
-import { X, Plus, Trash2, Mail, Linkedin, MessageCircle, Heart, Reply, ChevronDown, GripVertical, UserCheck } from 'lucide-react';
+import { X, Plus, Trash2, Mail, Linkedin, MessageCircle, Heart, Reply, ChevronDown, GripVertical, UserCheck, Video } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -15,6 +15,7 @@ const CHANNEL_CONFIG: Record<StepChannelType, { label: string; icon: typeof Mail
   [StepChannelType.LINKEDIN_ENGAGE]: { label: 'LinkedIn Engage', icon: Heart, color: 'text-amber-400', defaultDelay: 2, defaultInstruction: 'Like or comment on a recent post' },
   [StepChannelType.LINKEDIN_MESSAGE]: { label: 'LinkedIn Message', icon: MessageCircle, color: 'text-indigo-400', defaultDelay: 1, defaultInstruction: 'Send LinkedIn message referencing your email' },
   [StepChannelType.FOLLOW_UP_EMAIL]: { label: 'Follow-up Email', icon: Reply, color: 'text-purple-400', defaultDelay: 2, defaultInstruction: 'Send follow-up email if no reply' },
+  [StepChannelType.LOOM_EMAIL]: { label: 'Loom Email', icon: Video, color: 'text-rose-400', defaultDelay: 2, defaultInstruction: 'Send email with Loom video walkthrough' },
 };
 
 const DEFAULT_MT_STEPS: MultiTouchStepCreate[] = [
@@ -67,6 +68,7 @@ export default function NewCampaignModal({
           template_content: s.template_content,
           instruction_text: s.instruction_text,
           requires_linkedin_connected: s.requires_linkedin_connected || false,
+          loom_script: s.loom_script,
         })));
       } else {
         setSteps([]);
@@ -407,9 +409,10 @@ export default function NewCampaignModal({
                                       {(step.channel_type === StepChannelType.EMAIL ||
                                         step.channel_type === StepChannelType.FOLLOW_UP_EMAIL ||
                                         step.channel_type === StepChannelType.LINKEDIN_MESSAGE ||
-                                        step.channel_type === StepChannelType.LINKEDIN_CONNECT) && (
+                                        step.channel_type === StepChannelType.LINKEDIN_CONNECT ||
+                                        step.channel_type === StepChannelType.LOOM_EMAIL) && (
                                         <div className="space-y-1.5">
-                                          {(step.channel_type === StepChannelType.EMAIL || step.channel_type === StepChannelType.FOLLOW_UP_EMAIL) && (
+                                          {(step.channel_type === StepChannelType.EMAIL || step.channel_type === StepChannelType.FOLLOW_UP_EMAIL || step.channel_type === StepChannelType.LOOM_EMAIL) && (
                                             <input
                                               type="text"
                                               value={step.template_subject || ''}
@@ -421,10 +424,19 @@ export default function NewCampaignModal({
                                           <textarea
                                             value={step.template_content || ''}
                                             onChange={(e) => updateStep(index, { template_content: e.target.value })}
-                                            placeholder="Template content (optional, use {contact_name}, {agency_name}...)"
+                                            placeholder={step.channel_type === StepChannelType.LOOM_EMAIL ? "Email message to send with the Loom link..." : "Template content (optional, use {contact_name}, {agency_name}...)"}
                                             rows={2}
                                             className={cn(inputClasses, 'py-1.5 text-xs resize-none')}
                                           />
+                                          {step.channel_type === StepChannelType.LOOM_EMAIL && (
+                                            <textarea
+                                              value={(step as any).loom_script || ''}
+                                              onChange={(e) => updateStep(index, { loom_script: e.target.value } as any)}
+                                              placeholder="Loom recording script — what to say in the video walkthrough..."
+                                              rows={3}
+                                              className={cn(inputClasses, 'py-1.5 text-xs resize-none border-rose-800/30')}
+                                            />
+                                          )}
                                         </div>
                                       )}
                                     </div>
