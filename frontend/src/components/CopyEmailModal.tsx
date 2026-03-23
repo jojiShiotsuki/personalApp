@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { coldOutreachApi, autoresearchApi } from '@/lib/api';
 import type { OutreachProspect, RenderedEmail, MultiTouchStep } from '@/types';
-import { X, Mail, Copy, Check, Loader2, ChevronDown, ChevronUp, AlertTriangle, Edit2, RotateCcw, Send, Sparkles, Video } from 'lucide-react';
+import { X, Mail, Copy, Check, Loader2, ChevronDown, ChevronUp, AlertTriangle, Edit2, RotateCcw, Send, Video } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -502,8 +502,7 @@ export default function CopyEmailModal({
                     Step {prospect.current_step}
                   </span>
                   {aiFollowUpUsed && (
-                    <span className="text-xs text-purple-400 px-2 py-0.5 bg-purple-900/30 border border-purple-800 rounded-full flex items-center gap-1">
-                      <Sparkles className="w-3 h-3" />
+                    <span className="text-xs font-medium text-[--exec-accent] px-2 py-0.5 bg-[--exec-accent-bg] border border-[--exec-accent]/20 rounded-lg">
                       AI Follow-up
                     </span>
                   )}
@@ -511,19 +510,9 @@ export default function CopyEmailModal({
                     <button
                       onClick={() => handleGenerateFollowUp()}
                       disabled={isGeneratingFollowUp}
-                      className="text-xs text-purple-400 px-2 py-0.5 bg-purple-900/30 border border-purple-800 rounded-full flex items-center gap-1 hover:bg-purple-900/50 transition-colors disabled:opacity-50"
+                      className="text-xs font-medium px-3 py-1 bg-[--exec-accent] text-white rounded-lg hover:bg-[--exec-accent-dark] shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      {isGeneratingFollowUp ? (
-                        <>
-                          <Loader2 className="w-3 h-3 animate-spin" />
-                          Generating...
-                        </>
-                      ) : (
-                        <>
-                          <Sparkles className="w-3 h-3" />
-                          Generate AI Follow-up
-                        </>
-                      )}
+                      {isGeneratingFollowUp ? 'Generating...' : 'Generate AI Follow-up'}
                     </button>
                   )}
                 </div>
@@ -754,18 +743,8 @@ export default function CopyEmailModal({
                   <button
                     onClick={handleRegenerateLoom}
                     disabled={isRegeneratingLoom}
-                    className={cn(
-                      'flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-all',
-                      'bg-rose-900/40 text-rose-300 border border-rose-800/40',
-                      'hover:bg-rose-900/60 hover:text-rose-200',
-                      'disabled:opacity-50 disabled:cursor-not-allowed'
-                    )}
+                    className="px-3 py-1.5 text-xs font-medium text-white bg-[--exec-accent] rounded-lg hover:bg-[--exec-accent-dark] shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {isRegeneratingLoom ? (
-                      <Loader2 className="w-3 h-3 animate-spin" />
-                    ) : (
-                      <Sparkles className="w-3 h-3" />
-                    )}
                     {isRegeneratingLoom ? 'Generating...' : 'Regenerate'}
                   </button>
                 </div>
