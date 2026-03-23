@@ -331,15 +331,18 @@ export default function AuditsTab() {
           <button
             onClick={async () => {
               try {
-                toast.info('Learning from your data...');
+                toast.info('Analyzing your edits, feedback, and rejections...');
                 const insights = await autoresearchApi.refreshInsights();
                 if (insights && insights.length > 0) {
-                  const topInsight = insights[0]?.insight || 'Patterns analyzed';
-                  toast.success(`Learned ${insights.length} new insights. Top: "${topInsight.substring(0, 100)}..."`, { duration: 8000 });
+                  // Show top 3 insights
+                  const summary = insights.slice(0, 3).map((i: any) => `- ${i.recommendation || i.insight}`).join('\n');
+                  toast.success(`AI updated with ${insights.length} insights:\n${summary.substring(0, 200)}`, { duration: 10000 });
                 } else {
-                  toast.info('Not enough data to generate insights yet. Keep auditing!');
+                  toast.info('Not enough data yet. Keep auditing and the AI will learn from your patterns.');
                 }
                 queryClient.invalidateQueries({ queryKey: ['autoresearch-audits'] });
+                queryClient.invalidateQueries({ queryKey: ['insights'] });
+                queryClient.invalidateQueries({ queryKey: ['autoresearch-analytics-overview'] });
               } catch {
                 toast.error('Failed to refresh learning');
               }

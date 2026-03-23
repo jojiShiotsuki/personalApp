@@ -2096,7 +2096,17 @@ async def refresh_insights(
 
     new_insights = await learning_service.generate_insights(db)
 
-    # Re-query from DB to get the persisted Insight records
+    if not new_insights:
+        # Return existing active insights if generation returned empty
+        active = (
+            db.query(Insight)
+            .filter(Insight.is_active.is_(True))
+            .order_by(Insight.created_at.desc())
+            .all()
+        )
+        return [InsightResponse.model_validate(i, from_attributes=True) for i in active]
+
+    # Re-query from DB to get the newly persisted Insight records
     active = (
         db.query(Insight)
         .filter(Insight.is_active.is_(True))
