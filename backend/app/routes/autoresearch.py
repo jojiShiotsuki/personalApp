@@ -342,6 +342,10 @@ async def start_batch_audit(
             OutreachProspect.website.isnot(None),
             OutreachProspect.website != "",
             ~OutreachProspect.id.in_(already_audited_ids),
+            OutreachProspect.status.notin_([
+                ProspectStatus.SKIPPED,
+                ProspectStatus.NOT_INTERESTED,
+            ]),
         )
         .scalar()
     ) or 0
@@ -2553,6 +2557,10 @@ async def _run_batch_audit(
                 OutreachProspect.website.isnot(None),
                 OutreachProspect.website != "",
                 ~OutreachProspect.id.in_(already_audited_ids),
+                OutreachProspect.status.notin_([
+                    ProspectStatus.SKIPPED,
+                    ProspectStatus.NOT_INTERESTED,
+                ]),
             )
             .limit(max_count)
             .all()
@@ -2579,6 +2587,17 @@ async def _run_batch_audit(
                         "Batch %s: invalid URL for prospect %d (%s): %s",
                         batch_id, prospect.id, prospect.website, url_err,
                     )
+                    # Create a skipped audit so this prospect won't be retried
+                    db.add(AuditResult(
+                        prospect_id=prospect.id,
+                        campaign_id=prospect.campaign_id,
+                        issue_type="invalid_url",
+                        issue_detail=str(url_err),
+                        status="skipped",
+                        site_quality="not_target",
+                        confidence="high",
+                    ))
+                    db.commit()
                     job["errors"] += 1
                     job["completed"] += 1
                     continue
@@ -2593,6 +2612,17 @@ async def _run_batch_audit(
                         "Batch %s: screenshot failed for prospect %d (%s): %s",
                         batch_id, prospect.id, prospect.website, screenshots["error"],
                     )
+                    # Create a skipped audit so this prospect won't be retried
+                    db.add(AuditResult(
+                        prospect_id=prospect.id,
+                        campaign_id=prospect.campaign_id,
+                        issue_type="screenshot_failed",
+                        issue_detail=screenshots.get("error", "Unknown error"),
+                        status="skipped",
+                        site_quality="not_target",
+                        confidence="low",
+                    ))
+                    db.commit()
                     job["errors"] += 1
                     job["completed"] += 1
                     continue
@@ -2625,6 +2655,17 @@ async def _run_batch_audit(
                         "Batch %s: analysis failed for prospect %d: %s",
                         batch_id, prospect.id, analysis["error"],
                     )
+                    # Create a skipped audit so this prospect won't be retried
+                    db.add(AuditResult(
+                        prospect_id=prospect.id,
+                        campaign_id=prospect.campaign_id,
+                        issue_type="analysis_failed",
+                        issue_detail=analysis.get("error", "Unknown error"),
+                        status="skipped",
+                        site_quality="not_target",
+                        confidence="low",
+                    ))
+                    db.commit()
                     job["errors"] += 1
                     job["completed"] += 1
                     continue

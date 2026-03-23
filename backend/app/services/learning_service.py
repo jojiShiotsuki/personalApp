@@ -16,7 +16,8 @@ from anthropic import AsyncAnthropic
 from sqlalchemy import func, case
 from sqlalchemy.orm import Session
 
-from app.models.autoresearch import Experiment, Insight
+from app.models.autoresearch import AuditResult, Experiment, Insight
+from app.models.outreach import OutreachProspect
 
 logger = logging.getLogger(__name__)
 
@@ -145,42 +146,102 @@ class LearningService:
     # ──────────────────────────────────────────
 
     def build_learning_context(self, db: Session, niche: str | None = None) -> str | None:
-        """Build the <learning_context> block to append to audit prompts."""
+        """Build the <learning_context> block to append to audit prompts.
 
-        # Check minimum experiment threshold
+        Sources two independent signals:
+        1. Experiment performance data (requires MIN_EXPERIMENTS_FOR_CONTEXT sent emails)
+        2. Audit rejection patterns (always included when rejections exist)
+
+        Returns context whenever EITHER source has data.
+        """
+
+        parts: list[str] = ["<learning_context>"]
+        has_content = False
+
+        # ── Source 1: Rejection patterns (always active) ──
+        rejection_context = self._build_rejection_context(db, niche)
+        if rejection_context:
+            parts.extend(rejection_context)
+            has_content = True
+
+        # ── Source 2: Experiment performance data ──
         total_sent = (
             db.query(func.count(Experiment.id))
             .filter(Experiment.status.in_(["sent", "replied", "no_reply"]))
             .scalar()
         ) or 0
 
-        if total_sent < MIN_EXPERIMENTS_FOR_CONTEXT:
-            return None
+        if total_sent >= MIN_EXPERIMENTS_FOR_CONTEXT:
+            total_replied = (
+                db.query(func.count(Experiment.id))
+                .filter(Experiment.replied.is_(True))
+                .scalar()
+            ) or 0
 
-        total_replied = (
-            db.query(func.count(Experiment.id))
-            .filter(Experiment.replied.is_(True))
-            .scalar()
-        ) or 0
+            overall_rate = round((total_replied / total_sent) * 100, 1) if total_sent > 0 else 0.0
 
-        overall_rate = round((total_replied / total_sent) * 100, 1) if total_sent > 0 else 0.0
+            parts.append(f"Based on {total_sent} emails sent with {total_replied} replies ({overall_rate}% reply rate):")
+            parts.append("")
 
-        # Reply rates by issue_type (directly from Experiment table)
-        issue_stats = self._get_reply_rates_by_issue_type(db)
+            # Reply rates by issue_type
+            issue_stats = self._get_reply_rates_by_issue_type(db)
+            prioritize_lines: list[str] = []
+            avoid_lines: list[str] = []
 
-        # Split into top-performing and underperforming
-        prioritize_lines: list[str] = []
-        avoid_lines: list[str] = []
+            for row in issue_stats:
+                issue, rate, count = row["issue_type"], row["reply_rate"], row["total"]
+                line = f"{issue} — {rate}% reply rate (n={count})"
+                if rate >= overall_rate and count >= 5:
+                    prioritize_lines.append(f"{len(prioritize_lines) + 1}. {line}")
+                elif count >= 10:
+                    avoid_lines.append(f"- {line}")
 
-        for i, row in enumerate(issue_stats):
-            issue, rate, count = row["issue_type"], row["reply_rate"], row["total"]
-            line = f"{issue} — {rate}% reply rate (n={count})"
-            if rate >= overall_rate and count >= 5:
-                prioritize_lines.append(f"{len(prioritize_lines) + 1}. {line}")
-            elif count >= 10:
-                avoid_lines.append(f"- {line}")
+            if prioritize_lines:
+                parts.append("PRIORITIZE these issue types (by reply rate):")
+                parts.extend(prioritize_lines)
+                parts.append("")
 
-        # Active insights (high/medium confidence)
+            if avoid_lines:
+                parts.append("AVOID leading with:")
+                parts.extend(avoid_lines)
+                parts.append("")
+
+            # Niche-specific section
+            if niche:
+                niche_best = self._get_top_issue_for_niche(db, niche)
+                if niche_best:
+                    parts.append(f"FOR THIS SPECIFIC NICHE ({niche}):")
+                    parts.append(
+                        f"- Best performing: {niche_best['issue_type']} "
+                        f"({niche_best['reply_rate']}% reply rate, n={niche_best['total']})"
+                    )
+                    parts.append("")
+
+            # Step performance section
+            step_stats = (
+                db.query(
+                    Experiment.step_number,
+                    func.count(Experiment.id).label("total"),
+                    func.sum(case((Experiment.replied.is_(True), 1), else_=0)).label("replied"),
+                )
+                .filter(
+                    Experiment.status.in_(["sent", "replied", "no_reply"]),
+                    Experiment.step_number.isnot(None),
+                )
+                .group_by(Experiment.step_number)
+                .order_by(Experiment.step_number)
+                .all()
+            )
+            if step_stats and len(step_stats) > 1:
+                parts.append("SEQUENCE STEP PERFORMANCE:")
+                for row in step_stats:
+                    rate = round((row.replied / row.total) * 100, 1) if row.total else 0.0
+                    parts.append(f"- Step {row.step_number}: {rate}% reply rate (n={row.total})")
+                parts.append("")
+
+            has_content = True
+
+        # ── Active insights (always check) ──
         active_insights = (
             db.query(Insight)
             .filter(
@@ -197,65 +258,20 @@ class LearningService:
                 continue
             style_lines.append(f"- [{ins.confidence.upper()}] {ins.recommendation or ins.insight}")
 
-        # Build the context block
-        parts: list[str] = [
-            "<learning_context>",
-            f"Based on {total_sent} emails sent with {total_replied} replies ({overall_rate}% reply rate):",
-            "",
-        ]
-
-        if prioritize_lines:
-            parts.append("PRIORITIZE these issue types (by reply rate):")
-            parts.extend(prioritize_lines)
-            parts.append("")
-
-        if avoid_lines:
-            parts.append("AVOID leading with:")
-            parts.extend(avoid_lines)
-            parts.append("")
-
-        # Niche-specific section
-        if niche:
-            niche_best = self._get_top_issue_for_niche(db, niche)
-            if niche_best:
-                parts.append(f"FOR THIS SPECIFIC NICHE ({niche}):")
-                parts.append(
-                    f"- Best performing: {niche_best['issue_type']} "
-                    f"({niche_best['reply_rate']}% reply rate, n={niche_best['total']})"
-                )
-                parts.append("")
-
-        # Step performance section
-        step_stats = (
-            db.query(
-                Experiment.step_number,
-                func.count(Experiment.id).label("total"),
-                func.sum(case((Experiment.replied.is_(True), 1), else_=0)).label("replied"),
-            )
-            .filter(
-                Experiment.status.in_(["sent", "replied", "no_reply"]),
-                Experiment.step_number.isnot(None),
-            )
-            .group_by(Experiment.step_number)
-            .order_by(Experiment.step_number)
-            .all()
-        )
-        if step_stats and len(step_stats) > 1:
-            parts.append("SEQUENCE STEP PERFORMANCE:")
-            for row in step_stats:
-                rate = round((row.replied / row.total) * 100, 1) if row.total else 0.0
-                parts.append(f"- Step {row.step_number}: {rate}% reply rate (n={row.total})")
-            parts.append("")
-
         if style_lines:
             parts.append("STYLE INSIGHTS:")
             parts.extend(style_lines)
             parts.append("")
+            has_content = True
 
-        parts.append(
-            "When multiple issues found on this site, lead with the "
-            "highest-performing issue type from the list above."
-        )
+        if not has_content:
+            return None
+
+        if total_sent >= MIN_EXPERIMENTS_FOR_CONTEXT:
+            parts.append(
+                "When multiple issues found on this site, lead with the "
+                "highest-performing issue type from the list above."
+            )
         parts.append("</learning_context>")
 
         return "\n".join(parts)
@@ -286,6 +302,137 @@ class LearningService:
         )
 
         return current_count - last_refresh_count >= REFRESH_THRESHOLD
+
+    # ──────────────────────────────────────────
+    # Rejection-based learning
+    # ──────────────────────────────────────────
+
+    def _build_rejection_context(self, db: Session, niche: str | None = None) -> list[str]:
+        """Build rejection-based learning lines from audit rejections.
+
+        Extracts patterns from rejected audits so the AI avoids repeating
+        the same mistakes: wrong niches, wrong business types, etc.
+        """
+        lines: list[str] = []
+
+        # 1. Rejection counts by category
+        rejection_stats = (
+            db.query(
+                AuditResult.rejection_category,
+                func.count(AuditResult.id).label("count"),
+            )
+            .filter(
+                AuditResult.status == "rejected",
+                AuditResult.rejection_category.isnot(None),
+            )
+            .group_by(AuditResult.rejection_category)
+            .order_by(func.count(AuditResult.id).desc())
+            .all()
+        )
+
+        if not rejection_stats:
+            return lines
+
+        total_rejections = sum(r.count for r in rejection_stats)
+        lines.append(f"AUDIT REJECTION HISTORY ({total_rejections} total rejections):")
+        lines.append("The user has reviewed AI audit results and rejected these. Learn from these mistakes:")
+        lines.append("")
+
+        for row in rejection_stats:
+            lines.append(f"- {row.rejection_category}: {row.count} rejections")
+        lines.append("")
+
+        # 2. not_target_audience: extract specific rejected companies, niches, and reasons
+        not_target_details = (
+            db.query(
+                OutreachProspect.agency_name,
+                OutreachProspect.niche,
+                AuditResult.rejection_reason,
+                AuditResult.issue_type,
+            )
+            .join(OutreachProspect, AuditResult.prospect_id == OutreachProspect.id)
+            .filter(
+                AuditResult.status == "rejected",
+                AuditResult.rejection_category == "not_target_audience",
+            )
+            .order_by(AuditResult.created_at.desc())
+            .limit(30)
+            .all()
+        )
+
+        if not_target_details:
+            lines.append("REJECTED AS NOT TARGET AUDIENCE — DO NOT audit similar businesses:")
+
+            # Extract rejected niches pattern
+            rejected_niches: dict[str, int] = {}
+            rejected_names: list[str] = []
+            rejected_reasons: list[str] = []
+            for row in not_target_details:
+                if row.niche:
+                    key = row.niche.lower().strip()
+                    rejected_niches[key] = rejected_niches.get(key, 0) + 1
+                if row.agency_name:
+                    rejected_names.append(row.agency_name)
+                if row.rejection_reason and row.rejection_reason not in rejected_reasons:
+                    rejected_reasons.append(row.rejection_reason)
+
+            if rejected_niches:
+                lines.append("  Rejected niches (these are NOT target audience):")
+                for niche_name, count in sorted(rejected_niches.items(), key=lambda x: -x[1]):
+                    lines.append(f"    - {niche_name}: {count}x rejected")
+
+            if rejected_names:
+                lines.append(f"  Specific rejected companies: {', '.join(rejected_names[:15])}")
+
+            if rejected_reasons:
+                lines.append("  User's rejection reasons:")
+                for reason in rejected_reasons[:10]:
+                    lines.append(f"    - \"{reason}\"")
+
+            lines.append("")
+            lines.append(
+                "IMPORTANT: If the prospect being audited matches any rejected niche or "
+                "company pattern above, return site_quality=\"not_target\" immediately."
+            )
+            lines.append("")
+
+        # 3. Other rejection categories with details
+        other_rejections = (
+            db.query(
+                AuditResult.rejection_category,
+                AuditResult.rejection_reason,
+                AuditResult.issue_type,
+                OutreachProspect.agency_name,
+            )
+            .join(OutreachProspect, AuditResult.prospect_id == OutreachProspect.id)
+            .filter(
+                AuditResult.status == "rejected",
+                AuditResult.rejection_category.isnot(None),
+                AuditResult.rejection_category != "not_target_audience",
+            )
+            .order_by(AuditResult.created_at.desc())
+            .limit(20)
+            .all()
+        )
+
+        if other_rejections:
+            # Group by category
+            by_category: dict[str, list[str]] = {}
+            for row in other_rejections:
+                cat = row.rejection_category
+                if cat not in by_category:
+                    by_category[cat] = []
+                detail = row.rejection_reason or row.issue_type or "no reason given"
+                by_category[cat].append(f"{row.agency_name}: {detail}")
+
+            lines.append("OTHER REJECTION PATTERNS — avoid these mistakes:")
+            for cat, details in by_category.items():
+                lines.append(f"  {cat}:")
+                for d in details[:5]:
+                    lines.append(f"    - {d}")
+            lines.append("")
+
+        return lines
 
     # ──────────────────────────────────────────
     # Private helpers
