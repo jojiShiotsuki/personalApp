@@ -6,6 +6,9 @@ from pydantic import BaseModel
 import asyncio
 import json
 import logging
+import os
+from datetime import datetime, timedelta
+from collections import defaultdict
 
 from app.database import get_db
 from app.auth import get_current_user
@@ -21,6 +24,34 @@ from app.services.encryption_service import EncryptionService
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/ai", tags=["joji-ai"])
+
+# Rate limiting: track requests per user per hour
+_rate_limits: dict[int, list[datetime]] = defaultdict(list)
+SONNET_LIMIT = int(os.getenv("AI_RATE_LIMIT_SONNET", "60"))
+OPUS_LIMIT = int(os.getenv("AI_RATE_LIMIT_OPUS", "20"))
+DAILY_COST_CAP = float(os.getenv("AI_DAILY_COST_CAP", "5.0"))
+
+
+def _check_rate_limit(user_id: int, model: str | None) -> None:
+    """Check per-model hourly rate limit. Raises HTTPException if exceeded."""
+    limit = OPUS_LIMIT if model and "opus" in model else SONNET_LIMIT
+    now = datetime.utcnow()
+    cutoff = now - timedelta(hours=1)
+    # Clean old entries
+    _rate_limits[user_id] = [t for t in _rate_limits[user_id] if t > cutoff]
+    if len(_rate_limits[user_id]) >= limit:
+        raise HTTPException(status_code=429, detail=f"Rate limit exceeded ({limit}/hour). Try again later.")
+    _rate_limits[user_id].append(now)
+
+
+def _check_cost_cap(settings: JojiAISettings) -> None:
+    """Check daily cost cap. Raises HTTPException if exceeded."""
+    if settings.total_cost_usd >= DAILY_COST_CAP:
+        raise HTTPException(
+            status_code=429,
+            detail=f"Daily cost cap (${DAILY_COST_CAP:.2f}) exceeded. Current: ${settings.total_cost_usd:.2f}",
+        )
+
 
 # Lazy-initialized singleton
 _ai_service = None
@@ -46,6 +77,12 @@ async def chat(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
+    # Rate limit + cost cap checks
+    _check_rate_limit(user.id, request.model)
+    settings = db.query(JojiAISettings).filter(JojiAISettings.user_id == user.id).first()
+    if settings:
+        _check_cost_cap(settings)
+
     service = _get_ai_service()
     generator = service.chat_stream(
         db=db,
