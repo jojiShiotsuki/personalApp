@@ -226,6 +226,49 @@ GOAL_TOOLS = [
     }
 ]
 
+VAULT_TOOLS = [
+    {
+        "name": "search_vault",
+        "description": "Search the Obsidian knowledge vault for relevant notes, SOPs, client info, and business knowledge. Use this when you need information from the vault that wasn't provided in the initial context.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "query": {"type": "string", "description": "Search query describing what you're looking for"},
+                "top_k": {"type": "integer", "description": "Number of results to return (default 5)", "default": 5}
+            },
+            "required": ["query"]
+        }
+    }
+]
+
+OUTREACH_TOOLS = [
+    {
+        "name": "get_outreach_stats",
+        "description": "Get outreach campaign statistics including total prospects, reply rates, and conversion rates.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "campaign_id": {"type": "integer", "description": "Specific campaign ID (optional, returns all if omitted)"}
+            },
+            "required": []
+        }
+    },
+    {
+        "name": "get_prospect_info",
+        "description": "Get detailed information about a specific outreach prospect including their email history and current status.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "prospect_id": {"type": "integer", "description": "The prospect ID to look up"}
+            },
+            "required": ["prospect_id"]
+        }
+    }
+]
+
+ALL_TOOLS = TASK_TOOLS + DEAL_TOOLS + CONTACT_TOOLS + PROJECT_TOOLS + GOAL_TOOLS + VAULT_TOOLS + OUTREACH_TOOLS
+
+
 def get_tools_for_page(page: str) -> List[Dict[str, Any]]:
     """Return all tools regardless of page to allow cross-functional assistance"""
-    return TASK_TOOLS + DEAL_TOOLS + CONTACT_TOOLS + PROJECT_TOOLS + GOAL_TOOLS
+    return ALL_TOOLS
