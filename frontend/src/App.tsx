@@ -30,6 +30,7 @@ import { ThemeProvider } from './components/ThemeProvider';
 import { TimerProvider } from './contexts/TimerContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ChatProvider } from './contexts/ChatContext';
+import ChatPanel from './components/joji-ai/ChatPanel';
 import ErrorBoundary from './components/ErrorBoundary';
 
 const NAV_SHORTCUTS: Record<string, string> = {
@@ -147,6 +148,7 @@ function AuthenticatedApp() {
         open={showShortcuts}
         onClose={() => setShowShortcuts(false)}
       />
+      <ChatPanel />
       </ChatProvider>
     </TimerProvider>
   );
