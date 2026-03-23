@@ -2161,26 +2161,81 @@ Return ONLY valid JSON (no markdown fences):
     loom_script = ""
     loom_cost = 0.0
     try:
-        loom_prompt = f"""You are writing a short Loom video script for Joji Shiotsuki to record a personalised website walkthrough for a prospect.
+        # Gather full conversation history for this prospect
+        all_experiments = (
+            db.query(Experiment)
+            .filter(Experiment.prospect_id == prospect_id)
+            .order_by(Experiment.step_number)
+            .all()
+        )
+        email_history = ""
+        for exp in all_experiments:
+            status_label = exp.status or "unknown"
+            channel_label = exp.channel or "email"
+            email_history += f"\nStep {exp.step_number} ({channel_label}, {status_label}):"
+            if exp.subject:
+                email_history += f"\n  Subject: {exp.subject}"
+            if exp.body:
+                body_preview = (exp.body or "")[:200]
+                email_history += f"\n  Body: {body_preview}"
+            if exp.was_edited:
+                email_history += "\n  (User edited this before sending)"
 
-Prospect: "{first_name}" from "{prospect.agency_name}" ({prospect.niche or 'trades'} industry)
-Website: {prospect.website or 'unknown'}
-Issue found: {issue_type} — {issue_detail}
+        # Get audit result for deeper issue context
+        audit = (
+            db.query(AuditResult)
+            .filter(AuditResult.prospect_id == prospect_id)
+            .order_by(AuditResult.created_at.desc())
+            .first()
+        )
+        audit_context = ""
+        if audit:
+            audit_context = f"""
+WEBSITE AUDIT FINDINGS:
+- Primary issue: {audit.issue_type or 'unknown'} — {audit.issue_detail or 'N/A'}
+- Secondary issue: {audit.secondary_issue or 'none'} — {audit.secondary_detail or 'N/A'}
+- Site quality: {audit.site_quality or 'unknown'}
+- Confidence: {audit.confidence or 'unknown'}"""
 
-Write a natural, conversational script (60-90 seconds when spoken). Structure:
+        # Get website issues from prospect record
+        website_issues = prospect.website_issues or []
+        issues_text = ", ".join(website_issues) if website_issues else "none detected"
+
+        loom_prompt = f"""You are writing a Loom video script for Joji Shiotsuki to record a personalised website walkthrough.
+
+PROSPECT CONTEXT:
+- Name: {first_name}
+- Company: {prospect.agency_name}
+- Industry: {prospect.niche or 'trades'}
+- Website: {prospect.website or 'unknown'}
+- Website issues detected: {issues_text}
+{audit_context}
+
+FULL EMAIL HISTORY WITH THIS PROSPECT:
+{email_history if email_history else "No emails sent yet."}
+
+ORIGINAL ISSUE REFERENCED IN EMAILS:
+{issue_type} — {issue_detail}
+{followup_learning}
+Write a natural, conversational Loom video script (60-90 seconds when spoken). Joji will screen-record their website while talking through this script.
+
+STRUCTURE:
 1. Quick intro: "Hey {first_name}, Joji here from Joji Web Solutions"
-2. Open their website and point out the specific issue
-3. Show what it looks like on mobile (if relevant)
-4. Briefly explain what the fix looks like
-5. Soft CTA: "If you want me to sort this out, just reply to the email"
+2. Reference what you've already emailed about (don't repeat the emails, just acknowledge them naturally)
+3. Open their website and walk through the specific issue visually
+4. If there's a secondary issue, briefly point that out too
+5. Show what it looks like on mobile if relevant to the issue
+6. Briefly explain what a fix would look like (be specific to their site, not generic)
+7. Soft CTA: "If you want me to sort this out, just reply to the email"
 
 RULES:
-- Conversational, not scripted-sounding
+- Conversational and natural, not scripted-sounding
 - Australian English
 - No em dashes
-- Reference the specific issue, not generic advice
+- Be SPECIFIC to their website and issues, not generic advice
+- Reference details from the audit and past emails so it feels personal
 - Under 150 words
-- Use [OPEN WEBSITE], [SHOW MOBILE], [SHOW ISSUE] as action cues
+- Use action cues in brackets: [OPEN WEBSITE], [SCROLL TO ISSUE], [SHOW MOBILE VIEW], [POINT OUT ISSUE]
 
 Return ONLY valid JSON: {{"loom_script": "script text here"}}"""
 
