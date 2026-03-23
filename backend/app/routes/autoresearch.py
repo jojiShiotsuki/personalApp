@@ -1872,6 +1872,7 @@ def _parse_followup_json(raw_text: str) -> dict:
 @router.post("/generate-followup/{prospect_id}")
 async def generate_followup_email(
     prospect_id: int,
+    payload: dict = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -1879,8 +1880,10 @@ async def generate_followup_email(
     Generate an AI-personalised follow-up email that references the original
     audit issue. Uses Claude Haiku for cost efficiency.
 
-    Returns JSON with subject, body, word_count, step_number, and cost_usd.
+    Returns JSON with subject, body, loom_script, word_count, step_number, and cost_usd.
+    Accepts optional custom_instruction in body to guide generation (e.g. "focus on slow site speed").
     """
+    custom_instruction = (payload or {}).get("custom_instruction", "")
     svc = _require_audit_service()  # ensures ANTHROPIC_API_KEY is set
 
     # --- Fetch prospect ---
@@ -2127,6 +2130,10 @@ RULES:
 Return ONLY valid JSON (no markdown fences):
 {{"subject": "Re: {original_subject}", "body": "follow-up email body here", "word_count": N}}"""
 
+    # Inject custom instruction if provided
+    if custom_instruction:
+        prompt += f"\n\nUSER INSTRUCTION (follow this closely): {custom_instruction}"
+
     # --- Call Claude Haiku ---
     model = os.getenv("AUTORESEARCH_FOLLOWUP_MODEL", "claude-haiku-4-5")
 
@@ -2246,6 +2253,9 @@ RULES:
 - Use action cues in brackets: [OPEN WEBSITE], [SCROLL TO ISSUE], [SHOW MOBILE VIEW], [POINT OUT ISSUE]
 
 Return ONLY valid JSON: {{"loom_script": "script text here"}}"""
+
+        if custom_instruction:
+            loom_prompt += f"\n\nUSER INSTRUCTION (follow this closely for the Loom script): {custom_instruction}"
 
         loom_resp = await svc.client.messages.create(
             model=model,

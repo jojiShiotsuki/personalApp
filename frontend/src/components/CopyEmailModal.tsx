@@ -113,23 +113,46 @@ export default function CopyEmailModal({
   const canGenerateFollowUp = (prospect.current_step || 1) > 1 && !!prospect.custom_email_subject;
   const [isGeneratingFollowUp, setIsGeneratingFollowUp] = useState(false);
   const [aiFollowUpUsed, setAiFollowUpUsed] = useState(false);
+  const [regenerateInstruction, setRegenerateInstruction] = useState('');
+  const [isRegeneratingLoom, setIsRegeneratingLoom] = useState(false);
 
-  const handleGenerateFollowUp = async () => {
+  const handleGenerateFollowUp = async (instruction?: string) => {
     setIsGeneratingFollowUp(true);
     try {
-      const result = await autoresearchApi.generateFollowup(prospect.id);
+      const result = await autoresearchApi.generateFollowup(prospect.id, instruction);
       setEditSubject(result.subject);
       setEditBody(result.body);
       if (result.loom_script) {
         setEditLoomScript(result.loom_script);
+        setLoomExpanded(true);
       }
       setAiFollowUpUsed(true);
       setHasInitializedFromTemplate(true);
+      setRegenerateInstruction('');
       toast.success('AI follow-up generated');
     } catch {
       toast.error('Failed to generate follow-up');
     } finally {
       setIsGeneratingFollowUp(false);
+      setIsRegeneratingLoom(false);
+    }
+  };
+
+  const handleRegenerateLoom = async () => {
+    setIsRegeneratingLoom(true);
+    try {
+      const result = await autoresearchApi.generateFollowup(prospect.id, regenerateInstruction || undefined);
+      if (result.loom_script) {
+        setEditLoomScript(result.loom_script);
+        setRegenerateInstruction('');
+        toast.success('Loom script regenerated');
+      } else {
+        toast.error('No script returned');
+      }
+    } catch {
+      toast.error('Failed to regenerate script');
+    } finally {
+      setIsRegeneratingLoom(false);
     }
   };
 
@@ -712,6 +735,40 @@ export default function CopyEmailModal({
                   style={{ minHeight: '120px', height: editLoomScript ? `${Math.min(Math.max(editLoomScript.split('\n').length * 24 + 40, 120), 400)}px` : '120px' }}
                   placeholder="Write your Loom script here, or click Generate AI Follow-up to auto-generate one..."
                 />
+                {/* Regenerate with instruction */}
+                <div className="flex items-center gap-2 mt-2">
+                  <input
+                    type="text"
+                    value={regenerateInstruction}
+                    onChange={(e) => setRegenerateInstruction(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter' && !isRegeneratingLoom) handleRegenerateLoom(); }}
+                    className={cn(
+                      'flex-1 px-3 py-1.5 rounded-lg text-xs',
+                      'bg-stone-800/50 border border-stone-600/40',
+                      'text-[--exec-text] placeholder:text-[--exec-text-muted]',
+                      'focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500/50',
+                      'transition-all'
+                    )}
+                    placeholder="e.g. focus on slow site speed, mention their competitors..."
+                  />
+                  <button
+                    onClick={handleRegenerateLoom}
+                    disabled={isRegeneratingLoom}
+                    className={cn(
+                      'flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-all',
+                      'bg-rose-900/40 text-rose-300 border border-rose-800/40',
+                      'hover:bg-rose-900/60 hover:text-rose-200',
+                      'disabled:opacity-50 disabled:cursor-not-allowed'
+                    )}
+                  >
+                    {isRegeneratingLoom ? (
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                    ) : (
+                      <Sparkles className="w-3 h-3" />
+                    )}
+                    {isRegeneratingLoom ? 'Generating...' : 'Regenerate'}
+                  </button>
+                </div>
               </div>
             )}
           </div>
