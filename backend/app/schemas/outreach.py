@@ -143,7 +143,7 @@ class CampaignBase(BaseModel):
 
 class MultiTouchStepCreate(BaseModel):
     step_number: int = Field(..., ge=1)
-    channel_type: StepChannelType
+    channel_type: str  # Accept any case, normalized on frontend
     delay_days: int = Field(default=1, ge=0)
     template_subject: Optional[str] = Field(None, max_length=500)
     template_content: Optional[str] = None
