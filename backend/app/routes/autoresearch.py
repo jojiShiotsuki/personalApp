@@ -2386,6 +2386,7 @@ Return ONLY valid JSON: {{"loom_script": "script text here"}}"""
             )
         except Exception as loom_err:
             logger.error("Loom script generation failed: %s", loom_err, exc_info=True)
+            loom_script = f"[ERROR: Loom script generation failed — {loom_err}]"
 
     total_cost = cost_usd + loom_cost
 
