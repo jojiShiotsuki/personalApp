@@ -38,6 +38,7 @@ export default function AuditsTab() {
   // Batch state
   const [activeBatchId, setActiveBatchId] = useState<string | null>(null);
   const [auditCount, setAuditCount] = useState<number>(5);
+  const [isLearning, setIsLearning] = useState(false);
 
   // Screenshot modal state
   const [screenshotAudit, setScreenshotAudit] = useState<AuditResult | null>(null);
@@ -329,12 +330,12 @@ export default function AuditsTab() {
             Audit {auditCount}
           </button>
           <button
+            disabled={isLearning}
             onClick={async () => {
+              setIsLearning(true);
               try {
-                toast.info('Analyzing your edits, feedback, and rejections...');
                 const insights = await autoresearchApi.refreshInsights();
                 if (insights && insights.length > 0) {
-                  // Show top 3 insights
                   const summary = insights.slice(0, 3).map((i: any) => `- ${i.recommendation || i.insight}`).join('\n');
                   toast.success(`AI updated with ${insights.length} insights:\n${summary.substring(0, 200)}`, { duration: 10000 });
                 } else {
@@ -345,18 +346,34 @@ export default function AuditsTab() {
                 queryClient.invalidateQueries({ queryKey: ['autoresearch-analytics-overview'] });
               } catch {
                 toast.error('Failed to refresh learning');
+              } finally {
+                setIsLearning(false);
               }
             }}
             className={cn(
               'px-3 py-2 text-sm font-medium rounded-xl transition-all duration-200',
               'text-[--exec-text-secondary] bg-stone-700/50 hover:bg-stone-600/50',
+              'disabled:opacity-50 disabled:cursor-not-allowed',
             )}
             title="Force the AI to learn from all your feedback, edits, and rejections right now"
           >
-            Learn Now
+            {isLearning ? 'Learning...' : 'Learn Now'}
           </button>
         </div>
       </div>
+
+      {/* Learning Progress */}
+      {isLearning && (
+        <div className="bg-[--exec-surface] rounded-xl border border-stone-600/40 p-4">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="animate-spin rounded-full h-4 w-4 border-2 border-purple-500 border-t-transparent" />
+            <span className="text-sm text-[--exec-text]">Analyzing your edits, feedback, and rejections...</span>
+          </div>
+          <div className="w-full h-1.5 bg-stone-700/50 rounded-full overflow-hidden">
+            <div className="h-full bg-purple-500 rounded-full animate-pulse" style={{ width: '60%' }} />
+          </div>
+        </div>
+      )}
 
       {/* Batch Progress */}
       {activeBatchId && (
