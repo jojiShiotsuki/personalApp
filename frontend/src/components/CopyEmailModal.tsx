@@ -506,15 +506,6 @@ export default function CopyEmailModal({
                       AI Follow-up
                     </span>
                   )}
-                  {canGenerateFollowUp && !aiFollowUpUsed && (
-                    <button
-                      onClick={() => handleGenerateFollowUp()}
-                      disabled={isGeneratingFollowUp}
-                      className="text-xs font-medium px-3 py-1 bg-[--exec-accent] text-white rounded-lg hover:bg-[--exec-accent-dark] shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {isGeneratingFollowUp ? 'Generating...' : 'Generate AI Follow-up'}
-                    </button>
-                  )}
                 </div>
               </div>
             </div>
@@ -525,6 +516,22 @@ export default function CopyEmailModal({
               <X className="w-5 h-5" />
             </button>
           </div>
+
+          {/* Generate AI Follow-up */}
+          {canGenerateFollowUp && !aiFollowUpUsed && (
+            <button
+              onClick={() => handleGenerateFollowUp()}
+              disabled={isGeneratingFollowUp}
+              className={cn(
+                'w-full mb-4 px-4 py-2.5 text-sm font-medium rounded-lg transition-all',
+                'bg-[--exec-accent] text-white',
+                'hover:bg-[--exec-accent-dark] shadow-sm hover:shadow-md',
+                'disabled:opacity-50 disabled:cursor-not-allowed'
+              )}
+            >
+              {isGeneratingFollowUp ? 'Generating...' : 'Generate AI Follow-up'}
+            </button>
+          )}
 
           {/* Template Selector */}
           <div className="mb-4">
