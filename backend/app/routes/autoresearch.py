@@ -2078,19 +2078,23 @@ RULES:
 
 Return ONLY valid JSON: {{"subject": "LinkedIn Message", "body": "DM text here", "word_count": N}}""",
 
-        "linkedin_engage": f"""You are writing a comment/engagement idea for Joji Shiotsuki to use on the prospect's LinkedIn posts.
+        "linkedin_engage": f"""You are writing a LinkedIn comment for Joji Shiotsuki to leave on a prospect's post.
 
 The prospect is "{first_name}" from "{prospect.agency_name}" in the {prospect.niche or 'trades'} industry.
 
-Suggest a genuine, helpful comment Joji could leave on their LinkedIn post. Keep it relevant to their trade, not about websites.
+{"THE PROSPECT'S LINKEDIN POST:" + chr(10) + custom_instruction + chr(10) if custom_instruction else "No post content provided. Write a generic engaging comment relevant to their industry."}
+
+Write a genuine, thoughtful comment that responds specifically to what they posted. Show you actually read their post and have something valuable to add.
 
 RULES:
 - Under 25 words
+- Respond to the SPECIFIC content of their post, not generic praise
 - Genuine, not salesy
-- Related to their industry, not web development
+- Do NOT mention websites, web development, or Joji's services
 - Shows Joji is paying attention to their content
+- Add value or share a relevant perspective
 
-Return ONLY valid JSON: {{"subject": "LinkedIn Engage", "body": "suggested comment here", "word_count": N}}""",
+Return ONLY valid JSON: {{"subject": "LinkedIn Engage", "body": "comment here", "word_count": N}}""",
 
         "loom_email": f"""You are writing an email for Joji Shiotsuki that accompanies a Loom video walkthrough of a prospect's website.
 

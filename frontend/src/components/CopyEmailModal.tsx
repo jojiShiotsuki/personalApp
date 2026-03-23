@@ -67,6 +67,7 @@ export default function CopyEmailModal({
   const [copiedField, setCopiedField] = useState<'to' | 'subject' | 'body' | 'all' | null>(null);
   const [selectedIssue, setSelectedIssue] = useState<string | null>(null);
   const [loomExpanded, setLoomExpanded] = useState(false);
+  const [linkedinPost, setLinkedinPost] = useState('');
   const [isEditingIssues, setIsEditingIssues] = useState(false);
   const [customDescriptions, setCustomDescriptions] = useState<Record<string, string>>(loadCustomDescriptions);
   const [editDrafts, setEditDrafts] = useState<Record<string, string>>({});
@@ -109,9 +110,13 @@ export default function CopyEmailModal({
 
   const rawEmail = hasStepTemplates ? stepEmail : rawEmailFromApi;
 
+  // --- Step channel detection ---
+  const currentStepObj = multiTouchSteps?.find(s => s.step_number === (prospect.current_step || 1));
+  const isLinkedinEngage = currentStepObj && ['LINKEDIN_ENGAGE', 'linkedin_engage'].includes(currentStepObj.channel_type);
+
   // --- AI Follow-up generation (manual, via button) ---
   const isStep1 = (prospect.current_step || 1) === 1;
-  const canGenerateFollowUp = isStep1 || !!prospect.custom_email_subject;
+  const canGenerateFollowUp = !isLinkedinEngage && (isStep1 || !!prospect.custom_email_subject);
   const [isGeneratingFollowUp, setIsGeneratingFollowUp] = useState(false);
   const [aiFollowUpUsed, setAiFollowUpUsed] = useState(false);
   const [regenerateInstruction, setRegenerateInstruction] = useState('');
@@ -154,6 +159,26 @@ export default function CopyEmailModal({
       toast.error('Failed to regenerate script');
     } finally {
       setIsRegeneratingLoom(false);
+    }
+  };
+
+  const [isGeneratingComment, setIsGeneratingComment] = useState(false);
+  const handleGenerateComment = async () => {
+    if (!linkedinPost.trim()) {
+      toast.error('Paste the LinkedIn post first');
+      return;
+    }
+    setIsGeneratingComment(true);
+    try {
+      const result = await autoresearchApi.generateFollowup(prospect.id, linkedinPost);
+      setEditBody(result.body);
+      setAiFollowUpUsed(true);
+      setHasInitializedFromTemplate(true);
+      toast.success('Comment generated');
+    } catch {
+      toast.error('Failed to generate comment');
+    } finally {
+      setIsGeneratingComment(false);
     }
   };
 
@@ -532,6 +557,37 @@ export default function CopyEmailModal({
             >
               {isGeneratingFollowUp ? 'Generating...' : isStep1 ? 'Generate AI Email' : 'Generate AI Follow-up'}
             </button>
+          )}
+
+          {/* LinkedIn Engage — paste post + generate comment */}
+          {isLinkedinEngage && (
+            <div className="mb-4 bg-blue-950/30 rounded-xl p-4 border border-blue-800/40">
+              <label className="text-xs font-medium text-blue-400 uppercase tracking-wider mb-2 block">
+                Paste LinkedIn Post
+              </label>
+              <textarea
+                value={linkedinPost}
+                onChange={(e) => setLinkedinPost(e.target.value)}
+                className={cn(
+                  editableFieldClasses,
+                  'leading-relaxed bg-blue-950/20 border-blue-800/30 focus:ring-blue-500/20 focus:border-blue-500/50 mb-2'
+                )}
+                rows={3}
+                placeholder="Paste their LinkedIn post here..."
+              />
+              <button
+                onClick={handleGenerateComment}
+                disabled={isGeneratingComment || !linkedinPost.trim()}
+                className={cn(
+                  'w-full px-4 py-2 text-sm font-medium rounded-lg transition-all',
+                  'bg-[#E07A5F] text-white',
+                  'hover:bg-[#C65D42] shadow-sm hover:shadow-md',
+                  'disabled:opacity-50 disabled:cursor-not-allowed'
+                )}
+              >
+                {isGeneratingComment ? 'Generating...' : 'Generate Comment'}
+              </button>
+            </div>
           )}
 
           {/* Template Selector */}
