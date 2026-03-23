@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { coldOutreachApi, autoresearchApi } from '@/lib/api';
 import type { OutreachProspect, RenderedEmail, MultiTouchStep } from '@/types';
-import { X, Mail, Copy, Check, Loader2, ChevronDown, AlertTriangle, Edit2, RotateCcw, Send, Sparkles } from 'lucide-react';
+import { X, Mail, Copy, Check, Loader2, ChevronDown, AlertTriangle, Edit2, RotateCcw, Send, Sparkles, Video } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -655,6 +655,36 @@ export default function CopyEmailModal({
               )}
             </div>
           )}
+
+          {/* Loom Script Section (only for LOOM_EMAIL steps) */}
+          {(() => {
+            const stepNum = parseInt(selectedTemplate, 10);
+            const currentStepObj = multiTouchSteps?.find(s => s.step_number === stepNum);
+            const isLoomStep = currentStepObj && ['LOOM_EMAIL', 'loom_email'].includes(currentStepObj.channel_type);
+            if (!isLoomStep) return null;
+            return (
+              <div className="mb-4 bg-rose-950/30 rounded-xl p-4 border border-rose-800/40">
+                <div className="flex items-center gap-2 mb-3">
+                  <Video className="w-4 h-4 text-rose-400" />
+                  <label className="text-xs font-medium text-rose-400 uppercase tracking-wider">
+                    Loom Script
+                  </label>
+                </div>
+                {currentStepObj.loom_script ? (
+                  <div className="text-sm text-[--exec-text] whitespace-pre-wrap leading-relaxed bg-stone-800/50 rounded-lg p-3 border border-stone-600/30">
+                    {replaceVars(currentStepObj.loom_script)}
+                  </div>
+                ) : (
+                  <p className="text-sm text-[--exec-text-muted] italic">
+                    No script set. Add one by editing the campaign sequence (step {stepNum}).
+                  </p>
+                )}
+                <p className="text-[10px] text-rose-400/60 mt-2">
+                  Record your Loom video following this script, then paste the link in the email body below.
+                </p>
+              </div>
+            );
+          })()}
 
           {/* Content */}
           {(isLoading || (isGeneratingFollowUp && !aiFollowUpUsed)) ? (
