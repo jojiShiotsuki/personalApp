@@ -1850,9 +1850,9 @@ async def send_email_to_prospect(
 # 21c. POST /generate-followup/{prospect_id} — AI follow-up email
 # ──────────────────────────────────────────────
 
-# Haiku pricing for follow-up generation
-_HAIKU_INPUT_PRICE_PER_M = 0.25
-_HAIKU_OUTPUT_PRICE_PER_M = 1.25
+# Sonnet 4.6 pricing for follow-up generation
+_FOLLOWUP_INPUT_PRICE_PER_M = 3.0
+_FOLLOWUP_OUTPUT_PRICE_PER_M = 15.0
 
 
 def _parse_followup_json(raw_text: str) -> dict:
@@ -2135,7 +2135,7 @@ Return ONLY valid JSON (no markdown fences):
         prompt += f"\n\nUSER INSTRUCTION (follow this closely): {custom_instruction}"
 
     # --- Call Claude Haiku ---
-    model = os.getenv("AUTORESEARCH_FOLLOWUP_MODEL", "claude-haiku-4-5")
+    model = os.getenv("AUTORESEARCH_FOLLOWUP_MODEL", "claude-sonnet-4-6")
 
     try:
         response = await svc.client.messages.create(
@@ -2168,8 +2168,8 @@ Return ONLY valid JSON (no markdown fences):
     input_tokens = getattr(response.usage, "input_tokens", 0)
     output_tokens = getattr(response.usage, "output_tokens", 0)
     cost_usd = (
-        (input_tokens * _HAIKU_INPUT_PRICE_PER_M / 1_000_000)
-        + (output_tokens * _HAIKU_OUTPUT_PRICE_PER_M / 1_000_000)
+        (input_tokens * _FOLLOWUP_INPUT_PRICE_PER_M / 1_000_000)
+        + (output_tokens * _FOLLOWUP_OUTPUT_PRICE_PER_M / 1_000_000)
     )
 
     # --- Generate Loom script only for LOOM_EMAIL steps ---
@@ -2272,8 +2272,8 @@ Return ONLY valid JSON: {{"loom_script": "script text here"}}"""
             loom_input = getattr(loom_resp.usage, "input_tokens", 0)
             loom_output = getattr(loom_resp.usage, "output_tokens", 0)
             loom_cost = (
-                (loom_input * _HAIKU_INPUT_PRICE_PER_M / 1_000_000)
-                + (loom_output * _HAIKU_OUTPUT_PRICE_PER_M / 1_000_000)
+                (loom_input * _FOLLOWUP_INPUT_PRICE_PER_M / 1_000_000)
+                + (loom_output * _FOLLOWUP_OUTPUT_PRICE_PER_M / 1_000_000)
             )
         except Exception as loom_err:
             logger.warning("Loom script generation failed (non-fatal): %s", loom_err)
