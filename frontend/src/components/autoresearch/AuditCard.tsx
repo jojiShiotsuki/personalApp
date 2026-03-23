@@ -240,6 +240,14 @@ export default function AuditCard({ audit, onApprove, onReject, onFeedback, onDe
             </div>
           )}
 
+          {/* Empty audit — no data returned */}
+          {!isSkipped && !audit.issue_type && !audit.generated_body && (
+            <div className="flex items-center gap-2 text-sm text-amber-400 bg-amber-900/20 rounded-lg p-3 border border-amber-800/30">
+              <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+              <span>Audit returned no data. The AI may have failed to analyze this site. Try deleting and re-auditing.</span>
+            </div>
+          )}
+
           {/* Issue badges */}
           {!isSkipped && audit.issue_type && (
             <div className="space-y-2">
