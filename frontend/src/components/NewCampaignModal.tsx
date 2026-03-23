@@ -61,7 +61,7 @@ export default function NewCampaignModal({
       if (editCampaign.campaign_type === CampaignType.MULTI_TOUCH && editCampaign.multi_touch_steps?.length) {
         setSteps(editCampaign.multi_touch_steps.map(s => ({
           step_number: s.step_number,
-          channel_type: s.channel_type,
+          channel_type: (s.channel_type || '').toUpperCase() as StepChannelType,
           delay_days: s.delay_days,
           template_subject: s.template_subject,
           template_content: s.template_content,
