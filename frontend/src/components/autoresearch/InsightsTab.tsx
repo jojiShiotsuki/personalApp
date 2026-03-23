@@ -311,7 +311,9 @@ export default function InsightsTab() {
   });
 
   const isLoading = overviewLoading || issueTypeLoading || nicheLoading || timingLoading || insightsLoading;
-  const hasData = (overview?.total_sent ?? 0) > 0;
+  const hasExperimentData = (overview?.total_sent ?? 0) > 0;
+  const hasInsights = insights.length > 0;
+  const hasData = hasExperimentData || hasInsights;
 
   if (isLoading) {
     return <LoadingSkeleton />;
@@ -325,9 +327,21 @@ export default function InsightsTab() {
           <h3 className="text-lg font-medium text-[--exec-text] mb-2">
             Not enough data yet
           </h3>
-          <p className="text-[--exec-text-muted] text-sm max-w-md mx-auto">
-            Send more emails and the system will start learning patterns. Insights will appear once there is enough experiment data to analyze.
+          <p className="text-[--exec-text-muted] text-sm max-w-md mx-auto mb-6">
+            Reject some audits or send emails and press Refresh Insights to start learning patterns.
           </p>
+          <button
+            onClick={() => refreshMutation.mutate()}
+            disabled={refreshMutation.isPending}
+            className={cn(
+              'inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200',
+              'bg-[--exec-accent] text-white hover:bg-[--exec-accent-dark] shadow-sm hover:shadow-md',
+              'disabled:opacity-50 disabled:cursor-not-allowed'
+            )}
+          >
+            <RefreshCw className={cn('w-4 h-4', refreshMutation.isPending && 'animate-spin')} />
+            {refreshMutation.isPending ? 'Refreshing...' : 'Refresh Insights'}
+          </button>
         </div>
       </div>
     );
@@ -362,7 +376,9 @@ export default function InsightsTab() {
             )}
           </div>
           <p className="text-sm text-[--exec-text-muted] mt-1 ml-8">
-            Based on {overview?.total_sent?.toLocaleString() ?? 0} experiments
+            {hasExperimentData
+              ? `Based on ${overview?.total_sent?.toLocaleString() ?? 0} experiments`
+              : 'Based on audit rejection patterns'}
           </p>
         </div>
         <button
