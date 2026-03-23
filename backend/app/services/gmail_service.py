@@ -209,8 +209,8 @@ class GmailService:
         )
         service = build("gmail", "v1", credentials=credentials)
 
-        # Build multipart/alternative email (plain text + HTML for tracking pixel)
-        msg = MIMEMultipart("alternative")
+        # Build plain text email (no HTML — avoids spam filters)
+        msg = MIMEMultipart()
         msg["To"] = to_email
         msg["From"] = gmail_token.email_address
 
@@ -222,21 +222,10 @@ class GmailService:
         else:
             msg["Subject"] = subject
 
-        # Plain text version
+        # Send as plain text only — avoids spam filters triggered by
+        # HTML tracking pixels and multipart mismatch. Mailsuite handles
+        # open tracking externally via the Gmail extension.
         msg.attach(MIMEText(body, "plain"))
-
-        # HTML version (preserves line breaks + appends tracking pixel)
-        # Collapse 3+ consecutive newlines into 2 max
-        cleaned_body = re.sub(r"\n{3,}", "\n\n", body.strip())
-        # Split into paragraphs on double newlines, single newlines become <br>
-        paragraphs = cleaned_body.split("\n\n")
-        html_body = "".join(
-            f"<p style='margin:0 0 10px 0'>{p.replace(chr(10), '<br>')}</p>"
-            for p in paragraphs
-        )
-        if tracking_pixel_html:
-            html_body += tracking_pixel_html
-        msg.attach(MIMEText(html_body, "html"))
 
         # Encode and send (wrap synchronous call in a thread)
         raw = base64.urlsafe_b64encode(msg.as_bytes()).decode("utf-8")
