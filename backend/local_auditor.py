@@ -72,7 +72,7 @@ async def get_prospects_to_audit(
     # Get already-audited prospect IDs and track which have rejected audits
     resp2 = await client.get(
         f"{API_URL}/api/autoresearch/audits",
-        params={"campaign_id": campaign_id, "page": 1, "page_size": 200},
+        params={"campaign_id": campaign_id, "page": 1, "page_size": 1000},
         headers={"Authorization": f"Bearer {token}"},
     )
     resp2.raise_for_status()
