@@ -128,8 +128,8 @@ async def post_audit_result(
         "generated_subject": audit_data.get("subject"),
         "generated_body": audit_data.get("body"),
         "word_count": audit_data.get("word_count"),
-        "desktop_screenshot": screenshots.get("desktop_screenshot"),
-        "mobile_screenshot": screenshots.get("mobile_screenshot"),
+        "desktop_screenshot": None,  # not stored — only used for AI analysis
+        "mobile_screenshot": None,
         "audit_duration_seconds": screenshots.get("duration_seconds"),
         "model_used": meta.get("model"),
         "tokens_used": (meta.get("input_tokens", 0) + meta.get("output_tokens", 0)),

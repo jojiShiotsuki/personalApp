@@ -261,8 +261,8 @@ async def audit_single_prospect(
             detected_trade=analysis.get("detected_trade"),
             generated_body=analysis.get("body"),
             word_count=analysis.get("word_count"),
-            desktop_screenshot=screenshots.get("desktop_screenshot"),
-            mobile_screenshot=screenshots.get("mobile_screenshot"),
+            desktop_screenshot=None,  # not stored — only used for AI analysis
+            mobile_screenshot=None,
             status=audit_status,
             audit_duration_seconds=meta.get("duration_seconds"),
             model_used=meta.get("model"),
@@ -470,8 +470,8 @@ async def ingest_audit(
         generated_subject_variant=payload.get("generated_subject_variant"),
         generated_body=payload.get("generated_body"),
         word_count=payload.get("word_count"),
-        desktop_screenshot=payload.get("desktop_screenshot"),
-        mobile_screenshot=payload.get("mobile_screenshot"),
+        desktop_screenshot=None,  # not stored — only used for AI analysis
+        mobile_screenshot=None,
         status=status,
         audit_duration_seconds=payload.get("audit_duration_seconds"),
         model_used=payload.get("model_used"),
@@ -2782,8 +2782,8 @@ async def _run_batch_audit(
                     detected_trade=analysis.get("detected_trade"),
                     generated_body=analysis.get("body"),
                     word_count=analysis.get("word_count"),
-                    desktop_screenshot=screenshots.get("desktop_screenshot"),
-                    mobile_screenshot=screenshots.get("mobile_screenshot"),
+                    desktop_screenshot=None,  # not stored — only used for AI analysis
+                    mobile_screenshot=None,
                     status=batch_status,
                     audit_duration_seconds=meta.get("duration_seconds"),
                     model_used=meta.get("model"),
