@@ -22,7 +22,7 @@ import base64
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request
 from fastapi.responses import RedirectResponse, Response
 from sqlalchemy import case, func
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, defer
 
 from app.auth import get_current_user
 from app.database import get_db
@@ -520,6 +520,11 @@ def list_audits(
             OutreachProspect.website,
         )
         .join(OutreachProspect, AuditResult.prospect_id == OutreachProspect.id)
+        .options(
+            defer(AuditResult.desktop_screenshot),
+            defer(AuditResult.mobile_screenshot),
+            defer(AuditResult.verification_screenshots),
+        )
     )
 
     if campaign_id is not None:
