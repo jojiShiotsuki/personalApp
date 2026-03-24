@@ -125,6 +125,16 @@ CRITICAL RULES:
 - The email must sound human and conversational, not salesy or robotic
 - Focus on ONE main issue — don't list multiple problems in the email
 
+VERIFICATION DATA RULES (if interactive verification data is provided above):
+- If a link is marked "scroll-to-section" or "ok", do NOT flag it as broken_links
+- If carousel is detected, do NOT flag repeated content as duplicate_content
+- If animated elements were detected, do NOT flag them as dead_pages or placeholder_text
+- If spelling errors were found with suggestions, you MAY use them as the primary issue
+- Use PageSpeed scores as supporting evidence, not as the sole issue type
+- PRIORITISE issues confirmed by automated checks over visual guesses from screenshots
+- Lead with the most impactful CONFIRMED issue in the cold email
+- If no confirmed issues exist, fall back to visual analysis of the screenshots
+
 SIGN-OFF (use this EXACTLY):
 Cheers,
 Joji Shiotsuki | Joji Web Solutions | jojishiotsuki.com
@@ -245,6 +255,17 @@ class AuditService:
                     return result
             except Exception as bd_err:
                 logger.debug("Bot detection check failed (non-fatal): %s", bd_err)
+
+            # ── Interactive checks (before screenshots) ────
+            from app.services.interactive_checks import run_all_checks
+            result["interactive_checks"] = run_all_checks(desktop_page, url)
+
+            # Re-navigate to clean state after link clicking
+            try:
+                desktop_page.goto(url, wait_until="load", timeout=10000)
+                time.sleep(1)
+            except Exception:
+                pass  # Non-fatal — page may already be on the right URL
 
             # Scroll to bottom to trigger lazy-loading, then back to top
             self._scroll_full_page_sync(desktop_page)
@@ -392,62 +413,100 @@ class AuditService:
 
     async def run_pagespeed_test(self, url: str) -> dict[str, Any]:
         """
-        Run Google PageSpeed Insights on a URL.
-        Free API, no auth needed. Returns performance score and key metrics.
+        Run Google PageSpeed Insights on a URL for three categories:
+        performance, seo, and accessibility.
+
+        Returns a dict keyed by category, e.g.:
+            {
+                "performance": {"score": 34, "first_contentful_paint": "4.2s", ...},
+                "seo": {"score": 62, "failed_audits": [...]},
+                "accessibility": {"score": 78, "failed_audits": [...]},
+            }
         """
         api_url = "https://www.googleapis.com/pagespeedonline/v5/runPagespeed"
-        params = {
-            "url": url,
-            "category": "performance",
-            "strategy": "mobile",  # Mobile is what matters for tradies' customers
-        }
-        # Use API key if available for higher quota (25,000 queries/day vs 60/min)
         google_api_key = os.getenv("GOOGLE_API_KEY")
-        if google_api_key:
-            params["key"] = google_api_key
+
+        results: dict[str, Any] = {}
+        categories_to_test = ["performance", "seo", "accessibility"]
 
         try:
             async with httpx.AsyncClient(timeout=60) as client:
-                response = await client.get(api_url, params=params)
-                response.raise_for_status()
-                data = response.json()
+                for idx, category in enumerate(categories_to_test):
+                    # 300ms delay between calls to avoid rate limiting
+                    if idx > 0:
+                        await asyncio.sleep(0.3)
 
-            lighthouse = data.get("lighthouseResult", {})
-            categories = lighthouse.get("categories", {})
-            audits = lighthouse.get("audits", {})
+                    params: dict[str, str] = {
+                        "url": url,
+                        "category": category,
+                        "strategy": "mobile",
+                    }
+                    if google_api_key:
+                        params["key"] = google_api_key
 
-            perf_score = categories.get("performance", {}).get("score")
-            perf_score_100 = round(perf_score * 100) if perf_score is not None else None
+                    try:
+                        response = await client.get(api_url, params=params)
+                        response.raise_for_status()
+                        data = response.json()
 
-            # Extract key metrics
-            fcp = audits.get("first-contentful-paint", {}).get("displayValue")
-            lcp = audits.get("largest-contentful-paint", {}).get("displayValue")
-            speed_index = audits.get("speed-index", {}).get("displayValue")
-            tti = audits.get("interactive", {}).get("displayValue")
-            cls = audits.get("cumulative-layout-shift", {}).get("displayValue")
+                        lighthouse = data.get("lighthouseResult", {})
+                        lh_categories = lighthouse.get("categories", {})
+                        lh_audits = lighthouse.get("audits", {})
 
-            # Get the actual load time in seconds from speed-index numeric value
-            speed_index_seconds = audits.get("speed-index", {}).get("numericValue")
-            load_seconds = round(speed_index_seconds / 1000, 1) if speed_index_seconds else None
+                        cat_score = lh_categories.get(category, {}).get("score")
+                        score_100 = round(cat_score * 100) if cat_score is not None else None
 
-            return {
-                "score": perf_score_100,  # 0-100
-                "first_contentful_paint": fcp,
-                "largest_contentful_paint": lcp,
-                "speed_index": speed_index,
-                "time_to_interactive": tti,
-                "cumulative_layout_shift": cls,
-                "load_seconds": load_seconds,
-                "is_slow": perf_score_100 is not None and perf_score_100 < 50,
-                "error": None,
-            }
+                        if category == "performance":
+                            fcp = lh_audits.get("first-contentful-paint", {}).get("displayValue")
+                            lcp = lh_audits.get("largest-contentful-paint", {}).get("displayValue")
+                            speed_index = lh_audits.get("speed-index", {}).get("displayValue")
+                            tti = lh_audits.get("interactive", {}).get("displayValue")
+                            cls_val = lh_audits.get("cumulative-layout-shift", {}).get("displayValue")
+                            speed_index_seconds = lh_audits.get("speed-index", {}).get("numericValue")
+                            load_seconds = round(speed_index_seconds / 1000, 1) if speed_index_seconds else None
 
-        except httpx.TimeoutException:
-            logger.warning("PageSpeed test timed out for %s", url)
-            return {"score": None, "error": "PageSpeed test timed out", "is_slow": False}
+                            results["performance"] = {
+                                "score": score_100,
+                                "first_contentful_paint": fcp,
+                                "largest_contentful_paint": lcp,
+                                "speed_index": speed_index,
+                                "time_to_interactive": tti,
+                                "cumulative_layout_shift": cls_val,
+                                "load_seconds": load_seconds,
+                                "is_slow": score_100 is not None and score_100 < 50,
+                                "error": None,
+                            }
+                        else:
+                            # SEO and Accessibility: extract score + failed audit titles
+                            failed_audits = []
+                            cat_ref = lh_categories.get(category, {})
+                            for audit_ref in cat_ref.get("auditRefs", []):
+                                audit_id = audit_ref.get("id", "")
+                                audit_detail = lh_audits.get(audit_id, {})
+                                if audit_detail.get("score") == 0:
+                                    title = audit_detail.get("title", audit_id)
+                                    failed_audits.append(title)
+
+                            results[category] = {
+                                "score": score_100,
+                                "failed_audits": failed_audits,
+                                "error": None,
+                            }
+
+                    except httpx.TimeoutException:
+                        logger.warning("PageSpeed %s test timed out for %s", category, url)
+                        results[category] = {"score": None, "error": f"PageSpeed {category} test timed out"}
+                    except Exception as e:
+                        logger.warning("PageSpeed %s test failed for %s: %s", category, url, e)
+                        results[category] = {"score": None, "error": str(e)}
+
         except Exception as e:
-            logger.warning("PageSpeed test failed for %s: %s", url, e)
-            return {"score": None, "error": str(e), "is_slow": False}
+            logger.warning("PageSpeed test failed entirely for %s: %s", url, e)
+            for cat in categories_to_test:
+                if cat not in results:
+                    results[cat] = {"score": None, "error": str(e)}
+
+        return results
 
     # ──────────────────────────────────────────
     # Claude Vision analysis
@@ -514,23 +573,54 @@ class AuditService:
 
         extracted_text = (screenshots.get("extracted_text") or "")[:5000]
 
-        # PageSpeed data
+        # PageSpeed data — now keyed by category (performance, seo, accessibility)
         speed_block = ""
-        if pagespeed and not pagespeed.get("error"):
-            score = pagespeed.get("score")
-            load_secs = pagespeed.get("load_seconds")
-            speed_block = (
-                f"GOOGLE PAGESPEED RESULTS (mobile):\n"
-                f"  Performance Score: {score}/100 {'— POOR, site is slow' if score and score < 50 else '— OK' if score else '— unknown'}\n"
-                f"  Speed Index: {pagespeed.get('speed_index', 'N/A')}\n"
-                f"  First Contentful Paint: {pagespeed.get('first_contentful_paint', 'N/A')}\n"
-                f"  Largest Contentful Paint: {pagespeed.get('largest_contentful_paint', 'N/A')}\n"
-                f"  Time to Interactive: {pagespeed.get('time_to_interactive', 'N/A')}\n"
-                f"  Estimated Load Time: {load_secs}s {('— customers leave after 3 seconds' if load_secs and load_secs > 5 else '') if load_secs else ''}\n"
-                f"  NOTE: Only lead with speed if the score is under 50 AND you cannot find a stronger visible problem.\n\n"
+        if pagespeed:
+            perf = pagespeed.get("performance", {})
+            seo = pagespeed.get("seo", {})
+            a11y = pagespeed.get("accessibility", {})
+
+            if perf and not perf.get("error"):
+                score = perf.get("score")
+                load_secs = perf.get("load_seconds")
+                speed_block += (
+                    f"GOOGLE PAGESPEED RESULTS (mobile):\n"
+                    f"  Performance Score: {score}/100 {'— POOR, site is slow' if score and score < 50 else '— OK' if score else '— unknown'}\n"
+                    f"  Speed Index: {perf.get('speed_index', 'N/A')}\n"
+                    f"  First Contentful Paint: {perf.get('first_contentful_paint', 'N/A')}\n"
+                    f"  Largest Contentful Paint: {perf.get('largest_contentful_paint', 'N/A')}\n"
+                    f"  Time to Interactive: {perf.get('time_to_interactive', 'N/A')}\n"
+                    f"  Estimated Load Time: {load_secs}s {('— customers leave after 3 seconds' if load_secs and load_secs > 5 else '') if load_secs else ''}\n"
+                    f"  NOTE: Only lead with speed if the score is under 50 AND you cannot find a stronger visible problem.\n"
+                )
+            elif perf and perf.get("error"):
+                speed_block += f"GOOGLE PAGESPEED PERFORMANCE: Test failed ({perf['error']}). Skip speed as an issue.\n"
+
+            if seo and not seo.get("error"):
+                seo_score = seo.get("score")
+                failed = seo.get("failed_audits", [])
+                speed_block += f"  SEO Score: {seo_score}/100\n"
+                if failed:
+                    speed_block += f"  SEO Failed Audits: {'; '.join(failed)}\n"
+
+            if a11y and not a11y.get("error"):
+                a11y_score = a11y.get("score")
+                failed = a11y.get("failed_audits", [])
+                speed_block += f"  Accessibility Score: {a11y_score}/100\n"
+                if failed:
+                    speed_block += f"  Accessibility Failed Audits: {'; '.join(failed)}\n"
+
+            if speed_block:
+                speed_block += "\n"
+
+        # Build and inject verification report from interactive checks
+        verification_report = ""
+        if screenshots.get("interactive_checks"):
+            from app.services.interactive_checks import build_verification_report
+            verification_report = build_verification_report(
+                screenshots["interactive_checks"],
+                pagespeed,
             )
-        elif pagespeed and pagespeed.get("error"):
-            speed_block = f"GOOGLE PAGESPEED: Test failed ({pagespeed['error']}). Skip speed as an issue.\n\n"
 
         context_block = (
             f"PROSPECT INFO:\n"
@@ -542,6 +632,9 @@ class AuditService:
             f"EXTRACTED TEXT (first 5000 chars):\n{extracted_text}\n\n"
             f"LINK MAP (JSON, max 3000 chars):\n{link_map_str}"
         )
+
+        if verification_report:
+            context_block = verification_report + "\n\n" + context_block
 
         if learning_context:
             context_block += f"\n\nLEARNED INSIGHTS (use these to improve the email):\n{learning_context}"
