@@ -143,13 +143,13 @@ def list_conversations(
 
     results = []
     for conv, count in rows:
-        results.append(ConversationResponse(
-            id=conv.id,
-            title=conv.title,
-            created_at=conv.created_at,
-            updated_at=conv.updated_at,
-            message_count=count,
-        ))
+        results.append({
+            "id": conv.id,
+            "title": conv.title,
+            "created_at": conv.created_at.isoformat() if conv.created_at else None,
+            "updated_at": conv.updated_at.isoformat() if conv.updated_at else None,
+            "message_count": count,
+        })
     return results
 
 
@@ -157,7 +157,7 @@ def list_conversations(
 # 3. GET /conversations/{conversation_id} -- Conversation with messages
 # ---------------------------------------------------------------------------
 
-@router.get("/conversations/{conversation_id}", response_model=ConversationWithMessages)
+@router.get("/conversations/{conversation_id}")
 def get_conversation(
     conversation_id: int,
     limit: int = Query(50, ge=1, le=200),
@@ -177,7 +177,7 @@ def get_conversation(
         db.query(func.count(ConversationMessage.id))
         .filter(ConversationMessage.conversation_id == conversation_id)
         .scalar()
-    )
+    ) or 0
 
     messages = (
         db.query(ConversationMessage)
@@ -188,22 +188,33 @@ def get_conversation(
         .all()
     )
 
-    conv_response = ConversationResponse(
-        id=conv.id,
-        title=conv.title,
-        created_at=conv.created_at,
-        updated_at=conv.updated_at,
-        message_count=total_messages,
-    )
+    conv_response = {
+        "id": conv.id,
+        "title": conv.title,
+        "created_at": conv.created_at.isoformat() if conv.created_at else None,
+        "updated_at": conv.updated_at.isoformat() if conv.updated_at else None,
+        "message_count": total_messages,
+    }
 
-    return ConversationWithMessages(
-        conversation=conv_response,
-        messages=[
-            ConversationMessageResponse.model_validate(m, from_attributes=True)
-            for m in messages
-        ],
-        total_messages=total_messages,
-    )
+    msg_list = []
+    for m in messages:
+        msg_list.append({
+            "id": m.id,
+            "role": m.role,
+            "content": m.content or "",
+            "model": m.model,
+            "tool_calls_json": m.tool_calls_json if isinstance(m.tool_calls_json, (dict, list)) else None,
+            "vault_chunks_used": m.vault_chunks_used if isinstance(m.vault_chunks_used, list) else None,
+            "tokens_used": m.tokens_used,
+            "cost_usd": m.cost_usd,
+            "created_at": m.created_at.isoformat() if m.created_at else None,
+        })
+
+    return {
+        "conversation": conv_response,
+        "messages": msg_list,
+        "total_messages": total_messages,
+    }
 
 
 # ---------------------------------------------------------------------------
