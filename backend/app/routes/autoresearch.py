@@ -2394,32 +2394,49 @@ CRITICAL: You have sent {num_emails_sent} emails to this prospect already. The L
 - If the prospect replied to any email, acknowledge what they said
 - This is a VALUE DROP — show them exactly what's wrong on their site and what the fix looks like
 
-STRUCTURE:
-1. Quick intro: "Hey {first_name}, Joji here from Joji Web Solutions"
-2. Acknowledge previous emails naturally ("I've sent you a couple of emails about your [issue]...")
-3. Open their website and walk through the specific issue visually
-4. If there's a secondary issue, briefly point that out too
-5. Show what it looks like on mobile if relevant to the issue
-6. Briefly explain what a fix would look like (be specific to their site, not generic)
-7. Soft CTA: "If you want me to sort this out, just reply to the email"
+STRUCTURE (each section on its own line, separated by blank lines):
 
-RULES:
+[OPEN WEBSITE]
+"Hey {first_name}, Joji here from Joji Web Solutions."
+
+[PAUSE — acknowledge emails]
+"I've dropped you a couple of emails about [specific issue]..."
+
+[SCROLL TO ISSUE]
+Walk through the specific issue visually, pointing out exactly what's wrong.
+
+[SHOW MOBILE VIEW] (if relevant)
+Show the mobile impact if applicable.
+
+[EXPLAIN THE FIX]
+Briefly explain what a fix looks like — specific to their site.
+
+[WRAP UP]
+"If you want me to sort this out, just reply to the email. Cheers."
+
+FORMATTING RULES:
+- Put each action cue [LIKE THIS] on its own line
+- Put a blank line between each section
+- Write the spoken words as natural dialogue, not a wall of text
+- Each spoken section should be 1-2 sentences max
+
+CONTENT RULES:
 - Conversational and natural, not scripted-sounding
 - Australian English
 - No em dashes
 - Be SPECIFIC to their website and issues, not generic advice
 - Reference details from the audit and past emails so it feels personal and connected
-- Under 150 words
-- Use action cues in brackets: [OPEN WEBSITE], [SCROLL TO ISSUE], [SHOW MOBILE VIEW], [POINT OUT ISSUE]
+- Under 150 words of spoken content (action cues don't count)
 
-Return ONLY valid JSON: {{"loom_script": "script text here"}}"""
+Return ONLY valid JSON. Use \\n for line breaks in the script:
+{{"loom_script": "[OPEN WEBSITE]\\nHey {first_name}, Joji here...\\n\\n[SCROLL TO ISSUE]\\nSo if we look at..."}}"""
 
             if custom_instruction:
                 loom_prompt += f"\n\nUSER INSTRUCTION (follow this closely for the Loom script): {custom_instruction}"
 
             loom_resp = await svc.client.messages.create(
                 model=model,
-                max_tokens=600,
+                max_tokens=800,
                 messages=[{"role": "user", "content": loom_prompt}],
             )
             loom_raw = ""
