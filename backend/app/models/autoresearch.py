@@ -55,6 +55,12 @@ class AuditResult(Base):
     tokens_used = Column(Integer, nullable=True)
     ai_cost_estimate = Column(Float, nullable=True)
 
+    # Interactive verification data
+    verification_report = Column(Text, nullable=True)
+    pagespeed_perf_score = Column(Integer, nullable=True)
+    pagespeed_seo_score = Column(Integer, nullable=True)
+    pagespeed_a11y_score = Column(Integer, nullable=True)
+
     created_at = Column(DateTime, default=datetime.utcnow)
 
     # Relationships
