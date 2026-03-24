@@ -329,10 +329,14 @@ async def start_batch_audit(
     # Opportunistic cleanup of completed batch jobs older than 1 hour
     _cleanup_stale_batch_jobs()
 
-    # Count un-audited prospects with websites
-    already_audited_ids = (
+    # Count auditable prospects: un-audited first, then rejected (back of queue)
+    # Exclude only approved/pending_review/skipped audits — rejected can be re-audited
+    non_rejected_audit_ids = (
         db.query(AuditResult.prospect_id)
-        .filter(AuditResult.campaign_id == campaign_id)
+        .filter(
+            AuditResult.campaign_id == campaign_id,
+            AuditResult.status.notin_(["rejected"]),
+        )
         .subquery()
     )
     total = (
@@ -341,7 +345,7 @@ async def start_batch_audit(
             OutreachProspect.campaign_id == campaign_id,
             OutreachProspect.website.isnot(None),
             OutreachProspect.website != "",
-            ~OutreachProspect.id.in_(already_audited_ids),
+            ~OutreachProspect.id.in_(non_rejected_audit_ids),
             OutreachProspect.status.notin_([
                 ProspectStatus.SKIPPED,
                 ProspectStatus.NOT_INTERESTED,
@@ -2635,10 +2639,22 @@ async def _run_batch_audit(
         except Exception as e:
             logger.warning("Batch %s: learning service unavailable: %s", batch_id, e)
 
-        # Find un-audited prospects with websites
-        already_audited_ids = (
+        # Find auditable prospects: un-audited first, rejected at the back
+        non_rejected_audit_ids = (
             db.query(AuditResult.prospect_id)
-            .filter(AuditResult.campaign_id == campaign_id)
+            .filter(
+                AuditResult.campaign_id == campaign_id,
+                AuditResult.status.notin_(["rejected"]),
+            )
+            .subquery()
+        )
+        # Subquery to identify prospects that have a rejected audit (for ordering)
+        rejected_prospect_ids = (
+            db.query(AuditResult.prospect_id)
+            .filter(
+                AuditResult.campaign_id == campaign_id,
+                AuditResult.status == "rejected",
+            )
             .subquery()
         )
         prospects = (
@@ -2647,11 +2663,18 @@ async def _run_batch_audit(
                 OutreachProspect.campaign_id == campaign_id,
                 OutreachProspect.website.isnot(None),
                 OutreachProspect.website != "",
-                ~OutreachProspect.id.in_(already_audited_ids),
+                ~OutreachProspect.id.in_(non_rejected_audit_ids),
                 OutreachProspect.status.notin_([
                     ProspectStatus.SKIPPED,
                     ProspectStatus.NOT_INTERESTED,
                 ]),
+            )
+            .order_by(
+                # Un-audited prospects first (0), rejected at the back (1)
+                case(
+                    (OutreachProspect.id.in_(rejected_prospect_ids), 1),
+                    else_=0,
+                )
             )
             .limit(max_count)
             .all()
@@ -2668,6 +2691,22 @@ async def _run_batch_audit(
                 break
 
             job["current_prospect"] = prospect.contact_name or prospect.agency_name
+
+            # Delete old rejected audit if re-auditing
+            old_rejected = (
+                db.query(AuditResult)
+                .filter(
+                    AuditResult.prospect_id == prospect.id,
+                    AuditResult.campaign_id == campaign_id,
+                    AuditResult.status == "rejected",
+                )
+                .all()
+            )
+            for old in old_rejected:
+                db.delete(old)
+            if old_rejected:
+                db.commit()
+                logger.info("Batch %s: cleared %d old rejected audit(s) for prospect %d", batch_id, len(old_rejected), prospect.id)
 
             try:
                 # Validate URL before attempting capture
