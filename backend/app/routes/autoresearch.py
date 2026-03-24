@@ -2387,32 +2387,38 @@ ORIGINAL ISSUE REFERENCED IN EMAILS:
 {followup_learning}
 Write a natural, conversational Loom video script (60-90 seconds when spoken). Joji will screen-record their website while talking through this script.
 
-CRITICAL: You have sent {num_emails_sent} emails to this prospect already. The Loom script MUST:
-- Acknowledge the previous emails naturally (e.g. "I've dropped you a couple of emails about...")
-- Reference the SPECIFIC issue and angles from the emails above — don't just repeat generic problems
-- If any email used humor or a specific analogy, you can callback to it briefly
-- If the prospect replied to any email, acknowledge what they said
-- This is a VALUE DROP — show them exactly what's wrong on their site and what the fix looks like
+CRITICAL RULES — READ THESE FIRST:
+1. You are writing a SCRIPT for Joji to read while recording. You have NOT visited the website. You do NOT know what it looks like right now.
+2. STICK TO THE ORIGINAL ISSUE from the emails: "{issue_type}" — "{issue_detail}". Do NOT invent new issues, do NOT claim the issue is fixed, do NOT pivot to SEO or anything else.
+3. ASSUME the issue is still there. Joji will open the site live and point at it. Write the script as if the issue is visible on screen right now.
+4. Do NOT make up observations about the site ("I can see...", "looks like it's loading clean..."). You cannot see the site. Write the script so Joji fills in the visual details live.
+5. Acknowledge the previous {num_emails_sent} emails naturally but briefly, then focus on SHOWING the issue.
+6. If the prospect replied to any email, acknowledge what they said.
+7. This is a VALUE DROP — show them exactly what's wrong and what the fix looks like. Stay on topic.
 
 STRUCTURE (each section on its own line, separated by blank lines):
 
 [OPEN WEBSITE]
-"Hey {first_name}, Joji here from Joji Web Solutions."
+"Hey {first_name}, Joji here from Joji Web Solutions. I'm pulling up your site now."
 
-[PAUSE — acknowledge emails]
-"I've dropped you a couple of emails about [specific issue]..."
+[ACKNOWLEDGE EMAILS]
+Briefly reference previous emails. 1-2 sentences max.
 
-[SCROLL TO ISSUE]
-Walk through the specific issue visually, pointing out exactly what's wrong.
+[POINT OUT THE ISSUE]
+Describe the {issue_type} issue. Write it as if Joji is looking at it live:
+- "So right here you can see [the issue]..."
+- Use phrases like "right here", "if we look at this", "notice how"
+- Do NOT say "I can see it's fixed" or make up what the site looks like
+- Just describe what the issue IS and where to find it, so Joji can point at it
 
-[SHOW MOBILE VIEW] (if relevant)
-Show the mobile impact if applicable.
+[EXPLAIN WHY IT MATTERS]
+1-2 sentences on the business impact. Reference something from the emails if relevant.
 
-[EXPLAIN THE FIX]
-Briefly explain what a fix looks like — specific to their site.
+[QUICK FIX EXPLANATION]
+Briefly explain what the fix looks like. Be specific to their issue, not generic.
 
 [WRAP UP]
-"If you want me to sort this out, just reply to the email. Cheers."
+"Happy to sort this out for you — just reply to the email. Cheers {first_name}."
 
 FORMATTING RULES:
 - Put each action cue [LIKE THIS] on its own line
