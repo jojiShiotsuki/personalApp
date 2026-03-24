@@ -2301,10 +2301,21 @@ Return ONLY valid JSON (no markdown fences):
                 if exp.subject:
                     email_history += f"\n  Subject: {exp.subject}"
                 if exp.body:
-                    body_preview = (exp.body or "")[:200]
-                    email_history += f"\n  Body: {body_preview}"
+                    email_history += f"\n  Body: {exp.body}"
                 if exp.was_edited:
-                    email_history += "\n  (User edited this before sending)"
+                    email_history += "\n  (User edited the AI draft before sending)"
+                if exp.replied:
+                    email_history += "\n  ** PROSPECT REPLIED **"
+                    if exp.full_reply_text:
+                        email_history += f"\n  Reply: {exp.full_reply_text[:500]}"
+                    if exp.sentiment:
+                        email_history += f"\n  Sentiment: {exp.sentiment}"
+                if exp.loom_sent:
+                    email_history += "\n  (Loom video was sent with this step)"
+                    if exp.loom_watched:
+                        email_history += " — PROSPECT WATCHED THE LOOM"
+                if exp.loom_script:
+                    email_history += f"\n  Previous Loom script: {exp.loom_script[:300]}"
 
             # Get audit result for deeper issue context
             audit = (
@@ -2326,6 +2337,7 @@ WEBSITE AUDIT FINDINGS:
             website_issues = prospect.website_issues or []
             issues_text = ", ".join(website_issues) if website_issues else "none detected"
 
+            num_emails_sent = len(all_experiments)
             loom_prompt = f"""You are writing a Loom video script for Joji Shiotsuki to record a personalised website walkthrough.
 
 PROSPECT CONTEXT:
@@ -2334,9 +2346,10 @@ PROSPECT CONTEXT:
 - Industry: {prospect.niche or 'trades'}
 - Website: {prospect.website or 'unknown'}
 - Website issues detected: {issues_text}
+- Emails already sent to this prospect: {num_emails_sent}
 {audit_context}
 
-FULL EMAIL HISTORY WITH THIS PROSPECT:
+FULL EMAIL HISTORY WITH THIS PROSPECT (READ THIS CAREFULLY — your script must acknowledge this history):
 {email_history if email_history else "No emails sent yet."}
 
 ORIGINAL ISSUE REFERENCED IN EMAILS:
@@ -2344,9 +2357,16 @@ ORIGINAL ISSUE REFERENCED IN EMAILS:
 {followup_learning}
 Write a natural, conversational Loom video script (60-90 seconds when spoken). Joji will screen-record their website while talking through this script.
 
+CRITICAL: You have sent {num_emails_sent} emails to this prospect already. The Loom script MUST:
+- Acknowledge the previous emails naturally (e.g. "I've dropped you a couple of emails about...")
+- Reference the SPECIFIC issue and angles from the emails above — don't just repeat generic problems
+- If any email used humor or a specific analogy, you can callback to it briefly
+- If the prospect replied to any email, acknowledge what they said
+- This is a VALUE DROP — show them exactly what's wrong on their site and what the fix looks like
+
 STRUCTURE:
 1. Quick intro: "Hey {first_name}, Joji here from Joji Web Solutions"
-2. Reference what you've already emailed about (don't repeat the emails, just acknowledge them naturally)
+2. Acknowledge previous emails naturally ("I've sent you a couple of emails about your [issue]...")
 3. Open their website and walk through the specific issue visually
 4. If there's a secondary issue, briefly point that out too
 5. Show what it looks like on mobile if relevant to the issue
@@ -2358,7 +2378,7 @@ RULES:
 - Australian English
 - No em dashes
 - Be SPECIFIC to their website and issues, not generic advice
-- Reference details from the audit and past emails so it feels personal
+- Reference details from the audit and past emails so it feels personal and connected
 - Under 150 words
 - Use action cues in brackets: [OPEN WEBSITE], [SCROLL TO ISSUE], [SHOW MOBILE VIEW], [POINT OUT ISSUE]
 
