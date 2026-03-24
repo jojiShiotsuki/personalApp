@@ -2290,7 +2290,13 @@ Return ONLY valid JSON (no markdown fences):
             email_history = ""
             for exp in all_experiments:
                 status_label = exp.status or "unknown"
-                channel_label = exp.channel or "email"
+                # Look up channel type from the campaign step definition
+                exp_step = (
+                    db.query(MTStep)
+                    .filter(MTStep.campaign_id == exp.campaign_id, MTStep.step_number == exp.step_number)
+                    .first()
+                ) if exp.campaign_id and exp.step_number else None
+                channel_label = (exp_step.channel_type or "email").lower() if exp_step else "email"
                 email_history += f"\nStep {exp.step_number} ({channel_label}, {status_label}):"
                 if exp.subject:
                     email_history += f"\n  Subject: {exp.subject}"
