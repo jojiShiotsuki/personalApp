@@ -54,18 +54,22 @@ export default function JojiAI() {
   const abortControllerRef = useRef<AbortController | null>(null);
 
   // Load conversation messages when activeConversationId changes
-  const { data: conversationData } = useQuery({
+  const { data: conversationData, isSuccess } = useQuery({
     queryKey: ['ai-conversation', activeConversationId],
     queryFn: () => jojiAiApi.getConversation(activeConversationId!),
     enabled: !!activeConversationId,
+    staleTime: 0, // Always refetch when conversation changes
   });
 
   // Sync loaded conversation messages into local state
   useEffect(() => {
-    if (conversationData?.messages) {
+    if (isSuccess && conversationData?.messages) {
       setMessages(conversationData.messages);
+      setStreamingContent('');
+      setStreamingVaultRefs([]);
+      setStreamingToolCalls([]);
     }
-  }, [conversationData]);
+  }, [conversationData, isSuccess, activeConversationId]);
 
   // Clear messages when starting a new conversation
   useEffect(() => {
