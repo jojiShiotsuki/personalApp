@@ -2280,42 +2280,72 @@ Return ONLY valid JSON (no markdown fences):
     loom_cost = 0.0
     if channel_type == "loom_email":
         try:
-            # Gather full conversation history for this prospect
+            # --- Build email history from multiple sources ---
+            email_history = ""
+
+            # Source 1: Actual Gmail thread (most reliable — real sent/received emails)
+            from app.models.autoresearch import EmailMatch
+            gmail_emails = (
+                db.query(EmailMatch)
+                .filter(EmailMatch.prospect_id == prospect_id)
+                .order_by(EmailMatch.received_at)
+                .all()
+            )
+            if gmail_emails:
+                email_history += "\n--- ACTUAL EMAIL THREAD (from Gmail) ---"
+                for em in gmail_emails:
+                    direction_label = "JOJI SENT" if em.direction == "outbound" else "PROSPECT REPLIED"
+                    email_history += f"\n\n[{direction_label}] {em.received_at}"
+                    if em.subject:
+                        email_history += f"\n  Subject: {em.subject}"
+                    if em.body_text:
+                        email_history += f"\n  {em.body_text[:600]}"
+                    if em.direction == "inbound" and em.sentiment:
+                        email_history += f"\n  Sentiment: {em.sentiment}"
+                    if em.direction == "inbound" and em.key_quote:
+                        email_history += f"\n  Key quote: \"{em.key_quote}\""
+
+            # Source 2: Experiment records (tracks step metadata)
             all_experiments = (
                 db.query(Experiment)
                 .filter(Experiment.prospect_id == prospect_id)
                 .order_by(Experiment.step_number)
                 .all()
             )
-            email_history = ""
-            for exp in all_experiments:
-                status_label = exp.status or "unknown"
-                # Look up channel type from the campaign step definition
-                exp_step = (
-                    db.query(MTStep)
-                    .filter(MTStep.campaign_id == exp.campaign_id, MTStep.step_number == exp.step_number)
-                    .first()
-                ) if exp.campaign_id and exp.step_number else None
-                channel_label = (exp_step.channel_type or "email").lower() if exp_step else "email"
-                email_history += f"\nStep {exp.step_number} ({channel_label}, {status_label}):"
-                if exp.subject:
-                    email_history += f"\n  Subject: {exp.subject}"
-                if exp.body:
-                    email_history += f"\n  Body: {exp.body}"
-                if exp.was_edited:
-                    email_history += "\n  (User edited the AI draft before sending)"
-                if exp.replied:
-                    email_history += "\n  ** PROSPECT REPLIED **"
-                    if exp.full_reply_text:
-                        email_history += f"\n  Reply: {exp.full_reply_text[:500]}"
-                    if exp.sentiment:
-                        email_history += f"\n  Sentiment: {exp.sentiment}"
-                if exp.loom_sent:
-                    email_history += "\n  (Loom video was sent with this step)"
-                    if exp.loom_watched:
-                        email_history += " — PROSPECT WATCHED THE LOOM"
-                if exp.loom_script:
-                    email_history += f"\n  Previous Loom script: {exp.loom_script[:300]}"
+            if all_experiments:
+                email_history += "\n\n--- STEP-BY-STEP SEQUENCE HISTORY ---"
+                for exp in all_experiments:
+                    status_label = exp.status or "unknown"
+                    exp_step = (
+                        db.query(MTStep)
+                        .filter(MTStep.campaign_id == exp.campaign_id, MTStep.step_number == exp.step_number)
+                        .first()
+                    ) if exp.campaign_id and exp.step_number else None
+                    channel_label = (exp_step.channel_type or "email").lower() if exp_step else "email"
+                    email_history += f"\nStep {exp.step_number} ({channel_label}, {status_label}):"
+                    if exp.subject:
+                        email_history += f"\n  Subject: {exp.subject}"
+                    if exp.body:
+                        email_history += f"\n  Body: {exp.body}"
+                    if exp.was_edited:
+                        email_history += "\n  (User edited the AI draft before sending)"
+                    if exp.replied:
+                        email_history += "\n  ** PROSPECT REPLIED **"
+                        if exp.full_reply_text:
+                            email_history += f"\n  Reply: {exp.full_reply_text[:500]}"
+                    if exp.loom_sent:
+                        email_history += "\n  (Loom video was sent with this step)"
+                        if exp.loom_watched:
+                            email_history += " — PROSPECT WATCHED THE LOOM"
+                    if exp.loom_script:
+                        email_history += f"\n  Previous Loom script: {exp.loom_script[:300]}"
+
+            # Source 3: Prospect's saved custom email (step 1 fallback)
+            if not gmail_emails and not all_experiments:
+                if prospect.custom_email_subject or prospect.custom_email_body:
+                    email_history += "\n--- SAVED EMAIL (from prospect record) ---"
+                    email_history += f"\n  Subject: {prospect.custom_email_subject or 'N/A'}"
+                    email_history += f"\n  Body: {prospect.custom_email_body or 'N/A'}"
 
             # Get audit result for deeper issue context
             audit = (
