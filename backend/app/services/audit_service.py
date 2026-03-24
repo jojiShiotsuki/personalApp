@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 # Constants
 # ──────────────────────────────────────────────
 
-MAX_SCREENSHOT_SIZE = 5 * 1024 * 1024  # 5 MB in bytes
+MAX_SCREENSHOT_SIZE = 3_750_000  # ~3.75 MB raw → ~5 MB after base64 encoding (33% overhead)
 
 BOT_DETECTION_INDICATORS = [
     "captcha",
@@ -258,16 +258,15 @@ class AuditService:
                 )
             else:
                 desktop_png = desktop_page.screenshot(full_page=True, type="png")
-            # Cap at 5 MB to avoid massive API calls
+            # Cap size to stay under Anthropic's 5 MB base64 limit
             if len(desktop_png) > MAX_SCREENSHOT_SIZE:
-                logger.info("Desktop screenshot too large (%d bytes), retaking as JPEG", len(desktop_png))
-                if page_height > 7500:
-                    desktop_png = desktop_page.screenshot(
-                        clip={"x": 0, "y": 0, "width": 1440, "height": 7500}, type="jpeg", quality=50
-                    )
-                else:
-                    desktop_png = desktop_page.screenshot(full_page=True, type="jpeg", quality=50)
+                logger.info("Desktop screenshot too large (%d bytes), retaking as JPEG q=40", len(desktop_png))
+                desktop_png = desktop_page.screenshot(
+                    clip={"x": 0, "y": 0, "width": 1440, "height": min(page_height, 5000)},
+                    type="jpeg", quality=40,
+                )
             result["desktop_screenshot"] = base64.b64encode(desktop_png).decode("ascii")
+            del desktop_png  # free memory immediately
 
             # Extract visible text
             result["extracted_text"] = self._extract_text_sync(desktop_page)
@@ -290,16 +289,15 @@ class AuditService:
                     )
                 else:
                     mobile_png = mobile_page.screenshot(full_page=True, type="png")
-                # Cap at 5 MB to avoid massive API calls
+                # Cap size to stay under Anthropic's 5 MB base64 limit
                 if len(mobile_png) > MAX_SCREENSHOT_SIZE:
-                    logger.info("Mobile screenshot too large (%d bytes), retaking as JPEG", len(mobile_png))
-                    if mob_height > 7500:
-                        mobile_png = mobile_page.screenshot(
-                            clip={"x": 0, "y": 0, "width": 375, "height": 7500}, type="jpeg", quality=50
-                        )
-                    else:
-                        mobile_png = mobile_page.screenshot(full_page=True, type="jpeg", quality=50)
+                    logger.info("Mobile screenshot too large (%d bytes), retaking as JPEG q=40", len(mobile_png))
+                    mobile_png = mobile_page.screenshot(
+                        clip={"x": 0, "y": 0, "width": 375, "height": min(mob_height, 5000)},
+                        type="jpeg", quality=40,
+                    )
                 result["mobile_screenshot"] = base64.b64encode(mobile_png).decode("ascii")
+                del mobile_png  # free memory immediately
             except Exception as mob_err:
                 logger.warning("Mobile capture failed for %s: %s", url, mob_err)
                 # Non-fatal — we still have desktop data
