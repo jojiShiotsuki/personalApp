@@ -154,7 +154,7 @@ export default function ChatPanel() {
 
             switch (evt.event) {
               case 'text': {
-                fullContent += parsed.content || '';
+                fullContent += parsed.text || parsed.content || '';
                 setStreamingContent(fullContent);
                 break;
               }
