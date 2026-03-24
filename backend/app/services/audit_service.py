@@ -259,13 +259,16 @@ class AuditService:
             else:
                 desktop_png = desktop_page.screenshot(full_page=True, type="png")
             # Cap size to stay under Anthropic's 5 MB base64 limit
+            desktop_fmt = "image/png"
             if len(desktop_png) > MAX_SCREENSHOT_SIZE:
                 logger.info("Desktop screenshot too large (%d bytes), retaking as JPEG q=40", len(desktop_png))
                 desktop_png = desktop_page.screenshot(
                     clip={"x": 0, "y": 0, "width": 1440, "height": min(page_height, 5000)},
                     type="jpeg", quality=40,
                 )
+                desktop_fmt = "image/jpeg"
             result["desktop_screenshot"] = base64.b64encode(desktop_png).decode("ascii")
+            result["desktop_media_type"] = desktop_fmt
             del desktop_png  # free memory immediately
 
             # Extract visible text
@@ -290,13 +293,16 @@ class AuditService:
                 else:
                     mobile_png = mobile_page.screenshot(full_page=True, type="png")
                 # Cap size to stay under Anthropic's 5 MB base64 limit
+                mobile_fmt = "image/png"
                 if len(mobile_png) > MAX_SCREENSHOT_SIZE:
                     logger.info("Mobile screenshot too large (%d bytes), retaking as JPEG q=40", len(mobile_png))
                     mobile_png = mobile_page.screenshot(
                         clip={"x": 0, "y": 0, "width": 375, "height": min(mob_height, 5000)},
                         type="jpeg", quality=40,
                     )
+                    mobile_fmt = "image/jpeg"
                 result["mobile_screenshot"] = base64.b64encode(mobile_png).decode("ascii")
+                result["mobile_media_type"] = mobile_fmt
                 del mobile_png  # free memory immediately
             except Exception as mob_err:
                 logger.warning("Mobile capture failed for %s: %s", url, mob_err)
@@ -474,7 +480,7 @@ class AuditService:
                 "type": "image",
                 "source": {
                     "type": "base64",
-                    "media_type": "image/png",
+                    "media_type": screenshots.get("desktop_media_type", "image/png"),
                     "data": screenshots["desktop_screenshot"],
                 },
             })
@@ -489,7 +495,7 @@ class AuditService:
                 "type": "image",
                 "source": {
                     "type": "base64",
-                    "media_type": "image/png",
+                    "media_type": screenshots.get("mobile_media_type", "image/png"),
                     "data": screenshots["mobile_screenshot"],
                 },
             })
