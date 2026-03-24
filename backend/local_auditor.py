@@ -69,7 +69,7 @@ async def get_prospects_to_audit(
     if isinstance(all_prospects, dict):
         all_prospects = all_prospects.get("prospects", all_prospects.get("items", []))
 
-    # Get already-audited prospect IDs (skip approved/pending, allow re-audit of rejected)
+    # Get already-audited prospect IDs and track which have rejected audits
     resp2 = await client.get(
         f"{API_URL}/api/autoresearch/audits",
         params={"campaign_id": campaign_id, "page": 1, "page_size": 200},
@@ -77,24 +77,36 @@ async def get_prospects_to_audit(
     )
     resp2.raise_for_status()
     audits_data = resp2.json()
-    audited_ids = set()
+    audited_ids = set()  # prospects to skip entirely
+    rejected_ids = set()  # prospects that can be re-audited (back of queue)
+    skipped_ids = set()  # prospects that errored or were auto-skipped
     audits_list = audits_data.get("audits", audits_data) if isinstance(audits_data, dict) else audits_data
     for a in audits_list:
-        # Only skip prospects with approved or pending_review audits
-        # Rejected prospects can be re-audited
-        if a.get("status") in ("approved", "pending_review"):
-            audited_ids.add(a.get("prospect_id"))
+        status = a.get("status")
+        pid = a.get("prospect_id")
+        if status in ("approved", "pending_review"):
+            audited_ids.add(pid)
+        elif status == "rejected":
+            rejected_ids.add(pid)
+        elif status == "skipped":
+            skipped_ids.add(pid)
 
-    # Filter to un-audited prospects on step 1 (QUEUED) with websites, no existing custom email
+    # Filter to auditable prospects with websites
     candidates = [
         p for p in all_prospects
         if p.get("website")
         and p["website"].strip()
         and p["id"] not in audited_ids
+        and p["id"] not in skipped_ids
         and p.get("current_step", 1) == 1
         and p.get("status") in (None, "QUEUED", "queued")
-        and not p.get("custom_email_subject")  # Skip if already has an email (manually written or previously audited)
+        and not p.get("custom_email_subject")
     ]
+
+    # Sort: un-audited first, rejected at the back
+    fresh = [p for p in candidates if p["id"] not in rejected_ids]
+    rejected = [p for p in candidates if p["id"] in rejected_ids]
+    candidates = fresh + rejected
 
     selected = candidates[:count]
     logger.info(
@@ -254,6 +266,25 @@ async def main():
 
                 if audit_data.get("error") and not audit_data.get("issue_type"):
                     logger.warning("  -> Skipped: %s", audit_data["error"])
+                    # Upload a skipped audit so this prospect won't be retried
+                    skip_payload = {
+                        "prospect_id": prospect["id"],
+                        "campaign_id": prospect.get("campaign_id", args.campaign),
+                        "issue_type": "navigation_failed",
+                        "issue_detail": str(audit_data["error"])[:500],
+                        "status": "skipped",
+                        "site_quality": "not_target",
+                        "confidence": "high",
+                    }
+                    try:
+                        await client.post(
+                            f"{API_URL}/api/autoresearch/audits/ingest",
+                            json=skip_payload,
+                            headers={"Authorization": f"Bearer {token}"},
+                        )
+                        logger.info("  -> Uploaded skip record to prevent retry")
+                    except Exception:
+                        pass
                     continue
 
                 cost = audit_data.get("_meta", {}).get("cost_usd", 0)
