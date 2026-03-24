@@ -143,8 +143,13 @@ def list_conversations(
 
     results = []
     for conv, count in rows:
-        conv.message_count = count
-        results.append(conv)
+        results.append(ConversationResponse(
+            id=conv.id,
+            title=conv.title,
+            created_at=conv.created_at,
+            updated_at=conv.updated_at,
+            message_count=count,
+        ))
     return results
 
 
@@ -183,11 +188,16 @@ def get_conversation(
         .all()
     )
 
-    # Set message_count on the conversation for the response schema
-    conv.message_count = total_messages
+    conv_response = ConversationResponse(
+        id=conv.id,
+        title=conv.title,
+        created_at=conv.created_at,
+        updated_at=conv.updated_at,
+        message_count=total_messages,
+    )
 
     return ConversationWithMessages(
-        conversation=ConversationResponse.model_validate(conv, from_attributes=True),
+        conversation=conv_response,
         messages=[
             ConversationMessageResponse.model_validate(m, from_attributes=True)
             for m in messages
