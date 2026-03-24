@@ -253,9 +253,15 @@ class VaultSearchService:
 
         Returns results in the same format as search().
         """
-        words = [w.strip() for w in query.strip().split() if w.strip()]
+        # Filter out common stop words for better keyword matching
+        stop_words = {"a", "an", "the", "is", "are", "was", "were", "do", "does", "did",
+                       "i", "me", "my", "you", "your", "who", "what", "how", "can",
+                       "am", "be", "to", "of", "in", "on", "it", "and", "or", "not",
+                       "about", "know", "tell", "have", "has", "this", "that"}
+        words = [w.strip().lower() for w in query.strip().split() if w.strip().lower() not in stop_words and len(w.strip()) > 1]
         if not words:
-            return []
+            # If all words were stop words, just return all chunks
+            words = [w.strip() for w in query.strip().split() if len(w.strip()) > 2]
 
         base_query = (
             db.query(
@@ -267,10 +273,18 @@ class VaultSearchService:
             .join(VaultFile, VaultChunk.vault_file_id == VaultFile.id)
         )
 
-        # AND logic: every word must appear in the chunk content
-        for word in words:
-            safe_word = f"%{word}%"
-            base_query = base_query.filter(VaultChunk.content.ilike(safe_word))
+        if not words:
+            # No meaningful words -- return first top_k chunks
+            pass
+        elif len(words) == 1:
+            # Single word: simple LIKE
+            base_query = base_query.filter(VaultChunk.content.ilike(f"%{words[0]}%"))
+        else:
+            # OR logic: any word must appear (more lenient than AND)
+            from sqlalchemy import or_
+            base_query = base_query.filter(
+                or_(*[VaultChunk.content.ilike(f"%{w}%") for w in words])
+            )
 
         rows = base_query.limit(top_k).all()
 
