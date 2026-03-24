@@ -22,3 +22,4 @@ google-api-python-client>=2.100.0
 voyageai>=0.3.0
 gitpython>=3.1.0
 numpy>=1.24.0
+pyspellchecker>=0.8.0
