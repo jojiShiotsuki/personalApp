@@ -245,6 +245,14 @@ async def audit_single_prospect(
                 prospect.status = ProspectStatus.SKIPPED
                 prospect.next_action_date = None
 
+        # Build verification report text
+        verification_report_text = None
+        if screenshots.get("interactive_checks"):
+            from app.services.interactive_checks import build_verification_report
+            verification_report_text = build_verification_report(
+                screenshots["interactive_checks"], pagespeed
+            )
+
         audit_result = AuditResult(
             prospect_id=prospect.id,
             campaign_id=prospect.campaign_id,
@@ -268,6 +276,10 @@ async def audit_single_prospect(
             model_used=meta.get("model"),
             tokens_used=(meta.get("input_tokens", 0) + meta.get("output_tokens", 0)),
             ai_cost_estimate=meta.get("cost_usd"),
+            verification_report=verification_report_text,
+            pagespeed_perf_score=pagespeed.get("performance", {}).get("score") if pagespeed else None,
+            pagespeed_seo_score=pagespeed.get("seo", {}).get("score") if pagespeed else None,
+            pagespeed_a11y_score=pagespeed.get("accessibility", {}).get("score") if pagespeed else None,
         )
         db.add(audit_result)
         db.commit()
@@ -528,6 +540,7 @@ def list_audits(
             defer(AuditResult.desktop_screenshot),
             defer(AuditResult.mobile_screenshot),
             defer(AuditResult.verification_screenshots),
+            defer(AuditResult.verification_report),
         )
     )
 
@@ -2757,6 +2770,13 @@ async def _run_batch_audit(
                     job["completed"] += 1
                     continue
 
+                # Run PageSpeed (3 categories)
+                batch_pagespeed = None
+                try:
+                    batch_pagespeed = await svc.run_pagespeed_test(batch_validated_url)
+                except Exception as ps_err:
+                    logger.warning("Batch %s: PageSpeed failed for prospect %d: %s", batch_id, prospect.id, ps_err)
+
                 # Inject learning context per-prospect niche
                 prospect_audit_prompt = audit_prompt
                 if _learning_svc:
@@ -2778,6 +2798,7 @@ async def _run_batch_audit(
                     prospect_niche=prospect.niche or "general",
                     prospect_city="",
                     audit_prompt=prospect_audit_prompt,
+                    pagespeed=batch_pagespeed,
                 )
 
                 if analysis.get("error") and not analysis.get("issue_type"):
@@ -2810,6 +2831,14 @@ async def _run_batch_audit(
                         prospect.status = ProspectStatus.SKIPPED
                         prospect.next_action_date = None
 
+                # Build verification report text
+                verification_report_text = None
+                if screenshots.get("interactive_checks"):
+                    from app.services.interactive_checks import build_verification_report
+                    verification_report_text = build_verification_report(
+                        screenshots["interactive_checks"], batch_pagespeed
+                    )
+
                 audit_result = AuditResult(
                     prospect_id=prospect.id,
                     campaign_id=prospect.campaign_id,
@@ -2833,6 +2862,10 @@ async def _run_batch_audit(
                     model_used=meta.get("model"),
                     tokens_used=(meta.get("input_tokens", 0) + meta.get("output_tokens", 0)),
                     ai_cost_estimate=meta.get("cost_usd"),
+                    verification_report=verification_report_text,
+                    pagespeed_perf_score=batch_pagespeed.get("performance", {}).get("score") if batch_pagespeed else None,
+                    pagespeed_seo_score=batch_pagespeed.get("seo", {}).get("score") if batch_pagespeed else None,
+                    pagespeed_a11y_score=batch_pagespeed.get("accessibility", {}).get("score") if batch_pagespeed else None,
                 )
                 db.add(audit_result)
                 db.commit()
