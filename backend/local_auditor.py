@@ -69,27 +69,35 @@ async def get_prospects_to_audit(
     if isinstance(all_prospects, dict):
         all_prospects = all_prospects.get("prospects", all_prospects.get("items", []))
 
-    # Get already-audited prospect IDs and track which have rejected audits
-    resp2 = await client.get(
-        f"{API_URL}/api/autoresearch/audits",
-        params={"campaign_id": campaign_id, "page": 1, "page_size": 1000},
-        headers={"Authorization": f"Bearer {token}"},
-    )
-    resp2.raise_for_status()
-    audits_data = resp2.json()
-    audited_ids = set()  # prospects to skip entirely
-    rejected_ids = set()  # prospects that can be re-audited (back of queue)
-    skipped_ids = set()  # prospects that errored or were auto-skipped
-    audits_list = audits_data.get("audits", audits_data) if isinstance(audits_data, dict) else audits_data
-    for a in audits_list:
-        status = a.get("status")
-        pid = a.get("prospect_id")
-        if status in ("approved", "pending_review"):
-            audited_ids.add(pid)
-        elif status == "rejected":
-            rejected_ids.add(pid)
-        elif status == "skipped":
-            skipped_ids.add(pid)
+    # Get ALL audited prospect IDs (paginate through all pages)
+    audited_ids = set()
+    rejected_ids = set()
+    skipped_ids = set()
+    page = 1
+    while True:
+        resp2 = await client.get(
+            f"{API_URL}/api/autoresearch/audits",
+            params={"campaign_id": campaign_id, "page": page, "page_size": 200},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        resp2.raise_for_status()
+        audits_data = resp2.json()
+        audits_list = audits_data.get("audits", []) if isinstance(audits_data, dict) else audits_data
+        if not audits_list:
+            break
+        for a in audits_list:
+            status = a.get("status")
+            pid = a.get("prospect_id")
+            if status in ("approved", "pending_review"):
+                audited_ids.add(pid)
+            elif status == "rejected":
+                rejected_ids.add(pid)
+            elif status == "skipped":
+                skipped_ids.add(pid)
+        total = audits_data.get("total_count", 0) if isinstance(audits_data, dict) else len(audits_list)
+        if page * 200 >= total:
+            break
+        page += 1
 
     # Filter to auditable prospects with websites
     candidates = [
