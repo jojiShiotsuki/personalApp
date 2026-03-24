@@ -792,16 +792,17 @@ function SequencePipelineView({
     );
   }
 
-  // Filter prospects by search term
+  // Filter prospects by search term — matches each word independently across all fields
   const filteredProspects = searchTerm.trim().length >= 2
     ? prospects.filter((p) => {
-        const term = searchTerm.toLowerCase();
-        return (
-          p.agency_name?.toLowerCase().includes(term) ||
-          p.contact_name?.toLowerCase().includes(term) ||
-          p.email?.toLowerCase().includes(term) ||
-          p.niche?.toLowerCase().includes(term)
-        );
+        const searchable = [
+          p.agency_name,
+          p.contact_name,
+          p.email,
+          p.niche,
+        ].filter(Boolean).join(' ').toLowerCase();
+        const words = searchTerm.toLowerCase().trim().split(/\s+/);
+        return words.every((word) => searchable.includes(word));
       })
     : prospects;
 
