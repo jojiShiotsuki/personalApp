@@ -235,9 +235,26 @@ class AuditService:
             try:
                 self._navigate_with_fallback_sync(desktop_page, url)
             except Exception as nav_err:
-                logger.warning("Desktop navigation failed for %s: %s", url, nav_err)
-                result["error"] = f"Navigation failed: {nav_err}"
-                return result
+                # Retry with ignore_https_errors for chrome-error / SSL-related failures
+                nav_err_str = str(nav_err)
+                if "chrome-error" in nav_err_str or "ERR_SSL" in nav_err_str or "ERR_CERT" in nav_err_str:
+                    logger.info("Retrying %s with ignore_https_errors=True", url)
+                    desktop_page.close()
+                    ctx = browser.new_context(
+                        viewport={"width": 1440, "height": 900},
+                        ignore_https_errors=True,
+                    )
+                    desktop_page = ctx.new_page()
+                    try:
+                        self._navigate_with_fallback_sync(desktop_page, url)
+                    except Exception as retry_err:
+                        logger.warning("Desktop navigation retry failed for %s: %s", url, retry_err)
+                        result["error"] = f"Navigation failed: {retry_err}"
+                        return result
+                else:
+                    logger.warning("Desktop navigation failed for %s: %s", url, nav_err)
+                    result["error"] = f"Navigation failed: {nav_err}"
+                    return result
 
             # Wait for JS rendering
             time.sleep(min_wait)

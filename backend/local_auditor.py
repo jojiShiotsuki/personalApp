@@ -73,6 +73,7 @@ async def get_prospects_to_audit(
     audited_ids = set()
     rejected_ids = set()
     skipped_ids = set()
+    audited_websites: set[str] = set()
     page = 1
     while True:
         resp2 = await client.get(
@@ -88,12 +89,17 @@ async def get_prospects_to_audit(
         for a in audits_list:
             status = a.get("status")
             pid = a.get("prospect_id")
+            website = a.get("prospect_website") or ""
             if status in ("approved", "pending_review"):
                 audited_ids.add(pid)
+                if website.strip():
+                    audited_websites.add(website.strip().rstrip("/").lower())
             elif status == "rejected":
                 rejected_ids.add(pid)
             elif status == "skipped":
                 skipped_ids.add(pid)
+                if website.strip():
+                    audited_websites.add(website.strip().rstrip("/").lower())
         total = audits_data.get("total_count", 0) if isinstance(audits_data, dict) else len(audits_list)
         if page * 200 >= total:
             break
@@ -106,6 +112,7 @@ async def get_prospects_to_audit(
         and p["website"].strip()
         and p["id"] not in audited_ids
         and p["id"] not in skipped_ids
+        and p["website"].strip().rstrip("/").lower() not in audited_websites
         and p.get("current_step", 1) == 1
         and p.get("status") in (None, "QUEUED", "queued")
         and not p.get("custom_email_subject")
