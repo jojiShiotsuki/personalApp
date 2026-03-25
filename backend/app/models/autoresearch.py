@@ -150,8 +150,8 @@ class GmailToken(Base):
     __tablename__ = "gmail_tokens"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, unique=True)
-    email_address = Column(String(255), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    email_address = Column(String(255), nullable=False, unique=True)
     encrypted_refresh_token = Column(Text, nullable=False)
     last_poll_at = Column(DateTime, nullable=True)
     last_history_id = Column(String(100), nullable=True)

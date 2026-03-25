@@ -1704,14 +1704,14 @@ def gmail_callback(
     # Encrypt refresh token
     encrypted_token = svc.encrypt_token(refresh_token)
 
-    # Upsert GmailToken for this user
+    # Upsert GmailToken by email address (supports multiple Gmail accounts per user)
     existing = (
         db.query(GmailToken)
-        .filter(GmailToken.user_id == user_id)
+        .filter(GmailToken.email_address == email_address)
         .first()
     )
     if existing:
-        existing.email_address = email_address
+        existing.user_id = user_id
         existing.encrypted_refresh_token = encrypted_token
         existing.is_active = True
     else:
@@ -1741,26 +1741,37 @@ def gmail_status(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Check whether Gmail is connected for the current user."""
-    token = (
+    """Check whether Gmail is connected for the current user. Returns all connected accounts."""
+    tokens = (
         db.query(GmailToken)
         .filter(GmailToken.user_id == current_user.id)
-        .first()
+        .all()
     )
 
-    if not token:
+    if not tokens:
         return {
             "is_connected": False,
             "email_address": None,
             "last_poll_at": None,
             "is_active": False,
+            "accounts": [],
         }
 
+    # Return first account in top-level fields for backward compat, plus full list
+    first = tokens[0]
     return {
         "is_connected": True,
-        "email_address": token.email_address,
-        "last_poll_at": token.last_poll_at.isoformat() if token.last_poll_at else None,
-        "is_active": token.is_active,
+        "email_address": first.email_address,
+        "last_poll_at": first.last_poll_at.isoformat() if first.last_poll_at else None,
+        "is_active": first.is_active,
+        "accounts": [
+            {
+                "email_address": t.email_address,
+                "last_poll_at": t.last_poll_at.isoformat() if t.last_poll_at else None,
+                "is_active": t.is_active,
+            }
+            for t in tokens
+        ],
     }
 
 
@@ -1799,22 +1810,24 @@ async def gmail_poll(
 
 @router.post("/gmail/disconnect")
 def gmail_disconnect(
+    email: str | None = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Disconnect Gmail by deleting the stored token for the current user."""
-    token = (
-        db.query(GmailToken)
-        .filter(GmailToken.user_id == current_user.id)
-        .first()
-    )
-    if not token:
+    """Disconnect Gmail. Pass ?email=xxx to disconnect a specific account, or omit to disconnect all."""
+    query = db.query(GmailToken).filter(GmailToken.user_id == current_user.id)
+    if email:
+        query = query.filter(GmailToken.email_address == email)
+
+    tokens = query.all()
+    if not tokens:
         raise HTTPException(status_code=404, detail="No Gmail connection found.")
 
-    db.delete(token)
+    for token in tokens:
+        db.delete(token)
     db.commit()
 
-    return {"message": "Gmail disconnected successfully."}
+    return {"message": f"Disconnected {len(tokens)} Gmail account(s)."}
 
 
 # ──────────────────────────────────────────────
