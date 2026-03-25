@@ -40,6 +40,7 @@ from app.models.user import User
 from app.schemas.autoresearch import (
     AnalyticsOverview,
     AuditApproveRequest,
+    AuditRegenerateRequest,
     AuditRejectRequest,
     AuditResultResponse,
     AutoresearchSettingsResponse,
@@ -672,6 +673,78 @@ def approve_audit(
         company=prospect.agency_name if prospect else None,
     )
     db.add(experiment)
+    db.commit()
+    db.refresh(audit)
+
+    # Build response with prospect info
+    resp = AuditResultResponse.model_validate(audit, from_attributes=True)
+    if prospect:
+        resp.prospect_name = prospect.contact_name or prospect.agency_name
+        resp.prospect_company = prospect.agency_name
+        resp.prospect_niche = prospect.niche
+        resp.prospect_email = prospect.email
+        resp.prospect_website = prospect.website
+    return resp
+
+
+# ──────────────────────────────────────────────
+# 6b. POST /audits/{audit_id}/regenerate
+# ──────────────────────────────────────────────
+
+@router.post("/audits/{audit_id}/regenerate", response_model=AuditResultResponse)
+async def regenerate_audit(
+    audit_id: int,
+    body: AuditRegenerateRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Regenerate the cold email for an audit using a custom instruction."""
+    audit = db.query(AuditResult).filter(AuditResult.id == audit_id).first()
+    if not audit:
+        raise HTTPException(status_code=404, detail="Audit result not found")
+
+    if audit.status != "pending_review":
+        raise HTTPException(
+            status_code=400,
+            detail=f"Can only regenerate pending_review audits, current status: {audit.status}",
+        )
+
+    # Load prospect for context
+    prospect = (
+        db.query(OutreachProspect)
+        .filter(OutreachProspect.id == audit.prospect_id)
+        .first()
+    )
+
+    service = _require_audit_service()
+    result = await service.regenerate_email(
+        instruction=body.instruction,
+        issue_type=audit.issue_type,
+        issue_detail=audit.issue_detail,
+        secondary_issue=audit.secondary_issue,
+        secondary_detail=audit.secondary_detail,
+        site_quality=audit.site_quality,
+        detected_city=audit.detected_city,
+        detected_trade=audit.detected_trade,
+        prospect_name=(prospect.contact_name or prospect.agency_name or "") if prospect else "",
+        prospect_company=(prospect.agency_name or "") if prospect else "",
+        prospect_niche=(prospect.niche or "") if prospect else "",
+    )
+
+    if "error" in result and "subject" not in result:
+        raise HTTPException(status_code=502, detail=result["error"])
+
+    # Update audit with regenerated email
+    audit.generated_subject = result.get("subject")
+    audit.generated_subject_variant = result.get("subject_variant")
+    audit.generated_body = result.get("body")
+    audit.word_count = result.get("word_count")
+
+    # Clear any previous user edits (fresh generation)
+    audit.edited_subject = None
+    audit.edited_body = None
+    audit.was_edited = False
+
     db.commit()
     db.refresh(audit)
 
