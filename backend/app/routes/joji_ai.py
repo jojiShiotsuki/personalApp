@@ -473,49 +473,22 @@ def gmail_vault_backfill(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
-    """Start Gmail backfill in the background (6 months of threads)."""
-    user_id = user.id
+    """Start Gmail backfill in the background (6 months of threads).
 
-    # Mark as started
-    settings = db.query(JojiAISettings).filter(JojiAISettings.user_id == user_id).first()
-    if settings:
-        settings.gmail_backfill_status = "started"
-        settings.gmail_backfill_threads = None
-        settings.gmail_backfill_error = None
-        db.commit()
+    Status is tracked on JojiAISettings.gmail_backfill_status by the service itself.
+    """
+    user_id = user.id
 
     def _run_backfill(uid: int):
         from app.database.connection import SessionLocal
         from app.services.gmail_vault_service import GmailVaultService
         bg_db = SessionLocal()
         try:
-            # Mark in_progress
-            s = bg_db.query(JojiAISettings).filter(JojiAISettings.user_id == uid).first()
-            if s:
-                s.gmail_backfill_status = "in_progress"
-                bg_db.commit()
-
             service = GmailVaultService()
             result = service.backfill(bg_db, uid, months=6)
             logger.info("Gmail backfill complete for user %d: %s", uid, result)
-
-            # Mark success/failed
-            s = bg_db.query(JojiAISettings).filter(JojiAISettings.user_id == uid).first()
-            if s:
-                s.gmail_backfill_status = result.get("status", "failed")
-                s.gmail_backfill_threads = result.get("threads_indexed", 0)
-                s.gmail_backfill_error = result.get("error")
-                bg_db.commit()
         except Exception as e:
             logger.error("Gmail backfill failed for user %d: %s", uid, e)
-            try:
-                s = bg_db.query(JojiAISettings).filter(JojiAISettings.user_id == uid).first()
-                if s:
-                    s.gmail_backfill_status = "failed"
-                    s.gmail_backfill_error = str(e)[:500]
-                    bg_db.commit()
-            except Exception:
-                pass
         finally:
             bg_db.close()
 

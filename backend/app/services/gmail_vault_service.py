@@ -32,54 +32,87 @@ class GmailVaultService:
     # ------------------------------------------------------------------
 
     def backfill(self, db: Session, user_id: int, months: int = 6) -> dict[str, Any]:
-        """One-time backfill: fetch all threads from the past N months, summarise, push to vault."""
-        service, user_email = self._build_gmail_service(db, user_id)
-        if not service:
-            return {"status": "failed", "error": "Gmail not connected"}
+        """One-time backfill: fetch all threads from the past N months, summarise, push to vault.
 
-        cutoff = datetime.utcnow() - timedelta(days=months * 30)
-        query = f"after:{cutoff.strftime('%Y/%m/%d')}"
+        Tracks progress via gmail_backfill_status on JojiAISettings so
+        the frontend can show real-time status.
+        """
+        from app.models.joji_ai import JojiAISettings
 
-        thread_ids = self._fetch_thread_ids(service, query)
-        logger.info("Gmail vault backfill: found %d threads", len(thread_ids))
+        # Mark in_progress
+        self._set_backfill_status(db, user_id, "in_progress")
 
-        indexed = 0
-        skipped = 0
-        GMAIL_VAULT_DIR.mkdir(parents=True, exist_ok=True)
+        try:
+            service, user_email = self._build_gmail_service(db, user_id)
+            if not service:
+                self._set_backfill_status(db, user_id, "failed", error="Gmail not connected")
+                return {"status": "failed", "error": "Gmail not connected"}
 
-        for i, tid in enumerate(thread_ids):
-            try:
-                md = self._process_thread(service, tid, user_email)
-                if md is None:
+            cutoff = datetime.utcnow() - timedelta(days=months * 30)
+            query = f"after:{cutoff.strftime('%Y/%m/%d')}"
+
+            thread_ids = self._fetch_thread_ids(service, query)
+            logger.info("Gmail vault backfill: found %d threads", len(thread_ids))
+
+            indexed = 0
+            skipped = 0
+            GMAIL_VAULT_DIR.mkdir(parents=True, exist_ok=True)
+
+            for i, tid in enumerate(thread_ids):
+                try:
+                    md = self._process_thread(service, tid, user_email)
+                    if md is None:
+                        skipped += 1
+                        continue
+
+                    dest = GMAIL_VAULT_DIR / f"{tid}.md"
+                    dest.write_text(md, encoding="utf-8")
+                    indexed += 1
+
+                    # Push in batches
+                    if indexed % BATCH_SIZE == 0:
+                        self._push_to_vault(db)
+                        logger.info(
+                            "Gmail vault backfill: pushed batch %d (%d/%d)",
+                            indexed // BATCH_SIZE,
+                            i + 1,
+                            len(thread_ids),
+                        )
+
+                except Exception as exc:
+                    logger.warning("Failed to process thread %s: %s", tid, exc)
                     skipped += 1
-                    continue
 
-                dest = GMAIL_VAULT_DIR / f"{tid}.md"
-                dest.write_text(md, encoding="utf-8")
-                indexed += 1
+            # Final push
+            if indexed % BATCH_SIZE != 0:
+                self._push_to_vault(db)
 
-                # Push in batches
-                if indexed % BATCH_SIZE == 0:
-                    self._push_to_vault(db)
-                    logger.info(
-                        "Gmail vault backfill: pushed batch %d (%d/%d)",
-                        indexed // BATCH_SIZE,
-                        i + 1,
-                        len(thread_ids),
-                    )
+            # Update sync timestamp and mark success
+            self._update_sync_timestamp(db, user_id)
+            self._set_backfill_status(db, user_id, "success", threads=indexed)
 
-            except Exception as exc:
-                logger.warning("Failed to process thread %s: %s", tid, exc)
-                skipped += 1
+            return {"status": "success", "threads_indexed": indexed, "threads_skipped": skipped}
 
-        # Final push
-        if indexed % BATCH_SIZE != 0:
-            self._push_to_vault(db)
+        except Exception as exc:
+            logger.exception("Gmail vault backfill failed for user %d", user_id)
+            self._set_backfill_status(db, user_id, "failed", error=str(exc)[:500])
+            return {"status": "failed", "error": str(exc)}
 
-        # Update sync timestamp
-        self._update_sync_timestamp(db, user_id)
-
-        return {"status": "success", "threads_indexed": indexed, "threads_skipped": skipped}
+    def _set_backfill_status(
+        self, db: Session, user_id: int, status: str,
+        threads: int | None = None, error: str | None = None
+    ) -> None:
+        """Update gmail_backfill_status on JojiAISettings."""
+        from app.models.joji_ai import JojiAISettings
+        try:
+            settings = db.query(JojiAISettings).filter(JojiAISettings.user_id == user_id).first()
+            if settings:
+                settings.gmail_backfill_status = status
+                settings.gmail_backfill_threads = threads
+                settings.gmail_backfill_error = error
+                db.commit()
+        except Exception:
+            logger.warning("Failed to update backfill status to %s", status)
 
     def incremental_sync(self, db: Session, user_id: int) -> dict[str, Any]:
         """Sync threads modified since last sync."""
