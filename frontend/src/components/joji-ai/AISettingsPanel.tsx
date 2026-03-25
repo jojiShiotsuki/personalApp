@@ -238,6 +238,7 @@ export default function AISettingsPanel({ onBack }: AISettingsPanelProps) {
                 {formatLastSync(settings?.last_sync_at ?? null)}
               </span>
             </div>
+            {obsidianStatus?.has_api_key && (
             <div className="flex items-center justify-between text-xs">
               <span className="text-[--exec-text-muted] flex items-center gap-1.5">
                 <Radio className="w-3 h-3" />
@@ -256,6 +257,7 @@ export default function AISettingsPanel({ onBack }: AISettingsPanelProps) {
                 {obsidianStatus?.connected ? 'Connected' : 'Offline'}
               </span>
             </div>
+            )}
             <button
               onClick={() => syncMutation.mutate()}
               disabled={syncMutation.isPending || !settings?.github_repo_url}
