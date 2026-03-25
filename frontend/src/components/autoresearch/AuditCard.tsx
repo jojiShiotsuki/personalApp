@@ -122,8 +122,13 @@ export default function AuditCard({ audit, onApprove, onReject, onFeedback, onDe
   const displayBody = editedBody || audit.edited_body || audit.generated_body;
 
   const handleApprove = () => {
-    const finalSubject = isEditing ? editedSubject : (hasVariant && selectedVariant === 'variant' ? audit.generated_subject_variant : undefined);
-    const finalBody = isEditing ? editedBody : undefined;
+    // Always send edits if they differ from the original, even if not in edit mode
+    const originalSubject = (hasVariant && selectedVariant === 'variant' ? audit.generated_subject_variant : audit.generated_subject) || '';
+    const originalBody = audit.generated_body || '';
+    const subjectChanged = editedSubject !== originalSubject;
+    const bodyChanged = editedBody !== originalBody;
+    const finalSubject = subjectChanged ? editedSubject : (hasVariant && selectedVariant === 'variant' ? audit.generated_subject_variant : undefined);
+    const finalBody = bodyChanged ? editedBody : undefined;
     const variantUsed = hasVariant ? selectedVariant : undefined;
     onApprove(audit.id, finalSubject ?? undefined, finalBody, variantUsed);
     setIsEditing(false);
