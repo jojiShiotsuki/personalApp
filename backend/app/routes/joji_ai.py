@@ -506,3 +506,20 @@ def reset_gmail_backfill(
         settings.gmail_backfill_error = None
         db.commit()
     return {"status": "reset"}
+
+
+# ---------------------------------------------------------------------------
+# 14. POST /vault/gmail-sync-now -- Manually trigger Gmail vault sync
+# ---------------------------------------------------------------------------
+
+@router.post("/vault/gmail-sync-now")
+def gmail_sync_now(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Manually trigger one round of Gmail vault sync (same as scheduler does)."""
+    from app.services.gmail_vault_service import GmailVaultService
+
+    service = GmailVaultService()
+    result = service.incremental_sync(db, user.id)
+    return result
