@@ -176,8 +176,9 @@ class GmailVaultService:
                     logger.warning("Failed to process thread %s: %s", tid, exc)
                     total_skipped += 1
 
-        if total_indexed > 0:
-            self._push_to_vault(db)
+        # Always try to push — there may be unpushed files from a previous run
+        # (e.g. files written before the vault repo was cloned after a deploy)
+        self._push_to_vault(db)
 
         self._update_sync_timestamp(db, user_id)
 
