@@ -430,13 +430,26 @@ class JojiAIService:
             logger.warning("Conversation vault sync failed: %s", sync_exc)
 
         # ------------------------------------------------------------------
-        # 11. Yield done event
+        # 11. Yield done event (before learning so user isn't blocked)
         # ------------------------------------------------------------------
         yield _sse_event("done", {
             "conversation_id": conversation.id,
             "tokens_used": tokens_used,
             "cost_usd": cost_usd,
         })
+
+        # ------------------------------------------------------------------
+        # 12. Learning cycle — Haiku analyzes conversation for new insights
+        #     Runs after done event so user isn't waiting
+        # ------------------------------------------------------------------
+        try:
+            from app.services.conversation_learner import run_learning_cycle
+            learn_result = run_learning_cycle(db, conversation.id)
+            if learn_result and learn_result.get("insights_saved"):
+                logger.info("Learned %d insights from conversation %d",
+                            learn_result["insights_saved"], conversation.id)
+        except Exception as learn_exc:
+            logger.warning("Learning cycle failed: %s", learn_exc)
 
     # ------------------------------------------------------------------
     # Internal helpers
