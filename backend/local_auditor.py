@@ -316,6 +316,47 @@ async def main():
                             logger.error("  -> Failed to upload SSL audit: %s", e)
                         continue
 
+                    # DNS errors — domain expired or doesn't exist
+                    if "ERR_NAME_NOT_RESOLVED" in error_str:
+                        first_name = (prospect.get("contact_name") or "").split()[0] if prospect.get("contact_name") else "there"
+                        dns_audit = {
+                            "prospect_id": prospect["id"],
+                            "campaign_id": prospect.get("campaign_id", args.campaign),
+                            "issue_type": "domain_expired",
+                            "issue_detail": "The website domain doesn't resolve — it's either expired, misconfigured, or no longer registered.",
+                            "confidence": "high",
+                            "site_quality": "poor",
+                            "needs_verification": False,
+                            "generated_subject": "Your website is completely down",
+                            "generated_subject_variant": "Tried visiting your site — it's offline",
+                            "generated_body": (
+                                f"G'day {first_name},\n\n"
+                                "I tried to check out your website but it wouldn't load at all — "
+                                "looks like the domain might have expired or isn't set up properly. "
+                                "That means anyone searching for your business online can't find you.\n\n"
+                                "It's usually a straightforward fix. Happy to take a look if you'd like a hand "
+                                "getting it back online.\n\n"
+                                "Cheers,\n"
+                                "Joji Shiotsuki | Joji Web Solutions | jojishiotsuki.com\n\n"
+                                "Not interested? Just reply \"stop\" and I won't email again."
+                            ),
+                            "word_count": 72,
+                            "detected_city": None,
+                            "detected_trade": prospect.get("niche"),
+                        }
+                        try:
+                            await client.post(
+                                f"{API_URL}/api/autoresearch/audits/ingest",
+                                json=dns_audit,
+                                headers={"Authorization": f"Bearer {token}"},
+                                timeout=30,
+                            )
+                            success_count += 1
+                            logger.info("  -> Uploaded DNS audit — domain expired or not resolving")
+                        except Exception as e:
+                            logger.error("  -> Failed to upload DNS audit: %s", e)
+                        continue
+
                     logger.warning("  -> Skipped: %s", audit_data["error"])
                     # Upload a skipped audit so this prospect won't be retried
                     skip_payload = {
