@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Github, RefreshCw, Cpu, MessageSquareText, DollarSign, Check, Mail, Radio } from 'lucide-react';
+import { ArrowLeft, Github, RefreshCw, Cpu, MessageSquareText, DollarSign, Check, Mail, Radio, BookOpen } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { jojiAiApi } from '@/lib/api';
 import { toast } from 'sonner';
 import type { JojiAISettingsUpdate } from '@/types';
+import LibraryUploadPanel from '@/components/joji-ai/LibraryUploadPanel';
 
 interface AISettingsPanelProps {
   onBack: () => void;
@@ -26,6 +27,7 @@ export default function AISettingsPanel({ onBack }: AISettingsPanelProps) {
     queryFn: () => jojiAiApi.getSettings(),
   });
 
+  const [showLibrary, setShowLibrary] = useState(false);
   const [repoUrl, setRepoUrl] = useState('');
   const [githubToken, setGithubToken] = useState('');
   const [githubDirty, setGithubDirty] = useState(false);
@@ -138,6 +140,10 @@ export default function AISettingsPanel({ onBack }: AISettingsPanelProps) {
         <RefreshCw className="w-4 h-4 text-stone-500 animate-spin" />
       </div>
     );
+  }
+
+  if (showLibrary) {
+    return <LibraryUploadPanel onBack={() => setShowLibrary(false)} />;
   }
 
   return (
@@ -342,6 +348,28 @@ export default function AISettingsPanel({ onBack }: AISettingsPanelProps) {
               )}
             </div>
           )}
+        </section>
+
+        {/* Brain Library */}
+        <section className="pt-4 border-t border-stone-700/30">
+          <button
+            onClick={() => setShowLibrary(true)}
+            className={cn(
+              'w-full flex items-center gap-3 px-3 py-3 rounded-lg',
+              'bg-stone-800/50 border border-stone-600/40',
+              'hover:bg-stone-700/50 hover:border-stone-500/50',
+              'transition-all duration-200 group'
+            )}
+          >
+            <div className="w-8 h-8 rounded-lg bg-[--exec-accent]/10 flex items-center justify-center">
+              <BookOpen className="w-4 h-4 text-[--exec-accent]" />
+            </div>
+            <div className="text-left flex-1">
+              <p className="text-xs font-medium text-[--exec-text]">Brain Library</p>
+              <p className="text-[10px] text-[--exec-text-muted]">Upload PDFs and text to teach the AI</p>
+            </div>
+            <ArrowLeft className="w-3.5 h-3.5 text-stone-500 rotate-180 group-hover:translate-x-0.5 transition-transform" />
+          </button>
         </section>
 
         {/* Model Section */}
