@@ -286,6 +286,19 @@ export default function SettingsTab() {
               </button>
 
               <button
+                onClick={() => connectGmailMutation.mutate()}
+                disabled={connectGmailMutation.isPending}
+                className={cn(
+                  'inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-lg transition-all duration-200',
+                  'bg-[--exec-accent]/10 text-[--exec-accent] hover:bg-[--exec-accent]/20',
+                  'disabled:opacity-50 disabled:cursor-not-allowed',
+                )}
+              >
+                <ExternalLink className="w-3.5 h-3.5" />
+                {connectGmailMutation.isPending ? 'Opening...' : 'Add Another Gmail'}
+              </button>
+
+              <button
                 onClick={() => disconnectGmailMutation.mutate()}
                 disabled={disconnectGmailMutation.isPending}
                 className={cn(
@@ -297,7 +310,7 @@ export default function SettingsTab() {
                 <Unlink className="w-3.5 h-3.5" />
                 {disconnectGmailMutation.isPending
                   ? 'Disconnecting...'
-                  : 'Disconnect Gmail'}
+                  : 'Disconnect All'}
               </button>
             </div>
           </div>
