@@ -189,6 +189,26 @@ export default function AuditsTab() {
     [deleteMutation]
   );
 
+  // Regenerate mutation
+  const regenerateMutation = useMutation({
+    mutationFn: ({ auditId, instruction }: { auditId: number; instruction: string }) =>
+      autoresearchApi.regenerateAudit(auditId, instruction),
+    onSuccess: () => {
+      toast.success('Email regenerated');
+      queryClient.invalidateQueries({ queryKey: ['autoresearch-audits'] });
+    },
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Failed to regenerate email'));
+    },
+  });
+
+  const handleRegenerate = useCallback(
+    (auditId: number, instruction: string) => {
+      regenerateMutation.mutate({ auditId, instruction });
+    },
+    [regenerateMutation]
+  );
+
   // Gmail status query
   const { data: gmailStatus } = useQuery({
     queryKey: ['gmail-status'],
@@ -428,6 +448,8 @@ export default function AuditsTab() {
               onViewScreenshots={setScreenshotAudit}
               isSending={sendingAuditId === audit.id}
               gmailConnected={!!gmailConnected}
+              onRegenerate={handleRegenerate}
+              isRegenerating={regenerateMutation.isPending && regenerateMutation.variables?.auditId === audit.id}
             />
           ))}
         </div>
