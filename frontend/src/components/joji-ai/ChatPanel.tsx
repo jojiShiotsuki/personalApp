@@ -183,6 +183,13 @@ export default function ChatPanel() {
                 tokensUsed = parsed.tokens_used ?? null;
                 break;
               }
+              case 'learned': {
+                const count = parsed.insights_saved || 0;
+                toast.success(`Brain updated — ${count} new insight${count > 1 ? 's' : ''} saved`, {
+                  duration: 4000,
+                });
+                break;
+              }
             }
           } catch {
             // Skip malformed JSON

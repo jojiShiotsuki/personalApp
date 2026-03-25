@@ -1735,7 +1735,7 @@ export interface JojiAISettingsUpdate {
 }
 
 // SSE Event types from Joji AI chat stream
-export type AISSEEventType = 'text' | 'tool_call' | 'tool_result' | 'vault_ref' | 'error' | 'done';
+export type AISSEEventType = 'text' | 'tool_call' | 'tool_result' | 'vault_ref' | 'error' | 'done' | 'learned';
 
 export interface AISSEEvent {
   event: AISSEEventType;

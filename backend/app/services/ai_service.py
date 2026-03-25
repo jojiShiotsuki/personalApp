@@ -448,6 +448,9 @@ class JojiAIService:
             if learn_result and learn_result.get("insights_saved"):
                 logger.info("Learned %d insights from conversation %d",
                             learn_result["insights_saved"], conversation.id)
+                yield _sse_event("learned", {
+                    "insights_saved": learn_result["insights_saved"],
+                })
         except Exception as learn_exc:
             logger.warning("Learning cycle failed: %s", learn_exc)
 
