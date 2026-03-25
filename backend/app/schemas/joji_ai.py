@@ -76,6 +76,7 @@ class JojiAISettingsUpdate(BaseModel):
     sync_interval_minutes: Optional[int] = Field(None, ge=5, le=1440)
     default_model: Optional[str] = None
     system_prompt_override: Optional[str] = None
+    gmail_backfill_status: Optional[str] = None
 
 
 class JojiAISettingsResponse(BaseModel):

@@ -297,12 +297,23 @@ export default function AISettingsPanel({ onBack }: AISettingsPanelProps) {
               {settings.gmail_backfill_status === 'success' && (
                 <Check className="w-3 h-3" />
               )}
-              <span>
+              <span className="flex-1">
                 {settings.gmail_backfill_status === 'started' && 'Gmail indexing starting...'}
                 {settings.gmail_backfill_status === 'in_progress' && 'Indexing Gmail threads...'}
                 {settings.gmail_backfill_status === 'success' && `Indexed ${settings.gmail_backfill_threads ?? 0} email threads`}
                 {settings.gmail_backfill_status === 'failed' && `Failed: ${settings.gmail_backfill_error || 'Unknown error'}`}
               </span>
+              {/* Reset button for stuck/failed states */}
+              {(settings.gmail_backfill_status === 'started' || settings.gmail_backfill_status === 'failed') && (
+                <button
+                  onClick={() => {
+                    updateMutation.mutate({ gmail_backfill_status: null } as any);
+                  }}
+                  className="text-[10px] underline opacity-60 hover:opacity-100"
+                >
+                  Reset
+                </button>
+              )}
             </div>
           )}
         </section>
