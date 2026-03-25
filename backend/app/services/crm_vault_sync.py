@@ -5,7 +5,7 @@ and pushes them to the crm-sync/ folder in the Obsidian vault GitHub repo.
 
 import logging
 import re
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional
 
@@ -131,6 +131,360 @@ class CRMVaultSync:
 
         except Exception:
             logger.exception("CRM vault sync failed for outreach insights")
+
+    def _write_contact_file(self, db: Session, contact_id: int) -> bool:
+        """Write a contact markdown file without pushing. Returns True if file was written."""
+        contact = db.query(Contact).filter(Contact.id == contact_id).first()
+        if not contact:
+            return False
+        deals = db.query(Deal).filter(Deal.contact_id == contact_id).order_by(Deal.created_at.desc()).all()
+        interactions = db.query(Interaction).filter(Interaction.contact_id == contact_id).order_by(Interaction.interaction_date.desc()).limit(10).all()
+        md = self._render_contact_markdown(contact, deals, interactions)
+        filename = self._sanitize_filename(contact.name)
+        dest = CRM_SYNC_DIR / "contacts" / f"{filename}.md"
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        dest.write_text(md, encoding="utf-8")
+        return True
+
+    def _write_deal_file(self, db: Session, deal_id: int) -> bool:
+        """Write a deal markdown file without pushing. Returns True if file was written."""
+        deal = db.query(Deal).filter(Deal.id == deal_id).first()
+        if not deal:
+            return False
+        contact = db.query(Contact).filter(Contact.id == deal.contact_id).first()
+        md = self._render_deal_markdown(deal, contact)
+        filename = self._sanitize_filename(deal.title)
+        dest = CRM_SYNC_DIR / "deals" / f"{filename}.md"
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        dest.write_text(md, encoding="utf-8")
+        return True
+
+    def batch_crm_sync(self, db: Session) -> dict:
+        """Batch sync all recently modified contacts and deals, push once."""
+        try:
+            settings = self._get_settings(db)
+            if settings is None:
+                return {"status": "skipped", "reason": "no github repo configured"}
+            cutoff = datetime.utcnow() - timedelta(minutes=35)
+            written = 0
+            contacts = db.query(Contact).filter(Contact.updated_at >= cutoff).all()
+            for contact in contacts:
+                if self._write_contact_file(db, contact.id):
+                    written += 1
+            deals = db.query(Deal).filter(Deal.updated_at >= cutoff).all()
+            for deal in deals:
+                if self._write_deal_file(db, deal.id):
+                    written += 1
+            insights = db.query(Insight).filter(Insight.is_active.is_(True)).order_by(Insight.created_at.desc()).all()
+            md = self._render_insights_markdown(insights)
+            dest = CRM_SYNC_DIR / "outreach" / "insights.md"
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            dest.write_text(md, encoding="utf-8")
+            written += 1
+            if written > 0:
+                self._push_changes(settings)
+            return {"status": "success", "files_written": written}
+        except Exception:
+            logger.exception("Batch CRM sync failed")
+            return {"status": "failed"}
+
+    def _write_template_file(self, relative_path: str, content: str) -> None:
+        """Write a file to the vault repo at the given relative path."""
+        dest = VAULT_REPO_DIR / relative_path
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        dest.write_text(content, encoding="utf-8")
+
+    def generate_starter_templates(self, db: Session) -> dict:
+        """Generate starter template files from outreach experiments and push once."""
+        from app.models.autoresearch import Experiment
+
+        try:
+            settings = self._get_settings(db)
+            if settings is None:
+                return {"status": "skipped", "reason": "no github repo configured"}
+
+            experiments = (
+                db.query(Experiment)
+                .filter(Experiment.sent_at.isnot(None))
+                .filter(Experiment.body.isnot(None))
+                .limit(50)
+                .all()
+            )
+
+            cold_emails = [e for e in experiments if getattr(e, "step_number", 1) == 1]
+            follow_ups = [e for e in experiments if getattr(e, "step_number", 1) > 1]
+            loom_scripts = [e for e in experiments if getattr(e, "loom_script", None)]
+
+            files_written = 0
+
+            # --- voice/communication-style.md ---
+            lines: list[str] = ["# Communication Style", ""]
+            lines.append("## Cold Emails")
+            lines.append("")
+            if cold_emails:
+                for e in cold_emails[:5]:
+                    lines.append(f"### Subject: {getattr(e, 'subject', 'N/A')}")
+                    lines.append("")
+                    lines.append(e.body)
+                    lines.append("")
+            else:
+                lines.append("_No outreach data found yet._")
+                lines.append("")
+            lines.append("## Follow-Ups")
+            lines.append("")
+            if follow_ups:
+                for e in follow_ups[:5]:
+                    lines.append(f"### Subject: {getattr(e, 'subject', 'N/A')}")
+                    lines.append("")
+                    lines.append(e.body)
+                    lines.append("")
+            else:
+                lines.append("_No outreach data found yet._")
+                lines.append("")
+            self._write_template_file("voice/communication-style.md", "\n".join(lines))
+            files_written += 1
+
+            # --- voice/phrases-i-use.md ---
+            lines = ["# Phrases I Use", ""]
+            lines.append("## Greetings")
+            lines.append("")
+            greetings: list[str] = []
+            sign_offs: list[str] = []
+            for e in experiments:
+                body_lines = (e.body or "").strip().split("\n")
+                if body_lines:
+                    first_line = body_lines[0].strip()
+                    if first_line:
+                        greetings.append(first_line)
+                    non_empty = [ln.strip() for ln in body_lines if ln.strip()]
+                    if non_empty:
+                        sign_offs.append(non_empty[-1])
+            if greetings:
+                for g in sorted(set(greetings)):
+                    lines.append(f"- {g}")
+            else:
+                lines.append("_No outreach data found yet._")
+            lines.append("")
+            lines.append("## Sign-Offs")
+            lines.append("")
+            if sign_offs:
+                for s in sorted(set(sign_offs)):
+                    lines.append(f"- {s}")
+            else:
+                lines.append("_No outreach data found yet._")
+            lines.append("")
+            self._write_template_file("voice/phrases-i-use.md", "\n".join(lines))
+            files_written += 1
+
+            # --- voice/tone-guide.md ---
+            lines = ["# Tone Guide", ""]
+            if experiments:
+                word_counts = [len((e.body or "").split()) for e in experiments]
+                avg_words = sum(word_counts) // len(word_counts) if word_counts else 0
+                lines.append(f"**Average email word count:** {avg_words}")
+                lines.append(f"**Sample size:** {len(experiments)} emails")
+            else:
+                lines.append("_No outreach data found yet._")
+            lines.append("")
+            lines.append("<!-- Fill in your style notes below -->")
+            lines.append("## Style Notes")
+            lines.append("")
+            lines.append("<!-- e.g. casual, professional, direct, empathetic -->")
+            lines.append("")
+            self._write_template_file("voice/tone-guide.md", "\n".join(lines))
+            files_written += 1
+
+            # --- templates/cold-emails.md ---
+            lines = ["# Cold Email Templates", ""]
+            if cold_emails:
+                for e in cold_emails[:10]:
+                    company = getattr(e, "company_name", None) or "N/A"
+                    niche = getattr(e, "niche", None) or "N/A"
+                    lines.append(f"## {company} ({niche})")
+                    lines.append("")
+                    lines.append(f"**Subject:** {getattr(e, 'subject', 'N/A')}")
+                    lines.append("")
+                    lines.append(e.body)
+                    lines.append("")
+                    lines.append("---")
+                    lines.append("")
+            else:
+                lines.append("_No outreach data found yet._")
+                lines.append("")
+            self._write_template_file("templates/cold-emails.md", "\n".join(lines))
+            files_written += 1
+
+            # --- templates/follow-ups.md ---
+            lines = ["# Follow-Up Templates", ""]
+            if follow_ups:
+                for e in follow_ups[:10]:
+                    company = getattr(e, "company_name", None) or "N/A"
+                    step = getattr(e, "step_number", "N/A")
+                    lines.append(f"## Step {step} — {company}")
+                    lines.append("")
+                    lines.append(f"**Subject:** {getattr(e, 'subject', 'N/A')}")
+                    lines.append("")
+                    lines.append(e.body)
+                    lines.append("")
+                    lines.append("---")
+                    lines.append("")
+            else:
+                lines.append("_No outreach data found yet._")
+                lines.append("")
+            self._write_template_file("templates/follow-ups.md", "\n".join(lines))
+            files_written += 1
+
+            # --- templates/loom-scripts.md ---
+            lines = ["# Loom Script Templates", ""]
+            if loom_scripts:
+                for e in loom_scripts[:10]:
+                    company = getattr(e, "company_name", None) or "N/A"
+                    step = getattr(e, "step_number", "N/A")
+                    lines.append(f"## {company} (Step {step})")
+                    lines.append("")
+                    lines.append(e.loom_script)
+                    lines.append("")
+                    lines.append("---")
+                    lines.append("")
+            else:
+                lines.append("_No outreach data found yet._")
+                lines.append("")
+            self._write_template_file("templates/loom-scripts.md", "\n".join(lines))
+            files_written += 1
+
+            # --- sops/sales-process.md ---
+            sales_process = "\n".join([
+                "# Sales Process",
+                "",
+                "## Autoresearch Pipeline",
+                "",
+                "1. **Website Audit** — Playwright screenshot + Claude Vision analysis",
+                "2. **Cold Email** — Personalized first touch based on audit findings",
+                "3. **Follow-Up Sequence** — 3-5 follow-ups spaced 3-5 days apart",
+                "4. **Loom Video** — Personalized walkthrough of audit findings",
+                "5. **LinkedIn Connect** — Connect with decision maker, reference email",
+                "6. **Final Follow-Up** — Last touch with clear call to action",
+                "",
+            ])
+            self._write_template_file("sops/sales-process.md", sales_process)
+            files_written += 1
+
+            # --- sops/pricing.md ---
+            pricing = "\n".join([
+                "# Pricing",
+                "",
+                "## Packages",
+                "",
+                "<!-- Define your service packages here -->",
+                "",
+                "| Package | Description | Price |",
+                "|---------|-------------|-------|",
+                "| Starter | | $ |",
+                "| Growth | | $ |",
+                "| Premium | | $ |",
+                "",
+                "## Hourly Rate",
+                "",
+                "<!-- Define your hourly rate here -->",
+                "",
+                "- **Standard rate:** $___/hr",
+                "- **Rush rate:** $___/hr",
+                "",
+            ])
+            self._write_template_file("sops/pricing.md", pricing)
+            files_written += 1
+
+            # --- sops/client-onboarding.md ---
+            onboarding = "\n".join([
+                "# Client Onboarding",
+                "",
+                "## Checklist",
+                "",
+                "- [ ] 1. Send welcome email with next steps",
+                "- [ ] 2. Schedule kickoff call",
+                "- [ ] 3. Collect brand assets (logos, colors, fonts)",
+                "- [ ] 4. Get access credentials (hosting, CMS, analytics)",
+                "- [ ] 5. Set up project in CRM with tasks and milestones",
+                "- [ ] 6. Create shared communication channel (Slack, email thread)",
+                "- [ ] 7. Send project timeline and deliverables document",
+                "- [ ] 8. First progress update within 48 hours",
+                "",
+            ])
+            self._write_template_file("sops/client-onboarding.md", onboarding)
+            files_written += 1
+
+            # --- knowledge/tech-stack.md ---
+            tech_stack = "\n".join([
+                "# Tech Stack",
+                "",
+                "## Client Work",
+                "",
+                "- **WordPress** — Primary platform for client websites",
+                "",
+                "## Internal Tools",
+                "",
+                "- **React + TypeScript + Vite + TailwindCSS** — CRM frontend",
+                "- **FastAPI + SQLAlchemy** — CRM backend",
+                "- **Claude AI** — AI-powered outreach and analysis",
+                "- **Playwright** — Website auditing and automation",
+                "- **Obsidian** — Knowledge base and vault sync",
+                "",
+            ])
+            self._write_template_file("knowledge/tech-stack.md", tech_stack)
+            files_written += 1
+
+            # --- knowledge/lessons-learned.md ---
+            lessons = "\n".join([
+                "# Lessons Learned",
+                "",
+                "<!-- Add lessons from client work, outreach, and business operations -->",
+                "",
+                "## Outreach",
+                "",
+                "<!-- e.g. What subject lines work? What niches respond best? -->",
+                "",
+                "## Client Work",
+                "",
+                "<!-- e.g. Common project pitfalls, scope creep patterns -->",
+                "",
+                "## Business Operations",
+                "",
+                "<!-- e.g. Pricing mistakes, process improvements -->",
+                "",
+            ])
+            self._write_template_file("knowledge/lessons-learned.md", lessons)
+            files_written += 1
+
+            # --- goals/business-vision.md ---
+            vision = "\n".join([
+                "# Business Vision",
+                "",
+                "## Current Focus",
+                "",
+                "<!-- What are you focused on right now? -->",
+                "",
+                "## 2026 Goals",
+                "",
+                "<!-- Revenue targets, client count, service expansion -->",
+                "",
+                "## Dream Clients",
+                "",
+                "<!-- Ideal client profiles, industries, company sizes -->",
+                "",
+                "## Long-Term Vision",
+                "",
+                "<!-- Where do you want to be in 3-5 years? -->",
+                "",
+            ])
+            self._write_template_file("goals/business-vision.md", vision)
+            files_written += 1
+
+            self._push_changes(settings)
+            return {"status": "success", "files_written": files_written}
+
+        except Exception:
+            logger.exception("Generate starter templates failed")
+            return {"status": "failed"}
 
     # ------------------------------------------------------------------
     # Markdown renderers
@@ -294,11 +648,12 @@ class CRMVaultSync:
             try:
                 repo.remotes.origin.push()
             except git.GitCommandError as push_err:
-                logger.warning("CRM vault sync push failed, attempting force push for crm-sync: %s", push_err)
+                logger.warning("CRM vault sync push failed, attempting pull --rebase: %s", push_err)
                 try:
-                    repo.remotes.origin.push(force=True)
-                except git.GitCommandError as force_err:
-                    logger.error("CRM vault sync force push also failed: %s", force_err)
+                    repo.remotes.origin.pull(rebase=True)
+                    repo.remotes.origin.push()
+                except git.GitCommandError as rebase_err:
+                    logger.error("CRM vault sync pull-rebase failed, skipping push: %s", rebase_err)
 
         except Exception:
             logger.exception("CRM vault sync: git push failed")
