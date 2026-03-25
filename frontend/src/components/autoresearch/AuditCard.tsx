@@ -41,6 +41,7 @@ const ISSUE_LABELS: Record<string, { label: string; color: string }> = {
   slow_load: { label: 'Slow Load', color: 'text-red-400 bg-red-900/30 border-red-800' },
   invisible_on_google: { label: 'Invisible on Google', color: 'text-yellow-400 bg-yellow-900/30 border-yellow-800' },
   vague_heading: { label: 'Vague Heading', color: 'text-sky-400 bg-sky-900/30 border-sky-800' },
+  broken_ssl: { label: 'Broken SSL', color: 'text-red-400 bg-red-900/30 border-red-800' },
 };
 
 const CONFIDENCE_CONFIG: Record<string, { label: string; dot: string; text: string; bg: string }> = {

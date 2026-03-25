@@ -273,13 +273,56 @@ async def main():
                 )
 
                 if audit_data.get("error") and not audit_data.get("issue_type"):
+                    error_str = str(audit_data["error"])
+
+                    # SSL errors are a valid cold email angle — generate an email
+                    if "ERR_SSL" in error_str or "SSL" in error_str.upper():
+                        first_name = (prospect.get("contact_name") or "").split()[0] if prospect.get("contact_name") else "there"
+                        ssl_audit = {
+                            "prospect_id": prospect["id"],
+                            "campaign_id": prospect.get("campaign_id", args.campaign),
+                            "issue_type": "broken_ssl",
+                            "issue_detail": "The website has a broken or expired SSL certificate — visitors see a security warning instead of the site.",
+                            "confidence": "high",
+                            "site_quality": "below_average",
+                            "needs_verification": False,
+                            "generated_subject": "Security warning on your website",
+                            "generated_subject_variant": "Your site's showing a warning to visitors",
+                            "generated_body": (
+                                f"G'day {first_name},\n\n"
+                                "I tried visiting your website and got hit with a big security warning — "
+                                "the SSL certificate is either expired or broken. That means anyone trying "
+                                "to check out your business online is seeing a scary \"Not Secure\" message "
+                                "instead of your site.\n\n"
+                                "It's usually a quick fix. Happy to sort it out if you'd like a hand.\n\n"
+                                "Cheers,\n"
+                                "Joji Shiotsuki | Joji Web Solutions | jojishiotsuki.com\n\n"
+                                "Not interested? Just reply \"stop\" and I won't email again."
+                            ),
+                            "word_count": 75,
+                            "detected_city": None,
+                            "detected_trade": prospect.get("niche"),
+                        }
+                        try:
+                            await client.post(
+                                f"{API_URL}/api/autoresearch/audits/ingest",
+                                json=ssl_audit,
+                                headers={"Authorization": f"Bearer {token}"},
+                                timeout=30,
+                            )
+                            success_count += 1
+                            logger.info("  -> Uploaded SSL audit — broken certificate detected")
+                        except Exception as e:
+                            logger.error("  -> Failed to upload SSL audit: %s", e)
+                        continue
+
                     logger.warning("  -> Skipped: %s", audit_data["error"])
                     # Upload a skipped audit so this prospect won't be retried
                     skip_payload = {
                         "prospect_id": prospect["id"],
                         "campaign_id": prospect.get("campaign_id", args.campaign),
                         "issue_type": "navigation_failed",
-                        "issue_detail": str(audit_data["error"])[:500],
+                        "issue_detail": error_str[:500],
                         "status": "skipped",
                         "site_quality": "not_target",
                         "confidence": "high",
