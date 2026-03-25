@@ -731,6 +731,107 @@ class AuditService:
                 "raw_response": raw_text[:1000],
             }
 
+    async def regenerate_email(
+        self,
+        instruction: str,
+        issue_type: str | None,
+        issue_detail: str | None,
+        secondary_issue: str | None,
+        secondary_detail: str | None,
+        site_quality: str | None,
+        detected_city: str | None,
+        detected_trade: str | None,
+        prospect_name: str,
+        prospect_company: str,
+        prospect_niche: str,
+    ) -> dict[str, Any]:
+        """
+        Regenerate just the cold email using existing audit data + a user instruction.
+        No screenshots — text-only Claude call.
+        """
+        _start = time.monotonic()
+
+        system_prompt = """You are a cold-email copywriter for Joji Shiotsuki, an Australian WordPress developer who helps tradies (tradespeople) fix their websites. You write short, punchy, human-sounding emails that lead with a VISIBLE problem the tradie can see on their own site right now.
+
+CRITICAL RULES:
+- NEVER lead with alt text, meta descriptions, schema markup, image formats, or any invisible code issues
+- NEVER mention SEO jargon like "meta tags", "schema", "alt attributes"
+- The issue MUST be something the tradie can see by looking at their own website
+- Use Australian English (favour, colour, organisation, etc.)
+- The email body MUST be under 80 words
+- The subject line MUST be under 8 words
+- Start the email with "G'day [first_name],"
+- The email must sound human and conversational, not salesy or robotic
+- Focus on ONE main issue — don't list multiple problems in the email
+
+SIGN-OFF (use this EXACTLY):
+Cheers,
+Joji Shiotsuki | Joji Web Solutions | jojishiotsuki.com
+
+Not interested? Just reply "stop" and I won't email again.
+
+RESPONSE FORMAT — Return ONLY valid JSON, no markdown fences:
+{
+  "subject": "<email subject, under 8 words>",
+  "subject_variant": "<alternative subject line, different angle/framing, under 8 words>",
+  "body": "<full email body, under 80 words, Australian English>",
+  "word_count": <integer word count of body>
+}"""
+
+        context_parts = []
+        if issue_type:
+            context_parts.append(f"Primary issue: {issue_type} — {issue_detail or 'no detail'}")
+        if secondary_issue:
+            context_parts.append(f"Secondary issue: {secondary_issue} — {secondary_detail or 'no detail'}")
+        if site_quality:
+            context_parts.append(f"Site quality: {site_quality}")
+        if detected_city:
+            context_parts.append(f"Detected city: {detected_city}")
+        if detected_trade:
+            context_parts.append(f"Detected trade: {detected_trade}")
+
+        context_parts.append(f"Prospect name: {prospect_name}")
+        context_parts.append(f"Company: {prospect_company}")
+        context_parts.append(f"Niche: {prospect_niche}")
+
+        user_message = f"""EXISTING AUDIT CONTEXT:
+{chr(10).join(context_parts)}
+
+<user_instruction>
+{instruction}
+</user_instruction>
+
+Rewrite the cold email for this prospect. Use the audit findings as context but PRIORITISE the user instruction above for angle and focus. Return ONLY valid JSON."""
+
+        model = os.getenv("AUDIT_MODEL", "claude-sonnet-4-6")
+
+        try:
+            response = await self.client.messages.create(
+                model=model,
+                max_tokens=500,
+                system=system_prompt,
+                messages=[{"role": "user", "content": user_message}],
+            )
+        except Exception as api_err:
+            logger.error("Claude API call failed during regeneration: %s", api_err, exc_info=True)
+            return {"error": f"Claude API error: {api_err}"}
+
+        raw_text = response.content[0].text if response.content else ""
+        result = self._parse_json_response(raw_text)
+
+        duration = time.monotonic() - _start
+        input_tokens = getattr(response.usage, "input_tokens", 0)
+        output_tokens = getattr(response.usage, "output_tokens", 0)
+
+        result["_meta"] = {
+            "model": model,
+            "input_tokens": input_tokens,
+            "output_tokens": output_tokens,
+            "duration_seconds": round(duration, 2),
+        }
+
+        return result
+
     # ──────────────────────────────────────────
     # Pass 2: Verification
     # ──────────────────────────────────────────
