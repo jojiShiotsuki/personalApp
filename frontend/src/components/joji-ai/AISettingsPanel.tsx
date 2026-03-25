@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Github, RefreshCw, Cpu, MessageSquareText, DollarSign, Check, Mail } from 'lucide-react';
+import { ArrowLeft, Github, RefreshCw, Cpu, MessageSquareText, DollarSign, Check, Mail, Radio } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { jojiAiApi } from '@/lib/api';
 import { toast } from 'sonner';
@@ -51,6 +51,12 @@ export default function AISettingsPanel({ onBack }: AISettingsPanelProps) {
       setGithubDirty(false);
       setGithubToken('');
     },
+  });
+
+  const { data: obsidianStatus } = useQuery({
+    queryKey: ['obsidian-status'],
+    queryFn: () => jojiAiApi.getObsidianStatus(),
+    refetchInterval: 30000, // Check every 30s
   });
 
   const syncMutation = useMutation({
@@ -230,6 +236,24 @@ export default function AISettingsPanel({ onBack }: AISettingsPanelProps) {
               <span className="text-[--exec-text-muted]">Last sync</span>
               <span className="text-[--exec-text-secondary] font-medium">
                 {formatLastSync(settings?.last_sync_at ?? null)}
+              </span>
+            </div>
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-[--exec-text-muted] flex items-center gap-1.5">
+                <Radio className="w-3 h-3" />
+                Obsidian Live
+              </span>
+              <span className={cn(
+                'inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-medium',
+                obsidianStatus?.connected
+                  ? 'bg-green-900/30 text-green-400 border border-green-800/50'
+                  : 'bg-stone-700/50 text-stone-500 border border-stone-600/30'
+              )}>
+                <div className={cn(
+                  'w-1.5 h-1.5 rounded-full',
+                  obsidianStatus?.connected ? 'bg-green-400 animate-pulse' : 'bg-stone-500'
+                )} />
+                {obsidianStatus?.connected ? 'Connected' : 'Offline'}
               </span>
             </div>
             <button

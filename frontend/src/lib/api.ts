@@ -1580,6 +1580,11 @@ export const jojiAiApi = {
     return data;
   },
 
+  getObsidianStatus: async (): Promise<{ connected: boolean; url: string; has_api_key: boolean }> => {
+    const { data } = await api.get('/api/ai/vault/obsidian-status');
+    return data;
+  },
+
   getSettings: async (): Promise<JojiAISettings> => {
     const { data } = await api.get('/api/ai/settings');
     return data;

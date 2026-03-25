@@ -467,6 +467,23 @@ def generate_vault_templates(
 
 
 # ---------------------------------------------------------------------------
+# 11b. GET /vault/obsidian-status -- Check if Obsidian REST API is reachable
+# ---------------------------------------------------------------------------
+
+@router.get("/vault/obsidian-status")
+def obsidian_status(user: User = Depends(get_current_user)):
+    """Check if Obsidian Local REST API is reachable for live sync."""
+    from app.services import obsidian_client
+
+    available = obsidian_client.is_available()
+    return {
+        "connected": available,
+        "url": obsidian_client._get_url(),
+        "has_api_key": bool(obsidian_client._get_api_key()),
+    }
+
+
+# ---------------------------------------------------------------------------
 # 12. POST /vault/gmail-backfill -- Index Gmail threads into vault
 # ---------------------------------------------------------------------------
 

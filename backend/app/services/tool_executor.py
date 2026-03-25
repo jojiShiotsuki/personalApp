@@ -12,6 +12,7 @@ from app.models.goal import Goal
 from app.models.outreach import OutreachCampaign, OutreachProspect, ProspectStatus
 from app.models.autoresearch import Experiment
 from app.services.vault_search_service import VaultSearchService
+from app.services import obsidian_client
 
 logger = logging.getLogger(__name__)
 
@@ -422,9 +423,13 @@ class ToolExecutor:
             return {"error": "Vault repo not cloned yet. Please sync the vault first from Settings."}
 
         dest = VAULT_REPO_DIR / file_path
-        dest.parent.mkdir(parents=True, exist_ok=True)
-
         is_new = not dest.exists()
+
+        # Try Obsidian REST API first (instant visibility in Obsidian)
+        wrote_via_api = obsidian_client.write_file(file_path, content)
+
+        # Always write to filesystem too (needed for git + vault search indexing)
+        dest.parent.mkdir(parents=True, exist_ok=True)
         dest.write_text(content, encoding="utf-8")
 
         # Git add, commit, push
@@ -450,6 +455,7 @@ class ToolExecutor:
             "status": "created" if is_new else "updated",
             "file_path": file_path,
             "size_bytes": len(content.encode("utf-8")),
+            "obsidian_live": wrote_via_api,
         }
 
     def _read_vault_file(self, params: Dict[str, Any]) -> Dict[str, Any]:
@@ -458,6 +464,17 @@ class ToolExecutor:
         if ".." in file_path or file_path.startswith("/"):
             return {"error": "Invalid file path — must be relative, no '..'"}
 
+        # Try Obsidian REST API first (gets latest content even if not yet git-pulled)
+        api_content = obsidian_client.read_file(file_path)
+        if api_content is not None:
+            return {
+                "file_path": file_path,
+                "content": api_content,
+                "size_bytes": len(api_content.encode("utf-8")),
+                "source": "obsidian",
+            }
+
+        # Fall back to filesystem
         if not VAULT_REPO_DIR.exists():
             return {"error": "Vault repo not cloned yet."}
 
@@ -472,6 +489,7 @@ class ToolExecutor:
             "file_path": file_path,
             "content": content,
             "size_bytes": len(content.encode("utf-8")),
+            "source": "filesystem",
         }
 
     def _list_vault_files(self, params: Dict[str, Any]) -> Dict[str, Any]:
@@ -480,6 +498,26 @@ class ToolExecutor:
         if ".." in directory:
             return {"error": "Invalid directory — no '..' allowed"}
 
+        # Try Obsidian REST API first
+        api_listing = obsidian_client.list_directory(directory)
+        if api_listing is not None:
+            # API returns flat list of file paths — convert to our format
+            items = []
+            prefix = f"{directory}/" if directory else ""
+            for path_str in api_listing:
+                # Only show direct children (not nested)
+                relative = path_str[len(prefix):] if path_str.startswith(prefix) else path_str
+                if "/" in relative:
+                    # It's a nested path — extract the directory name
+                    dir_name = relative.split("/")[0]
+                    entry = {"name": dir_name, "type": "directory", "path": f"{prefix}{dir_name}"}
+                    if entry not in items:
+                        items.append(entry)
+                else:
+                    items.append({"name": relative, "type": "file", "path": path_str})
+            return {"directory": directory or "/", "items": items, "total": len(items), "source": "obsidian"}
+
+        # Fall back to filesystem
         if not VAULT_REPO_DIR.exists():
             return {"error": "Vault repo not cloned yet."}
 
@@ -498,7 +536,7 @@ class ToolExecutor:
                 "path": str(entry.relative_to(VAULT_REPO_DIR)),
             })
 
-        return {"directory": directory or "/", "items": items, "total": len(items)}
+        return {"directory": directory or "/", "items": items, "total": len(items), "source": "filesystem"}
 
     # ------------------------------------------------------------------
     # Outreach tools

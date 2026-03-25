@@ -15,6 +15,7 @@ from app.models.autoresearch import Insight
 from app.models.crm import Contact, Deal, Interaction
 from app.models.joji_ai import JojiAISettings
 from app.services.encryption_service import EncryptionService
+from app.services import obsidian_client
 
 logger = logging.getLogger(__name__)
 
@@ -141,6 +142,8 @@ class CRMVaultSync:
         interactions = db.query(Interaction).filter(Interaction.contact_id == contact_id).order_by(Interaction.interaction_date.desc()).limit(10).all()
         md = self._render_contact_markdown(contact, deals, interactions)
         filename = self._sanitize_filename(contact.name)
+        rel_path = f"crm-sync/contacts/{filename}.md"
+        obsidian_client.write_file(rel_path, md)
         dest = CRM_SYNC_DIR / "contacts" / f"{filename}.md"
         dest.parent.mkdir(parents=True, exist_ok=True)
         dest.write_text(md, encoding="utf-8")
@@ -154,6 +157,8 @@ class CRMVaultSync:
         contact = db.query(Contact).filter(Contact.id == deal.contact_id).first()
         md = self._render_deal_markdown(deal, contact)
         filename = self._sanitize_filename(deal.title)
+        rel_path = f"crm-sync/deals/{filename}.md"
+        obsidian_client.write_file(rel_path, md)
         dest = CRM_SYNC_DIR / "deals" / f"{filename}.md"
         dest.parent.mkdir(parents=True, exist_ok=True)
         dest.write_text(md, encoding="utf-8")
@@ -207,7 +212,11 @@ class CRMVaultSync:
             return {"status": "failed"}
 
     def _write_template_file(self, relative_path: str, content: str) -> None:
-        """Write a file to the vault repo at the given relative path."""
+        """Write a file to the vault repo at the given relative path.
+        Tries Obsidian REST API first for instant visibility, always writes to disk for git."""
+        # Instant update in Obsidian if it's running
+        obsidian_client.write_file(relative_path, content)
+        # Always write to filesystem (needed for git push)
         dest = VAULT_REPO_DIR / relative_path
         dest.parent.mkdir(parents=True, exist_ok=True)
         dest.write_text(content, encoding="utf-8")
