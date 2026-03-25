@@ -438,11 +438,8 @@ class ToolExecutor:
             repo.git.add(file_path)
             if repo.is_dirty(index=True):
                 repo.index.commit(commit_msg)
-                try:
-                    repo.remotes.origin.push()
-                except git.GitCommandError:
-                    repo.remotes.origin.pull(rebase=True)
-                    repo.remotes.origin.push()
+                # Inject auth token for push if remote URL has no credentials
+                self._push_vault_repo(repo)
                 logger.info("Vault file written and pushed: %s", file_path)
             else:
                 logger.info("Vault file unchanged: %s", file_path)
@@ -540,6 +537,35 @@ class ToolExecutor:
     # ------------------------------------------------------------------
     # Outreach tools
     # ------------------------------------------------------------------
+
+    def _push_vault_repo(self, repo) -> None:
+        """Push vault repo with auth token injected if needed."""
+        import git
+        import re
+        try:
+            repo.remotes.origin.push()
+        except git.GitCommandError:
+            # Remote URL might lack credentials — inject token from settings
+            try:
+                from app.models.joji_ai import JojiAISettings
+                from app.services.encryption_service import EncryptionService
+                settings = self.db.query(JojiAISettings).first()
+                if settings and settings.github_token_encrypted:
+                    token = EncryptionService.decrypt(settings.github_token_encrypted)
+                    current_url = repo.remotes.origin.url
+                    auth_url = re.sub(r"^https://", f"https://{token}@", current_url)
+                    repo.remotes.origin.set_url(auth_url)
+                    try:
+                        repo.remotes.origin.push()
+                    finally:
+                        # Restore clean URL (don't leave token on disk)
+                        repo.remotes.origin.set_url(current_url)
+                else:
+                    repo.remotes.origin.pull(rebase=True)
+                    repo.remotes.origin.push()
+            except Exception:
+                repo.remotes.origin.pull(rebase=True)
+                repo.remotes.origin.push()
 
     def _get_outreach_stats(self, params: Dict[str, Any]) -> Dict[str, Any]:
         campaign_id = params.get("campaign_id")
