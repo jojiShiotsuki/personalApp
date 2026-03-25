@@ -93,6 +93,7 @@ class JojiAISettings(Base):
     system_prompt_override = Column(Text, nullable=True)
     total_tokens_used = Column(Integer, default=0)
     total_cost_usd = Column(Float, default=0.0)
+    last_gmail_vault_sync_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
