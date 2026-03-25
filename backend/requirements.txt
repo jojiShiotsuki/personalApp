@@ -24,3 +24,4 @@ gitpython>=3.1.0
 numpy>=1.24.0
 pyspellchecker>=0.8.0
 pymupdf>=1.24.0
+python-multipart>=0.0.9

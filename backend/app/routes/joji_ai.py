@@ -1,4 +1,4 @@
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, Query, UploadFile
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import func
@@ -526,6 +526,99 @@ def reset_gmail_backfill(
         settings.gmail_backfill_error = None
         db.commit()
     return {"status": "reset"}
+
+
+# ---------------------------------------------------------------------------
+# 15. POST /library/upload -- Upload PDF or text to brain library
+# ---------------------------------------------------------------------------
+
+@router.post("/library/upload")
+async def upload_to_library(
+    file: UploadFile = File(None),
+    text: str = Form(None),
+    title: str = Form(None),
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Upload a PDF or paste text to distill and save to the vault library."""
+    from app.services.library_service import (
+        extract_pdf_text, compute_source_hash, check_duplicate,
+        distill_content, auto_organize, save_to_vault,
+        MAX_FILE_BYTES, MAX_TEXT_CHARS,
+    )
+
+    # Validate input
+    if not file and not text:
+        raise HTTPException(status_code=400, detail="No file or text provided")
+
+    # Rate limit: 20 uploads per day
+    today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+    upload_count = (
+        db.query(func.count(VaultFile.id))
+        .filter(
+            VaultFile.file_path.startswith("library/"),
+            VaultFile.last_synced_at >= today_start,
+        )
+        .scalar() or 0
+    )
+    if upload_count >= 20:
+        raise HTTPException(status_code=429, detail="Upload limit reached (20 per day)")
+
+    # Extract text from PDF or use pasted text
+    if file and file.filename:
+        if not file.filename.lower().endswith(".pdf"):
+            raise HTTPException(status_code=400, detail="File must be a PDF")
+
+        file_bytes = await file.read()
+        if len(file_bytes) > MAX_FILE_BYTES:
+            raise HTTPException(status_code=400, detail="File too large (max 10 MB)")
+
+        try:
+            extracted_text = extract_pdf_text(file_bytes)
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e))
+    elif text:
+        if len(text) > MAX_TEXT_CHARS:
+            raise HTTPException(status_code=400, detail="Text too long (max 500,000 characters)")
+        if not text.strip():
+            raise HTTPException(status_code=400, detail="Text is empty")
+        extracted_text = text
+    else:
+        raise HTTPException(status_code=400, detail="No file or text provided")
+
+    # Check for duplicates
+    source_hash = compute_source_hash(extracted_text)
+    existing = check_duplicate(db, source_hash)
+    if existing:
+        raise HTTPException(status_code=409, detail=f"Duplicate content already exists at: {existing}")
+
+    # Distill with Sonnet
+    try:
+        distilled = await distill_content(extracted_text, title_hint=title)
+    except Exception as e:
+        logger.error("Distillation failed: %s", e)
+        raise HTTPException(status_code=500, detail="Failed to distill content")
+
+    # Auto-organize with Haiku
+    try:
+        org = await auto_organize(distilled)
+    except Exception as e:
+        logger.error("Auto-organize failed: %s", e)
+        raise HTTPException(status_code=500, detail="Failed to organize content")
+
+    # Save to vault
+    source_type = "pdf" if (file and file.filename) else "text"
+    result = save_to_vault(
+        db=db,
+        category=org["category"],
+        filename=org["filename"],
+        distilled_content=distilled,
+        source_hash=source_hash,
+        title=org["title"],
+        source_type=source_type,
+    )
+
+    return result
 
 
 # ---------------------------------------------------------------------------
