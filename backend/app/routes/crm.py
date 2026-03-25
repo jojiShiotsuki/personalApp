@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+import logging
+
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
 from datetime import datetime, timedelta
@@ -14,7 +16,38 @@ from app.schemas.crm import (
 )
 from app.services.activity_service import log_activity
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter(prefix="/api/crm", tags=["crm"])
+
+
+# ===== Vault-sync background helpers =====
+
+def _vault_sync_contact(contact_id: int):
+    """Background task: sync a contact to the vault."""
+    from app.database.connection import SessionLocal
+    from app.services.crm_vault_sync import CRMVaultSync
+    db = SessionLocal()
+    try:
+        CRMVaultSync().sync_contact(db, contact_id)
+    except Exception as e:
+        logger.warning("Vault sync for contact %d failed: %s", contact_id, e)
+    finally:
+        db.close()
+
+
+def _vault_sync_deal(deal_id: int):
+    """Background task: sync a deal to the vault."""
+    from app.database.connection import SessionLocal
+    from app.services.crm_vault_sync import CRMVaultSync
+    db = SessionLocal()
+    try:
+        CRMVaultSync().sync_deal(db, deal_id)
+    except Exception as e:
+        logger.warning("Vault sync for deal %d failed: %s", deal_id, e)
+    finally:
+        db.close()
+
 
 # ===== CONTACT ROUTES =====
 
@@ -50,18 +83,20 @@ def get_contact(contact_id: int, db: Session = Depends(get_db)):
     return contact
 
 @router.post("/contacts", response_model=ContactResponse, status_code=201)
-def create_contact(contact: ContactCreate, db: Session = Depends(get_db)):
+def create_contact(contact: ContactCreate, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     """Create a new contact"""
     db_contact = Contact(**contact.model_dump())
     db.add(db_contact)
     db.commit()
     db.refresh(db_contact)
+    background_tasks.add_task(_vault_sync_contact, db_contact.id)
     return db_contact
 
 @router.put("/contacts/{contact_id}", response_model=ContactResponse)
 def update_contact(
     contact_id: int,
     contact_update: ContactUpdate,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db)
 ):
     """Update an existing contact"""
@@ -76,6 +111,8 @@ def update_contact(
     db_contact.updated_at = datetime.utcnow()
     db.commit()
     db.refresh(db_contact)
+    if "status" in update_data and update_data["status"] == ContactStatus.CLIENT:
+        background_tasks.add_task(_vault_sync_contact, contact_id)
     return db_contact
 
 @router.delete("/contacts/{contact_id}", status_code=204)
@@ -192,7 +229,7 @@ def create_deal(deal: DealCreate, db: Session = Depends(get_db)):
     return DealResponse.model_validate(db_deal)
 
 @router.put("/deals/{deal_id}", response_model=DealResponse)
-def update_deal(deal_id: int, deal_update: DealUpdate, db: Session = Depends(get_db)):
+def update_deal(deal_id: int, deal_update: DealUpdate, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     """Update an existing deal"""
     db_deal = db.query(Deal).options(joinedload(Deal.contact)).filter(Deal.id == deal_id).first()
     if not db_deal:
@@ -238,12 +275,15 @@ def update_deal(deal_id: int, deal_update: DealUpdate, db: Session = Depends(get
             except Exception as e:
                 logger.warning("Failed to update experiments for deal %d: %s", deal_id, e)
     db.refresh(db_deal)
+    if "stage" in update_data and update_data["stage"] in [DealStage.CLOSED_WON, DealStage.CLOSED_LOST]:
+        background_tasks.add_task(_vault_sync_deal, deal_id)
     return DealResponse.model_validate(db_deal)
 
 @router.patch("/deals/{deal_id}/stage", response_model=DealResponse)
 def update_deal_stage(
     deal_id: int,
     stage: DealStage,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db)
 ):
     """Update only the stage of a deal (for drag-drop)"""
@@ -291,6 +331,8 @@ def update_deal_stage(
     db_deal.updated_at = datetime.utcnow()
     db.commit()
     db.refresh(db_deal)
+    if stage in [DealStage.CLOSED_WON, DealStage.CLOSED_LOST]:
+        background_tasks.add_task(_vault_sync_deal, deal_id)
     return DealResponse.model_validate(db_deal)
 
 

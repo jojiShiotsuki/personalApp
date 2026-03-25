@@ -60,6 +60,21 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/autoresearch", tags=["autoresearch"])
 
+
+# ===== Vault-sync background helper =====
+
+def _vault_sync_insights():
+    """Background task: sync outreach insights to the vault."""
+    from app.database.connection import SessionLocal
+    from app.services.crm_vault_sync import CRMVaultSync
+    db = SessionLocal()
+    try:
+        CRMVaultSync().sync_outreach_insights(db)
+    except Exception as e:
+        logger.warning("Vault sync for insights failed: %s", e)
+    finally:
+        db.close()
+
 # ──────────────────────────────────────────────
 # Audit service (module-level, lazy init)
 # ──────────────────────────────────────────────
@@ -2534,6 +2549,7 @@ def list_active_insights(
 
 @router.post("/insights/refresh", response_model=list[InsightResponse])
 async def refresh_insights(
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -2548,6 +2564,7 @@ async def refresh_insights(
         )
 
     new_insights = await learning_service.generate_insights(db)
+    background_tasks.add_task(_vault_sync_insights)
 
     if not new_insights:
         # Return existing active insights if generation returned empty
