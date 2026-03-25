@@ -282,6 +282,29 @@ export default function AISettingsPanel({ onBack }: AISettingsPanelProps) {
               {gmailBackfillMutation.isPending ? 'Indexing Gmail...' : 'Index Gmail (6 months)'}
             </button>
           </div>
+
+          {/* Gmail backfill status */}
+          {settings?.gmail_backfill_status && (
+            <div className={cn(
+              'flex items-center gap-2 px-3 py-2 rounded-lg text-xs mt-2',
+              settings.gmail_backfill_status === 'success' && 'bg-green-900/20 text-green-400 border border-green-800/30',
+              settings.gmail_backfill_status === 'failed' && 'bg-red-900/20 text-red-400 border border-red-800/30',
+              (settings.gmail_backfill_status === 'started' || settings.gmail_backfill_status === 'in_progress') && 'bg-yellow-900/20 text-yellow-400 border border-yellow-800/30',
+            )}>
+              {(settings.gmail_backfill_status === 'started' || settings.gmail_backfill_status === 'in_progress') && (
+                <RefreshCw className="w-3 h-3 animate-spin" />
+              )}
+              {settings.gmail_backfill_status === 'success' && (
+                <Check className="w-3 h-3" />
+              )}
+              <span>
+                {settings.gmail_backfill_status === 'started' && 'Gmail indexing starting...'}
+                {settings.gmail_backfill_status === 'in_progress' && 'Indexing Gmail threads...'}
+                {settings.gmail_backfill_status === 'success' && `Indexed ${settings.gmail_backfill_threads ?? 0} email threads`}
+                {settings.gmail_backfill_status === 'failed' && `Failed: ${settings.gmail_backfill_error || 'Unknown error'}`}
+              </span>
+            </div>
+          )}
         </section>
 
         {/* Model Section */}

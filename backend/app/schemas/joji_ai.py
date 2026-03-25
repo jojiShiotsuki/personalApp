@@ -90,6 +90,10 @@ class JojiAISettingsResponse(BaseModel):
     system_prompt_override: Optional[str] = None
     total_tokens_used: int
     total_cost_usd: float
+    gmail_backfill_status: Optional[str] = None
+    gmail_backfill_threads: Optional[int] = None
+    gmail_backfill_error: Optional[str] = None
+    last_gmail_vault_sync_at: Optional[datetime] = None
     created_at: datetime
     updated_at: datetime
 

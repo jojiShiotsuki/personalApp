@@ -1718,6 +1718,10 @@ export interface JojiAISettings {
   system_prompt_override: string | null;
   total_tokens_used: number;
   total_cost_usd: number;
+  gmail_backfill_status: string | null;
+  gmail_backfill_threads: number | null;
+  gmail_backfill_error: string | null;
+  last_gmail_vault_sync_at: string | null;
   created_at: string;
   updated_at: string;
 }

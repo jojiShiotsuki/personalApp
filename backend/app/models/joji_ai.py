@@ -94,6 +94,9 @@ class JojiAISettings(Base):
     total_tokens_used = Column(Integer, default=0)
     total_cost_usd = Column(Float, default=0.0)
     last_gmail_vault_sync_at = Column(DateTime, nullable=True)
+    gmail_backfill_status = Column(String(30), nullable=True)  # started/in_progress/success/failed
+    gmail_backfill_threads = Column(Integer, nullable=True)  # count of threads indexed
+    gmail_backfill_error = Column(String(500), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
