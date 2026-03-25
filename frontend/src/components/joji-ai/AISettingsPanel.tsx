@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Github, RefreshCw, Cpu, MessageSquareText, DollarSign, Check } from 'lucide-react';
+import { ArrowLeft, Github, RefreshCw, Cpu, MessageSquareText, DollarSign, Check, Mail } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { jojiAiApi } from '@/lib/api';
 import { toast } from 'sonner';
@@ -68,6 +68,17 @@ export default function AISettingsPanel({ onBack }: AISettingsPanelProps) {
     },
     onError: () => {
       toast.error('Failed to generate templates');
+    },
+  });
+
+  const gmailBackfillMutation = useMutation({
+    mutationFn: () => jojiAiApi.gmailVaultBackfill(),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['ai-settings'] });
+      toast.success(`Indexed ${data.threads_indexed} email threads (${data.threads_skipped} skipped)`);
+    },
+    onError: () => {
+      toast.error('Failed to index Gmail');
     },
   });
 
@@ -252,6 +263,23 @@ export default function AISettingsPanel({ onBack }: AISettingsPanelProps) {
                 <MessageSquareText className="w-3 h-3" />
               )}
               {templateMutation.isPending ? 'Generating...' : 'Generate Vault Templates'}
+            </button>
+            <button
+              onClick={() => gmailBackfillMutation.mutate()}
+              disabled={gmailBackfillMutation.isPending || !settings?.github_repo_url}
+              className={cn(
+                'flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium',
+                'bg-[--exec-accent]/10 text-[--exec-accent] border border-[--exec-accent]/20',
+                'hover:bg-[--exec-accent]/20 transition-all',
+                'disabled:opacity-50 disabled:cursor-not-allowed'
+              )}
+            >
+              {gmailBackfillMutation.isPending ? (
+                <RefreshCw className="w-3 h-3 animate-spin" />
+              ) : (
+                <Mail className="w-3 h-3" />
+              )}
+              {gmailBackfillMutation.isPending ? 'Indexing Gmail...' : 'Index Gmail (6 months)'}
             </button>
           </div>
         </section>

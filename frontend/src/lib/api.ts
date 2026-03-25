@@ -1565,6 +1565,11 @@ export const jojiAiApi = {
     return data;
   },
 
+  gmailVaultBackfill: async (): Promise<{ status: string; threads_indexed: number; threads_skipped: number }> => {
+    const { data } = await api.post('/api/ai/vault/gmail-backfill');
+    return data;
+  },
+
   getVaultStatus: async (): Promise<VaultSyncStatus> => {
     const { data } = await api.get('/api/ai/vault/status');
     return data;
