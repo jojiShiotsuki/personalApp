@@ -547,8 +547,11 @@ async def upload_to_library(
         MAX_FILE_BYTES, MAX_TEXT_CHARS,
     )
 
-    # Validate input
-    if not file and not text:
+    # Determine what we received — UploadFile(None) gives an object with empty filename
+    has_file = file is not None and file.filename
+    has_text = text is not None and text.strip()
+
+    if not has_file and not has_text:
         raise HTTPException(status_code=400, detail="No file or text provided")
 
     # Rate limit: 20 uploads per day
@@ -565,11 +568,13 @@ async def upload_to_library(
         raise HTTPException(status_code=429, detail="Upload limit reached (20 per day)")
 
     # Extract text from PDF or use pasted text
-    if file and file.filename:
+    if has_file:
         if not file.filename.lower().endswith(".pdf"):
             raise HTTPException(status_code=400, detail="File must be a PDF")
 
         file_bytes = await file.read()
+        if not file_bytes:
+            raise HTTPException(status_code=400, detail="File is empty")
         if len(file_bytes) > MAX_FILE_BYTES:
             raise HTTPException(status_code=400, detail="File too large (max 10 MB)")
 
@@ -577,7 +582,7 @@ async def upload_to_library(
             extracted_text = extract_pdf_text(file_bytes)
         except ValueError as e:
             raise HTTPException(status_code=400, detail=str(e))
-    elif text:
+    elif has_text:
         if len(text) > MAX_TEXT_CHARS:
             raise HTTPException(status_code=400, detail="Text too long (max 500,000 characters)")
         if not text.strip():
@@ -607,7 +612,7 @@ async def upload_to_library(
         raise HTTPException(status_code=500, detail="Failed to organize content")
 
     # Save to vault
-    source_type = "pdf" if (file and file.filename) else "text"
+    source_type = "pdf" if has_file else "text"
     result = save_to_vault(
         db=db,
         category=org["category"],
