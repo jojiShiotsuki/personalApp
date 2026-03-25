@@ -1,3 +1,5 @@
+import logging
+from pathlib import Path
 from typing import Dict, Any
 from datetime import datetime
 from sqlalchemy.orm import Session
@@ -10,6 +12,10 @@ from app.models.goal import Goal
 from app.models.outreach import OutreachCampaign, OutreachProspect, ProspectStatus
 from app.models.autoresearch import Experiment
 from app.services.vault_search_service import VaultSearchService
+
+logger = logging.getLogger(__name__)
+
+VAULT_REPO_DIR = Path(__file__).parent.parent.parent / "data" / "vault-repo"
 
 # Module-level singleton so the embedding cache persists across requests
 _vault_search_service = VaultSearchService()
@@ -44,6 +50,9 @@ class ToolExecutor:
             "create_goal": self._create_goal,
             # Vault
             "search_vault": self._search_vault,
+            "write_vault_file": self._write_vault_file,
+            "read_vault_file": self._read_vault_file,
+            "list_vault_files": self._list_vault_files,
             # Outreach
             "get_outreach_stats": self._get_outreach_stats,
             "get_prospect_info": self._get_prospect_info,
@@ -397,6 +406,99 @@ class ToolExecutor:
             ],
             "total": len(results)
         }
+
+    def _write_vault_file(self, params: Dict[str, Any]) -> Dict[str, Any]:
+        file_path = params["file_path"]
+        content = params["content"]
+        commit_msg = params.get("commit_message", f"AI: update {file_path}")
+
+        # Validate path
+        if not file_path.endswith(".md"):
+            return {"error": "File path must end in .md"}
+        if ".." in file_path or file_path.startswith("/"):
+            return {"error": "Invalid file path — must be relative, no '..'"}
+
+        if not VAULT_REPO_DIR.exists() or not (VAULT_REPO_DIR / ".git").exists():
+            return {"error": "Vault repo not cloned yet. Please sync the vault first from Settings."}
+
+        dest = VAULT_REPO_DIR / file_path
+        dest.parent.mkdir(parents=True, exist_ok=True)
+
+        is_new = not dest.exists()
+        dest.write_text(content, encoding="utf-8")
+
+        # Git add, commit, push
+        try:
+            import git
+            repo = git.Repo(VAULT_REPO_DIR)
+            repo.git.add(file_path)
+            if repo.is_dirty(index=True):
+                repo.index.commit(commit_msg)
+                try:
+                    repo.remotes.origin.push()
+                except git.GitCommandError:
+                    repo.remotes.origin.pull(rebase=True)
+                    repo.remotes.origin.push()
+                logger.info("Vault file written and pushed: %s", file_path)
+            else:
+                logger.info("Vault file unchanged: %s", file_path)
+        except Exception as exc:
+            logger.warning("Vault git push failed for %s: %s", file_path, exc)
+            return {"status": "written_locally", "file_path": file_path, "warning": f"File saved but git push failed: {exc}"}
+
+        return {
+            "status": "created" if is_new else "updated",
+            "file_path": file_path,
+            "size_bytes": len(content.encode("utf-8")),
+        }
+
+    def _read_vault_file(self, params: Dict[str, Any]) -> Dict[str, Any]:
+        file_path = params["file_path"]
+
+        if ".." in file_path or file_path.startswith("/"):
+            return {"error": "Invalid file path — must be relative, no '..'"}
+
+        if not VAULT_REPO_DIR.exists():
+            return {"error": "Vault repo not cloned yet."}
+
+        target = VAULT_REPO_DIR / file_path
+        if not target.exists():
+            return {"error": f"File not found: {file_path}"}
+        if not target.is_file():
+            return {"error": f"Not a file: {file_path}"}
+
+        content = target.read_text(encoding="utf-8")
+        return {
+            "file_path": file_path,
+            "content": content,
+            "size_bytes": len(content.encode("utf-8")),
+        }
+
+    def _list_vault_files(self, params: Dict[str, Any]) -> Dict[str, Any]:
+        directory = params.get("directory", "")
+
+        if ".." in directory:
+            return {"error": "Invalid directory — no '..' allowed"}
+
+        if not VAULT_REPO_DIR.exists():
+            return {"error": "Vault repo not cloned yet."}
+
+        target_dir = VAULT_REPO_DIR / directory if directory else VAULT_REPO_DIR
+        if not target_dir.exists() or not target_dir.is_dir():
+            return {"error": f"Directory not found: {directory or '/'}"}
+
+        items = []
+        for entry in sorted(target_dir.iterdir()):
+            # Skip .git and hidden files
+            if entry.name.startswith("."):
+                continue
+            items.append({
+                "name": entry.name,
+                "type": "directory" if entry.is_dir() else "file",
+                "path": str(entry.relative_to(VAULT_REPO_DIR)),
+            })
+
+        return {"directory": directory or "/", "items": items, "total": len(items)}
 
     # ------------------------------------------------------------------
     # Outreach tools

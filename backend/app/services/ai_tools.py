@@ -238,6 +238,56 @@ VAULT_TOOLS = [
             },
             "required": ["query"]
         }
+    },
+    {
+        "name": "write_vault_file",
+        "description": "Create or update a markdown file in the Obsidian knowledge vault. Use this to save new notes, update SOPs, pricing guides, templates, client notes, or any knowledge the user wants to remember. The file path is relative to the vault root (e.g. 'sops/client-onboarding.md'). If the file exists it will be overwritten with the new content.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "file_path": {
+                    "type": "string",
+                    "description": "Path relative to vault root, e.g. 'sops/client-onboarding.md', 'knowledge/pricing.md', 'templates/follow-up.md'. Must end in .md"
+                },
+                "content": {
+                    "type": "string",
+                    "description": "Full markdown content to write to the file"
+                },
+                "commit_message": {
+                    "type": "string",
+                    "description": "Short git commit message describing the change (e.g. 'Update pricing guide')"
+                }
+            },
+            "required": ["file_path", "content"]
+        }
+    },
+    {
+        "name": "read_vault_file",
+        "description": "Read the full content of a specific file from the Obsidian vault. Use this when you need to see the current content of a file before updating it, or when the user asks about a specific vault file.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "file_path": {
+                    "type": "string",
+                    "description": "Path relative to vault root, e.g. 'sops/client-onboarding.md'"
+                }
+            },
+            "required": ["file_path"]
+        }
+    },
+    {
+        "name": "list_vault_files",
+        "description": "List files and folders in the Obsidian vault. Use this to see what's in the vault before reading or writing files.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "directory": {
+                    "type": "string",
+                    "description": "Directory to list relative to vault root (e.g. 'sops/', 'templates/'). Empty string or omit for root.",
+                    "default": ""
+                }
+            }
+        }
     }
 ]
 
