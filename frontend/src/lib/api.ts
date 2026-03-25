@@ -1580,6 +1580,22 @@ export const jojiAiApi = {
     return data;
   },
 
+  uploadToLibrary: async (file?: File, text?: string, title?: string): Promise<{
+    status: string;
+    file_path: string;
+    title: string;
+    preview: string;
+  }> => {
+    const formData = new FormData();
+    if (file) formData.append('file', file);
+    if (text) formData.append('text', text);
+    if (title) formData.append('title', title);
+    const { data } = await api.post('/api/ai/library/upload', formData, {
+      timeout: 60000,
+    });
+    return data;
+  },
+
   getObsidianStatus: async (): Promise<{ connected: boolean; url: string; has_api_key: boolean }> => {
     const { data } = await api.get('/api/ai/vault/obsidian-status');
     return data;
