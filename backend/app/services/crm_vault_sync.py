@@ -616,6 +616,111 @@ class CRMVaultSync:
         return "\n".join(lines)
 
     # ------------------------------------------------------------------
+    # Conversation summary sync
+    # ------------------------------------------------------------------
+
+    def sync_conversation_summary(self, db: Session, conversation_id: int) -> None:
+        """Generate a summary of a conversation and push it to the vault.
+
+        Only runs when the conversation has 5+ messages. Uses Haiku for
+        cheap, fast summarisation.
+        """
+        try:
+            settings = self._get_settings(db)
+            if settings is None:
+                return
+
+            from app.models.joji_ai import Conversation, ConversationMessage
+
+            conversation = db.query(Conversation).filter(
+                Conversation.id == conversation_id
+            ).first()
+            if not conversation:
+                return
+
+            messages = (
+                db.query(ConversationMessage)
+                .filter(ConversationMessage.conversation_id == conversation_id)
+                .order_by(ConversationMessage.created_at)
+                .all()
+            )
+
+            if len(messages) < 5:
+                return
+
+            # Build transcript for summarisation
+            transcript_lines = []
+            for msg in messages:
+                role = "Joji" if msg.role == "user" else "AI"
+                # Truncate very long messages
+                content = (msg.content or "")[:500]
+                transcript_lines.append(f"**{role}:** {content}")
+
+            transcript = "\n\n".join(transcript_lines)
+
+            # Generate summary via Haiku (cheapest model)
+            summary = self._generate_summary_via_haiku(transcript, conversation.title)
+            if not summary:
+                return
+
+            # Write to vault
+            date_str = conversation.created_at.strftime("%Y-%m-%d")
+            title_slug = self._sanitize_filename(conversation.title or "untitled")
+            filename = f"conversations/{date_str}-{title_slug}.md"
+
+            self._write_template_file(filename, summary)
+            self._push_changes(settings)
+
+            logger.info("Synced conversation %d summary to vault", conversation_id)
+
+        except Exception:
+            logger.exception("Conversation summary sync failed for %d", conversation_id)
+
+    @staticmethod
+    def _generate_summary_via_haiku(transcript: str, title: str | None) -> str | None:
+        """Call Claude Haiku to summarise a conversation transcript."""
+        import os
+
+        api_key = os.getenv("ANTHROPIC_API_KEY")
+        if not api_key:
+            logger.warning("No ANTHROPIC_API_KEY set, skipping conversation summary")
+            return None
+
+        try:
+            import anthropic
+
+            client = anthropic.Anthropic(api_key=api_key)
+            response = client.messages.create(
+                model="claude-haiku-4-5-20251001",
+                max_tokens=1024,
+                messages=[{
+                    "role": "user",
+                    "content": f"""Summarise this conversation between Joji (the user) and his AI assistant.
+Extract:
+1. Key decisions or preferences Joji expressed
+2. Important facts about Joji or his business that were discussed
+3. Any action items or next steps
+
+Keep it concise — bullet points preferred. This summary will be stored in Joji's knowledge vault so his AI can reference it in future conversations.
+
+Conversation title: {title or 'Untitled'}
+
+Transcript:
+{transcript}
+
+Write the summary as a markdown document starting with:
+# {title or 'Conversation Summary'}
+""",
+                }],
+            )
+
+            return response.content[0].text if response.content else None
+
+        except Exception as exc:
+            logger.warning("Haiku summary generation failed: %s", exc)
+            return None
+
+    # ------------------------------------------------------------------
     # Git push helper
     # ------------------------------------------------------------------
 

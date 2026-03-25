@@ -420,7 +420,16 @@ class JojiAIService:
         db.commit()
 
         # ------------------------------------------------------------------
-        # 10. Yield done event
+        # 10. Sync conversation summary to vault (if 5+ messages)
+        # ------------------------------------------------------------------
+        try:
+            from app.services.crm_vault_sync import CRMVaultSync
+            CRMVaultSync().sync_conversation_summary(db, conversation.id)
+        except Exception as sync_exc:
+            logger.warning("Conversation vault sync failed: %s", sync_exc)
+
+        # ------------------------------------------------------------------
+        # 11. Yield done event
         # ------------------------------------------------------------------
         yield _sse_event("done", {
             "conversation_id": conversation.id,
