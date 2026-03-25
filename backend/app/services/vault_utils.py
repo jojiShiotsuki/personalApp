@@ -89,33 +89,39 @@ def push_vault_changes(db: Session, paths: list[str], commit_msg: str) -> None:
             return
 
         repo.index.commit(commit_msg)
+        logger.info("push_vault_changes: committed '%s'", commit_msg)
 
-        # --- Push, with auth-token fallback ---
+        # --- Ensure auth token is in remote URL before pushing ---
+        from app.models.joji_ai import JojiAISettings
+        from app.services.encryption_service import EncryptionService
+
+        current_url = repo.remotes.origin.url
+        needs_restore = False
+
+        # If URL doesn't contain a token, inject one
+        if "@github.com" not in current_url:
+            settings = db.query(JojiAISettings).first()
+            if settings and settings.github_token_encrypted:
+                token = EncryptionService.decrypt(settings.github_token_encrypted)
+                auth_url = re.sub(r"^https://", f"https://{token}@", current_url)
+                repo.remotes.origin.set_url(auth_url)
+                needs_restore = True
+                logger.debug("push_vault_changes: injected auth token into remote URL")
+
         try:
-            repo.remotes.origin.push()
-        except git.GitCommandError:
-            logger.warning("push_vault_changes: push failed, attempting token injection")
+            # Pull first to avoid conflicts
             try:
-                from app.models.joji_ai import JojiAISettings
-                from app.services.encryption_service import EncryptionService
+                repo.remotes.origin.pull(rebase=True)
+            except git.GitCommandError as pull_err:
+                logger.debug("push_vault_changes: pull-rebase failed (OK if fresh): %s", pull_err)
 
-                settings = db.query(JojiAISettings).first()
-                if settings and settings.github_token_encrypted:
-                    token = EncryptionService.decrypt(settings.github_token_encrypted)
-                    current_url = repo.remotes.origin.url
-                    auth_url = re.sub(r"^https://", f"https://{token}@", current_url)
-                    repo.remotes.origin.set_url(auth_url)
-                    try:
-                        repo.remotes.origin.push()
-                    finally:
-                        # Always restore the clean URL — never leave the token on disk
-                        repo.remotes.origin.set_url(current_url)
-                else:
-                    # No token available — try pull-rebase then push
-                    repo.remotes.origin.pull(rebase=True)
-                    repo.remotes.origin.push()
-            except Exception as inner_exc:
-                logger.error("push_vault_changes: token-injected push failed: %s", inner_exc)
+            repo.remotes.origin.push()
+            logger.info("push_vault_changes: pushed successfully")
+        except git.GitCommandError as push_err:
+            logger.error("push_vault_changes: push failed: %s", push_err)
+        finally:
+            if needs_restore:
+                repo.remotes.origin.set_url(current_url)
 
     except Exception:
         logger.exception("push_vault_changes: unexpected error during git push")
