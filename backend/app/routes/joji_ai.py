@@ -469,32 +469,24 @@ def generate_vault_templates(
 
 @router.post("/vault/gmail-backfill")
 def gmail_vault_backfill(
-    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
-    """Start Gmail backfill in the background (6 months of threads).
+    """Trigger Gmail backfill by resetting the sync timestamp.
 
-    Status is tracked on JojiAISettings.gmail_backfill_status by the service itself.
+    The scheduler's incremental_sync will automatically backfill 6 months
+    of threads in batches of 50 per run (every 30 min). No background
+    threads needed — survives Render deploys.
     """
-    user_id = user.id
+    settings = db.query(JojiAISettings).filter(JojiAISettings.user_id == user.id).first()
+    if settings:
+        settings.last_gmail_vault_sync_at = None  # Forces 6-month lookback
+        settings.gmail_backfill_status = "started"
+        settings.gmail_backfill_threads = None
+        settings.gmail_backfill_error = None
+        db.commit()
 
-    def _run_backfill(uid: int):
-        from app.database.connection import SessionLocal
-        from app.services.gmail_vault_service import GmailVaultService
-        bg_db = SessionLocal()
-        try:
-            service = GmailVaultService()
-            result = service.backfill(bg_db, uid, months=6)
-            logger.info("Gmail backfill complete for user %d: %s", uid, result)
-        except Exception as e:
-            logger.error("Gmail backfill failed for user %d: %s", uid, e)
-        finally:
-            bg_db.close()
-
-    background_tasks.add_task(_run_backfill, user_id)
-
-    return {"status": "started", "message": "Gmail indexing started in background. This may take a few minutes."}
+    return {"status": "started", "message": "Gmail indexing will process in batches via the scheduler (50 threads every 30 min)."}
 
 
 # ---------------------------------------------------------------------------

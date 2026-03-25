@@ -1726,25 +1726,15 @@ def gmail_callback(
     is_new_account = existing is None
     db.commit()
 
-    # Auto-trigger Gmail vault backfill for new accounts
+    # New account will be picked up by the scheduler's incremental_sync
+    # which auto-backfills 6 months when last_gmail_vault_sync_at is null.
     if is_new_account:
-        try:
-            import threading
-            def _auto_backfill():
-                from app.database.connection import SessionLocal
-                from app.services.gmail_vault_service import GmailVaultService
-                bg_db = SessionLocal()
-                try:
-                    service = GmailVaultService()
-                    result = service.backfill(bg_db, user_id, months=6)
-                    logger.info("Auto-backfill for new Gmail %s: %s", email_address, result)
-                except Exception as e:
-                    logger.error("Auto-backfill failed for %s: %s", email_address, e)
-                finally:
-                    bg_db.close()
-            threading.Thread(target=_auto_backfill, daemon=True).start()
-        except Exception as e:
-            logger.warning("Failed to start auto-backfill thread: %s", e)
+        from app.models.joji_ai import JojiAISettings
+        settings = db.query(JojiAISettings).filter(JojiAISettings.user_id == user_id).first()
+        if settings:
+            settings.last_gmail_vault_sync_at = None  # Forces 6-month lookback on next sync
+            db.commit()
+        logger.info("New Gmail %s connected — will backfill via scheduler", email_address)
 
     # Redirect to frontend settings page
     frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")

@@ -17,6 +17,7 @@ VAULT_REPO_DIR = Path(__file__).parent.parent.parent / "data" / "vault-repo"
 GMAIL_VAULT_DIR = VAULT_REPO_DIR / "gmail"
 THREAD_BODY_LIMIT = 3000  # chars sent to Haiku per thread
 BATCH_SIZE = 20  # threads per git push
+MAX_THREADS_PER_SYNC = 50  # max threads processed per scheduler run (avoids timeouts)
 
 
 class GmailVaultService:
@@ -113,7 +114,13 @@ class GmailVaultService:
             logger.warning("Failed to update backfill status to %s", status)
 
     def incremental_sync(self, db: Session, user_id: int) -> dict[str, Any]:
-        """Sync threads modified since last sync. Loops through ALL accounts."""
+        """Sync threads modified since last sync. Loops through ALL accounts.
+
+        If never synced before, uses 6-month lookback (acts as backfill).
+        Processes max MAX_THREADS_PER_SYNC threads per run to avoid timeouts.
+        The scheduler calls this every 30 min, so large inboxes get
+        indexed gradually across multiple runs.
+        """
         accounts = self._get_all_gmail_accounts(db, user_id)
         if not accounts:
             return {"status": "skipped", "reason": "Gmail not connected"}
@@ -125,8 +132,11 @@ class GmailVaultService:
         last_sync = None
         if settings and hasattr(settings, "last_gmail_vault_sync_at"):
             last_sync = settings.last_gmail_vault_sync_at
+
+        # If never synced, go back 6 months (automatic backfill)
         if not last_sync:
-            last_sync = datetime.utcnow() - timedelta(days=7)
+            last_sync = datetime.utcnow() - timedelta(days=180)
+            logger.info("Gmail vault: first sync for user %d, backfilling 6 months", user_id)
 
         query = f"after:{last_sync.strftime('%Y/%m/%d')}"
 
@@ -136,7 +146,24 @@ class GmailVaultService:
 
         for gmail_service, user_email in accounts:
             thread_ids = self._fetch_thread_ids(gmail_service, query)
-            for tid in thread_ids:
+
+            # Skip threads we already have
+            new_thread_ids = [
+                tid for tid in thread_ids
+                if not (GMAIL_VAULT_DIR / f"{tid}.md").exists()
+            ]
+
+            if not new_thread_ids:
+                continue
+
+            # Process max batch per run to avoid timeouts
+            batch = new_thread_ids[:MAX_THREADS_PER_SYNC]
+            logger.info(
+                "Gmail vault sync: %d new threads for %s (processing %d this run)",
+                len(new_thread_ids), user_email, len(batch)
+            )
+
+            for tid in batch:
                 try:
                     md = self._process_thread(gmail_service, tid, user_email)
                     if md is None:
@@ -153,6 +180,11 @@ class GmailVaultService:
             self._push_to_vault(db)
 
         self._update_sync_timestamp(db, user_id)
+
+        # Update backfill status if it was in_progress
+        if settings and settings.gmail_backfill_status in ("started", "in_progress"):
+            self._set_backfill_status(db, user_id, "success", threads=total_indexed)
+
         return {"status": "success", "threads_indexed": total_indexed, "threads_skipped": total_skipped}
 
     # ------------------------------------------------------------------
