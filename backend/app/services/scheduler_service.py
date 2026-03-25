@@ -101,6 +101,32 @@ async def crm_batch_sync_job():
         db.close()
 
 
+async def gmail_vault_sync_job():
+    """Scheduled job: sync recent Gmail threads to vault."""
+    from app.database.connection import SessionLocal
+    from app.models.autoresearch import GmailToken
+    from app.services.gmail_vault_service import GmailVaultService
+
+    db = SessionLocal()
+    try:
+        tokens = db.query(GmailToken).filter(GmailToken.is_active == True).all()
+        if not tokens:
+            return
+
+        vault_service = GmailVaultService()
+        for token in tokens:
+            try:
+                result = vault_service.incremental_sync(db, token.user_id)
+                if result.get("threads_indexed", 0) > 0:
+                    logger.info("Gmail vault sync for user %d: %s", token.user_id, result)
+            except Exception as e:
+                logger.error("Gmail vault sync failed for user %d: %s", token.user_id, e)
+    except Exception as e:
+        logger.error("Gmail vault sync job failed: %s", e)
+    finally:
+        db.close()
+
+
 def start_scheduler():
     """Start the background scheduler with all jobs."""
     scheduler.add_job(
@@ -125,6 +151,13 @@ def start_scheduler():
         replace_existing=True,
     )
     scheduler.add_job(
+        gmail_vault_sync_job,
+        "interval",
+        minutes=30,
+        id="gmail_vault_sync",
+        replace_existing=True,
+    )
+    scheduler.add_job(
         daily_learning_refresh,
         "cron",
         hour=22,
@@ -135,6 +168,7 @@ def start_scheduler():
     logger.info(
         "Scheduler started with Gmail polling every 5 min, "
         "vault sync every 30 min, CRM batch sync every 30 min, "
+        "Gmail vault sync every 30 min, "
         "and daily learning refresh at 22:00"
     )
 

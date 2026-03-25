@@ -455,3 +455,24 @@ def generate_vault_templates(
         raise HTTPException(status_code=500, detail=result.get("error", "Template generation failed"))
 
     return result
+
+
+# ---------------------------------------------------------------------------
+# 12. POST /vault/gmail-backfill -- Index Gmail threads into vault
+# ---------------------------------------------------------------------------
+
+@router.post("/vault/gmail-backfill")
+def gmail_vault_backfill(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """One-time backfill: index 6 months of Gmail threads into the vault."""
+    from app.services.gmail_vault_service import GmailVaultService
+
+    service = GmailVaultService()
+    result = service.backfill(db, user.id, months=6)
+
+    if result.get("status") == "failed":
+        raise HTTPException(status_code=500, detail=result.get("error", "Gmail backfill failed"))
+
+    return result
