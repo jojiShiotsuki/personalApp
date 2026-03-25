@@ -241,9 +241,19 @@ class CRMVaultSync:
             loom_scripts = [e for e in experiments if getattr(e, "loom_script", None)]
 
             files_written = 0
+            today = datetime.utcnow().strftime("%Y-%m-%d")
 
             # --- voice/communication-style.md ---
-            lines: list[str] = ["# Communication Style", ""]
+            lines: list[str] = [
+                "---",
+                "type: voice",
+                "tags: [communication, emails, outreach]",
+                f"generated: {today}",
+                "---",
+                "",
+                "# Communication Style",
+                "",
+            ]
             lines.append("## Cold Emails")
             lines.append("")
             if cold_emails:
@@ -270,7 +280,16 @@ class CRMVaultSync:
             files_written += 1
 
             # --- voice/phrases-i-use.md ---
-            lines = ["# Phrases I Use", ""]
+            lines = [
+                "---",
+                "type: voice",
+                "tags: [phrases, greetings, sign-offs]",
+                f"generated: {today}",
+                "---",
+                "",
+                "# Phrases I Use",
+                "",
+            ]
             lines.append("## Greetings")
             lines.append("")
             greetings: list[str] = []
@@ -302,7 +321,16 @@ class CRMVaultSync:
             files_written += 1
 
             # --- voice/tone-guide.md ---
-            lines = ["# Tone Guide", ""]
+            lines = [
+                "---",
+                "type: voice",
+                "tags: [tone, style, writing]",
+                f"generated: {today}",
+                "---",
+                "",
+                "# Tone Guide",
+                "",
+            ]
             if experiments:
                 word_counts = [len((e.body or "").split()) for e in experiments]
                 avg_words = sum(word_counts) // len(word_counts) if word_counts else 0
@@ -320,7 +348,16 @@ class CRMVaultSync:
             files_written += 1
 
             # --- templates/cold-emails.md ---
-            lines = ["# Cold Email Templates", ""]
+            lines = [
+                "---",
+                "type: template",
+                "tags: [cold-email, outreach, first-touch]",
+                f"generated: {today}",
+                "---",
+                "",
+                "# Cold Email Templates",
+                "",
+            ]
             if cold_emails:
                 for e in cold_emails[:10]:
                     company = getattr(e, "company_name", None) or "N/A"
@@ -340,7 +377,16 @@ class CRMVaultSync:
             files_written += 1
 
             # --- templates/follow-ups.md ---
-            lines = ["# Follow-Up Templates", ""]
+            lines = [
+                "---",
+                "type: template",
+                "tags: [follow-up, outreach, sequence]",
+                f"generated: {today}",
+                "---",
+                "",
+                "# Follow-Up Templates",
+                "",
+            ]
             if follow_ups:
                 for e in follow_ups[:10]:
                     company = getattr(e, "company_name", None) or "N/A"
@@ -360,7 +406,16 @@ class CRMVaultSync:
             files_written += 1
 
             # --- templates/loom-scripts.md ---
-            lines = ["# Loom Script Templates", ""]
+            lines = [
+                "---",
+                "type: template",
+                "tags: [loom, video, outreach]",
+                f"generated: {today}",
+                "---",
+                "",
+                "# Loom Script Templates",
+                "",
+            ]
             if loom_scripts:
                 for e in loom_scripts[:10]:
                     company = getattr(e, "company_name", None) or "N/A"
@@ -379,6 +434,12 @@ class CRMVaultSync:
 
             # --- sops/sales-process.md ---
             sales_process = "\n".join([
+                "---",
+                "type: sop",
+                "tags: [sales, pipeline, outreach]",
+                f"generated: {today}",
+                "---",
+                "",
                 "# Sales Process",
                 "",
                 "## Autoresearch Pipeline",
@@ -396,6 +457,12 @@ class CRMVaultSync:
 
             # --- sops/pricing.md ---
             pricing = "\n".join([
+                "---",
+                "type: sop",
+                "tags: [pricing, packages, rates]",
+                f"generated: {today}",
+                "---",
+                "",
                 "# Pricing",
                 "",
                 "## Packages",
@@ -421,6 +488,12 @@ class CRMVaultSync:
 
             # --- sops/client-onboarding.md ---
             onboarding = "\n".join([
+                "---",
+                "type: sop",
+                "tags: [onboarding, client, checklist]",
+                f"generated: {today}",
+                "---",
+                "",
                 "# Client Onboarding",
                 "",
                 "## Checklist",
@@ -440,6 +513,12 @@ class CRMVaultSync:
 
             # --- knowledge/tech-stack.md ---
             tech_stack = "\n".join([
+                "---",
+                "type: knowledge",
+                "tags: [tech-stack, tools, infrastructure]",
+                f"generated: {today}",
+                "---",
+                "",
                 "# Tech Stack",
                 "",
                 "## Client Work",
@@ -460,6 +539,12 @@ class CRMVaultSync:
 
             # --- knowledge/lessons-learned.md ---
             lessons = "\n".join([
+                "---",
+                "type: knowledge",
+                "tags: [lessons, retrospective, learning]",
+                f"generated: {today}",
+                "---",
+                "",
                 "# Lessons Learned",
                 "",
                 "<!-- Add lessons from client work, outreach, and business operations -->",
@@ -482,6 +567,12 @@ class CRMVaultSync:
 
             # --- goals/business-vision.md ---
             vision = "\n".join([
+                "---",
+                "type: goal",
+                "tags: [vision, strategy, goals]",
+                f"generated: {today}",
+                "---",
+                "",
                 "# Business Vision",
                 "",
                 "## Current Focus",
