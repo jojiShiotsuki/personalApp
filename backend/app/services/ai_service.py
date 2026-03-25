@@ -439,11 +439,20 @@ class JojiAIService:
         })
 
         # ------------------------------------------------------------------
-        # 12. Passive learning cycle (disabled — AI now asks directly)
+        # 12. Passive learning — Haiku extracts insights (like Claude Memory)
+        #     Runs after done event so user isn't waiting
         # ------------------------------------------------------------------
-        # The AI proactively asks learning questions and saves to vault
-        # via write_vault_file during the conversation, so the passive
-        # Haiku analysis is no longer needed.
+        try:
+            from app.services.conversation_learner import run_learning_cycle
+            learn_result = run_learning_cycle(db, conversation.id)
+            if learn_result and learn_result.get("insights_saved"):
+                logger.info("Learned %d insights from conversation %d",
+                            learn_result["insights_saved"], conversation.id)
+                yield _sse_event("learned", {
+                    "insights_saved": learn_result["insights_saved"],
+                })
+        except Exception as learn_exc:
+            logger.warning("Learning cycle failed: %s", learn_exc)
 
     # ------------------------------------------------------------------
     # Internal helpers
