@@ -522,3 +522,22 @@ def gmail_vault_backfill(
     background_tasks.add_task(_run_backfill, user_id)
 
     return {"status": "started", "message": "Gmail indexing started in background. This may take a few minutes."}
+
+
+# ---------------------------------------------------------------------------
+# 13. POST /vault/gmail-backfill/reset -- Reset stuck backfill status
+# ---------------------------------------------------------------------------
+
+@router.post("/vault/gmail-backfill/reset")
+def reset_gmail_backfill(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Reset a stuck gmail backfill status."""
+    settings = db.query(JojiAISettings).filter(JojiAISettings.user_id == user.id).first()
+    if settings:
+        settings.gmail_backfill_status = None
+        settings.gmail_backfill_threads = None
+        settings.gmail_backfill_error = None
+        db.commit()
+    return {"status": "reset"}
