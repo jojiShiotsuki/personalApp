@@ -181,6 +181,24 @@ class CRMVaultSync:
             dest.parent.mkdir(parents=True, exist_ok=True)
             dest.write_text(md, encoding="utf-8")
             written += 1
+
+            # --- Additional entity syncs ---
+            sync_methods = [
+                ("tasks", self._write_tasks_file),
+                ("projects", self._write_projects_files),
+                ("time", self._write_time_file),
+                ("goals", self._write_goals_file),
+                ("sprint", self._write_sprint_file),
+                ("outreach_log", self._write_outreach_log_file),
+                ("discovery_calls", self._write_discovery_calls_file),
+                ("social_content", self._write_social_content_file),
+            ]
+            for label, method in sync_methods:
+                try:
+                    written += method(db)
+                except Exception:
+                    logger.exception("Batch CRM sync: %s sync failed", label)
+
             if written > 0:
                 self._push_changes(settings)
             return {"status": "success", "files_written": written}
@@ -485,6 +503,347 @@ class CRMVaultSync:
         except Exception:
             logger.exception("Generate starter templates failed")
             return {"status": "failed"}
+
+    # ------------------------------------------------------------------
+    # Batch sync: additional entity writers
+    # ------------------------------------------------------------------
+
+    def _write_tasks_file(self, db: Session) -> int:
+        """Write active (non-completed) tasks grouped by priority. Returns files written."""
+        from app.models.task import Task, TaskStatus, TaskPriority
+
+        tasks = (
+            db.query(Task)
+            .filter(Task.status != TaskStatus.COMPLETED)
+            .order_by(Task.due_date)
+            .all()
+        )
+
+        timestamp = datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
+        lines: list[str] = ["# Active Tasks", f"_Last updated: {timestamp}_", ""]
+
+        by_priority: dict[str, list] = {
+            "URGENT": [],
+            "HIGH": [],
+            "MEDIUM": [],
+            "LOW": [],
+        }
+        for task in tasks:
+            prio = task.priority.value if task.priority else "MEDIUM"
+            by_priority.setdefault(prio, []).append(task)
+
+        for prio_label in ("URGENT", "HIGH", "MEDIUM", "LOW"):
+            group = by_priority.get(prio_label, [])
+            if not group:
+                continue
+            lines.append(f"## {prio_label.capitalize()}")
+            lines.append("")
+            for t in group:
+                due = str(t.due_date) if t.due_date else "No date"
+                project_name = t.project.name if t.project else "None"
+                lines.append(f"- [ ] {t.title} — Due: {due} — Project: {project_name}")
+            lines.append("")
+
+        if not tasks:
+            lines.append("_No active tasks._")
+            lines.append("")
+
+        dest = CRM_SYNC_DIR / "tasks" / "active-tasks.md"
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        dest.write_text("\n".join(lines), encoding="utf-8")
+        return 1
+
+    def _write_projects_files(self, db: Session) -> int:
+        """Write one markdown file per active project. Returns files written."""
+        from app.models.project import Project
+
+        active_statuses = ["TODO", "SCOPING", "IN_PROGRESS", "REVIEW", "REVISIONS", "RETAINER"]
+        projects = (
+            db.query(Project)
+            .filter(Project.status.in_(active_statuses))
+            .all()
+        )
+
+        written = 0
+        for proj in projects:
+            contact_name = proj.contact.name if proj.contact else "N/A"
+            deadline_str = str(proj.deadline) if proj.deadline else "N/A"
+            rate_str = f"${proj.hourly_rate}" if proj.hourly_rate else "N/A"
+            status_str = proj.status.value if proj.status else "N/A"
+
+            lines: list[str] = [
+                f"# {proj.name}",
+                f"**Status:** {status_str}",
+                f"**Progress:** {proj.progress or 0}%",
+                f"**Client:** {contact_name}",
+                f"**Deadline:** {deadline_str}",
+                f"**Hourly Rate:** {rate_str}",
+                "",
+                "## Notes",
+                proj.notes if proj.notes else "_No notes_",
+                "",
+            ]
+
+            filename = self._sanitize_filename(proj.name)
+            dest = CRM_SYNC_DIR / "projects" / f"{filename}.md"
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            dest.write_text("\n".join(lines), encoding="utf-8")
+            written += 1
+
+        return written
+
+    def _write_time_file(self, db: Session) -> int:
+        """Write last 7 days of time entries grouped by date. Returns files written."""
+        from app.models.time_entry import TimeEntry
+
+        cutoff = datetime.utcnow() - timedelta(days=7)
+        entries = (
+            db.query(TimeEntry)
+            .filter(TimeEntry.start_time >= cutoff)
+            .order_by(TimeEntry.start_time.desc())
+            .all()
+        )
+
+        timestamp = datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
+        lines: list[str] = [
+            "# Recent Time Entries (Last 7 Days)",
+            f"_Last updated: {timestamp}_",
+            "",
+        ]
+
+        if not entries:
+            lines.append("_No time entries in the last 7 days._")
+            lines.append("")
+        else:
+            # Group by date
+            by_date: dict[str, list] = {}
+            for entry in entries:
+                date_key = entry.start_time.strftime("%Y-%m-%d")
+                by_date.setdefault(date_key, []).append(entry)
+
+            for date_key in sorted(by_date.keys(), reverse=True):
+                lines.append(f"## {date_key}")
+                lines.append("")
+                for entry in by_date[date_key]:
+                    duration = self._format_duration(entry.duration_seconds)
+                    desc = entry.description or "No description"
+                    proj_name = entry.project.name if entry.project else "N/A"
+                    billable = "Billable" if entry.is_billable else "Non-billable"
+                    lines.append(f"- {duration} — {desc} — Project: {proj_name} — {billable}")
+                lines.append("")
+
+        dest = CRM_SYNC_DIR / "time" / "recent-time.md"
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        dest.write_text("\n".join(lines), encoding="utf-8")
+        return 1
+
+    def _write_goals_file(self, db: Session) -> int:
+        """Write all goals grouped by year/quarter. Returns files written."""
+        from app.models.goal import Goal
+
+        goals = (
+            db.query(Goal)
+            .order_by(Goal.year.desc(), Goal.quarter)
+            .all()
+        )
+
+        lines: list[str] = ["# Goals", ""]
+
+        if not goals:
+            lines.append("_No goals defined._")
+            lines.append("")
+        else:
+            # Group by year + quarter
+            by_period: dict[str, list] = {}
+            for g in goals:
+                quarter_str = g.quarter.value if g.quarter else "N/A"
+                key = f"{g.year} {quarter_str}"
+                by_period.setdefault(key, []).append(g)
+
+            for period, group in by_period.items():
+                lines.append(f"## {period}")
+                lines.append("")
+                for g in group:
+                    priority_str = g.priority.value if g.priority else "N/A"
+                    target_str = g.target_date if g.target_date else "N/A"
+                    key_results_str = g.key_results if g.key_results else "N/A"
+                    lines.append(f"### {g.title}")
+                    lines.append(f"- Progress: {g.progress or 0}%")
+                    lines.append(f"- Priority: {priority_str}")
+                    lines.append(f"- Target: {target_str}")
+                    lines.append(f"- Key Results: {key_results_str}")
+                    lines.append("")
+
+        dest = CRM_SYNC_DIR / "goals" / "active-goals.md"
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        dest.write_text("\n".join(lines), encoding="utf-8")
+        return 1
+
+    def _write_sprint_file(self, db: Session) -> int:
+        """Write the current active sprint. Returns files written."""
+        import json as _json
+        from app.models.sprint import Sprint, SprintDay
+
+        sprint = (
+            db.query(Sprint)
+            .filter(Sprint.status == "ACTIVE")
+            .first()
+        )
+
+        if not sprint:
+            lines: list[str] = ["# Sprint", "", "_No active sprint._", ""]
+            dest = CRM_SYNC_DIR / "sprints" / "active-sprint.md"
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            dest.write_text("\n".join(lines), encoding="utf-8")
+            return 1
+
+        # Format week themes
+        try:
+            themes = _json.loads(sprint.week_themes) if sprint.week_themes else []
+            themes_str = ", ".join(f"Week {i+1}: {t}" for i, t in enumerate(themes))
+        except (ValueError, TypeError):
+            themes_str = "N/A"
+
+        lines = [
+            f"# Sprint: {sprint.title}",
+            f"**Status:** {sprint.status.value if sprint.status else 'N/A'}",
+            f"**Period:** {sprint.start_date} — {sprint.end_date}",
+            f"**Day:** {sprint.current_day}/30",
+            f"**Week:** {sprint.current_week}/4",
+            "",
+            "## Week Themes",
+            themes_str,
+            "",
+            "## Daily Progress",
+            "",
+        ]
+
+        days = sorted(sprint.days, key=lambda d: d.day_number) if sprint.days else []
+        if days:
+            for day in days:
+                status = "Complete" if day.is_complete else "In progress"
+                notes = day.notes or ""
+                notes_part = f" — {notes}" if notes else ""
+                lines.append(f"- Day {day.day_number}: {status}{notes_part}")
+        else:
+            lines.append("_No daily progress recorded yet._")
+        lines.append("")
+
+        dest = CRM_SYNC_DIR / "sprints" / "active-sprint.md"
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        dest.write_text("\n".join(lines), encoding="utf-8")
+        return 1
+
+    def _write_outreach_log_file(self, db: Session) -> int:
+        """Write last 7 days of daily outreach logs. Returns files written."""
+        from app.models.daily_outreach import DailyOutreachLog
+
+        cutoff = datetime.utcnow() - timedelta(days=7)
+        logs = (
+            db.query(DailyOutreachLog)
+            .filter(DailyOutreachLog.log_date >= cutoff.date())
+            .order_by(DailyOutreachLog.log_date.desc())
+            .all()
+        )
+
+        lines: list[str] = ["# Daily Outreach Log (Last 7 Days)", ""]
+
+        if not logs:
+            lines.append("_No outreach logs in the last 7 days._")
+            lines.append("")
+        else:
+            for log in logs:
+                lines.append(f"## {log.log_date}")
+                lines.append(f"- Cold Emails: {log.cold_emails_sent}/{log.target_cold_emails}")
+                lines.append(f"- LinkedIn: {log.linkedin_actions}/{log.target_linkedin}")
+                lines.append(f"- Follow-up Calls: {log.follow_up_calls}/{log.target_calls}")
+                lines.append(f"- Loom Audits: {log.loom_audits_sent}/{log.target_looms}")
+                all_met = "Yes" if log.all_targets_met else "No"
+                lines.append(f"- All Targets Met: {all_met}")
+                lines.append("")
+
+        dest = CRM_SYNC_DIR / "outreach" / "daily-log.md"
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        dest.write_text("\n".join(lines), encoding="utf-8")
+        return 1
+
+    def _write_discovery_calls_file(self, db: Session) -> int:
+        """Write last 30 days of discovery calls. Returns files written."""
+        from app.models.discovery_call import DiscoveryCall
+
+        cutoff = datetime.utcnow() - timedelta(days=30)
+        calls = (
+            db.query(DiscoveryCall)
+            .filter(DiscoveryCall.call_date >= cutoff)
+            .order_by(DiscoveryCall.call_date.desc())
+            .all()
+        )
+
+        lines: list[str] = ["# Recent Discovery Calls", ""]
+
+        if not calls:
+            lines.append("_No discovery calls in the last 30 days._")
+            lines.append("")
+        else:
+            for call in calls:
+                contact_name = call.contact.name if call.contact else "Unknown"
+                lines.append(f"## {call.call_date} — {contact_name}")
+                duration_str = f"{call.call_duration_minutes} min" if call.call_duration_minutes else "N/A"
+                outcome_str = call.outcome.value if call.outcome else "N/A"
+                budget_str = call.budget_range if call.budget_range else "Not discussed"
+                next_steps_str = call.next_steps if call.next_steps else "N/A"
+                lines.append(f"- Duration: {duration_str}")
+                lines.append(f"- Outcome: {outcome_str}")
+                lines.append(f"- Budget: {budget_str}")
+                lines.append(f"- Next Steps: {next_steps_str}")
+                lines.append("")
+
+        dest = CRM_SYNC_DIR / "discovery-calls" / "recent.md"
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        dest.write_text("\n".join(lines), encoding="utf-8")
+        return 1
+
+    def _write_social_content_file(self, db: Session) -> int:
+        """Write upcoming (non-posted) social content. Returns files written."""
+        from app.models.social_content import SocialContent
+
+        content = (
+            db.query(SocialContent)
+            .filter(SocialContent.status != "POSTED")
+            .order_by(SocialContent.content_date)
+            .all()
+        )
+
+        lines: list[str] = ["# Upcoming Social Content", ""]
+
+        if not content:
+            lines.append("_No upcoming social content._")
+            lines.append("")
+        else:
+            for item in content:
+                title = item.title or "Untitled"
+                lines.append(f"## {item.content_date} — {title}")
+                content_type = item.content_type.value if item.content_type else "N/A"
+                status_str = item.status.value if item.status else "N/A"
+                platforms = ", ".join(item.platforms) if item.platforms else "N/A"
+                lines.append(f"- Type: {content_type}")
+                lines.append(f"- Status: {status_str}")
+                lines.append(f"- Platforms: {platforms}")
+                lines.append("")
+
+        dest = CRM_SYNC_DIR / "social" / "upcoming.md"
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        dest.write_text("\n".join(lines), encoding="utf-8")
+        return 1
+
+    @staticmethod
+    def _format_duration(seconds: int | None) -> str:
+        """Format duration in seconds as 'Xh Ym'."""
+        if not seconds or seconds <= 0:
+            return "0h 0m"
+        hours = seconds // 3600
+        minutes = (seconds % 3600) // 60
+        return f"{hours}h {minutes}m"
 
     # ------------------------------------------------------------------
     # Markdown renderers
