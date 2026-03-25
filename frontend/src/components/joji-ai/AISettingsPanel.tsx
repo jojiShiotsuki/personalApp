@@ -292,8 +292,9 @@ export default function AISettingsPanel({ onBack }: AISettingsPanelProps) {
           </h3>
           <div className="space-y-2">
             {[
-              { value: 'claude-sonnet-4-20250514', label: 'Sonnet 4.6', desc: 'Fast & capable' },
-              { value: 'claude-opus-4-20250514', label: 'Opus 4.6', desc: 'Deep reasoning' },
+              { value: 'claude-haiku-4-5-20251001', label: 'Haiku 4.5', desc: 'Everyday questions — cheapest' },
+              { value: 'claude-sonnet-4-6', label: 'Sonnet 4.6', desc: 'Complex tasks & writing' },
+              { value: 'claude-opus-4-6', label: 'Opus 4.6', desc: 'Deep reasoning — most expensive' },
             ].map((model) => (
               <button
                 key={model.value}

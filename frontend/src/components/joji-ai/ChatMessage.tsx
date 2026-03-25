@@ -28,7 +28,7 @@ export default function ChatMessage({ message, vaultRefs }: ChatMessageProps) {
       {!isUser && message.model && (
         <div className="flex items-center gap-2 px-1">
           <span className="text-[10px] text-stone-500">
-            {message.model.includes('opus') ? 'Opus' : 'Sonnet'}
+            {message.model.includes('opus') ? 'Opus' : message.model.includes('haiku') ? 'Haiku' : 'Sonnet'}
           </span>
           {message.tokens_used && (
             <span className="text-[10px] text-stone-600">

@@ -27,6 +27,7 @@ router = APIRouter(prefix="/api/ai", tags=["joji-ai"])
 
 # Rate limiting: track requests per user per hour
 _rate_limits: dict[int, list[datetime]] = defaultdict(list)
+HAIKU_LIMIT = int(os.getenv("AI_RATE_LIMIT_HAIKU", "120"))
 SONNET_LIMIT = int(os.getenv("AI_RATE_LIMIT_SONNET", "60"))
 OPUS_LIMIT = int(os.getenv("AI_RATE_LIMIT_OPUS", "20"))
 DAILY_COST_CAP = float(os.getenv("AI_DAILY_COST_CAP", "5.0"))
@@ -34,7 +35,12 @@ DAILY_COST_CAP = float(os.getenv("AI_DAILY_COST_CAP", "5.0"))
 
 def _check_rate_limit(user_id: int, model: str | None) -> None:
     """Check per-model hourly rate limit. Raises HTTPException if exceeded."""
-    limit = OPUS_LIMIT if model and "opus" in model else SONNET_LIMIT
+    if model and "opus" in model:
+        limit = OPUS_LIMIT
+    elif model and "haiku" in model:
+        limit = HAIKU_LIMIT
+    else:
+        limit = SONNET_LIMIT
     now = datetime.utcnow()
     cutoff = now - timedelta(hours=1)
     # Clean old entries
