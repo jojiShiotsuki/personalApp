@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { jojiAiApi } from '@/lib/api';
 import { useChat } from '@/contexts/ChatContext';
+import { useTypewriter } from '@/hooks/useTypewriter';
 import ChatMessage from './ChatMessage';
 import type { AIConversationMessage, VaultChunkRef, AISSEEventType } from '@/types';
 
@@ -273,12 +274,15 @@ export default function ChatPanel() {
     navigate('/ai');
   }, [closeChat, navigate]);
 
+  // Smoothly animate the streaming content character by character
+  const smoothContent = useTypewriter(streamingContent, 2);
+
   // Build the streaming message for display
   const streamingMessage: AIConversationMessage | null = streamingContent
     ? {
         id: -1,
         role: 'assistant',
-        content: streamingContent,
+        content: smoothContent,
         model: null,
         tool_calls_json: null,
         vault_chunks_used: null,

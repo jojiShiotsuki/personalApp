@@ -1,4 +1,6 @@
 import { cn } from '@/lib/utils';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import type { AIConversationMessage, VaultChunkRef } from '@/types';
 import VaultRefCard from './VaultRefCard';
 
@@ -18,10 +20,17 @@ export default function ChatMessage({ message, vaultRefs }: ChatMessageProps) {
           ? 'bg-[#E07A5F] text-white rounded-br-sm'
           : 'bg-stone-800/60 text-[--exec-text] border border-stone-700/40 rounded-bl-sm'
       )}>
-        {/* Simple markdown-ish rendering */}
-        <div className="whitespace-pre-wrap break-words leading-relaxed">
-          {message.content}
-        </div>
+        {isUser ? (
+          <div className="whitespace-pre-wrap break-words leading-relaxed">
+            {message.content}
+          </div>
+        ) : (
+          <div className="prose-chat break-words leading-relaxed">
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+              {message.content}
+            </ReactMarkdown>
+          </div>
+        )}
       </div>
 
       {/* Model badge + cost for assistant messages */}

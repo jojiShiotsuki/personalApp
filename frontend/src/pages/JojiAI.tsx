@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { jojiAiApi } from '@/lib/api';
 import { useChat } from '@/contexts/ChatContext';
+import { useTypewriter } from '@/hooks/useTypewriter';
 import ConversationSidebar from '@/components/joji-ai/ConversationSidebar';
 import AISettingsPanel from '@/components/joji-ai/AISettingsPanel';
 import ChatMessage from '@/components/joji-ai/ChatMessage';
@@ -253,12 +254,15 @@ export default function JojiAI() {
     [handleSend]
   );
 
+  // Smoothly animate the streaming content character by character
+  const smoothContent = useTypewriter(streamingContent, 2);
+
   // Build the streaming message for display
   const streamingMessage: AIConversationMessage | null = streamingContent
     ? {
         id: -1,
         role: 'assistant',
-        content: streamingContent,
+        content: smoothContent,
         model: null,
         tool_calls_json: null,
         vault_chunks_used: null,
