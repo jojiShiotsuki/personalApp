@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Github, RefreshCw, Cpu, MessageSquareText, DollarSign, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { jojiAiApi } from '@/lib/api';
+import { toast } from 'sonner';
 import type { JojiAISettingsUpdate } from '@/types';
 
 interface AISettingsPanelProps {
@@ -56,6 +57,17 @@ export default function AISettingsPanel({ onBack }: AISettingsPanelProps) {
     mutationFn: () => jojiAiApi.syncVault(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ai-settings'] });
+    },
+  });
+
+  const templateMutation = useMutation({
+    mutationFn: () => jojiAiApi.generateVaultTemplates(),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['ai-settings'] });
+      toast.success(`Generated ${data.files_written} vault template files`);
+    },
+    onError: () => {
+      toast.error('Failed to generate templates');
     },
   });
 
@@ -223,6 +235,23 @@ export default function AISettingsPanel({ onBack }: AISettingsPanelProps) {
             >
               <RefreshCw className={cn('w-3.5 h-3.5', syncMutation.isPending && 'animate-spin')} />
               {syncMutation.isPending ? 'Syncing...' : 'Sync Now'}
+            </button>
+            <button
+              onClick={() => templateMutation.mutate()}
+              disabled={templateMutation.isPending || !settings?.github_repo_url}
+              className={cn(
+                'flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium',
+                'bg-[--exec-accent]/10 text-[--exec-accent] border border-[--exec-accent]/20',
+                'hover:bg-[--exec-accent]/20 transition-all',
+                'disabled:opacity-50 disabled:cursor-not-allowed'
+              )}
+            >
+              {templateMutation.isPending ? (
+                <RefreshCw className="w-3 h-3 animate-spin" />
+              ) : (
+                <MessageSquareText className="w-3 h-3" />
+              )}
+              {templateMutation.isPending ? 'Generating...' : 'Generate Vault Templates'}
             </button>
           </div>
         </section>

@@ -1556,6 +1556,11 @@ export const jojiAiApi = {
     return data;
   },
 
+  generateVaultTemplates: async (): Promise<{ status: string; files_written: number }> => {
+    const { data } = await api.post('/api/ai/vault/generate-templates');
+    return data;
+  },
+
   getVaultStatus: async (): Promise<VaultSyncStatus> => {
     const { data } = await api.get('/api/ai/vault/status');
     return data;
