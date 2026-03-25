@@ -1,4 +1,4 @@
-from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, Query, UploadFile
+from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, Query, Request, UploadFile
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import func
@@ -534,9 +534,7 @@ def reset_gmail_backfill(
 
 @router.post("/library/upload")
 async def upload_to_library(
-    file: UploadFile = File(None),
-    text: str = Form(None),
-    title: str = Form(None),
+    request: Request,
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
@@ -547,9 +545,16 @@ async def upload_to_library(
         MAX_FILE_BYTES, MAX_TEXT_CHARS,
     )
 
-    # Determine what we received — UploadFile(None) gives an object with empty filename
-    has_file = file is not None and file.filename
-    has_text = text is not None and text.strip()
+    # Parse multipart form data manually for reliability
+    form = await request.form()
+    file = form.get("file")
+    text = form.get("text")
+    title = form.get("title")
+
+    has_file = file is not None and hasattr(file, "filename") and file.filename
+    has_text = text is not None and str(text).strip()
+
+    logger.info("Library upload: has_file=%s, has_text=%s, form_keys=%s", has_file, has_text, list(form.keys()))
 
     if not has_file and not has_text:
         raise HTTPException(status_code=400, detail="No file or text provided")
@@ -583,6 +588,7 @@ async def upload_to_library(
         except ValueError as e:
             raise HTTPException(status_code=400, detail=str(e))
     elif has_text:
+        text = str(text)
         if len(text) > MAX_TEXT_CHARS:
             raise HTTPException(status_code=400, detail="Text too long (max 500,000 characters)")
         if not text.strip():
@@ -599,7 +605,7 @@ async def upload_to_library(
 
     # Distill with Sonnet
     try:
-        distilled = await distill_content(extracted_text, title_hint=title)
+        distilled = await distill_content(extracted_text, title_hint=str(title) if title else None)
     except Exception as e:
         logger.error("Distillation failed: %s", e)
         raise HTTPException(status_code=500, detail="Failed to distill content")
