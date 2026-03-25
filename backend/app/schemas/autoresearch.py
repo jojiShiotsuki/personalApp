@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from datetime import datetime
 from typing import Optional, List
 
@@ -70,6 +70,10 @@ class AuditApproveRequest(BaseModel):
     edited_subject: Optional[str] = None
     edited_body: Optional[str] = None
     subject_variant_used: Optional[str] = None  # "original" or "variant"
+
+
+class AuditRegenerateRequest(BaseModel):
+    instruction: str = Field(..., min_length=3, max_length=500)
 
 
 class AuditRejectRequest(BaseModel):
