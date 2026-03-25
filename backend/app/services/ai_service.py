@@ -439,20 +439,11 @@ class JojiAIService:
         })
 
         # ------------------------------------------------------------------
-        # 12. Learning cycle — Haiku analyzes conversation for new insights
-        #     Runs after done event so user isn't waiting
+        # 12. Passive learning cycle (disabled — AI now asks directly)
         # ------------------------------------------------------------------
-        try:
-            from app.services.conversation_learner import run_learning_cycle
-            learn_result = run_learning_cycle(db, conversation.id)
-            if learn_result and learn_result.get("insights_saved"):
-                logger.info("Learned %d insights from conversation %d",
-                            learn_result["insights_saved"], conversation.id)
-                yield _sse_event("learned", {
-                    "insights_saved": learn_result["insights_saved"],
-                })
-        except Exception as learn_exc:
-            logger.warning("Learning cycle failed: %s", learn_exc)
+        # The AI proactively asks learning questions and saves to vault
+        # via write_vault_file during the conversation, so the passive
+        # Haiku analysis is no longer needed.
 
     # ------------------------------------------------------------------
     # Internal helpers
@@ -514,7 +505,28 @@ class JojiAIService:
             "- Australian English\n"
             "- Reference specific vault notes when answering\n"
             "- If you don't know something, say so -- don't make it up\n"
-            "- When taking CRM actions, confirm before executing"
+            "- When taking CRM actions, confirm before executing\n\n"
+            "BRAIN (Knowledge Vault):\n"
+            "You have a brain — an Obsidian vault where you store everything you learn about the user.\n"
+            "You ONLY save to the brain when the user explicitly asks you to. Triggers:\n"
+            "- 'Remember this', 'Save this', 'Store this in your brain', 'Add this to the vault'\n"
+            "- 'Learn from this conversation', 'Save what you learned' — review the FULL conversation "
+            "and extract all useful insights (personal info, preferences, rates, processes, lessons, voice/tone)\n\n"
+            "When saving:\n"
+            "- READ the vault file first (read_vault_file) to see existing content, then APPEND — never overwrite\n"
+            "- Use these paths:\n"
+            "  - Personal info: about-me/profile.md\n"
+            "  - Communication style/tone: voice/tone-guide.md\n"
+            "  - Phrases and language: voice/phrases-i-use.md\n"
+            "  - Pricing: sops/pricing.md\n"
+            "  - Sales process: sops/sales-process.md\n"
+            "  - Client onboarding: sops/client-onboarding.md\n"
+            "  - Tech stack: knowledge/tech-stack.md\n"
+            "  - Lessons learned: knowledge/lessons-learned.md\n"
+            "  - Business goals/vision: goals/business-vision.md\n"
+            "  - For anything else, create a sensible path under the right folder\n"
+            "- After saving, confirm briefly: 'Saved to the brain.'\n"
+            "- Never save unless the user asks you to"
         )
 
         prompt += custom_override
