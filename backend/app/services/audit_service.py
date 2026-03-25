@@ -32,11 +32,17 @@ BOT_DETECTION_INDICATORS = [
     "captcha",
     "verify you are human",
     "access denied",
-    "blocked",
-    "cloudflare",
+    "you have been blocked",
+    "your access is blocked",
+    "request blocked",
+    "attention required! | cloudflare",
     "just a moment",
     "checking your browser",
+    "checking if the site connection is secure",
     "are you a robot",
+    "enable javascript and cookies to continue",
+    "please turn javascript on",
+    "ray id",
 ]
 
 
