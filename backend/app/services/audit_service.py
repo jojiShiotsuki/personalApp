@@ -814,7 +814,7 @@ Rewrite the cold email for this prospect. Use the audit findings as context but 
             )
         except Exception as api_err:
             logger.error("Claude API call failed during regeneration: %s", api_err, exc_info=True)
-            return {"error": f"Claude API error: {api_err}"}
+            return {"error": "Email regeneration failed — please try again"}
 
         raw_text = response.content[0].text if response.content else ""
         result = self._parse_json_response(raw_text)
