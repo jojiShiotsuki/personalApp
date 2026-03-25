@@ -1590,8 +1590,10 @@ export const jojiAiApi = {
     if (file) formData.append('file', file);
     if (text) formData.append('text', text);
     if (title) formData.append('title', title);
+    // Delete Content-Type so axios auto-sets multipart/form-data with boundary
     const { data } = await api.post('/api/ai/library/upload', formData, {
       timeout: 60000,
+      headers: { 'Content-Type': undefined as any },
     });
     return data;
   },
