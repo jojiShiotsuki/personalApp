@@ -447,6 +447,13 @@ class ToolExecutor:
             logger.warning("Vault git push failed for %s: %s", file_path, exc)
             return {"status": "written_locally", "file_path": file_path, "warning": f"File saved but git push failed: {exc}"}
 
+        # Re-index this file immediately so it's searchable right away
+        try:
+            from app.services.conversation_learner import _reindex_files
+            _reindex_files(self.db, [file_path])
+        except Exception as idx_exc:
+            logger.warning("Immediate re-index failed for %s: %s", file_path, idx_exc)
+
         return {
             "status": "created" if is_new else "updated",
             "file_path": file_path,

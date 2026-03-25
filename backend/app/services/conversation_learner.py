@@ -114,6 +114,7 @@ def run_learning_cycle(db: Session, conversation_id: int) -> Optional[dict]:
             return {"status": "no_new_learnings"}
 
         written = 0
+        written_files = []
         for learning in learnings:
             insight = learning.get("insight", "")
             vault_file = learning.get("vault_file", "")
@@ -122,6 +123,11 @@ def run_learning_cycle(db: Session, conversation_id: int) -> Optional[dict]:
                 continue
             if _append_to_vault_file(vault_file, insight, category):
                 written += 1
+                written_files.append(vault_file)
+
+        # Re-index written files immediately so they're searchable right away
+        if written_files:
+            _reindex_files(db, written_files)
 
         logger.info("Conversation learner: %d insights from conversation %d", written, conversation_id)
         return {"status": "learned", "insights_saved": written}
@@ -181,3 +187,58 @@ def _append_to_vault_file(file_path: str, insight: str, category: str) -> bool:
     full_path.write_text(content, encoding="utf-8")
     obsidian_client.write_file(file_path, content)
     return True
+
+
+def _reindex_files(db: Session, file_paths: list[str]) -> None:
+    """Re-index specific vault files immediately so learnings are searchable."""
+    import hashlib
+    from app.models.joji_ai import VaultFile, VaultChunk
+    from app.services.vault_sync_service import VaultSyncService
+
+    syncer = VaultSyncService()
+
+    for rel_path in file_paths:
+        full_path = VAULT_REPO_DIR / rel_path
+        if not full_path.exists():
+            continue
+
+        try:
+            content = full_path.read_text(encoding="utf-8")
+            content_hash = hashlib.sha256(content.encode("utf-8")).hexdigest()
+
+            vault_file = db.query(VaultFile).filter(VaultFile.file_path == rel_path).first()
+
+            if vault_file and vault_file.content_hash == content_hash:
+                continue  # unchanged
+
+            # Delete old chunks
+            if vault_file:
+                db.query(VaultChunk).filter(VaultChunk.vault_file_id == vault_file.id).delete()
+            else:
+                vault_file = VaultFile(file_path=rel_path, content_hash=content_hash)
+                db.add(vault_file)
+
+            vault_file.content_hash = content_hash
+            vault_file.last_synced_at = datetime.utcnow()
+            db.flush()
+
+            # Chunk and embed
+            raw_chunks = syncer.chunk_markdown(content, rel_path)
+            texts = [c["content"] for c in raw_chunks]
+            embeddings = syncer.embed_chunks(texts)
+
+            for i, chunk_dict in enumerate(raw_chunks):
+                db.add(VaultChunk(
+                    vault_file_id=vault_file.id,
+                    chunk_index=chunk_dict["chunk_index"],
+                    content=chunk_dict["content"],
+                    embedding=embeddings[i] if embeddings[i] is not None else None,
+                    heading_context=chunk_dict["heading_context"],
+                    metadata_json=chunk_dict["metadata"] or None,
+                ))
+
+            db.commit()
+            logger.info("Re-indexed vault file: %s", rel_path)
+
+        except Exception as exc:
+            logger.warning("Failed to re-index %s: %s", rel_path, exc)
