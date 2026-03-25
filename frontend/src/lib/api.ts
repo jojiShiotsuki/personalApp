@@ -1424,6 +1424,10 @@ export const autoresearchApi = {
     const { data } = await api.delete(`/api/autoresearch/audits/${auditId}`);
     return data;
   },
+  regenerateAudit: async (auditId: number, instruction: string) => {
+    const { data } = await api.post(`/api/autoresearch/audits/${auditId}/regenerate`, { instruction });
+    return data;
+  },
   trackEmail: async (prospectId: number, stepNumber: number, subject: string, body: string, wasEdited: boolean, loomScript?: string) => {
     const { data } = await api.post('/api/autoresearch/track-email', {
       prospect_id: prospectId,
