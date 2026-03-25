@@ -74,6 +74,10 @@ def run_learning_cycle(db: Session, conversation_id: int) -> Optional[dict]:
         if len(messages) < MIN_MESSAGES_TO_LEARN:
             return {"status": "skipped", "reason": "too_short"}
 
+        # Only learn every 6 messages (3 exchanges) to avoid running on every reply
+        if len(messages) % 6 != 0:
+            return {"status": "skipped", "reason": "not_at_threshold"}
+
         # Build conversation transcript (cap each message to keep cost down)
         transcript_lines = []
         for msg in messages:
