@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import func
@@ -469,16 +469,26 @@ def generate_vault_templates(
 
 @router.post("/vault/gmail-backfill")
 def gmail_vault_backfill(
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
-    """One-time backfill: index 6 months of Gmail threads into the vault."""
-    from app.services.gmail_vault_service import GmailVaultService
+    """Start Gmail backfill in the background (6 months of threads)."""
+    user_id = user.id
 
-    service = GmailVaultService()
-    result = service.backfill(db, user.id, months=6)
+    def _run_backfill(uid: int):
+        from app.database.connection import SessionLocal
+        from app.services.gmail_vault_service import GmailVaultService
+        bg_db = SessionLocal()
+        try:
+            service = GmailVaultService()
+            result = service.backfill(bg_db, uid, months=6)
+            logger.info("Gmail backfill complete for user %d: %s", uid, result)
+        except Exception as e:
+            logger.error("Gmail backfill failed for user %d: %s", uid, e)
+        finally:
+            bg_db.close()
 
-    if result.get("status") == "failed":
-        raise HTTPException(status_code=500, detail=result.get("error", "Gmail backfill failed"))
+    background_tasks.add_task(_run_backfill, user_id)
 
-    return result
+    return {"status": "started", "message": "Gmail indexing started in background. This may take a few minutes."}

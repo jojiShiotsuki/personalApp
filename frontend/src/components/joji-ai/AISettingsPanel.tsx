@@ -75,7 +75,7 @@ export default function AISettingsPanel({ onBack }: AISettingsPanelProps) {
     mutationFn: () => jojiAiApi.gmailVaultBackfill(),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['ai-settings'] });
-      toast.success(`Indexed ${data.threads_indexed} email threads (${data.threads_skipped} skipped)`);
+      toast.success(data.message || 'Gmail indexing started in background');
     },
     onError: () => {
       toast.error('Failed to index Gmail');
