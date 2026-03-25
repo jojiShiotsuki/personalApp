@@ -16,11 +16,9 @@ from app.models.crm import Contact, Deal, Interaction
 from app.models.joji_ai import JojiAISettings
 from app.services.encryption_service import EncryptionService
 from app.services import obsidian_client
+from app.services.vault_config import VAULT_REPO_DIR
 
 logger = logging.getLogger(__name__)
-
-# Same directory as VaultSyncService
-VAULT_REPO_DIR = Path(__file__).parent.parent.parent / "data" / "vault-repo"
 
 # Subfolder within the vault repo for CRM-generated files
 CRM_SYNC_DIR = VAULT_REPO_DIR / "crm-sync"

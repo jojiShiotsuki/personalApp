@@ -17,10 +17,9 @@ from sqlalchemy.orm import Session
 
 from app.models.joji_ai import JojiAISettings, VaultChunk, VaultFile
 from app.services.encryption_service import EncryptionService
+from app.services.vault_config import VAULT_REPO_DIR
 
 logger = logging.getLogger(__name__)
-
-VAULT_REPO_DIR = Path(__file__).parent.parent.parent / "data" / "vault-repo"
 BATCH_SIZE = 20  # Commit after every N files to avoid long DB locks
 CHUNK_CHAR_LIMIT = 2000  # ~500 tokens
 

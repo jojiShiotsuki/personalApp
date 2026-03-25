@@ -11,9 +11,10 @@ from typing import Any, Optional
 
 from sqlalchemy.orm import Session
 
+from app.services.vault_config import VAULT_REPO_DIR
+
 logger = logging.getLogger(__name__)
 
-VAULT_REPO_DIR = Path(__file__).parent.parent.parent / "data" / "vault-repo"
 GMAIL_VAULT_DIR = VAULT_REPO_DIR / "gmail"
 THREAD_BODY_LIMIT = 3000  # chars sent to Haiku per thread
 BATCH_SIZE = 20  # threads per git push

@@ -13,10 +13,9 @@ from app.models.outreach import OutreachCampaign, OutreachProspect, ProspectStat
 from app.models.autoresearch import Experiment
 from app.services.vault_search_service import VaultSearchService
 from app.services import obsidian_client
+from app.services.vault_config import VAULT_REPO_DIR
 
 logger = logging.getLogger(__name__)
-
-VAULT_REPO_DIR = Path(__file__).parent.parent.parent / "data" / "vault-repo"
 
 # Module-level singleton so the embedding cache persists across requests
 _vault_search_service = VaultSearchService()

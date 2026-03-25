@@ -8,14 +8,11 @@ direct filesystem access + git push.
 
 import logging
 import os
-from pathlib import Path
 from typing import Optional
 
 import httpx
 
 logger = logging.getLogger(__name__)
-
-VAULT_REPO_DIR = Path(__file__).parent.parent.parent / "data" / "vault-repo"
 
 # Defaults — overridable via env vars or settings
 DEFAULT_OBSIDIAN_URL = "https://127.0.0.1:27124"
