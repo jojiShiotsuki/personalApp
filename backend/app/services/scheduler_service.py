@@ -84,6 +84,23 @@ async def daily_learning_refresh():
         db.close()
 
 
+async def crm_batch_sync_job():
+    """Scheduled job: batch sync recently modified CRM data to vault."""
+    from app.database.connection import SessionLocal
+    from app.services.crm_vault_sync import CRMVaultSync
+
+    db = SessionLocal()
+    try:
+        syncer = CRMVaultSync()
+        result = syncer.batch_crm_sync(db)
+        if result.get("files_written", 0) > 0:
+            logger.info("CRM batch sync: %s", result)
+    except Exception as e:
+        logger.error("CRM batch sync job failed: %s", e)
+    finally:
+        db.close()
+
+
 def start_scheduler():
     """Start the background scheduler with all jobs."""
     scheduler.add_job(
@@ -101,6 +118,13 @@ def start_scheduler():
         replace_existing=True,
     )
     scheduler.add_job(
+        crm_batch_sync_job,
+        "interval",
+        minutes=30,
+        id="crm_batch_sync",
+        replace_existing=True,
+    )
+    scheduler.add_job(
         daily_learning_refresh,
         "cron",
         hour=22,
@@ -110,7 +134,8 @@ def start_scheduler():
     scheduler.start()
     logger.info(
         "Scheduler started with Gmail polling every 5 min, "
-        "vault sync every 30 min, and daily learning refresh at 22:00"
+        "vault sync every 30 min, CRM batch sync every 30 min, "
+        "and daily learning refresh at 22:00"
     )
 
 def stop_scheduler():
