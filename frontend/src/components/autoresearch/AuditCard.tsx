@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   CheckCircle,
   XCircle,
@@ -15,6 +15,7 @@ import {
   Trash2,
   ExternalLink,
   Send,
+  RefreshCw,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { AuditResult } from '@/types';
@@ -76,11 +77,13 @@ interface AuditCardProps {
   onDelete: (auditId: number) => void;
   onSend?: (auditId: number, prospectId: number, subject: string, body: string) => void;
   onViewScreenshots: (audit: AuditResult) => void;
+  onRegenerate: (auditId: number, instruction: string) => void;
+  isRegenerating?: boolean;
   isSending?: boolean;
   gmailConnected?: boolean;
 }
 
-export default function AuditCard({ audit, onApprove, onReject, onFeedback, onDelete, onSend, onViewScreenshots, isSending, gmailConnected }: AuditCardProps) {
+export default function AuditCard({ audit, onApprove, onReject, onFeedback, onDelete, onSend, onViewScreenshots, onRegenerate, isRegenerating, isSending, gmailConnected }: AuditCardProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedSubject, setEditedSubject] = useState(audit.edited_subject || audit.generated_subject || '');
   const [editedBody, setEditedBody] = useState(audit.edited_body || audit.generated_body || '');
@@ -91,6 +94,14 @@ export default function AuditCard({ audit, onApprove, onReject, onFeedback, onDe
   const [feedbackText, setFeedbackText] = useState('');
   const [isExpanded, setIsExpanded] = useState(false);
   const [selectedVariant, setSelectedVariant] = useState<'original' | 'variant'>('original');
+  const [showRegenerateInput, setShowRegenerateInput] = useState(false);
+  const [regenerateInstruction, setRegenerateInstruction] = useState('');
+
+  // Sync local state when audit data changes (e.g., after regeneration)
+  useEffect(() => {
+    setEditedSubject(audit.edited_subject || audit.generated_subject || '');
+    setEditedBody(audit.edited_body || audit.generated_body || '');
+  }, [audit.generated_subject, audit.generated_body, audit.edited_subject, audit.edited_body]);
 
   const isSkipped = audit.site_quality === 'good' || audit.status === AuditStatus.SKIPPED;
   const isApproved = audit.status === AuditStatus.APPROVED;
@@ -133,6 +144,13 @@ export default function AuditCard({ audit, onApprove, onReject, onFeedback, onDe
     setShowRejectInput(false);
     setRejectionReason('');
     setRejectionCategory('');
+  };
+
+  const handleRegenerate = () => {
+    if (!regenerateInstruction.trim()) return;
+    onRegenerate(audit.id, regenerateInstruction.trim());
+    setShowRegenerateInput(false);
+    setRegenerateInstruction('');
   };
 
   const wordCount = displayBody ? displayBody.trim().split(/\s+/).filter(Boolean).length : 0;
@@ -457,6 +475,42 @@ export default function AuditCard({ audit, onApprove, onReject, onFeedback, onDe
             </div>
           )}
 
+          {/* Regenerate instruction input */}
+          {showRegenerateInput && (
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                placeholder="e.g. the site is outdated, focus on broken contact form..."
+                value={regenerateInstruction}
+                onChange={(e) => setRegenerateInstruction(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') handleRegenerate(); }}
+                className={cn(
+                  'flex-1 px-3 py-2 rounded-lg text-sm',
+                  'bg-stone-800/50 border border-stone-600/40',
+                  'text-[--exec-text] placeholder:text-[--exec-text-muted]',
+                  'focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500/50',
+                  'transition-all'
+                )}
+                maxLength={500}
+                autoFocus
+                disabled={isRegenerating}
+              />
+              <button
+                onClick={handleRegenerate}
+                disabled={!regenerateInstruction.trim() || isRegenerating}
+                className="px-3 py-2 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isRegenerating ? 'Regenerating...' : 'Go'}
+              </button>
+              <button
+                onClick={() => { setShowRegenerateInput(false); setRegenerateInstruction(''); }}
+                className="p-2 text-[--exec-text-muted] hover:text-[--exec-text] hover:bg-stone-700/50 rounded-lg transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+
           {/* Action buttons */}
           {!isSkipped && !isReviewed && (
             <div className="flex items-center gap-2 pt-2 border-t border-stone-700/30">
@@ -501,6 +555,21 @@ export default function AuditCard({ audit, onApprove, onReject, onFeedback, onDe
               >
                 <Edit2 className="w-3.5 h-3.5" />
                 {isEditing ? 'Editing...' : 'Edit'}
+              </button>
+
+              <button
+                onClick={() => setShowRegenerateInput((prev) => !prev)}
+                disabled={isRegenerating}
+                className={cn(
+                  'inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors',
+                  showRegenerateInput
+                    ? 'text-purple-400 bg-purple-900/30 border border-purple-800/40'
+                    : 'text-[--exec-text-secondary] bg-stone-700/50 hover:bg-stone-600/50',
+                  isRegenerating && 'opacity-50 cursor-not-allowed'
+                )}
+              >
+                <RefreshCw className={cn('w-3.5 h-3.5', isRegenerating && 'animate-spin')} />
+                {isRegenerating ? 'Regenerating...' : 'Regenerate'}
               </button>
 
               <button
