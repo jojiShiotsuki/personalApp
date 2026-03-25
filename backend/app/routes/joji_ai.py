@@ -537,32 +537,8 @@ def gmail_sync_now(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
-    """Manually trigger one round of Gmail vault sync with debug info."""
-    from app.services.gmail_vault_service import GmailVaultService, VAULT_REPO_DIR, GMAIL_VAULT_DIR
-    import os
+    """Manually trigger one round of Gmail vault sync."""
+    from app.services.gmail_vault_service import GmailVaultService
 
     service = GmailVaultService()
-    result = service.incremental_sync(db, user.id)
-
-    # Debug info
-    repo_exists = (VAULT_REPO_DIR / ".git").exists()
-    gmail_dir_exists = GMAIL_VAULT_DIR.exists()
-    gmail_file_count = len(list(GMAIL_VAULT_DIR.glob("*.md"))) if gmail_dir_exists else 0
-
-    # Check git status
-    git_status = "unknown"
-    try:
-        import git
-        if repo_exists:
-            repo = git.Repo(VAULT_REPO_DIR)
-            git_status = repo.git.status("--short", "gmail/")[:500] if gmail_dir_exists else "no gmail dir"
-    except Exception as e:
-        git_status = str(e)[:200]
-
-    result["debug"] = {
-        "repo_exists": repo_exists,
-        "gmail_dir_exists": gmail_dir_exists,
-        "gmail_files_on_disk": gmail_file_count,
-        "git_status": git_status,
-    }
-    return result
+    return service.incremental_sync(db, user.id)
