@@ -386,6 +386,46 @@ async def main():
                         pass
                     continue
 
+                # Null issue_type with no error = Claude couldn't determine an issue → treat as not_target
+                if not audit_data.get("issue_type") and not audit_data.get("error"):
+                    audit_data["issue_type"] = "not_target"
+                    audit_data["site_quality"] = "not_target"
+                    audit_data["confidence"] = "high"
+                    logger.info("  -> No issue detected, marking as not_target")
+
+                # JSON parse failure → retry Claude once
+                if audit_data.get("error") and "JSON parse error" in str(audit_data.get("error", "")):
+                    logger.info("  -> JSON parse error, retrying Claude analysis...")
+                    audit_data = await svc.analyze_with_claude(
+                        screenshots=screenshots,
+                        prospect_name=prospect.get("contact_name") or prospect.get("agency_name") or "there",
+                        prospect_company=prospect.get("agency_name") or "",
+                        prospect_niche=prospect.get("niche") or "general",
+                        prospect_city="",
+                        audit_prompt=audit_prompt,
+                        pagespeed=pagespeed,
+                    )
+                    if audit_data.get("error"):
+                        logger.warning("  -> Retry also failed: %s", audit_data["error"])
+                        skip_payload = {
+                            "prospect_id": prospect["id"],
+                            "campaign_id": prospect.get("campaign_id", args.campaign),
+                            "issue_type": "navigation_failed",
+                            "issue_detail": str(audit_data["error"])[:500],
+                            "status": "skipped",
+                            "site_quality": "not_target",
+                            "confidence": "high",
+                        }
+                        try:
+                            await client.post(
+                                f"{API_URL}/api/autoresearch/audits/ingest",
+                                json=skip_payload,
+                                headers={"Authorization": f"Bearer {token}"},
+                            )
+                        except Exception:
+                            pass
+                        continue
+
                 cost = audit_data.get("_meta", {}).get("cost_usd", 0)
                 total_cost += cost
 
