@@ -83,9 +83,12 @@ async def chat(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
-    # Rate limit + cost cap checks
-    _check_rate_limit(user.id, request.model)
+    # Resolve model: explicit request > user's default setting > service default
     settings = db.query(JojiAISettings).filter(JojiAISettings.user_id == user.id).first()
+    resolved_model = request.model or (settings.default_model if settings else None)
+
+    # Rate limit + cost cap checks
+    _check_rate_limit(user.id, resolved_model)
     if settings:
         _check_cost_cap(settings)
 
@@ -95,7 +98,7 @@ async def chat(
         user_id=user.id,
         message=request.message,
         conversation_id=request.conversation_id,
-        model_override=request.model,
+        model_override=resolved_model,
     )
 
     async def event_stream():
