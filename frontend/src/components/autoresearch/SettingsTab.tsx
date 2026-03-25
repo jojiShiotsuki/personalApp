@@ -101,6 +101,7 @@ export default function SettingsTab() {
     email_address: string | null;
     last_poll_at: string | null;
     is_active: boolean;
+    accounts?: Array<{ email_address: string; last_poll_at: string | null; is_active: boolean }>;
   }>({
     queryKey: ['autoresearch-gmail-status'],
     queryFn: () => autoresearchApi.getGmailStatus(),
@@ -251,19 +252,16 @@ export default function SettingsTab() {
           </div>
         ) : isGmailConnected ? (
           <div className="space-y-4">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2 text-sm">
-                <CheckCircle2 className="w-4 h-4 text-green-400" />
-                <span className="font-medium text-green-400">Connected</span>
-                {gmailEmail && (
-                  <span className="text-[--exec-text-muted]">
-                    ({gmailEmail})
+            <div className="space-y-2">
+              {(gmailStatus?.accounts && gmailStatus.accounts.length > 0 ? gmailStatus.accounts : [{ email_address: gmailEmail, last_poll_at: gmailStatus?.last_poll_at, is_active: true }]).map((account: any, idx: number) => (
+                <div key={idx} className="flex items-center gap-2 text-sm">
+                  <CheckCircle2 className="w-4 h-4 text-green-400" />
+                  <span className="font-medium text-green-400">{account.email_address}</span>
+                  <span className="text-[10px] text-[--exec-text-muted]">
+                    Polled: {formatRelativeTime(account.last_poll_at)}
                   </span>
-                )}
-              </div>
-              <p className="text-xs text-[--exec-text-muted] ml-6">
-                Last polled: {formatRelativeTime(gmailStatus?.last_poll_at)}
-              </p>
+                </div>
+              ))}
             </div>
 
             <div className="flex items-center gap-2">
