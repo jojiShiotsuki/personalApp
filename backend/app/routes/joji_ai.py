@@ -434,3 +434,24 @@ def update_settings(
 
     settings.has_github_token = settings.github_token_encrypted is not None
     return settings
+
+
+# ---------------------------------------------------------------------------
+# 11. POST /vault/generate-templates -- Generate vault starter templates
+# ---------------------------------------------------------------------------
+
+@router.post("/vault/generate-templates")
+def generate_vault_templates(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Generate Obsidian vault starter templates from real outreach data."""
+    from app.services.crm_vault_sync import CRMVaultSync
+
+    syncer = CRMVaultSync()
+    result = syncer.generate_starter_templates(db)
+
+    if result.get("status") == "failed":
+        raise HTTPException(status_code=500, detail=result.get("error", "Template generation failed"))
+
+    return result
