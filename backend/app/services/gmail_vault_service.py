@@ -34,64 +34,62 @@ class GmailVaultService:
     def backfill(self, db: Session, user_id: int, months: int = 6) -> dict[str, Any]:
         """One-time backfill: fetch all threads from the past N months, summarise, push to vault.
 
-        Tracks progress via gmail_backfill_status on JojiAISettings so
-        the frontend can show real-time status.
+        Loops through ALL Gmail accounts for the user.
+        Tracks progress via gmail_backfill_status on JojiAISettings.
         """
-        from app.models.joji_ai import JojiAISettings
-
-        # Mark in_progress
         self._set_backfill_status(db, user_id, "in_progress")
 
         try:
-            service, user_email = self._build_gmail_service(db, user_id)
-            if not service:
-                self._set_backfill_status(db, user_id, "failed", error="Gmail not connected")
-                return {"status": "failed", "error": "Gmail not connected"}
+            accounts = self._get_all_gmail_accounts(db, user_id)
+            if not accounts:
+                self._set_backfill_status(db, user_id, "failed", error="No Gmail accounts connected")
+                return {"status": "failed", "error": "No Gmail accounts connected"}
 
             cutoff = datetime.utcnow() - timedelta(days=months * 30)
             query = f"after:{cutoff.strftime('%Y/%m/%d')}"
 
-            thread_ids = self._fetch_thread_ids(service, query)
-            logger.info("Gmail vault backfill: found %d threads", len(thread_ids))
-
-            indexed = 0
-            skipped = 0
+            total_indexed = 0
+            total_skipped = 0
             GMAIL_VAULT_DIR.mkdir(parents=True, exist_ok=True)
 
-            for i, tid in enumerate(thread_ids):
-                try:
-                    md = self._process_thread(service, tid, user_email)
-                    if md is None:
-                        skipped += 1
-                        continue
+            for gmail_service, user_email in accounts:
+                logger.info("Gmail vault backfill: processing %s", user_email)
+                thread_ids = self._fetch_thread_ids(gmail_service, query)
+                logger.info("Gmail vault backfill: found %d threads for %s", len(thread_ids), user_email)
 
-                    dest = GMAIL_VAULT_DIR / f"{tid}.md"
-                    dest.write_text(md, encoding="utf-8")
-                    indexed += 1
+                for i, tid in enumerate(thread_ids):
+                    try:
+                        md = self._process_thread(gmail_service, tid, user_email)
+                        if md is None:
+                            total_skipped += 1
+                            continue
 
-                    # Push in batches
-                    if indexed % BATCH_SIZE == 0:
-                        self._push_to_vault(db)
-                        logger.info(
-                            "Gmail vault backfill: pushed batch %d (%d/%d)",
-                            indexed // BATCH_SIZE,
-                            i + 1,
-                            len(thread_ids),
-                        )
+                        dest = GMAIL_VAULT_DIR / f"{tid}.md"
+                        dest.write_text(md, encoding="utf-8")
+                        total_indexed += 1
 
-                except Exception as exc:
-                    logger.warning("Failed to process thread %s: %s", tid, exc)
-                    skipped += 1
+                        if total_indexed % BATCH_SIZE == 0:
+                            self._push_to_vault(db)
+                            logger.info(
+                                "Gmail vault backfill: pushed batch %d (%s, %d/%d)",
+                                total_indexed // BATCH_SIZE,
+                                user_email,
+                                i + 1,
+                                len(thread_ids),
+                            )
+
+                    except Exception as exc:
+                        logger.warning("Failed to process thread %s: %s", tid, exc)
+                        total_skipped += 1
 
             # Final push
-            if indexed % BATCH_SIZE != 0:
+            if total_indexed % BATCH_SIZE != 0:
                 self._push_to_vault(db)
 
-            # Update sync timestamp and mark success
             self._update_sync_timestamp(db, user_id)
-            self._set_backfill_status(db, user_id, "success", threads=indexed)
+            self._set_backfill_status(db, user_id, "success", threads=total_indexed)
 
-            return {"status": "success", "threads_indexed": indexed, "threads_skipped": skipped}
+            return {"status": "success", "threads_indexed": total_indexed, "threads_skipped": total_skipped}
 
         except Exception as exc:
             logger.exception("Gmail vault backfill failed for user %d", user_id)
@@ -115,16 +113,15 @@ class GmailVaultService:
             logger.warning("Failed to update backfill status to %s", status)
 
     def incremental_sync(self, db: Session, user_id: int) -> dict[str, Any]:
-        """Sync threads modified since last sync."""
-        service, user_email = self._build_gmail_service(db, user_id)
-        if not service:
+        """Sync threads modified since last sync. Loops through ALL accounts."""
+        accounts = self._get_all_gmail_accounts(db, user_id)
+        if not accounts:
             return {"status": "skipped", "reason": "Gmail not connected"}
 
         from app.models.joji_ai import JojiAISettings
 
         settings = db.query(JojiAISettings).filter(JojiAISettings.user_id == user_id).first()
 
-        # Use last sync time, fallback to 7 days ago
         last_sync = None
         if settings and hasattr(settings, "last_gmail_vault_sync_at"):
             last_sync = settings.last_gmail_vault_sync_at
@@ -132,62 +129,75 @@ class GmailVaultService:
             last_sync = datetime.utcnow() - timedelta(days=7)
 
         query = f"after:{last_sync.strftime('%Y/%m/%d')}"
-        thread_ids = self._fetch_thread_ids(service, query)
-
-        if not thread_ids:
-            return {"status": "success", "threads_indexed": 0, "threads_skipped": 0}
 
         GMAIL_VAULT_DIR.mkdir(parents=True, exist_ok=True)
-        indexed = 0
-        skipped = 0
+        total_indexed = 0
+        total_skipped = 0
 
-        for tid in thread_ids:
-            try:
-                md = self._process_thread(service, tid, user_email)
-                if md is None:
-                    skipped += 1
-                    continue
-                dest = GMAIL_VAULT_DIR / f"{tid}.md"
-                dest.write_text(md, encoding="utf-8")
-                indexed += 1
-            except Exception as exc:
-                logger.warning("Failed to process thread %s: %s", tid, exc)
-                skipped += 1
+        for gmail_service, user_email in accounts:
+            thread_ids = self._fetch_thread_ids(gmail_service, query)
+            for tid in thread_ids:
+                try:
+                    md = self._process_thread(gmail_service, tid, user_email)
+                    if md is None:
+                        total_skipped += 1
+                        continue
+                    dest = GMAIL_VAULT_DIR / f"{tid}.md"
+                    dest.write_text(md, encoding="utf-8")
+                    total_indexed += 1
+                except Exception as exc:
+                    logger.warning("Failed to process thread %s: %s", tid, exc)
+                    total_skipped += 1
 
-        if indexed > 0:
+        if total_indexed > 0:
             self._push_to_vault(db)
 
         self._update_sync_timestamp(db, user_id)
-        return {"status": "success", "threads_indexed": indexed, "threads_skipped": skipped}
+        return {"status": "success", "threads_indexed": total_indexed, "threads_skipped": total_skipped}
 
     # ------------------------------------------------------------------
     # Gmail API helpers
     # ------------------------------------------------------------------
 
-    def _build_gmail_service(self, db: Session, user_id: int) -> tuple[Any, Optional[str]]:
-        """Build authenticated Gmail API service for a user."""
+    def _get_all_gmail_accounts(self, db: Session, user_id: int) -> list[tuple[Any, str]]:
+        """Build Gmail API services for ALL connected accounts of a user.
+
+        Returns list of (service, email_address) tuples.
+        """
         from app.models.autoresearch import GmailToken
         from google.oauth2.credentials import Credentials
         from googleapiclient.discovery import build
 
-        token = (
+        tokens = (
             db.query(GmailToken)
             .filter(GmailToken.user_id == user_id, GmailToken.is_active == True)
-            .first()
+            .all()
         )
-        if not token:
-            return None, None
 
-        refresh_token = self._encryption.decrypt(token.encrypted_refresh_token)
-        creds = Credentials(
-            token=None,
-            refresh_token=refresh_token,
-            client_id=os.getenv("GOOGLE_CLIENT_ID"),
-            client_secret=os.getenv("GOOGLE_CLIENT_SECRET"),
-            token_uri="https://oauth2.googleapis.com/token",
-        )
-        service = build("gmail", "v1", credentials=creds)
-        return service, token.email_address
+        accounts = []
+        for token in tokens:
+            try:
+                refresh_token = self._encryption.decrypt(token.encrypted_refresh_token)
+                creds = Credentials(
+                    token=None,
+                    refresh_token=refresh_token,
+                    client_id=os.getenv("GOOGLE_CLIENT_ID"),
+                    client_secret=os.getenv("GOOGLE_CLIENT_SECRET"),
+                    token_uri="https://oauth2.googleapis.com/token",
+                )
+                service = build("gmail", "v1", credentials=creds)
+                accounts.append((service, token.email_address))
+            except Exception as exc:
+                logger.warning("Failed to build Gmail service for %s: %s", token.email_address, exc)
+
+        return accounts
+
+    def _build_gmail_service(self, db: Session, user_id: int) -> tuple[Any, Optional[str]]:
+        """Build authenticated Gmail API service for a user (first account)."""
+        accounts = self._get_all_gmail_accounts(db, user_id)
+        if not accounts:
+            return None, None
+        return accounts[0]
 
     @staticmethod
     def _fetch_thread_ids(service: Any, query: str) -> list[str]:
