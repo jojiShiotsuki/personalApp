@@ -418,20 +418,20 @@ class ToolExecutor:
         if ".." in file_path or file_path.startswith("/"):
             return {"error": "Invalid file path — must be relative, no '..'"}
 
-        if not VAULT_REPO_DIR.exists() or not (VAULT_REPO_DIR / ".git").exists():
-            return {"error": "Vault repo not cloned yet. Please sync the vault first from Settings."}
+        vault_exists = VAULT_REPO_DIR.exists() and (VAULT_REPO_DIR / ".git").exists()
 
         dest = VAULT_REPO_DIR / file_path
-        is_new = not dest.exists()
+        is_new = not dest.exists() if vault_exists else True
 
         # Try Obsidian REST API first (instant visibility in Obsidian)
         wrote_via_api = obsidian_client.write_file(file_path, content)
 
-        # Always write to filesystem too (needed for git + vault search indexing)
-        dest.parent.mkdir(parents=True, exist_ok=True)
-        dest.write_text(content, encoding="utf-8")
+        # Write to filesystem if vault repo exists
+        if vault_exists:
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            dest.write_text(content, encoding="utf-8")
 
-        # Push to GitHub (uses git locally, GitHub API on Render)
+        # Push to GitHub (uses git locally, GitHub API on Render if no repo)
         try:
             from app.services.vault_utils import push_vault_changes
             push_vault_changes(self.db, [file_path], commit_msg)

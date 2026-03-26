@@ -46,21 +46,29 @@ def sanitize_filename(name: str) -> str:
     return sanitized or "unnamed"
 
 
+# In-memory cache for files written this request (used by GitHub API push when filesystem is unavailable)
+_pending_writes: dict[str, str] = {}
+
+
 def write_vault_file(relative_path: str, content: str) -> None:
     """Write *content* to *relative_path* inside the vault.
 
     Attempts the Obsidian REST API first (instant visibility when Obsidian is
-    open), then falls back to a direct filesystem write so the file is always
-    persisted on disk regardless of whether Obsidian is running.
+    open), then writes to filesystem if available, and caches content in memory
+    for the GitHub API push fallback.
     """
+    # Cache for GitHub API push (in case filesystem isn't available)
+    _pending_writes[relative_path] = content
+
     # 1. Obsidian REST API (best-effort — silently ignored on failure)
     obsidian_client.write_file(relative_path, content)
 
-    # 2. Filesystem write (always executed)
-    abs_path = VAULT_REPO_DIR / relative_path
-    abs_path.parent.mkdir(parents=True, exist_ok=True)
-    abs_path.write_text(content, encoding="utf-8")
-    logger.debug("Wrote vault file to filesystem: %s", abs_path)
+    # 2. Filesystem write (if vault repo exists)
+    if VAULT_REPO_DIR.exists():
+        abs_path = VAULT_REPO_DIR / relative_path
+        abs_path.parent.mkdir(parents=True, exist_ok=True)
+        abs_path.write_text(content, encoding="utf-8")
+        logger.debug("Wrote vault file to filesystem: %s", abs_path)
 
 
 def push_vault_changes(db: Session, paths: list[str], commit_msg: str) -> None:
@@ -155,42 +163,44 @@ def _github_api_push(db: Session, paths: list[str], commit_msg: str) -> None:
             "Accept": "application/vnd.github.v3+json",
         }
 
-        # Push each file that exists on the filesystem
+        # Push each file — from filesystem or in-memory cache
         for path_pattern in paths:
-            # path_pattern might be a directory like "library/business/"
-            # Find actual files
+            # Check in-memory cache first (files written by write_vault_file)
+            if path_pattern in _pending_writes:
+                _github_api_put_content(owner_repo, path_pattern, _pending_writes[path_pattern], commit_msg, headers)
+                continue
+
+            # Check filesystem
             search_dir = VAULT_REPO_DIR / path_pattern
             if search_dir.is_dir():
                 files = list(search_dir.rglob("*.md"))
             elif search_dir.exists():
                 files = [search_dir]
             else:
-                # File might only exist in memory (written by write_vault_file)
-                # Try the path directly
-                abs_path = VAULT_REPO_DIR / path_pattern
-                if abs_path.exists():
-                    files = [abs_path]
-                else:
-                    continue
+                # Check cache for any files matching this path prefix (e.g. "library/business/")
+                matched = [k for k in _pending_writes if k.startswith(path_pattern)]
+                for cached_path in matched:
+                    _github_api_put_content(owner_repo, cached_path, _pending_writes[cached_path], commit_msg, headers)
+                continue
 
             for file_path in files:
                 rel_path = file_path.relative_to(VAULT_REPO_DIR).as_posix()
-                _github_api_put_file(owner_repo, rel_path, file_path, commit_msg, headers)
+                content = file_path.read_text(encoding="utf-8")
+                _github_api_put_content(owner_repo, rel_path, content, commit_msg, headers)
 
     except Exception:
         logger.exception("_github_api_push: unexpected error")
 
 
-def _github_api_put_file(
+def _github_api_put_content(
     owner_repo: str,
     file_path: str,
-    local_path: Path,
+    content: str,
     commit_msg: str,
     headers: dict,
 ) -> None:
     """Create or update a single file via GitHub Contents API."""
     try:
-        content = local_path.read_text(encoding="utf-8")
         encoded = base64.b64encode(content.encode("utf-8")).decode("ascii")
 
         api_url = f"https://api.github.com/repos/{owner_repo}/contents/{file_path}"
