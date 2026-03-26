@@ -2459,8 +2459,10 @@ RULES:
 Return ONLY valid JSON (no markdown fences):
 {{"subject": "Re: {original_subject}", "body": "follow-up email body here", "word_count": N}}"""
 
-    # Inject custom instruction — if it's long (200+ chars), switch to conversation mode
-    if custom_instruction and len(custom_instruction) > 200:
+    # Inject custom instruction — if it's long (200+ chars) AND it's an email step, switch to conversation mode
+    # Don't override LinkedIn prompts — they handle custom_instruction internally (e.g. pasted post for engage)
+    is_linkedin_step = channel_type in channel_prompts
+    if custom_instruction and len(custom_instruction) > 200 and not is_linkedin_step:
         # Long context = pasted conversation/email thread — override the cold template
         prompt = f"""You are writing the NEXT email reply for Joji Shiotsuki, who works with trade businesses across Australia on their web presence.
 
