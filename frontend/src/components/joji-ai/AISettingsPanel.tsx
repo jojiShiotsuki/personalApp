@@ -113,7 +113,8 @@ export default function AISettingsPanel({ onBack }: AISettingsPanelProps) {
 
   const formatLastSync = (dateStr: string | null): string => {
     if (!dateStr) return 'Never';
-    const date = new Date(dateStr);
+    // Backend sends UTC timestamps without Z suffix — append it so JS parses correctly
+    const date = new Date(dateStr.endsWith('Z') ? dateStr : dateStr + 'Z');
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
     const diffMins = Math.floor(diffMs / 60000);
