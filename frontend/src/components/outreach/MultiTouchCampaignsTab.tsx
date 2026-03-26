@@ -870,6 +870,10 @@ function SequencePipelineView({
   const [showSkipped, setShowSkipped] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>('date_asc');
   const [searchTerm, setSearchTerm] = useState('');
+  const [editingStep, setEditingStep] = useState<{ stepNumber: number; channelType: string } | null>(null);
+  const [editStepChannel, setEditStepChannel] = useState('');
+  const [savingStep, setSavingStep] = useState(false);
+  const queryClient = useQueryClient();
 
   // Fetch ALL experiments for this campaign once (not per card)
   // Fetch up to 500 to cover all prospects
@@ -1056,12 +1060,18 @@ function SequencePipelineView({
 
             return (
               <div key={col.stepNumber} className="flex flex-col min-w-0">
-                {/* Column header */}
+                {/* Column header — click to edit step type */}
                 <div
+                  onClick={() => {
+                    setEditingStep({ stepNumber: col.stepNumber, channelType: col.channelType || '' });
+                    setEditStepChannel(col.channelType || '');
+                  }}
                   className={cn(
-                    'rounded-t-xl px-4 py-3 border border-b-0',
-                    'bg-stone-800/50 border-stone-700/40'
+                    'rounded-t-xl px-4 py-3 border border-b-0 cursor-pointer',
+                    'bg-stone-800/50 border-stone-700/40',
+                    'hover:bg-stone-700/50 transition-colors'
                   )}
+                  title="Click to change step type"
                 >
                   <div className="flex items-center gap-2.5">
                     <span
@@ -1231,6 +1241,74 @@ function SequencePipelineView({
             </div>
           )}
         </div>
+      )}
+
+      {/* Edit Step Channel Modal */}
+      {editingStep && createPortal(
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50" onClick={() => setEditingStep(null)}>
+          <div className="bg-[--exec-surface] rounded-2xl shadow-2xl w-full max-w-sm mx-4 border border-stone-600/40 p-6" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-sm font-semibold text-[--exec-text]">
+                Edit Step {editingStep.stepNumber}
+              </h3>
+              <button onClick={() => setEditingStep(null)} className="text-[--exec-text-muted] hover:text-[--exec-text] p-1 rounded-lg hover:bg-stone-700/50">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <label className="block text-[10px] font-medium text-[--exec-text-muted] mb-1.5 uppercase tracking-wider">
+              Channel Type
+            </label>
+            <select
+              value={editStepChannel}
+              onChange={(e) => setEditStepChannel(e.target.value)}
+              className="w-full px-3 py-2 rounded-lg bg-stone-800/50 border border-stone-600/40 text-[--exec-text] text-sm focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]/50 transition-all cursor-pointer appearance-none mb-4"
+            >
+              {Object.entries(CHANNEL_LABELS).map(([value, label]) => (
+                <option key={value} value={value}>{label}</option>
+              ))}
+            </select>
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => setEditingStep(null)}
+                className="px-3 py-2 text-xs font-medium text-[--exec-text-secondary] bg-stone-700/50 rounded-lg hover:bg-stone-600/50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                disabled={savingStep || editStepChannel === editingStep.channelType}
+                onClick={async () => {
+                  setSavingStep(true);
+                  try {
+                    // Build updated steps array — only change the one step's channel_type
+                    const updatedSteps = campaignSteps.map(s => ({
+                      step_number: s.step_number,
+                      channel_type: s.step_number === editingStep.stepNumber ? editStepChannel : s.channel_type,
+                      delay_days: s.delay_days,
+                      template_subject: s.template_subject || undefined,
+                      template_content: s.template_content || undefined,
+                      instruction_text: s.instruction_text || undefined,
+                      requires_linkedin_connected: s.requires_linkedin_connected,
+                      loom_script: s.loom_script || undefined,
+                    }));
+                    await coldOutreachApi.updateCampaignSteps(prospects[0]?.campaign_id, updatedSteps);
+                    queryClient.invalidateQueries({ queryKey: ['mt-campaign'] });
+                    queryClient.invalidateQueries({ queryKey: ['mt-steps'] });
+                    toast.success(`Step ${editingStep.stepNumber} changed to ${CHANNEL_LABELS[editStepChannel as StepChannelType] || editStepChannel}`);
+                    setEditingStep(null);
+                  } catch {
+                    toast.error('Failed to update step');
+                  } finally {
+                    setSavingStep(false);
+                  }
+                }}
+                className="px-3 py-2 text-xs font-medium text-white bg-[--exec-accent] rounded-lg hover:bg-[--exec-accent-dark] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {savingStep ? 'Saving...' : 'Save'}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
     </div>
   );
