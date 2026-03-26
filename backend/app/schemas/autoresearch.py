@@ -105,7 +105,7 @@ class ExperimentResponse(BaseModel):
     id: int
     prospect_id: int
     campaign_id: int
-    audit_id: int
+    audit_id: Optional[int] = None
 
     # Experiment status
     status: Optional[str] = "draft"
