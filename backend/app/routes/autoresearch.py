@@ -1084,15 +1084,23 @@ def list_experiments(
         .all()
     )
 
-    return ExperimentListResponse(
-        experiments=[
-            ExperimentResponse.model_validate(exp, from_attributes=True)
-            for exp in experiments
-        ],
-        total_count=total_count,
-        page=page,
-        page_size=page_size,
-    )
+    try:
+        validated = []
+        for exp in experiments:
+            try:
+                validated.append(ExperimentResponse.model_validate(exp, from_attributes=True))
+            except Exception as val_err:
+                logger.error("Experiment %d validation failed: %s", exp.id, val_err)
+                raise
+        return ExperimentListResponse(
+            experiments=validated,
+            total_count=total_count,
+            page=page,
+            page_size=page_size,
+        )
+    except Exception as e:
+        logger.error("list_experiments failed: %s", e, exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e)[:500])
 
 
 # ──────────────────────────────────────────────
