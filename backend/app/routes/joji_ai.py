@@ -120,6 +120,19 @@ async def chat(
 
 
 # ---------------------------------------------------------------------------
+# 1b. GET /conversations/{id}/learn-status -- Poll for background learning result
+# ---------------------------------------------------------------------------
+
+@router.get("/conversations/{conversation_id}/learn-status")
+def get_learn_status(
+    conversation_id: int,
+    user: User = Depends(get_current_user),
+):
+    from app.services.ai_service import get_learn_result
+    return get_learn_result(conversation_id)
+
+
+# ---------------------------------------------------------------------------
 # 2. GET /conversations -- List conversations
 # ---------------------------------------------------------------------------
 

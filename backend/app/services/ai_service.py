@@ -36,6 +36,14 @@ DEFAULT_MODEL = os.getenv("JOJI_AI_DEFAULT_MODEL", "claude-sonnet-4-6")
 DEFAULT_MAX_TOKENS = 4096
 CONVERSATION_HISTORY_LIMIT = 20
 
+# In-memory store for background learning results (polled by frontend)
+_learn_results: dict[int, dict] = {}
+
+
+def get_learn_result(conversation_id: int) -> dict:
+    """Pop and return the learning result for a conversation (if available)."""
+    return _learn_results.pop(conversation_id, {"insights_saved": 0})
+
 
 def _calculate_cost(model: str, input_tokens: int, output_tokens: int) -> float:
     """Return estimated USD cost based on token counts and model pricing."""
@@ -452,6 +460,8 @@ class JojiAIService:
                 if learn_result and learn_result.get("insights_saved"):
                     logger.info("Learned %d insights from conversation %d",
                                 learn_result["insights_saved"], conv_id)
+                    # Store result for polling endpoint
+                    _learn_results[conv_id] = {"insights_saved": learn_result["insights_saved"]}
             except Exception as learn_exc:
                 logger.warning("Learning cycle failed: %s", learn_exc)
             finally:

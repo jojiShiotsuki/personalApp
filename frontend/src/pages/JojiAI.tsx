@@ -197,6 +197,22 @@ export default function JojiAI() {
                 conversationId = parsed.conversation_id ?? null;
                 model = parsed.model ?? null;
                 tokensUsed = parsed.tokens_used ?? null;
+                // Learning runs in background — poll for results after a delay
+                if (parsed.conversation_id) {
+                  setTimeout(async () => {
+                    try {
+                      const resp = await fetch(`${import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://vertex-api-smg3.onrender.com' : 'http://localhost:8001')}/api/ai/conversations/${parsed.conversation_id}/learn-status`, {
+                        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+                      });
+                      if (resp.ok) {
+                        const data = await resp.json();
+                        if (data.insights_saved > 0) {
+                          toast.success(`Brain updated — ${data.insights_saved} new insight${data.insights_saved > 1 ? 's' : ''} saved`, { duration: 4000 });
+                        }
+                      }
+                    } catch { /* silent */ }
+                  }, 6000);
+                }
                 break;
               }
               case 'learned': {
