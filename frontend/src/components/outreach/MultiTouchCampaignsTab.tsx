@@ -1282,7 +1282,7 @@ function SequencePipelineView({
                     // Build updated steps array — only change the one step's channel_type
                     const updatedSteps = campaignSteps.map(s => ({
                       step_number: s.step_number,
-                      channel_type: s.step_number === editingStep.stepNumber ? editStepChannel : s.channel_type,
+                      channel_type: (s.step_number === editingStep.stepNumber ? editStepChannel : s.channel_type) as StepChannelType,
                       delay_days: s.delay_days,
                       template_subject: s.template_subject || undefined,
                       template_content: s.template_content || undefined,
