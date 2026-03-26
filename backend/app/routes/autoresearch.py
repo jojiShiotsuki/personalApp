@@ -1054,6 +1054,7 @@ def update_settings(
 @router.get("/experiments", response_model=ExperimentListResponse)
 def list_experiments(
     campaign_id: Optional[int] = Query(None),
+    prospect_id: Optional[int] = Query(None),
     niche: Optional[str] = Query(None),
     issue_type: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
@@ -1067,6 +1068,8 @@ def list_experiments(
 
     if campaign_id is not None:
         query = query.filter(Experiment.campaign_id == campaign_id)
+    if prospect_id is not None:
+        query = query.filter(Experiment.prospect_id == prospect_id)
     if niche is not None:
         query = query.filter(Experiment.niche == niche)
     if issue_type is not None:

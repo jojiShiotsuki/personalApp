@@ -1439,7 +1439,7 @@ export const autoresearchApi = {
     });
     return data;
   },
-  listExperiments: async (params?: { campaign_id?: number; niche?: string; issue_type?: string; status?: string; page?: number; page_size?: number }): Promise<ExperimentListResponse> => {
+  listExperiments: async (params?: { campaign_id?: number; prospect_id?: number; niche?: string; issue_type?: string; status?: string; page?: number; page_size?: number }): Promise<ExperimentListResponse> => {
     const { data } = await api.get('/api/autoresearch/experiments', { params });
     return data;
   },
