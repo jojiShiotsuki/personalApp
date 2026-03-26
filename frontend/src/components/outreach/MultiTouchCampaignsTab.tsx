@@ -510,6 +510,23 @@ function PipelineProspectCard({
   const [linkedinReplyProspect, setLinkedinReplyProspect] = useState<OutreachProspect | null>(null);
   const [linkedinConvoText, setLinkedinConvoText] = useState('');
   const [linkedinSaving, setLinkedinSaving] = useState(false);
+  const [loomWatched, setLoomWatched] = useState(false);
+  const [linkedinReplied, setLinkedinReplied] = useState(false);
+
+  // Fetch experiment status for this prospect (loom/linkedin state)
+  const { data: prospectExps } = useQuery({
+    queryKey: ['prospect-experiments', prospect.id],
+    queryFn: () => autoresearchApi.listExperiments({ prospect_id: prospect.id, page: 1, page_size: 1 }),
+    staleTime: 30000,
+  });
+  const latestExp = prospectExps?.experiments?.[0];
+
+  useEffect(() => {
+    if (latestExp) {
+      setLoomWatched(latestExp.loom_watched === true);
+      setLinkedinReplied(latestExp.replied === true);
+    }
+  }, [latestExp]);
 
   // Scroll into view when highlighted
   useEffect(() => {
@@ -577,26 +594,30 @@ function PipelineProspectCard({
             <button
               onClick={async () => {
                 try {
-                  const exps = await autoresearchApi.listExperiments({ campaign_id: prospect.campaign_id, prospect_id: prospect.id, page: 1, page_size: 10 });
-                  const exp = exps.experiments?.[0];
+                  const exp = latestExp;
                   if (!exp) {
                     toast.error('No experiment found for this prospect — approve an audit first');
                     return;
                   }
 
-                  // Toggle loom_watched status
-                  const currentlyWatched = exp.loom_watched === true;
+                  const newWatched = !loomWatched;
                   await autoresearchApi.updateLoomStatus(exp.id, {
                     loom_sent: true,
-                    loom_watched: !currentlyWatched,
+                    loom_watched: newWatched,
                   });
-                  toast.success(currentlyWatched ? 'Loom unmarked as watched' : 'Loom marked as watched');
+                  setLoomWatched(newWatched);
+                  toast.success(newWatched ? 'Loom marked as watched' : 'Loom unmarked as watched');
                 } catch {
                   toast.error('Failed to update Loom status');
                 }
               }}
-              className="p-1.5 text-[--exec-text-muted] hover:text-purple-400 hover:bg-purple-500/15 rounded-md transition-colors"
-              title="Loom tracking"
+              className={cn(
+                'p-1.5 rounded-md transition-colors',
+                loomWatched
+                  ? 'text-purple-400 bg-purple-500/15'
+                  : 'text-[--exec-text-muted] hover:text-purple-400 hover:bg-purple-500/15'
+              )}
+              title={loomWatched ? 'Loom watched (click to undo)' : 'Mark Loom as watched'}
             >
               <Video className="w-3.5 h-3.5" />
             </button>
@@ -604,8 +625,13 @@ function PipelineProspectCard({
           {!isMuted && (
             <button
               onClick={() => setLinkedinReplyProspect(prospect)}
-              className="p-1.5 text-[--exec-text-muted] hover:text-sky-400 hover:bg-sky-500/15 rounded-md transition-colors"
-              title="Log LinkedIn reply"
+              className={cn(
+                'p-1.5 rounded-md transition-colors',
+                linkedinReplied
+                  ? 'text-sky-400 bg-sky-500/15'
+                  : 'text-[--exec-text-muted] hover:text-sky-400 hover:bg-sky-500/15'
+              )}
+              title={linkedinReplied ? 'LinkedIn replied (click to update)' : 'Log LinkedIn reply'}
             >
               <Linkedin className="w-3.5 h-3.5" />
             </button>
@@ -706,6 +732,7 @@ function PipelineProspectCard({
                       full_reply_text: linkedinConvoText || undefined,
                     });
                     toast.success('LinkedIn reply recorded');
+                    setLinkedinReplied(true);
                     setLinkedinReplyProspect(null);
                     setLinkedinConvoText('');
                   } catch {
