@@ -550,9 +550,9 @@ export default function CopyEmailModal({
               <textarea
                 value={preGenerateContext}
                 onChange={(e) => setPreGenerateContext(e.target.value)}
-                placeholder="Add context before generating (e.g. 'they replied on LinkedIn saying they're interested but busy this month', 'focus on their slow page speed')..."
-                rows={2}
-                className="w-full px-3 py-2 rounded-lg bg-stone-800/50 border border-stone-600/40 text-[--exec-text] placeholder:text-[--exec-text-muted] focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]/50 transition-all text-xs resize-none"
+                placeholder="Paste conversation, add context, or give instructions (e.g. paste their email reply, LinkedIn convo, or 'they said they're interested but busy')..."
+                rows={3}
+                className="w-full px-3 py-2 rounded-lg bg-stone-800/50 border border-stone-600/40 text-[--exec-text] placeholder:text-[--exec-text-muted] focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]/50 transition-all text-xs resize-y min-h-[60px] max-h-[300px]"
               />
               <button
                 onClick={() => handleGenerateFollowUp(preGenerateContext || undefined)}
