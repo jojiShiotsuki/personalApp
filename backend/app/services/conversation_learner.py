@@ -124,6 +124,9 @@ def run_learning_cycle(db: Session, conversation_id: int) -> Optional[dict]:
         # Re-index written files immediately so they're searchable right away
         if written_files:
             _reindex_files(db, written_files)
+            # Push to GitHub so it reaches Obsidian
+            from app.services.vault_utils import push_vault_changes
+            push_vault_changes(db, written_files, f"Brain: learned {len(written_files)} insight(s)")
 
         logger.info("Conversation learner: %d insights from conversation %d", written, conversation_id)
         return {"status": "learned", "insights_saved": written}

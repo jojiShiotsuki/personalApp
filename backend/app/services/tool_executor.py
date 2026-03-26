@@ -431,21 +431,12 @@ class ToolExecutor:
         dest.parent.mkdir(parents=True, exist_ok=True)
         dest.write_text(content, encoding="utf-8")
 
-        # Git add, commit, push
+        # Push to GitHub (uses git locally, GitHub API on Render)
         try:
-            import git
-            repo = git.Repo(VAULT_REPO_DIR)
-            repo.git.add(file_path)
-            if repo.is_dirty(index=True):
-                repo.index.commit(commit_msg)
-                # Inject auth token for push if remote URL has no credentials
-                self._push_vault_repo(repo)
-                logger.info("Vault file written and pushed: %s", file_path)
-            else:
-                logger.info("Vault file unchanged: %s", file_path)
+            from app.services.vault_utils import push_vault_changes
+            push_vault_changes(self.db, [file_path], commit_msg)
         except Exception as exc:
-            logger.warning("Vault git push failed for %s: %s", file_path, exc)
-            return {"status": "written_locally", "file_path": file_path, "warning": f"File saved but git push failed: {exc}"}
+            logger.warning("Vault push failed for %s: %s", file_path, exc)
 
         # Re-index this file immediately so it's searchable right away
         try:
