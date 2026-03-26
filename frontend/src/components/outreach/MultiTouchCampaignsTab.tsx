@@ -507,6 +507,9 @@ function PipelineProspectCard({
   const cardRef = useRef<HTMLDivElement>(null);
   const dueToday = isDueToday(prospect.next_action_date);
   const hasCustomMessage = !!(prospect.custom_email_subject || prospect.custom_email_body);
+  const [linkedinReplyProspect, setLinkedinReplyProspect] = useState<OutreachProspect | null>(null);
+  const [linkedinConvoText, setLinkedinConvoText] = useState('');
+  const [linkedinSaving, setLinkedinSaving] = useState(false);
 
   // Scroll into view when highlighted
   useEffect(() => {
@@ -598,6 +601,15 @@ function PipelineProspectCard({
               <Video className="w-3.5 h-3.5" />
             </button>
           )}
+          {!isMuted && (
+            <button
+              onClick={() => setLinkedinReplyProspect(prospect)}
+              className="p-1.5 text-[--exec-text-muted] hover:text-sky-400 hover:bg-sky-500/15 rounded-md transition-colors"
+              title="Log LinkedIn reply"
+            >
+              <Linkedin className="w-3.5 h-3.5" />
+            </button>
+          )}
           <button
             onClick={() => onEdit(prospect)}
             className="p-1.5 text-[--exec-text-muted] hover:text-[--exec-text] hover:bg-[--exec-surface-alt] rounded-md transition-colors"
@@ -651,6 +663,66 @@ function PipelineProspectCard({
       <div className="pt-2 border-t border-[--exec-border-subtle]">
         <ProspectLinks prospect={prospect} />
       </div>
+
+      {/* LinkedIn Reply Modal */}
+      {linkedinReplyProspect && createPortal(
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50" onClick={() => setLinkedinReplyProspect(null)}>
+          <div className="bg-[--exec-surface] rounded-2xl shadow-2xl w-full max-w-md mx-4 border border-stone-600/40 p-6" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-sm font-semibold text-[--exec-text]">
+                Log LinkedIn Reply — {linkedinReplyProspect.agency_name}
+              </h3>
+              <button onClick={() => setLinkedinReplyProspect(null)} className="text-[--exec-text-muted] hover:text-[--exec-text] p-1 rounded-lg hover:bg-stone-700/50">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <textarea
+              value={linkedinConvoText}
+              onChange={e => setLinkedinConvoText(e.target.value)}
+              placeholder="Paste the LinkedIn conversation here (optional)..."
+              rows={6}
+              className="w-full px-3 py-2 rounded-lg bg-stone-800/50 border border-stone-600/40 text-[--exec-text] placeholder:text-[--exec-text-muted] focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500/50 transition-all text-sm resize-none mb-4"
+            />
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => setLinkedinReplyProspect(null)}
+                className="px-3 py-2 text-xs font-medium text-[--exec-text-secondary] bg-stone-700/50 rounded-lg hover:bg-stone-600/50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                disabled={linkedinSaving}
+                onClick={async () => {
+                  setLinkedinSaving(true);
+                  try {
+                    const exps = await autoresearchApi.listExperiments({ campaign_id: linkedinReplyProspect.campaign_id, prospect_id: linkedinReplyProspect.id, page: 1, page_size: 10 });
+                    const exp = exps.experiments?.[0];
+                    if (!exp) {
+                      toast.error('No experiment found for this prospect');
+                      return;
+                    }
+                    await autoresearchApi.updateLinkedInReply(exp.id, {
+                      replied: true,
+                      full_reply_text: linkedinConvoText || undefined,
+                    });
+                    toast.success('LinkedIn reply recorded');
+                    setLinkedinReplyProspect(null);
+                    setLinkedinConvoText('');
+                  } catch {
+                    toast.error('Failed to save LinkedIn reply');
+                  } finally {
+                    setLinkedinSaving(false);
+                  }
+                }}
+                className="px-3 py-2 text-xs font-medium text-white bg-sky-600 rounded-lg hover:bg-sky-700 transition-colors disabled:opacity-50"
+              >
+                {linkedinSaving ? 'Saving...' : 'Save Reply'}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 }

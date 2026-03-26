@@ -1499,6 +1499,10 @@ export const autoresearchApi = {
     const { data } = await api.put(`/api/autoresearch/experiments/${experimentId}/loom`, payload);
     return data;
   },
+  updateLinkedInReply: async (experimentId: number, payload: { replied?: boolean; sentiment?: string; full_reply_text?: string }) => {
+    const { data } = await api.put(`/api/autoresearch/experiments/${experimentId}/linkedin-reply`, payload);
+    return data;
+  },
   sendEmail: async (prospectId: number, subject: string, body: string) => {
     const { data } = await api.post(`/api/autoresearch/send-email/${prospectId}`, { subject, body });
     return data;

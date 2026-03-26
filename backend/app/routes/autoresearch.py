@@ -51,6 +51,7 @@ from app.schemas.autoresearch import (
     ExperimentResponse,
     InsightResponse,
     IssueTypeStats,
+    LinkedInReplyUpdate,
     LoomStatusUpdate,
     NicheStats,
     TimingStats,
@@ -1629,6 +1630,35 @@ async def update_loom_status(
     db.refresh(experiment)
 
     return {"message": "Loom status updated", "experiment_id": experiment_id}
+
+
+# ──────────────────────────────────────────────
+# 18. PUT /experiments/{id}/linkedin-reply — Track LinkedIn reply
+# ──────────────────────────────────────────────
+
+@router.put("/experiments/{experiment_id}/linkedin-reply")
+async def update_linkedin_reply(
+    experiment_id: int,
+    payload: LinkedInReplyUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Record a LinkedIn reply on an experiment with optional conversation text."""
+    experiment = db.query(Experiment).filter(Experiment.id == experiment_id).first()
+    if not experiment:
+        raise HTTPException(status_code=404, detail="Experiment not found")
+
+    experiment.replied = payload.replied
+    if payload.sentiment:
+        experiment.sentiment = payload.sentiment
+    if payload.full_reply_text:
+        experiment.full_reply_text = payload.full_reply_text
+    experiment.reply_at = datetime.utcnow()
+
+    db.commit()
+    db.refresh(experiment)
+
+    return {"message": "LinkedIn reply recorded", "experiment_id": experiment_id}
 
 
 # ──────────────────────────────────────────────

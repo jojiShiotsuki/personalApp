@@ -352,3 +352,9 @@ class LoomStatusUpdate(BaseModel):
     loom_sent: Optional[bool] = None
     loom_url: Optional[str] = None
     loom_watched: Optional[bool] = None
+
+
+class LinkedInReplyUpdate(BaseModel):
+    replied: bool = True
+    sentiment: Optional[str] = None  # positive/neutral/negative
+    full_reply_text: Optional[str] = None  # pasted conversation
