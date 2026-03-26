@@ -677,6 +677,19 @@ def approve_audit(
     db.commit()
     db.refresh(audit)
 
+    # Learn from edits — detect patterns like "always removes em dashes"
+    if edit_type in ("minor", "major"):
+        try:
+            _learn_from_edit(
+                db,
+                original_subject=audit.generated_subject or "",
+                original_body=audit.generated_body or "",
+                edited_subject=final_subject,
+                edited_body=final_body,
+            )
+        except Exception as learn_err:
+            logger.warning("Edit learning failed: %s", learn_err)
+
     # Build response with prospect info
     resp = AuditResultResponse.model_validate(audit, from_attributes=True)
     if prospect:
@@ -2036,6 +2049,56 @@ async def send_email_to_prospect(
 # Sonnet 4.6 pricing for follow-up generation
 _FOLLOWUP_INPUT_PRICE_PER_M = 3.0
 _FOLLOWUP_OUTPUT_PRICE_PER_M = 15.0
+
+
+def _learn_from_edit(db: Session, original_subject: str, original_body: str, edited_subject: str, edited_body: str) -> None:
+    """Detect edit patterns and store as insights so future emails avoid the same issues."""
+    from app.models.autoresearch import Insight
+
+    patterns = []
+
+    # Detect em dash removal
+    orig_emdash_count = original_body.count("—") + original_subject.count("—")
+    edit_emdash_count = edited_body.count("—") + edited_subject.count("—")
+    if orig_emdash_count > 0 and edit_emdash_count < orig_emdash_count:
+        patterns.append("User removes em dashes (—). NEVER use em dashes in any email.")
+
+    # Detect sign-off changes
+    if "Cheers," in original_body and "Cheers," not in edited_body:
+        patterns.append("User changed the sign-off from 'Cheers'. Check what they prefer.")
+
+    # Detect significant shortening (user cut >30% of words)
+    orig_words = len(original_body.split())
+    edit_words = len(edited_body.split())
+    if orig_words > 10 and edit_words < orig_words * 0.7:
+        patterns.append(f"User shortened the email significantly ({orig_words} → {edit_words} words). Write shorter emails.")
+
+    # Detect greeting changes
+    if original_body.startswith("G'day") and not edited_body.startswith("G'day"):
+        first_line = edited_body.split("\n")[0].strip() if edited_body else ""
+        patterns.append(f"User changed greeting from \"G'day\" to \"{first_line}\". Use their preferred greeting.")
+
+    for pattern in patterns:
+        # Check if this insight already exists
+        existing = db.query(Insight).filter(
+            Insight.insight == pattern,
+            Insight.is_active.is_(True),
+        ).first()
+        if existing:
+            continue
+
+        insight = Insight(
+            insight=pattern,
+            recommendation=pattern,
+            category="edit_pattern",
+            confidence=0.8,
+            is_active=True,
+        )
+        db.add(insight)
+        logger.info("Learned from edit: %s", pattern)
+
+    if patterns:
+        db.commit()
 
 
 def _parse_followup_json(raw_text: str) -> dict:
