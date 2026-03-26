@@ -1304,7 +1304,7 @@ function SequencePipelineView({
                 Cancel
               </button>
               <button
-                disabled={savingStep || editStepChannel === editingStep.channelType}
+                disabled={savingStep}
                 onClick={async () => {
                   setSavingStep(true);
                   try {
