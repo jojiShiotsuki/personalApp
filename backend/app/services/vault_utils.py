@@ -158,15 +158,20 @@ def _github_api_push(db: Session, paths: list[str], commit_msg: str) -> None:
             return
         owner_repo = match.group(1)
 
+        # Classic PATs use "token", fine-grained use "Bearer" — try token first
+        auth_prefix = "token" if token.startswith("ghp_") else "Bearer"
         headers = {
-            "Authorization": f"Bearer {token}",
+            "Authorization": f"{auth_prefix} {token}",
             "Accept": "application/vnd.github.v3+json",
         }
+        logger.info("_github_api_push: using %s auth for %s, paths=%s", auth_prefix, owner_repo, paths)
 
         # Push each file — from filesystem or in-memory cache
+        logger.info("_github_api_push: pending_writes keys=%s", list(_pending_writes.keys()))
         for path_pattern in paths:
             # Check in-memory cache first (files written by write_vault_file)
             if path_pattern in _pending_writes:
+                logger.info("_github_api_push: found %s in cache, pushing via API", path_pattern)
                 _github_api_put_content(owner_repo, path_pattern, _pending_writes[path_pattern], commit_msg, headers)
                 continue
 
