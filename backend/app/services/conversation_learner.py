@@ -165,6 +165,8 @@ def _load_existing_learnings() -> str:
 
 def _append_to_vault_file(file_path: str, insight: str, category: str) -> bool:
     """Append a learning insight to a vault file. Returns True if written."""
+    from app.services.vault_utils import write_vault_file
+
     full_path = VAULT_REPO_DIR / file_path
     today = datetime.utcnow().strftime("%Y-%m-%d")
     entry = f"\n\n## Learned {today}\n- {insight}\n"
@@ -181,10 +183,9 @@ def _append_to_vault_file(file_path: str, insight: str, category: str) -> bool:
             f"# {file_path.split('/')[-1].replace('.md', '').replace('-', ' ').title()}\n"
             f"{entry}"
         )
-        full_path.parent.mkdir(parents=True, exist_ok=True)
 
-    full_path.write_text(content, encoding="utf-8")
-    obsidian_client.write_file(file_path, content)
+    # Use shared write function (caches content for GitHub API push + writes to filesystem/Obsidian)
+    write_vault_file(file_path, content)
     return True
 
 

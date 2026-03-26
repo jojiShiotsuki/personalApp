@@ -418,25 +418,20 @@ class ToolExecutor:
         if ".." in file_path or file_path.startswith("/"):
             return {"error": "Invalid file path — must be relative, no '..'"}
 
-        vault_exists = VAULT_REPO_DIR.exists() and (VAULT_REPO_DIR / ".git").exists()
-
         dest = VAULT_REPO_DIR / file_path
-        is_new = not dest.exists() if vault_exists else True
+        is_new = not dest.exists()
 
-        # Try Obsidian REST API first (instant visibility in Obsidian)
-        wrote_via_api = obsidian_client.write_file(file_path, content)
-
-        # Write to filesystem if vault repo exists
-        if vault_exists:
-            dest.parent.mkdir(parents=True, exist_ok=True)
-            dest.write_text(content, encoding="utf-8")
+        # Write via shared function (Obsidian REST API + filesystem + caches for GitHub API)
+        from app.services.vault_utils import write_vault_file, push_vault_changes
+        write_vault_file(file_path, content)
 
         # Push to GitHub (uses git locally, GitHub API on Render if no repo)
         try:
-            from app.services.vault_utils import push_vault_changes
             push_vault_changes(self.db, [file_path], commit_msg)
         except Exception as exc:
             logger.warning("Vault push failed for %s: %s", file_path, exc)
+
+        wrote_via_api = bool(obsidian_client._get_api_key())
 
         # Re-index this file immediately so it's searchable right away
         try:
