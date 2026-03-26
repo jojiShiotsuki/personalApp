@@ -574,13 +574,10 @@ function PipelineProspectCard({
             <button
               onClick={async () => {
                 try {
-                  const exps = await autoresearchApi.listExperiments({ campaign_id: prospect.campaign_id, page: 1, page_size: 10 });
+                  const exps = await autoresearchApi.listExperiments({ campaign_id: prospect.campaign_id, page: 1, page_size: 200 });
                   const exp = exps.experiments?.find((e: any) => e.prospect_id === prospect.id);
                   if (!exp) {
-                    // No experiment — just mark as sent
-                    const url = prompt('Paste the Loom URL (or leave empty to just mark as sent):');
-                    if (url === null) return;
-                    toast.error('No experiment found for this prospect');
+                    toast.error('No experiment found for this prospect — approve an audit first');
                     return;
                   }
 
