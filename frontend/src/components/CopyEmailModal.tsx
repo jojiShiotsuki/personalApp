@@ -121,6 +121,7 @@ export default function CopyEmailModal({
   const [aiFollowUpUsed, setAiFollowUpUsed] = useState(false);
   const [regenerateInstruction, setRegenerateInstruction] = useState('');
   const [isRegeneratingLoom, setIsRegeneratingLoom] = useState(false);
+  const [preGenerateContext, setPreGenerateContext] = useState('');
 
   const handleGenerateFollowUp = async (instruction?: string) => {
     setIsGeneratingFollowUp(true);
@@ -545,18 +546,27 @@ export default function CopyEmailModal({
 
           {/* Generate AI Follow-up */}
           {canGenerateFollowUp && !aiFollowUpUsed && (
-            <button
-              onClick={() => handleGenerateFollowUp()}
-              disabled={isGeneratingFollowUp}
-              className={cn(
-                'w-full mb-4 px-4 py-2.5 text-sm font-medium rounded-lg transition-all',
-                'bg-[#E07A5F] text-white',
-                'hover:bg-[#C65D42] shadow-sm hover:shadow-md',
-                'disabled:opacity-50 disabled:cursor-not-allowed'
-              )}
-            >
-              {isGeneratingFollowUp ? 'Generating...' : isStep1 ? 'Generate AI Email' : 'Generate AI Follow-up'}
-            </button>
+            <div className="mb-4 space-y-2">
+              <textarea
+                value={preGenerateContext}
+                onChange={(e) => setPreGenerateContext(e.target.value)}
+                placeholder="Add context before generating (e.g. 'they replied on LinkedIn saying they're interested but busy this month', 'focus on their slow page speed')..."
+                rows={2}
+                className="w-full px-3 py-2 rounded-lg bg-stone-800/50 border border-stone-600/40 text-[--exec-text] placeholder:text-[--exec-text-muted] focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]/50 transition-all text-xs resize-none"
+              />
+              <button
+                onClick={() => handleGenerateFollowUp(preGenerateContext || undefined)}
+                disabled={isGeneratingFollowUp}
+                className={cn(
+                  'w-full px-4 py-2.5 text-sm font-medium rounded-lg transition-all',
+                  'bg-[#E07A5F] text-white',
+                  'hover:bg-[#C65D42] shadow-sm hover:shadow-md',
+                  'disabled:opacity-50 disabled:cursor-not-allowed'
+                )}
+              >
+                {isGeneratingFollowUp ? 'Generating...' : isStep1 ? 'Generate AI Email' : 'Generate AI Follow-up'}
+              </button>
+            </div>
           )}
 
           {/* LinkedIn Engage — paste post + generate comment */}
