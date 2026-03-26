@@ -495,6 +495,7 @@ function PipelineProspectCard({
   onMarkConnected,
   isMuted,
   isHighlighted,
+  experiment,
 }: {
   prospect: OutreachProspect;
   onEdit: (prospect: OutreachProspect) => void;
@@ -503,6 +504,7 @@ function PipelineProspectCard({
   onMarkConnected?: (prospect: OutreachProspect) => void;
   isMuted?: boolean;
   isHighlighted?: boolean;
+  experiment?: any;
 }) {
   const cardRef = useRef<HTMLDivElement>(null);
   const dueToday = isDueToday(prospect.next_action_date);
@@ -510,23 +512,16 @@ function PipelineProspectCard({
   const [linkedinReplyProspect, setLinkedinReplyProspect] = useState<OutreachProspect | null>(null);
   const [linkedinConvoText, setLinkedinConvoText] = useState('');
   const [linkedinSaving, setLinkedinSaving] = useState(false);
-  const [loomWatched, setLoomWatched] = useState(false);
-  const [linkedinReplied, setLinkedinReplied] = useState(false);
+  const [loomWatched, setLoomWatched] = useState(experiment?.loom_watched === true);
+  const [linkedinReplied, setLinkedinReplied] = useState(experiment?.replied === true);
 
-  // Fetch experiment status for this prospect (loom/linkedin state)
-  const { data: prospectExps } = useQuery({
-    queryKey: ['prospect-experiments', prospect.id],
-    queryFn: () => autoresearchApi.listExperiments({ prospect_id: prospect.id, page: 1, page_size: 1 }),
-    staleTime: 30000,
-  });
-  const latestExp = prospectExps?.experiments?.[0];
-
+  // Update when experiment prop changes
   useEffect(() => {
-    if (latestExp) {
-      setLoomWatched(latestExp.loom_watched === true);
-      setLinkedinReplied(latestExp.replied === true);
-    }
-  }, [latestExp]);
+    setLoomWatched(experiment?.loom_watched === true);
+    setLinkedinReplied(experiment?.replied === true);
+  }, [experiment]);
+
+  const latestExp = experiment;
 
   // Scroll into view when highlighted
   useEffect(() => {
@@ -871,6 +866,25 @@ function SequencePipelineView({
   const [sortBy, setSortBy] = useState<SortOption>('date_asc');
   const [searchTerm, setSearchTerm] = useState('');
 
+  // Fetch ALL experiments for this campaign once (not per card)
+  const campaignId = prospects[0]?.campaign_id;
+  const { data: allExpsData } = useQuery({
+    queryKey: ['campaign-experiments-status', campaignId],
+    queryFn: () => autoresearchApi.listExperiments({ campaign_id: campaignId, page: 1, page_size: 200 }),
+    enabled: !!campaignId,
+    staleTime: 30000,
+  });
+  // Build a map: prospect_id -> latest experiment
+  const experimentMap = new Map<number, any>();
+  if (allExpsData?.experiments) {
+    for (const exp of allExpsData.experiments) {
+      const existing = experimentMap.get(exp.prospect_id);
+      if (!existing || exp.step_number > existing.step_number) {
+        experimentMap.set(exp.prospect_id, exp);
+      }
+    }
+  }
+
   if (prospects.length === 0) {
     return (
       <div className="bento-card p-12 text-center">
@@ -1089,6 +1103,7 @@ function SequencePipelineView({
                         onMarkResponse={onMarkResponse}
                         onMarkConnected={onMarkConnected}
                         isHighlighted={prospect.id === highlightProspectId}
+                        experiment={experimentMap.get(prospect.id)}
                       />
                     ))
                   )}
@@ -1144,6 +1159,7 @@ function SequencePipelineView({
                         onViewMessage={onViewMessage}
                         onMarkResponse={onMarkResponse}
                         isHighlighted={prospect.id === highlightProspectId}
+                        experiment={experimentMap.get(prospect.id)}
                       />
                     ))
                   )}
@@ -1189,6 +1205,7 @@ function SequencePipelineView({
                     onMarkResponse={onMarkResponse}
                     isMuted
                     isHighlighted={prospect.id === highlightProspectId}
+                    experiment={experimentMap.get(prospect.id)}
                   />
                 ))}
               </div>
