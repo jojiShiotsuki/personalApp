@@ -5,10 +5,13 @@ These helpers consolidate logic that was previously duplicated across
 crm_vault_sync.py and tool_executor.py.
 """
 
+import base64
 import logging
 import re
 from pathlib import Path
+from typing import Optional
 
+import httpx
 from sqlalchemy.orm import Session
 
 from app.services import obsidian_client
@@ -61,44 +64,47 @@ def write_vault_file(relative_path: str, content: str) -> None:
 
 
 def push_vault_changes(db: Session, paths: list[str], commit_msg: str) -> None:
-    """Stage *paths*, commit with *commit_msg*, and push to the remote.
+    """Push vault file changes to GitHub.
 
-    If the initial push fails the function attempts to inject a GitHub personal
-    access token (retrieved from JojiAISettings and decrypted) into the remote
-    URL, retries the push, then restores the original clean URL so the token
-    is never persisted on disk.
+    Strategy:
+    1. Try git push if the vault repo is cloned locally (works on localhost)
+    2. If no local repo (Render after deploy), use GitHub Contents API directly
 
     All errors are caught and logged; this function never raises.
     """
-    try:
-        if not VAULT_REPO_DIR.exists() or not (VAULT_REPO_DIR / ".git").exists():
-            logger.debug("push_vault_changes: vault repo not found, skipping push")
-            return
+    # Try git push first (works on localhost where vault repo is always present)
+    if VAULT_REPO_DIR.exists() and (VAULT_REPO_DIR / ".git").exists():
+        _git_push(db, paths, commit_msg)
+        return
 
-        import git  # type: ignore[import]
+    # No local repo — use GitHub API directly (reliable on Render)
+    logger.info("push_vault_changes: no local git repo, using GitHub API")
+    _github_api_push(db, paths, commit_msg)
+
+
+def _git_push(db: Session, paths: list[str], commit_msg: str) -> None:
+    """Push via local git repo."""
+    try:
+        import git
 
         repo = git.Repo(VAULT_REPO_DIR)
 
-        # Stage the requested paths
         for path in paths:
             repo.git.add(path)
 
-        # Nothing to commit?
         if not repo.is_dirty(index=True, untracked_files=True):
-            logger.debug("push_vault_changes: no changes to commit")
+            logger.debug("_git_push: no changes to commit")
             return
 
         repo.index.commit(commit_msg)
-        logger.info("push_vault_changes: committed '%s'", commit_msg)
+        logger.info("_git_push: committed '%s'", commit_msg)
 
-        # --- Ensure auth token is in remote URL before pushing ---
         from app.models.joji_ai import JojiAISettings
         from app.services.encryption_service import EncryptionService
 
         current_url = repo.remotes.origin.url
         needs_restore = False
 
-        # If URL doesn't contain a token, inject one
         if "@github.com" not in current_url:
             settings = db.query(JojiAISettings).first()
             if settings and settings.github_token_encrypted:
@@ -106,22 +112,113 @@ def push_vault_changes(db: Session, paths: list[str], commit_msg: str) -> None:
                 auth_url = re.sub(r"^https://", f"https://{token}@", current_url)
                 repo.remotes.origin.set_url(auth_url)
                 needs_restore = True
-                logger.debug("push_vault_changes: injected auth token into remote URL")
 
         try:
-            # Pull first to avoid conflicts
             try:
                 repo.remotes.origin.pull(rebase=True)
-            except git.GitCommandError as pull_err:
-                logger.debug("push_vault_changes: pull-rebase failed (OK if fresh): %s", pull_err)
-
+            except git.GitCommandError:
+                pass
             repo.remotes.origin.push()
-            logger.info("push_vault_changes: pushed successfully")
+            logger.info("_git_push: pushed successfully")
         except git.GitCommandError as push_err:
-            logger.error("push_vault_changes: push failed: %s", push_err)
+            logger.error("_git_push: push failed: %s", push_err)
         finally:
             if needs_restore:
                 repo.remotes.origin.set_url(current_url)
 
     except Exception:
-        logger.exception("push_vault_changes: unexpected error during git push")
+        logger.exception("_git_push: unexpected error")
+
+
+def _github_api_push(db: Session, paths: list[str], commit_msg: str) -> None:
+    """Push files directly via GitHub Contents API — no git clone needed."""
+    try:
+        from app.models.joji_ai import JojiAISettings
+        from app.services.encryption_service import EncryptionService
+
+        settings = db.query(JojiAISettings).first()
+        if not settings or not settings.github_repo_url or not settings.github_token_encrypted:
+            logger.warning("_github_api_push: no GitHub settings configured")
+            return
+
+        token = EncryptionService.decrypt(settings.github_token_encrypted)
+        repo_url = settings.github_repo_url.rstrip("/")
+        # Extract owner/repo from URL like https://github.com/owner/repo
+        match = re.search(r"github\.com/([^/]+/[^/.]+)", repo_url)
+        if not match:
+            logger.error("_github_api_push: can't parse repo from URL: %s", repo_url)
+            return
+        owner_repo = match.group(1)
+
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "Accept": "application/vnd.github.v3+json",
+        }
+
+        # Push each file that exists on the filesystem
+        for path_pattern in paths:
+            # path_pattern might be a directory like "library/business/"
+            # Find actual files
+            search_dir = VAULT_REPO_DIR / path_pattern
+            if search_dir.is_dir():
+                files = list(search_dir.rglob("*.md"))
+            elif search_dir.exists():
+                files = [search_dir]
+            else:
+                # File might only exist in memory (written by write_vault_file)
+                # Try the path directly
+                abs_path = VAULT_REPO_DIR / path_pattern
+                if abs_path.exists():
+                    files = [abs_path]
+                else:
+                    continue
+
+            for file_path in files:
+                rel_path = file_path.relative_to(VAULT_REPO_DIR).as_posix()
+                _github_api_put_file(owner_repo, rel_path, file_path, commit_msg, headers)
+
+    except Exception:
+        logger.exception("_github_api_push: unexpected error")
+
+
+def _github_api_put_file(
+    owner_repo: str,
+    file_path: str,
+    local_path: Path,
+    commit_msg: str,
+    headers: dict,
+) -> None:
+    """Create or update a single file via GitHub Contents API."""
+    try:
+        content = local_path.read_text(encoding="utf-8")
+        encoded = base64.b64encode(content.encode("utf-8")).decode("ascii")
+
+        api_url = f"https://api.github.com/repos/{owner_repo}/contents/{file_path}"
+
+        # Check if file already exists (need SHA to update)
+        sha: Optional[str] = None
+        try:
+            with httpx.Client(timeout=10) as client:
+                resp = client.get(api_url, headers=headers)
+                if resp.status_code == 200:
+                    sha = resp.json().get("sha")
+        except Exception:
+            pass
+
+        payload = {
+            "message": commit_msg,
+            "content": encoded,
+        }
+        if sha:
+            payload["sha"] = sha
+
+        with httpx.Client(timeout=15) as client:
+            resp = client.put(api_url, headers=headers, json=payload)
+
+        if resp.status_code in (200, 201):
+            logger.info("_github_api_put_file: pushed %s to GitHub", file_path)
+        else:
+            logger.error("_github_api_put_file: failed for %s: %d %s", file_path, resp.status_code, resp.text[:200])
+
+    except Exception as exc:
+        logger.warning("_github_api_put_file: error for %s: %s", file_path, exc)
