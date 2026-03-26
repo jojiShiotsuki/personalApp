@@ -872,6 +872,7 @@ function SequencePipelineView({
   const [searchTerm, setSearchTerm] = useState('');
   const [editingStep, setEditingStep] = useState<{ stepNumber: number; channelType: string } | null>(null);
   const [editStepChannel, setEditStepChannel] = useState('');
+  const [editStepFallback, setEditStepFallback] = useState('');
   const [savingStep, setSavingStep] = useState(false);
   const queryClient = useQueryClient();
 
@@ -1063,8 +1064,10 @@ function SequencePipelineView({
                 {/* Column header — click to edit step type */}
                 <div
                   onClick={() => {
+                    const step = campaignSteps.find(s => s.step_number === col.stepNumber);
                     setEditingStep({ stepNumber: col.stepNumber, channelType: col.channelType || '' });
                     setEditStepChannel(col.channelType || '');
+                    setEditStepFallback(step?.fallback_channel_type || '');
                   }}
                   className={cn(
                     'rounded-t-xl px-4 py-3 border border-b-0 cursor-pointer',
@@ -1267,6 +1270,31 @@ function SequencePipelineView({
                 <option key={value} value={value}>{label}</option>
               ))}
             </select>
+
+            {/* Fallback — show when channel is LinkedIn type */}
+            {['LINKEDIN_CONNECT', 'LINKEDIN_MESSAGE', 'LINKEDIN_ENGAGE'].includes(editStepChannel) && (
+              <div className="mb-4">
+                <label className="block text-[10px] font-medium text-[--exec-text-muted] mb-1.5 uppercase tracking-wider">
+                  Fallback if not connected
+                </label>
+                <select
+                  value={editStepFallback}
+                  onChange={(e) => setEditStepFallback(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg bg-stone-800/50 border border-stone-600/40 text-[--exec-text] text-sm focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]/50 transition-all cursor-pointer appearance-none"
+                >
+                  <option value="">None (skip step)</option>
+                  {Object.entries(CHANNEL_LABELS)
+                    .filter(([v]) => !['LINKEDIN_CONNECT', 'LINKEDIN_MESSAGE', 'LINKEDIN_ENGAGE'].includes(v))
+                    .map(([value, label]) => (
+                      <option key={value} value={value}>{label}</option>
+                    ))}
+                </select>
+                <p className="text-[10px] text-stone-600 mt-1">
+                  If prospect hasn't accepted LinkedIn, use this channel instead
+                </p>
+              </div>
+            )}
+
             <div className="flex gap-2 justify-end">
               <button
                 onClick={() => setEditingStep(null)}
@@ -1280,16 +1308,22 @@ function SequencePipelineView({
                   setSavingStep(true);
                   try {
                     // Build updated steps array — only change the one step's channel_type
-                    const updatedSteps = campaignSteps.map(s => ({
-                      step_number: s.step_number,
-                      channel_type: (s.step_number === editingStep.stepNumber ? editStepChannel : s.channel_type) as StepChannelType,
-                      delay_days: s.delay_days,
-                      template_subject: s.template_subject || undefined,
-                      template_content: s.template_content || undefined,
-                      instruction_text: s.instruction_text || undefined,
-                      requires_linkedin_connected: s.requires_linkedin_connected,
-                      loom_script: s.loom_script || undefined,
-                    }));
+                    const isLinkedIn = (ch: string) => ['LINKEDIN_CONNECT', 'LINKEDIN_MESSAGE', 'LINKEDIN_ENGAGE'].includes(ch);
+                    const updatedSteps = campaignSteps.map(s => {
+                      const isEdited = s.step_number === editingStep.stepNumber;
+                      const channelType = isEdited ? editStepChannel : s.channel_type;
+                      return {
+                        step_number: s.step_number,
+                        channel_type: channelType as StepChannelType,
+                        delay_days: s.delay_days,
+                        template_subject: s.template_subject || undefined,
+                        template_content: s.template_content || undefined,
+                        instruction_text: s.instruction_text || undefined,
+                        requires_linkedin_connected: isEdited ? isLinkedIn(editStepChannel) : s.requires_linkedin_connected,
+                        fallback_channel_type: (isEdited ? (editStepFallback || undefined) : s.fallback_channel_type) as StepChannelType | undefined,
+                        loom_script: s.loom_script || undefined,
+                      };
+                    });
                     await coldOutreachApi.updateCampaignSteps(prospects[0]?.campaign_id, updatedSteps);
                     queryClient.invalidateQueries({ queryKey: ['mt-campaign'] });
                     queryClient.invalidateQueries({ queryKey: ['mt-steps'] });

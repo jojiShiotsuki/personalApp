@@ -199,6 +199,7 @@ class MultiTouchStep(Base):
     template_content = Column(Text, nullable=True)  # for email/message steps
     instruction_text = Column(String(500), nullable=True)  # guidance shown in queue
     requires_linkedin_connected = Column(Boolean, default=False, server_default="0")  # only runs if prospect accepted LinkedIn connection
+    fallback_channel_type = Column(String(50), nullable=True)  # if requires_linkedin_connected and not connected, use this channel instead
     loom_script = Column(Text, nullable=True)  # script for Loom video recording on LOOM_EMAIL steps
 
     campaign = relationship("OutreachCampaign", back_populates="multi_touch_steps")
