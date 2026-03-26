@@ -439,20 +439,29 @@ class JojiAIService:
         })
 
         # ------------------------------------------------------------------
-        # 12. Passive learning — Haiku extracts insights (like Claude Memory)
-        #     Runs after done event so user isn't waiting
+        # 12. Passive learning — runs in background thread so stream closes immediately
         # ------------------------------------------------------------------
-        try:
-            from app.services.conversation_learner import run_learning_cycle
-            learn_result = run_learning_cycle(db, conversation.id)
-            if learn_result and learn_result.get("insights_saved"):
-                logger.info("Learned %d insights from conversation %d",
-                            learn_result["insights_saved"], conversation.id)
-                yield _sse_event("learned", {
-                    "insights_saved": learn_result["insights_saved"],
-                })
-        except Exception as learn_exc:
-            logger.warning("Learning cycle failed: %s", learn_exc)
+        import threading
+
+        def _background_learn(conv_id: int, uid: int):
+            from app.database.connection import SessionLocal
+            learn_db = SessionLocal()
+            try:
+                from app.services.conversation_learner import run_learning_cycle
+                learn_result = run_learning_cycle(learn_db, conv_id)
+                if learn_result and learn_result.get("insights_saved"):
+                    logger.info("Learned %d insights from conversation %d",
+                                learn_result["insights_saved"], conv_id)
+            except Exception as learn_exc:
+                logger.warning("Learning cycle failed: %s", learn_exc)
+            finally:
+                learn_db.close()
+
+        threading.Thread(
+            target=_background_learn,
+            args=(conversation.id, user_id),
+            daemon=True,
+        ).start()
 
     # ------------------------------------------------------------------
     # Internal helpers
