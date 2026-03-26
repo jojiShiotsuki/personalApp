@@ -2453,11 +2453,44 @@ RULES:
 Return ONLY valid JSON (no markdown fences):
 {{"subject": "Re: {original_subject}", "body": "follow-up email body here", "word_count": N}}"""
 
-    # Inject custom instruction if provided
-    if custom_instruction:
+    # Inject custom instruction — if it's long (200+ chars), switch to conversation mode
+    if custom_instruction and len(custom_instruction) > 200:
+        # Long context = pasted conversation/email thread — override the cold template
+        prompt = f"""You are writing the NEXT email reply for Joji Shiotsuki, who works with trade businesses across Australia on their web presence.
+
+IMPORTANT: The user has pasted a real conversation below. This is NOT a cold follow-up. The prospect has already engaged.
+Read the conversation carefully and write the appropriate next reply.
+
+PROSPECT:
+- First name: {first_name}
+- Company: {prospect.agency_name}
+- Industry: {prospect.niche or 'trades'}
+
+ENGAGEMENT HISTORY:
+{engagement_context}
+{loom_context}
+
+CONVERSATION / CONTEXT:
+{custom_instruction}
+
+Write the next natural reply in this conversation. Match the tone and energy of the exchange.
+
+RULES:
+- Address the RIGHT person (read who you're replying to in the conversation)
+- If they've replied positively, this is a WARM lead — don't treat them like a cold prospect
+- If they watched the Loom / fixed issues / showed interest, acknowledge it and push toward a call
+- Australian English, conversational, match Joji's voice
+- No em dashes
+- Keep it natural and conversational — not a templated cold email
+- End with: Cheers,\\nJoji Shiotsuki | Joji Web Solutions | jojishiotsuki.com
+- Subject MUST be exactly "Re: {original_subject}"
+{followup_learning}
+Return ONLY valid JSON (no markdown fences):
+{{"subject": "Re: {original_subject}", "body": "email body here", "word_count": N}}"""
+    elif custom_instruction:
         prompt += f"\n\nUSER INSTRUCTION (follow this closely): {custom_instruction}"
 
-    # --- Call Claude Haiku ---
+    # --- Call Claude ---
     model = os.getenv("AUTORESEARCH_FOLLOWUP_MODEL", "claude-sonnet-4-6")
 
     try:
