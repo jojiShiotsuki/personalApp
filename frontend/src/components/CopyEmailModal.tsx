@@ -136,6 +136,11 @@ export default function CopyEmailModal({
       setAiFollowUpUsed(true);
       setHasInitializedFromTemplate(true);
       setRegenerateInstruction('');
+      // Auto-save so it persists if modal is closed
+      saveCustomEmailMutation.mutate({
+        custom_email_subject: result.subject,
+        custom_email_body: result.body,
+      });
       toast.success('AI follow-up generated');
     } catch {
       toast.error('Failed to generate follow-up');
