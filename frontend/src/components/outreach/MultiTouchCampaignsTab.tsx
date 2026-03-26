@@ -589,9 +589,14 @@ function PipelineProspectCard({
             <button
               onClick={async () => {
                 try {
-                  const exp = latestExp;
+                  let exp = latestExp;
+                  // If not in cache, fetch on-demand
                   if (!exp) {
-                    toast.error('No experiment found for this prospect — approve an audit first');
+                    const fetched = await autoresearchApi.listExperiments({ prospect_id: prospect.id, page: 1, page_size: 1 });
+                    exp = fetched.experiments?.[0];
+                  }
+                  if (!exp) {
+                    toast.error('No experiment found — approve an audit first');
                     return;
                   }
 
@@ -867,10 +872,24 @@ function SequencePipelineView({
   const [searchTerm, setSearchTerm] = useState('');
 
   // Fetch ALL experiments for this campaign once (not per card)
+  // Fetch up to 500 to cover all prospects
   const campaignId = prospects[0]?.campaign_id;
   const { data: allExpsData } = useQuery({
     queryKey: ['campaign-experiments-status', campaignId],
-    queryFn: () => autoresearchApi.listExperiments({ campaign_id: campaignId, page: 1, page_size: 200 }),
+    queryFn: async () => {
+      if (!campaignId) return { experiments: [], total_count: 0 };
+      // Fetch page 1
+      const page1 = await autoresearchApi.listExperiments({ campaign_id: campaignId, page: 1, page_size: 200 });
+      if (page1.total_count <= 200) return page1;
+      // Fetch page 2 if needed
+      const page2 = await autoresearchApi.listExperiments({ campaign_id: campaignId, page: 2, page_size: 200 });
+      return {
+        experiments: [...page1.experiments, ...page2.experiments],
+        total_count: page1.total_count,
+        page: 1,
+        page_size: page1.total_count,
+      };
+    },
     enabled: !!campaignId,
     staleTime: 30000,
   });
