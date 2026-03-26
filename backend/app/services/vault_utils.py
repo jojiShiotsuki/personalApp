@@ -72,7 +72,7 @@ def write_vault_file(relative_path: str, content: str) -> None:
 
 
 def push_vault_changes(db: Session, paths: list[str], commit_msg: str) -> None:
-    """Push vault file changes to GitHub.
+    """Push vault file changes to GitHub in a background thread (non-blocking).
 
     Strategy:
     1. Try git push if the vault repo is cloned locally (works on localhost)
@@ -80,14 +80,26 @@ def push_vault_changes(db: Session, paths: list[str], commit_msg: str) -> None:
 
     All errors are caught and logged; this function never raises.
     """
-    # Try git push first (works on localhost where vault repo is always present)
-    if VAULT_REPO_DIR.exists() and (VAULT_REPO_DIR / ".git").exists():
-        _git_push(db, paths, commit_msg)
-        return
+    import threading
 
-    # No local repo — use GitHub API directly (reliable on Render)
-    logger.info("push_vault_changes: no local git repo, using GitHub API")
-    _github_api_push(db, paths, commit_msg)
+    # Snapshot the pending writes for the background thread
+    snapshot = {k: v for k, v in _pending_writes.items() if any(k == p or k.startswith(p) for p in paths)}
+
+    def _do_push():
+        try:
+            # Restore snapshot into pending writes for this thread
+            _pending_writes.update(snapshot)
+
+            if VAULT_REPO_DIR.exists() and (VAULT_REPO_DIR / ".git").exists():
+                _git_push(db, paths, commit_msg)
+                return
+            logger.info("push_vault_changes: no local git repo, using GitHub API")
+            _github_api_push(db, paths, commit_msg)
+        except Exception:
+            logger.exception("push_vault_changes: background push failed")
+
+    thread = threading.Thread(target=_do_push, daemon=True)
+    thread.start()
 
 
 def _git_push(db: Session, paths: list[str], commit_msg: str) -> None:
