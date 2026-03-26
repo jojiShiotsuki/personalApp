@@ -202,7 +202,7 @@ export default function JojiAI() {
                   setTimeout(async () => {
                     try {
                       const resp = await fetch(`${import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://vertex-api-smg3.onrender.com' : 'http://localhost:8001')}/api/ai/conversations/${parsed.conversation_id}/learn-status`, {
-                        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+                        headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` },
                       });
                       if (resp.ok) {
                         const data = await resp.json();
