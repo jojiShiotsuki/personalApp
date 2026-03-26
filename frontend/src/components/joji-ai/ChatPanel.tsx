@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Brain, X, ExternalLink, Send, Loader2, Wrench } from 'lucide-react';
+import { Brain, X, ExternalLink, Send, Loader2, Wrench, Globe } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { jojiAiApi } from '@/lib/api';
@@ -437,8 +437,17 @@ export default function ChatPanel() {
                     'text-xs text-[--exec-text-muted]'
                   )}
                 >
-                  <Wrench className="w-3 h-3 text-[--exec-accent] animate-pulse" />
-                  Using {streamingToolCalls[0]}...
+                  {streamingToolCalls[0] === 'web_search' ? (
+                    <>
+                      <Globe className="w-3 h-3 text-blue-400 animate-pulse" />
+                      Searching the web...
+                    </>
+                  ) : (
+                    <>
+                      <Wrench className="w-3 h-3 text-[--exec-accent] animate-pulse" />
+                      Using {streamingToolCalls[0]}...
+                    </>
+                  )}
                 </div>
               </div>
             )}

@@ -275,6 +275,12 @@ class JojiAIService:
         # 6-7. Call Claude with streaming + handle tool use
         # ------------------------------------------------------------------
         tools = get_tools_for_page("all")
+        # Add Anthropic's built-in server-side web search tool
+        tools.append({
+            "type": "web_search_20250305",
+            "name": "web_search",
+            "max_uses": 3,
+        })
         executor = ToolExecutor(db)
         full_response_text = ""
         all_tool_calls: List[Dict[str, Any]] = []
@@ -299,14 +305,25 @@ class JojiAIService:
                     current_tool_input = ""
                     current_tool_name = ""
                     current_tool_id = ""
+                    current_block_type = ""
 
                     async for event in stream:
                         if event.type == "content_block_start":
                             if hasattr(event.content_block, "type"):
-                                if event.content_block.type == "tool_use":
+                                block_type = event.content_block.type
+                                current_block_type = block_type
+                                if block_type == "tool_use":
                                     current_tool_name = event.content_block.name
                                     current_tool_id = event.content_block.id
                                     current_tool_input = ""
+                                elif block_type == "server_tool_use":
+                                    # Server-side tool (web_search) — just notify frontend
+                                    server_tool_name = getattr(event.content_block, "name", "web_search")
+                                    yield _sse_event("tool_call", {
+                                        "tool": server_tool_name,
+                                        "args": {},
+                                        "server_tool": True,
+                                    })
 
                         elif event.type == "content_block_delta":
                             if hasattr(event.delta, "text"):
@@ -317,8 +334,15 @@ class JojiAIService:
                                 current_tool_input += event.delta.partial_json
 
                         elif event.type == "content_block_stop":
-                            if current_tool_name:
-                                # Parse accumulated tool input
+                            if current_block_type == "web_search_tool_result":
+                                # Server-side search results — notify frontend
+                                yield _sse_event("tool_result", {
+                                    "tool": "web_search",
+                                    "result_summary": "Web search completed",
+                                    "server_tool": True,
+                                })
+                            elif current_tool_name:
+                                # Regular client-side tool
                                 try:
                                     parsed_input = json.loads(current_tool_input) if current_tool_input else {}
                                 except json.JSONDecodeError:
@@ -332,17 +356,18 @@ class JojiAIService:
                                 current_tool_name = ""
                                 current_tool_id = ""
                                 current_tool_input = ""
+                            current_block_type = ""
 
                     # Get the final message for usage stats
                     final_message = await stream.get_final_message()
                     total_input_tokens += final_message.usage.input_tokens
                     total_output_tokens += final_message.usage.output_tokens
 
-                # If no tool use, we're done
+                # If no client-side tool use, we're done
                 if not tool_use_blocks:
                     break
 
-                # Execute tools and continue conversation
+                # Execute client-side tools and continue conversation
                 tool_results = []
                 for tool_block in tool_use_blocks:
                     tool_name = tool_block["name"]
@@ -447,7 +472,64 @@ class JojiAIService:
         })
 
         # ------------------------------------------------------------------
-        # 12. Passive learning — runs in background thread so stream closes immediately
+        # 12. Auto-generate conversation title (first message only)
+        # ------------------------------------------------------------------
+        is_first_message = conversation_id is None or (
+            db.query(ConversationMessage)
+            .filter(
+                ConversationMessage.conversation_id == conversation.id,
+                ConversationMessage.role == "user",
+            )
+            .count() == 1
+        )
+
+        if is_first_message:
+            import threading
+
+            def _background_title(conv_id: int, user_msg_text: str, assistant_text: str):
+                import asyncio
+                from app.database.connection import SessionLocal
+
+                async def _gen_title():
+                    try:
+                        title_client = AsyncAnthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+                        resp = await title_client.messages.create(
+                            model="claude-haiku-4-5-20251001",
+                            max_tokens=30,
+                            messages=[{
+                                "role": "user",
+                                "content": (
+                                    "Generate a short, descriptive title (3-6 words, no quotes) "
+                                    "for this conversation:\n\n"
+                                    f"User: {user_msg_text[:300]}\n"
+                                    f"Assistant: {assistant_text[:300]}"
+                                ),
+                            }],
+                        )
+                        title = resp.content[0].text.strip().strip('"\'')
+                        if title:
+                            title_db = SessionLocal()
+                            try:
+                                conv = title_db.query(Conversation).filter(Conversation.id == conv_id).first()
+                                if conv:
+                                    conv.title = title[:100]
+                                    title_db.commit()
+                                    logger.info("Auto-titled conversation %d: %s", conv_id, title[:100])
+                            finally:
+                                title_db.close()
+                    except Exception as exc:
+                        logger.warning("Auto-title generation failed: %s", exc)
+
+                asyncio.run(_gen_title())
+
+            threading.Thread(
+                target=_background_title,
+                args=(conversation.id, message, full_response_text),
+                daemon=True,
+            ).start()
+
+        # ------------------------------------------------------------------
+        # 13. Passive learning — runs in background thread so stream closes immediately
         # ------------------------------------------------------------------
         import threading
 
@@ -527,13 +609,20 @@ class JojiAIService:
             )
 
         prompt += (
-            "You can search the vault for more information and take actions in the CRM using the available tools.\n\n"
+            "You can search the vault for more information, take actions in the CRM, and search the web using the available tools.\n\n"
             "RULES:\n"
             "- Be direct and concise\n"
             "- Australian English\n"
             "- Reference specific vault notes when answering\n"
-            "- If you don't know something, say so -- don't make it up\n"
+            "- If you don't know something from memory or the vault, use web_search to look it up\n"
             "- When taking CRM actions, confirm before executing\n\n"
+            "WEB SEARCH:\n"
+            "You have a web_search tool that searches the internet in real-time. Use it when:\n"
+            "- The user asks about current events, prices, or live information\n"
+            "- You need to look up a website, company, or person\n"
+            "- The vault doesn't have the answer and your training data might be outdated\n"
+            "- The user explicitly asks you to search online\n"
+            "Always cite your sources when using web search results.\n\n"
             "BRAIN (Knowledge Vault):\n"
             "You have a brain — an Obsidian vault where you store everything you learn about the user.\n"
             "When the user says 'remember', 'note', 'save', 'store', or tells you personal info, preferences, "

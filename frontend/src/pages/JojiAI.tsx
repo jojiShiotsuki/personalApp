@@ -257,6 +257,13 @@ export default function JojiAI() {
       if (conversationId) {
         queryClient.invalidateQueries({ queryKey: ['ai-conversation', conversationId] });
       }
+
+      // Re-fetch conversation list after delay to pick up AI-generated title
+      if (conversationId && conversationId !== activeConversationId) {
+        setTimeout(() => {
+          queryClient.invalidateQueries({ queryKey: ['ai-conversations'] });
+        }, 3000);
+      }
     } catch (err: any) {
       if (err.name !== 'AbortError') {
         toast.error(err.message || 'Failed to send message');
