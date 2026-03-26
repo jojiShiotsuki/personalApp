@@ -919,7 +919,15 @@ export default function CopyEmailModal({
           {(() => {
             // Check if current step is an email step
             const currentStep = multiTouchSteps?.find(s => s.step_number === (prospect.current_step || 1));
-            const isEmailStep = !currentStep || ['EMAIL', 'FOLLOW_UP_EMAIL', 'LOOM_EMAIL', 'email', 'follow_up_email', 'loom_email'].includes(currentStep.channel_type);
+            const emailChannels = ['EMAIL', 'FOLLOW_UP_EMAIL', 'LOOM_EMAIL', 'email', 'follow_up_email', 'loom_email'];
+            const linkedinChannels = ['LINKEDIN_CONNECT', 'LINKEDIN_MESSAGE', 'LINKEDIN_ENGAGE', 'linkedin_connect', 'linkedin_message', 'linkedin_engage'];
+            // If step is LinkedIn but prospect isn't connected and there's an email fallback, treat as email
+            const usingFallback = currentStep
+              && linkedinChannels.includes(currentStep.channel_type)
+              && !prospect.linkedin_connected
+              && currentStep.fallback_channel_type
+              && emailChannels.includes(currentStep.fallback_channel_type);
+            const isEmailStep = !currentStep || emailChannels.includes(currentStep.channel_type) || usingFallback;
 
             return (
           <div className="flex gap-3 justify-end pt-6 border-t border-stone-700/30 mt-6">
