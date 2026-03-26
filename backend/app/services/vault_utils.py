@@ -116,7 +116,7 @@ def _git_push(db: Session, paths: list[str], commit_msg: str) -> None:
         if "@github.com" not in current_url:
             settings = db.query(JojiAISettings).first()
             if settings and settings.github_token_encrypted:
-                token = EncryptionService.decrypt(settings.github_token_encrypted)
+                token = EncryptionService().decrypt(settings.github_token_encrypted)
                 auth_url = re.sub(r"^https://", f"https://{token}@", current_url)
                 repo.remotes.origin.set_url(auth_url)
                 needs_restore = True
@@ -149,7 +149,7 @@ def _github_api_push(db: Session, paths: list[str], commit_msg: str) -> None:
             logger.warning("_github_api_push: no GitHub settings configured")
             return
 
-        token = EncryptionService.decrypt(settings.github_token_encrypted)
+        token = EncryptionService().decrypt(settings.github_token_encrypted)
         repo_url = settings.github_repo_url.rstrip("/")
         # Extract owner/repo from URL like https://github.com/owner/repo
         match = re.search(r"github\.com/([^/]+/[^/.]+)", repo_url)
