@@ -975,6 +975,7 @@ def update_campaign_steps(campaign_id: int, steps: List[MultiTouchStepCreate], d
             template_content=step_data.template_content,
             instruction_text=step_data.instruction_text,
             requires_linkedin_connected=step_data.requires_linkedin_connected,
+            fallback_channel_type=step_data.fallback_channel_type,
             loom_script=step_data.loom_script,
         )
         db.add(step)

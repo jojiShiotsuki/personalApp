@@ -960,7 +960,7 @@ function SequencePipelineView({
   }
 
   // Build step columns: use campaignSteps if available, otherwise derive from prospect data
-  let stepColumns: { stepNumber: number; channelType?: StepChannelType; label: string; requiresLinkedInConnected?: boolean }[];
+  let stepColumns: { stepNumber: number; channelType?: StepChannelType; label: string; requiresLinkedInConnected?: boolean; fallbackChannelType?: StepChannelType }[];
 
   if (campaignSteps.length > 0) {
     stepColumns = campaignSteps.map((step) => ({
@@ -968,6 +968,7 @@ function SequencePipelineView({
       channelType: step.channel_type as StepChannelType,
       label: CHANNEL_LABELS[step.channel_type as StepChannelType] || step.channel_type,
       requiresLinkedInConnected: step.requires_linkedin_connected,
+      fallbackChannelType: step.fallback_channel_type as StepChannelType | undefined,
     }));
     const definedStepNums = new Set(campaignSteps.map((s) => s.step_number));
     for (const stepNum of Object.keys(stepBuckets).map(Number).sort((a, b) => a - b)) {
@@ -1100,6 +1101,23 @@ function SequencePipelineView({
                       {bucket.length}
                     </span>
                   </div>
+                  {/* Fallback route visualization */}
+                  {col.fallbackChannelType && (
+                    <div className="flex items-center gap-1.5 mt-1.5 pl-8">
+                      <span className="text-[10px] text-stone-500">if not connected →</span>
+                      {(() => {
+                        const fbColors = CHANNEL_COLORS[col.fallbackChannelType];
+                        const FbIcon = CHANNEL_ICONS[col.fallbackChannelType];
+                        const fbLabel = CHANNEL_LABELS[col.fallbackChannelType];
+                        return (
+                          <span className={cn('inline-flex items-center gap-1 text-[10px] font-medium', fbColors?.text || 'text-stone-400')}>
+                            {FbIcon && <FbIcon className="w-3 h-3" />}
+                            {fbLabel}
+                          </span>
+                        );
+                      })()}
+                    </div>
+                  )}
                   {/* Custom message counts for steps with email prospects */}
                   {bucket.length > 0 && (customCount > 0 || noCustomCount > 0) && (
                     <div className="flex items-center gap-2 mt-2 pt-2 border-t border-stone-700/30">
