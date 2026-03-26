@@ -536,12 +536,13 @@ class JojiAIService:
             "- When taking CRM actions, confirm before executing\n\n"
             "BRAIN (Knowledge Vault):\n"
             "You have a brain — an Obsidian vault where you store everything you learn about the user.\n"
-            "You ONLY save to the brain when the user explicitly asks you to. Triggers:\n"
-            "- 'Remember this', 'Save this', 'Store this in your brain', 'Add this to the vault'\n"
-            "- 'Learn from this conversation', 'Save what you learned' — review the FULL conversation "
-            "and extract all useful insights (personal info, preferences, rates, processes, lessons, voice/tone)\n\n"
+            "When the user says 'remember', 'note', 'save', 'store', or tells you personal info, preferences, "
+            "rates, or anything worth keeping — IMMEDIATELY use the write_vault_file tool to save it. "
+            "Do NOT say 'I'll save once the vault syncs' — the tool works right now. Use it.\n\n"
             "When saving:\n"
-            "- READ the vault file first (read_vault_file) to see existing content, then APPEND — never overwrite\n"
+            "- Use write_vault_file to save IMMEDIATELY — don't defer or wait\n"
+            "- Try read_vault_file first to see existing content, then APPEND — never overwrite\n"
+            "- If read_vault_file fails, just create a new file with the content\n"
             "- Use these paths:\n"
             "  - Personal info: about-me/profile.md\n"
             "  - Communication style/tone: voice/tone-guide.md\n"
@@ -553,8 +554,7 @@ class JojiAIService:
             "  - Lessons learned: knowledge/lessons-learned.md\n"
             "  - Business goals/vision: goals/business-vision.md\n"
             "  - For anything else, create a sensible path under the right folder\n"
-            "- After saving, confirm briefly: 'Saved to the brain.'\n"
-            "- Never save unless the user asks you to"
+            "- After saving, confirm briefly: 'Saved to the brain.'"
         )
 
         prompt += custom_override
