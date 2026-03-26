@@ -2185,6 +2185,24 @@ Return ONLY valid JSON (no markdown fences):
     follow_up_number = step_number - 1
     first_name = (prospect.contact_name or prospect.agency_name or "there").split()[0]
 
+    # Check if there are more steps after this one (to determine if this is the last touchpoint)
+    has_more_steps = False
+    if campaign:
+        remaining_steps = (
+            db.query(MTStep)
+            .filter(MTStep.campaign_id == campaign.id, MTStep.step_number > step_number)
+            .all()
+        )
+        for rs in remaining_steps:
+            ch = (rs.channel_type or "").lower()
+            if ch in ("email", "follow_up_email", "loom_email"):
+                has_more_steps = True
+                break
+            if ch in ("linkedin_message",) and getattr(prospect, "linkedin_connected", False):
+                has_more_steps = True
+                break
+    is_last_step = not has_more_steps
+
     # Channel-specific prompt templates
     channel_prompts = {
         "linkedin_connect": f"""You are writing a LinkedIn connection request note for Joji Shiotsuki, who works with trade businesses across Australia on their web presence.
@@ -2209,12 +2227,13 @@ Return ONLY valid JSON: {{"subject": "LinkedIn Connect", "body": "connection not
 
 The prospect is "{first_name}" from "{prospect.agency_name}". They are already connected on LinkedIn. Joji previously emailed them about: {issue_type} — {issue_detail}
 
-Write a SHORT LinkedIn DM (under 30 words) that naturally references the website issue without being pushy. This is a different channel, so don't say "following up on my email."
+This is step {step_number} of the outreach sequence. Joji has already reached out {follow_up_number} times via email and LinkedIn.
+{"This is the LAST touchpoint in the sequence. Write a clean exit message — gracious, self-aware about being persistent, light humor, leave the door open. Don't pitch. Don't reference the specific issue in detail. Just a warm final nudge acknowledging you've reached out a few times and wishing them well." if is_last_step else "Write a SHORT LinkedIn DM (under 30 words) that naturally references the website issue without being pushy. This is a different channel, so don't say 'following up on my email.'"}
 
 RULES:
-- Under 30 words
+- Under {"25" if is_last_step else "30"} words
 - Casual LinkedIn tone
-- Reference the issue naturally (e.g. "noticed your site's [issue] — happy to help sort it")
+- {"Self-deprecating humor about being persistent works great here" if is_last_step else "Reference the issue naturally (e.g. 'noticed your site's [issue] — happy to help sort it')"}
 - No em dashes
 - No sign-off block (it's a DM, not an email)
 
@@ -2261,26 +2280,7 @@ RULES:
 Return ONLY valid JSON: {{"subject": "Re: {original_subject}", "body": "email body here", "word_count": N}}""",
     }
 
-    # Check if there are more steps after this one (to determine if this is the last email)
-    has_more_steps = False
-    if campaign:
-        remaining_steps = (
-            db.query(MTStep)
-            .filter(MTStep.campaign_id == campaign.id, MTStep.step_number > step_number)
-            .all()
-        )
-        # If prospect is LinkedIn connected, any remaining LinkedIn steps count
-        # If not connected, only email steps count
-        for rs in remaining_steps:
-            ch = (rs.channel_type or "").lower()
-            if ch in ("email", "follow_up_email", "loom_email"):
-                has_more_steps = True
-                break
-            if ch in ("linkedin_message",) and getattr(prospect, "linkedin_connected", False):
-                has_more_steps = True
-                break
-
-    is_last_email = not has_more_steps
+    is_last_email = is_last_step
 
     # Email follow-up angles — based on follow-up NUMBER (how many emails sent before this one)
     # These match the user's multi-touch sequence strategy:
