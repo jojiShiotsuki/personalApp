@@ -581,20 +581,13 @@ function PipelineProspectCard({
                     return;
                   }
 
-                  if (exp.loom_sent) {
-                    // Already sent — ask if watched
-                    const watched = confirm('Loom already sent. Mark as watched by the prospect?');
-                    if (watched) {
-                      await autoresearchApi.updateLoomStatus(exp.id, { loom_watched: true });
-                      toast.success('Loom marked as watched');
-                    }
-                  } else {
-                    // Not sent yet — paste URL
-                    const url = prompt('Paste the Loom URL (or leave empty to just mark as sent):');
-                    if (url === null) return;
-                    await autoresearchApi.updateLoomStatus(exp.id, { loom_sent: true, loom_url: url || undefined });
-                    toast.success('Loom marked as sent');
-                  }
+                  // Toggle loom_watched status
+                  const currentlyWatched = exp.loom_watched === true;
+                  await autoresearchApi.updateLoomStatus(exp.id, {
+                    loom_sent: true,
+                    loom_watched: !currentlyWatched,
+                  });
+                  toast.success(currentlyWatched ? 'Loom unmarked as watched' : 'Loom marked as watched');
                 } catch {
                   toast.error('Failed to update Loom status');
                 }

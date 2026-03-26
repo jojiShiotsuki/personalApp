@@ -2334,6 +2334,42 @@ Return ONLY valid JSON: {{"subject": "Re: {original_subject}", "body": "email bo
     except Exception:
         pass  # Non-fatal
 
+    # --- Build engagement history context ---
+    all_experiments = (
+        db.query(Experiment)
+        .filter(Experiment.prospect_id == prospect_id)
+        .order_by(Experiment.step_number.asc())
+        .all()
+    )
+    engagement_lines = []
+    for prev_exp in all_experiments:
+        line = f"- Step {prev_exp.step_number}: "
+        if prev_exp.sent_at:
+            line += f"Sent {prev_exp.sent_at.strftime('%b %d')}"
+        if prev_exp.replied:
+            line += f" — REPLIED (sentiment: {prev_exp.sentiment or 'unknown'})"
+            if prev_exp.full_reply_text:
+                line += f"\n  Reply: {prev_exp.full_reply_text[:200]}"
+        elif prev_exp.sent_at:
+            line += " — No reply"
+        if prev_exp.loom_sent:
+            line += " | Loom sent"
+            if prev_exp.loom_watched:
+                line += " (WATCHED)"
+            elif prev_exp.loom_watched is False:
+                line += " (not watched)"
+        engagement_lines.append(line)
+    engagement_context = "\n".join(engagement_lines) if engagement_lines else "No previous engagement data."
+
+    # Loom watched status for current context
+    latest_loom = next((e for e in reversed(all_experiments) if e.loom_sent), None)
+    loom_context = ""
+    if latest_loom:
+        if latest_loom.loom_watched:
+            loom_context = "\nIMPORTANT: The prospect WATCHED the Loom video you sent. Reference this — they've seen the walkthrough of their website issues. This is a warm lead signal."
+        elif latest_loom.loom_watched is False:
+            loom_context = "\nNote: A Loom video was sent but the prospect has NOT watched it yet."
+
     # --- Build the prompt based on channel type ---
     if channel_type in channel_prompts:
         # LinkedIn steps — use channel-specific prompt
@@ -2351,6 +2387,11 @@ Return ONLY valid JSON: {{"subject": "Re: {original_subject}", "body": "email bo
                 1 for s in all_steps
                 if (s.channel_type or "").lower() in ("email", "follow_up_email", "loom_email")
             )
+
+        # Determine reply status accurately
+        has_replied = any(e.replied for e in all_experiments)
+        reply_status = "The prospect has replied previously — see engagement history." if has_replied else "The prospect has NOT replied to any previous emails."
+
         angle = email_angle_guidance.get(email_followup_number, default_email_angle)
         prompt = f"""You are writing a follow-up cold email for Joji Shiotsuki, who works with trade businesses across Australia on their web presence.
 
@@ -2359,7 +2400,11 @@ Subject: {original_subject}
 Body: {original_body}
 Issue found: {issue_type} — {issue_detail}
 
-This is email follow-up #{email_followup_number}. The prospect has NOT replied to the previous emails.
+ENGAGEMENT HISTORY:
+{engagement_context}
+{loom_context}
+
+This is email follow-up #{email_followup_number}. {reply_status}
 The prospect's first name is "{first_name}".
 
 FOLLOW-UP ANGLE FOR THIS STEP:
