@@ -40,6 +40,7 @@ import {
   Search,
   Video,
   GitBranch,
+  Eye,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -509,6 +510,7 @@ function PipelineProspectCard({
   experiment?: any;
 }) {
   const cardRef = useRef<HTMLDivElement>(null);
+  const cardQueryClient = useQueryClient();
   const dueToday = isDueToday(prospect.next_action_date);
   const hasCustomMessage = !!(prospect.custom_email_subject || prospect.custom_email_body);
   const [linkedinReplyProspect, setLinkedinReplyProspect] = useState<OutreachProspect | null>(null);
@@ -516,6 +518,8 @@ function PipelineProspectCard({
   const [linkedinSaving, setLinkedinSaving] = useState(false);
   const [loomWatched, setLoomWatched] = useState(experiment?.loom_watched === true);
   const [linkedinReplied, setLinkedinReplied] = useState(experiment?.replied === true);
+  const [emailOpened, setEmailOpened] = useState(prospect.email_opened === true);
+  const [emailBounced, setEmailBounced] = useState(prospect.email_bounced === true);
 
   // Update when experiment prop changes
   useEffect(() => {
@@ -585,6 +589,50 @@ function PipelineProspectCard({
               title="Mark response"
             >
               <MessageSquare className="w-3.5 h-3.5" />
+            </button>
+          )}
+          {!isMuted && prospect.email && (
+            <button
+              onClick={async () => {
+                try {
+                  await coldOutreachApi.markEmailOpened(prospect.campaign_id, prospect.id);
+                  setEmailOpened(prev => !prev);
+                  cardQueryClient.invalidateQueries({ queryKey: ['mt-prospects'] });
+                } catch {
+                  toast.error('Failed to update email opened status');
+                }
+              }}
+              className={cn(
+                'p-1.5 rounded-md transition-colors',
+                emailOpened
+                  ? 'text-green-400 bg-green-900/30'
+                  : 'text-[--exec-text-muted] hover:text-[--exec-text] hover:bg-stone-700'
+              )}
+              title={emailOpened ? 'Email opened' : 'Mark email opened'}
+            >
+              <Eye className="w-3.5 h-3.5" />
+            </button>
+          )}
+          {!isMuted && prospect.email && (
+            <button
+              onClick={async () => {
+                try {
+                  await coldOutreachApi.markEmailBounced(prospect.campaign_id, prospect.id);
+                  setEmailBounced(prev => !prev);
+                  cardQueryClient.invalidateQueries({ queryKey: ['mt-prospects'] });
+                } catch {
+                  toast.error('Failed to update email bounced status');
+                }
+              }}
+              className={cn(
+                'p-1.5 rounded-md transition-colors',
+                emailBounced
+                  ? 'text-red-400 bg-red-900/30'
+                  : 'text-[--exec-text-muted] hover:text-[--exec-text] hover:bg-stone-700'
+              )}
+              title={emailBounced ? 'Email bounced' : 'Mark email bounced'}
+            >
+              <AlertTriangle className="w-3.5 h-3.5" />
             </button>
           )}
           {!isMuted && (
@@ -673,6 +721,19 @@ function PipelineProspectCard({
           </span>
         ) : null}
       </div>
+
+      {/* Step outcome indicator */}
+      {prospect.step_outcome === 'FALLBACK_USED' && prospect.current_step_detail && (
+        <div className="flex items-center gap-1.5 text-[11px] text-amber-400 bg-amber-900/20 px-2 py-0.5 rounded-md mb-2">
+          <GitBranch className="w-3 h-3" />
+          <span>Using fallback: {CHANNEL_LABELS[prospect.current_step_detail.fallback_channel_type as StepChannelType] || 'alternate'}</span>
+        </div>
+      )}
+      {prospect.step_outcome === 'SKIPPED' && (
+        <div className="flex items-center gap-1.5 text-[11px] text-slate-400 bg-slate-700/30 px-2 py-0.5 rounded-md mb-2">
+          <span>Auto-skipped (condition not met)</span>
+        </div>
+      )}
 
       {/* Next action date */}
       {prospect.next_action_date && (
@@ -875,6 +936,11 @@ function SequencePipelineView({
   const [editingStep, setEditingStep] = useState<{ stepNumber: number; channelType: string } | null>(null);
   const [editStepChannel, setEditStepChannel] = useState('');
   const [editStepFallback, setEditStepFallback] = useState('');
+  const [editConditionType, setEditConditionType] = useState<ConditionType | undefined>(undefined);
+  const [editConditionStepRef, setEditConditionStepRef] = useState<number | undefined>(undefined);
+  const [editFallbackSubject, setEditFallbackSubject] = useState('');
+  const [editFallbackContent, setEditFallbackContent] = useState('');
+  const [editFallbackInstruction, setEditFallbackInstruction] = useState('');
   const [savingStep, setSavingStep] = useState(false);
   const queryClient = useQueryClient();
 
@@ -1071,6 +1137,11 @@ function SequencePipelineView({
                     setEditingStep({ stepNumber: col.stepNumber, channelType: col.channelType || '' });
                     setEditStepChannel(col.channelType || '');
                     setEditStepFallback(step?.fallback_channel_type || '');
+                    setEditConditionType(step?.condition_type as ConditionType | undefined);
+                    setEditConditionStepRef(step?.condition_step_ref);
+                    setEditFallbackSubject(step?.fallback_template_subject || '');
+                    setEditFallbackContent(step?.fallback_template_content || '');
+                    setEditFallbackInstruction(step?.fallback_instruction_text || '');
                   }}
                   className={cn(
                     'rounded-t-xl px-4 py-3 border border-b-0 cursor-pointer',
@@ -1269,7 +1340,7 @@ function SequencePipelineView({
       {/* Edit Step Channel Modal */}
       {editingStep && createPortal(
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50" onClick={() => setEditingStep(null)}>
-          <div className="bg-[--exec-surface] rounded-2xl shadow-2xl w-full max-w-sm mx-4 border border-stone-600/40 p-6" onClick={e => e.stopPropagation()}>
+          <div className="bg-[--exec-surface] rounded-2xl shadow-2xl w-full max-w-md mx-4 border border-stone-600/40 p-6 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-sm font-semibold text-[--exec-text]">
                 Edit Step {editingStep.stepNumber}
@@ -1291,29 +1362,96 @@ function SequencePipelineView({
               ))}
             </select>
 
-            {/* Fallback — show when channel is LinkedIn type */}
-            {['LINKEDIN_CONNECT', 'LINKEDIN_MESSAGE', 'LINKEDIN_ENGAGE'].includes(editStepChannel) && (
-              <div className="mb-4">
-                <label className="block text-[10px] font-medium text-[--exec-text-muted] mb-1.5 uppercase tracking-wider">
-                  Fallback if not connected
-                </label>
-                <select
-                  value={editStepFallback}
-                  onChange={(e) => setEditStepFallback(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg bg-stone-800/50 border border-stone-600/40 text-[--exec-text] text-sm focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]/50 transition-all cursor-pointer appearance-none"
-                >
-                  <option value="">None (skip step)</option>
-                  {Object.entries(CHANNEL_LABELS)
-                    .filter(([v]) => !['LINKEDIN_CONNECT', 'LINKEDIN_MESSAGE', 'LINKEDIN_ENGAGE'].includes(v))
-                    .map(([value, label]) => (
-                      <option key={value} value={value}>{label}</option>
-                    ))}
-                </select>
-                <p className="text-[10px] text-stone-600 mt-1">
-                  If prospect hasn't accepted LinkedIn, use this channel instead
-                </p>
+            {/* Condition & Fallback Section */}
+            <div className="mb-4 pt-3 border-t border-stone-700/30">
+              <div className="flex items-center gap-2 mb-2">
+                <GitBranch className="w-3.5 h-3.5 text-[--exec-text-muted]" />
+                <span className="text-[10px] font-medium text-[--exec-text-muted] uppercase tracking-wider">Condition & Fallback</span>
               </div>
-            )}
+
+              {/* Condition selector */}
+              <div className="mb-2">
+                <label className="block text-[10px] text-[--exec-text-muted] mb-1">Only execute if...</label>
+                <select
+                  value={editConditionType || ''}
+                  onChange={(e) => {
+                    setEditConditionType((e.target.value || undefined) as ConditionType | undefined);
+                    setEditConditionStepRef(undefined);
+                  }}
+                  className="w-full px-3 py-1.5 rounded-lg text-sm bg-stone-800/50 border border-stone-600/40 text-[--exec-text] focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]/50 transition-all cursor-pointer appearance-none"
+                >
+                  <option value="">Always (no condition)</option>
+                  {Object.entries(CONDITION_LABELS).map(([value, label]) => (
+                    <option key={value} value={value}>{label}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Step reference selector — only for STEP_COMPLETED / STEP_SKIPPED */}
+              {(editConditionType === ConditionType.STEP_COMPLETED || editConditionType === ConditionType.STEP_SKIPPED) && (
+                <div className="mb-2">
+                  <label className="block text-[10px] text-[--exec-text-muted] mb-1">Which step?</label>
+                  <select
+                    value={editConditionStepRef || ''}
+                    onChange={(e) => setEditConditionStepRef(Number(e.target.value) || undefined)}
+                    className="w-full px-3 py-1.5 rounded-lg text-sm bg-stone-800/50 border border-stone-600/40 text-[--exec-text] focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]/50 transition-all cursor-pointer appearance-none"
+                  >
+                    <option value="">Select step...</option>
+                    {campaignSteps
+                      .filter(s => s.step_number < editingStep.stepNumber)
+                      .map(s => (
+                        <option key={s.step_number} value={s.step_number}>Step {s.step_number}</option>
+                      ))}
+                  </select>
+                </div>
+              )}
+
+              {/* Fallback section — visible when condition is set */}
+              {editConditionType && (
+                <div className="mt-2 p-2.5 bg-stone-800/30 rounded-lg border border-stone-700/30">
+                  <label className="block text-[10px] text-[--exec-text-muted] mb-1">Otherwise:</label>
+                  <select
+                    value={editStepFallback || 'skip'}
+                    onChange={(e) => setEditStepFallback(e.target.value === 'skip' ? '' : e.target.value)}
+                    className="w-full px-3 py-1.5 rounded-lg text-sm mb-2 bg-stone-800/50 border border-stone-600/40 text-[--exec-text] focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]/50 transition-all cursor-pointer appearance-none"
+                  >
+                    <option value="skip">Skip this step</option>
+                    {Object.values(StepChannelType).map((ch) => (
+                      <option key={ch} value={ch}>{ch.replace(/_/g, ' ')}</option>
+                    ))}
+                  </select>
+
+                  {/* Fallback content fields — only when a fallback channel is selected */}
+                  {editStepFallback && (
+                    <>
+                      {['EMAIL', 'FOLLOW_UP_EMAIL', 'LOOM_EMAIL'].includes(editStepFallback) && (
+                        <input
+                          type="text"
+                          value={editFallbackSubject}
+                          onChange={(e) => setEditFallbackSubject(e.target.value)}
+                          placeholder="Fallback subject line..."
+                          className="w-full px-3 py-1.5 rounded-lg text-sm mb-2 bg-stone-800/50 border border-stone-600/40 text-[--exec-text] placeholder:text-stone-500 focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]/50 transition-all"
+                        />
+                      )}
+                      <textarea
+                        value={editFallbackContent}
+                        onChange={(e) => setEditFallbackContent(e.target.value)}
+                        placeholder="Fallback content/template..."
+                        rows={2}
+                        className="w-full px-3 py-1.5 rounded-lg text-sm mb-2 resize-none bg-stone-800/50 border border-stone-600/40 text-[--exec-text] placeholder:text-stone-500 focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]/50 transition-all"
+                      />
+                      <input
+                        type="text"
+                        value={editFallbackInstruction}
+                        onChange={(e) => setEditFallbackInstruction(e.target.value)}
+                        placeholder="Fallback instruction..."
+                        className="w-full px-3 py-1.5 rounded-lg text-sm bg-stone-800/50 border border-stone-600/40 text-[--exec-text] placeholder:text-stone-500 focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]/50 transition-all"
+                      />
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
 
             <div className="flex gap-2 justify-end">
               <button
@@ -1327,7 +1465,6 @@ function SequencePipelineView({
                 onClick={async () => {
                   setSavingStep(true);
                   try {
-                    // Build updated steps array — only change the one step's channel_type
                     const isLinkedIn = (ch: string) => ['LINKEDIN_CONNECT', 'LINKEDIN_MESSAGE', 'LINKEDIN_ENGAGE'].includes(ch);
                     const updatedSteps = campaignSteps.map(s => {
                       const isEdited = s.step_number === editingStep.stepNumber;
@@ -1340,8 +1477,15 @@ function SequencePipelineView({
                         template_content: s.template_content || undefined,
                         instruction_text: s.instruction_text || undefined,
                         requires_linkedin_connected: isEdited ? isLinkedIn(editStepChannel) : s.requires_linkedin_connected,
-                        fallback_channel_type: (isEdited ? (editStepFallback || undefined) : s.fallback_channel_type) as StepChannelType | undefined,
+                        fallback_channel_type: (isEdited
+                          ? (editStepFallback || undefined)
+                          : s.fallback_channel_type) as StepChannelType | undefined,
                         loom_script: s.loom_script || undefined,
+                        condition_type: isEdited ? editConditionType : s.condition_type as ConditionType | undefined,
+                        condition_step_ref: isEdited ? editConditionStepRef : s.condition_step_ref,
+                        fallback_template_subject: isEdited ? (editFallbackSubject || undefined) : s.fallback_template_subject || undefined,
+                        fallback_template_content: isEdited ? (editFallbackContent || undefined) : s.fallback_template_content || undefined,
+                        fallback_instruction_text: isEdited ? (editFallbackInstruction || undefined) : s.fallback_instruction_text || undefined,
                       };
                     });
                     await coldOutreachApi.updateCampaignSteps(prospects[0]?.campaign_id, updatedSteps);
