@@ -868,6 +868,11 @@ export const coldOutreachApi = {
     return response.data;
   },
 
+  advanceLinkedinFollowup: async (campaignId: number, prospectId: number): Promise<{ prospect_id: number; message: string; linkedin_followup_count: number; next_action_date: string | null }> => {
+    const response = await api.post(`/api/outreach/campaigns/${campaignId}/prospects/${prospectId}/advance-linkedin-followup`);
+    return response.data;
+  },
+
   markEmailOpened: async (campaignId: number, prospectId: number): Promise<{ message: string }> => {
     const response = await api.post(`/api/outreach/campaigns/${campaignId}/prospects/${prospectId}/mark-email-opened`);
     return response.data;

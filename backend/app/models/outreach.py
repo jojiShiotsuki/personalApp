@@ -50,6 +50,7 @@ class ProspectStatus(str, enum.Enum):
     CONNECTED = "CONNECTED"  # Legacy — kept for backward compat with existing DB rows
     # Multi-touch specific
     PENDING_ENGAGEMENT = "PENDING_ENGAGEMENT"
+    LINKEDIN_FOLLOWUP = "LINKEDIN_FOLLOWUP"  # Post-sequence LinkedIn conversation (up to 5 follow-ups)
 
 
 class ResponseType(str, enum.Enum):
@@ -169,6 +170,7 @@ class OutreachProspect(Base):
     email_opened = Column(Boolean, default=False, server_default="0")
     email_bounced = Column(Boolean, default=False, server_default="0")
     linkedin_replied = Column(Boolean, default=False, server_default="0")
+    linkedin_followup_count = Column(Integer, default=0, server_default="0")  # How many LinkedIn follow-ups sent post-sequence
 
     # Social links (copied from discovered lead during import)
     linkedin_url = Column(String(500), nullable=True)

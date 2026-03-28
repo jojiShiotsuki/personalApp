@@ -757,6 +757,7 @@ export enum ProspectStatus {
   PENDING_CONNECTION = "PENDING_CONNECTION",
   // Multi-touch specific
   PENDING_ENGAGEMENT = "PENDING_ENGAGEMENT",
+  LINKEDIN_FOLLOWUP = "LINKEDIN_FOLLOWUP",
 }
 
 export enum ResponseType {
@@ -916,6 +917,7 @@ export interface OutreachProspect {
   email_opened?: boolean;
   email_bounced?: boolean;
   linkedin_replied?: boolean;
+  linkedin_followup_count?: number;
   step_outcome?: string;
   // Multi-touch enrichment
   current_step_detail?: MultiTouchStep;

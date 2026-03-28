@@ -689,6 +689,14 @@ function PipelineProspectCard({
         </div>
       )}
 
+      {/* LinkedIn follow-up indicator */}
+      {prospect.status === 'LINKEDIN_FOLLOWUP' && (
+        <div className="flex items-center gap-1.5 text-[11px] text-blue-400 bg-blue-900/20 px-2 py-0.5 rounded-md mb-2">
+          <Linkedin className="w-3 h-3" />
+          <span>LinkedIn follow-up {prospect.linkedin_followup_count || 0}/5</span>
+        </div>
+      )}
+
       {/* Next action date */}
       {prospect.next_action_date && (
         <div className={cn(

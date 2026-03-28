@@ -257,7 +257,7 @@ def get_campaign_stats(campaign: OutreachCampaign, db: Session) -> CampaignStats
 
     # Count prospects to contact today
     today = date.today()
-    actionable_statuses = [ProspectStatus.QUEUED, ProspectStatus.IN_SEQUENCE, ProspectStatus.PENDING_ENGAGEMENT]
+    actionable_statuses = [ProspectStatus.QUEUED, ProspectStatus.IN_SEQUENCE, ProspectStatus.PENDING_ENGAGEMENT, ProspectStatus.LINKEDIN_FOLLOWUP]
     to_contact_today = db.query(func.count(OutreachProspect.id)).filter(
         OutreachProspect.campaign_id == campaign_id,
         or_(
@@ -520,7 +520,7 @@ def get_todays_queue(campaign_id: int, db: Session = Depends(get_db)):
             OutreachProspect.next_action_date.is_(None),
         ),
         OutreachProspect.status.in_([
-            ProspectStatus.QUEUED, ProspectStatus.IN_SEQUENCE, ProspectStatus.PENDING_ENGAGEMENT
+            ProspectStatus.QUEUED, ProspectStatus.IN_SEQUENCE, ProspectStatus.PENDING_ENGAGEMENT, ProspectStatus.LINKEDIN_FOLLOWUP
         ])
     ).order_by(OutreachProspect.id.asc()).all()
 
@@ -1138,10 +1138,15 @@ def advance_multi_touch_prospect(campaign_id: int, prospect_id: int, db: Session
             break
 
     if not next_step:
-        # Sequence complete
-        prospect.status = ProspectStatus.NOT_INTERESTED
-        prospect.next_action_date = None
-        message = f"Sequence complete after step {current_step}."
+        # Sequence complete — check if we should enter LinkedIn follow-up mode
+        if getattr(prospect, 'linkedin_replied', False) and getattr(prospect, 'linkedin_followup_count', 0) < 5:
+            prospect.status = ProspectStatus.LINKEDIN_FOLLOWUP
+            prospect.next_action_date = calc_next_action_date(date.today(), MIN_STEP_DELAY_DAYS)
+            message = f"Sequence complete after step {current_step}. Prospect replied on LinkedIn — entering LinkedIn follow-up mode ({prospect.linkedin_followup_count}/5)."
+        else:
+            prospect.status = ProspectStatus.NOT_INTERESTED
+            prospect.next_action_date = None
+            message = f"Sequence complete after step {current_step}."
     else:
         prospect.current_step = next_step_num
         prospect.next_action_date = calc_next_action_date(prospect.next_action_date, next_step.delay_days)
@@ -1167,6 +1172,37 @@ def advance_multi_touch_prospect(campaign_id: int, prospect_id: int, db: Session
         next_action_date=prospect.next_action_date,
         message=message
     )
+
+
+@router.post("/{campaign_id}/prospects/{prospect_id}/advance-linkedin-followup")
+def advance_linkedin_followup(campaign_id: int, prospect_id: int, db: Session = Depends(get_db)):
+    """Advance a LinkedIn follow-up prospect. Increments count, schedules next follow-up or ends sequence."""
+    prospect = db.query(OutreachProspect).filter(
+        OutreachProspect.id == prospect_id,
+        OutreachProspect.campaign_id == campaign_id
+    ).first()
+    if not prospect:
+        raise HTTPException(status_code=404, detail="Prospect not found")
+
+    if prospect.status != ProspectStatus.LINKEDIN_FOLLOWUP:
+        raise HTTPException(status_code=400, detail="Prospect is not in LinkedIn follow-up mode")
+
+    prospect.linkedin_followup_count = (prospect.linkedin_followup_count or 0) + 1
+    prospect.last_contacted_at = datetime.utcnow()
+
+    if prospect.linkedin_followup_count >= 5:
+        # 5 follow-ups done — end the sequence
+        prospect.status = ProspectStatus.NOT_INTERESTED
+        prospect.next_action_date = None
+        message = f"LinkedIn follow-up {prospect.linkedin_followup_count}/5 complete. Sequence ended."
+    else:
+        # Schedule next follow-up in 3 days
+        prospect.next_action_date = calc_next_action_date(date.today(), MIN_STEP_DELAY_DAYS)
+        message = f"LinkedIn follow-up {prospect.linkedin_followup_count}/5 sent. Next follow-up on {prospect.next_action_date}."
+
+    db.commit()
+    db.refresh(prospect)
+    return {"prospect_id": prospect.id, "message": message, "linkedin_followup_count": prospect.linkedin_followup_count, "next_action_date": str(prospect.next_action_date) if prospect.next_action_date else None}
 
 
 @router.post("/{campaign_id}/prospects/{prospect_id}/mark-engaged", response_model=MarkSentResponse)
