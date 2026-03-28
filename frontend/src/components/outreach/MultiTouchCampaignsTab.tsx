@@ -1368,7 +1368,61 @@ function SequencePipelineView({
             );
           })}
 
-          {/* Outcome columns */}
+          {/* LinkedIn Follow-up column (after sequence steps, before outcome columns) */}
+          <div className="flex flex-col min-w-0">
+            {/* Column header */}
+            <div
+              className={cn(
+                'rounded-t-xl px-4 py-3 border border-b-0',
+                'bg-sky-500/10 border-sky-500/30'
+              )}
+            >
+              <div className="flex items-center gap-2.5">
+                <Linkedin className={cn('w-4.5 h-4.5 flex-shrink-0 text-sky-400')} />
+                <span className="text-sm font-semibold flex-1 text-sky-400">
+                  LI Follow-up
+                </span>
+                <span className="text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0 bg-sky-500/15 text-sky-400">
+                  {linkedinFollowupProspects.length}
+                </span>
+              </div>
+            </div>
+
+            {/* Column body — drop target */}
+            <div
+              onDragOver={(e) => handleDragOver(e, 'linkedin-followup')}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDropOnLinkedinFollowup}
+              className={cn(
+                'flex-1 rounded-b-xl border border-t-0 p-3 space-y-3 min-h-[160px] max-h-[70vh] overflow-y-auto transition-all duration-200',
+                'bg-stone-800/15 border-sky-500/30',
+                dragOverColumn === 'linkedin-followup' && 'ring-2 ring-sky-500/50 bg-sky-500/5 border-sky-500/30'
+              )}
+            >
+              {linkedinFollowupProspects.length === 0 ? (
+                <div className="flex items-center justify-center h-full min-h-[100px] text-[--exec-text-muted] text-sm">
+                  {dragOverColumn === 'linkedin-followup' ? 'Drop here' : 'None yet'}
+                </div>
+              ) : (
+                sortProspects(linkedinFollowupProspects, sortBy).map((prospect) => (
+                  <PipelineProspectCard
+                    key={prospect.id}
+                    prospect={prospect}
+                    onEdit={onEdit}
+                    onViewMessage={onViewMessage}
+                    onMarkResponse={onMarkResponse}
+                    isHighlighted={prospect.id === highlightProspectId}
+                    experiment={experimentMap.get(prospect.id)}
+                    isDragging={draggedProspectId === prospect.id}
+                    onDragStart={handleDragStart}
+                    onDragEnd={handleDragEnd}
+                  />
+                ))
+              )}
+            </div>
+          </div>
+
+          {/* Outcome columns (last) */}
           {OUTCOME_COLUMNS.map((ocol) => {
             const bucket = sortProspects(outcomeBuckets[ocol.key], sortBy);
             const OutcomeIcon = ocol.icon;
@@ -1430,60 +1484,6 @@ function SequencePipelineView({
               </div>
             );
           })}
-
-          {/* LinkedIn Follow-up column */}
-          <div className="flex flex-col min-w-0">
-            {/* Column header */}
-            <div
-              className={cn(
-                'rounded-t-xl px-4 py-3 border border-b-0',
-                'bg-sky-500/10 border-sky-500/30'
-              )}
-            >
-              <div className="flex items-center gap-2.5">
-                <Linkedin className={cn('w-4.5 h-4.5 flex-shrink-0 text-sky-400')} />
-                <span className="text-sm font-semibold flex-1 text-sky-400">
-                  LI Follow-up
-                </span>
-                <span className="text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0 bg-sky-500/15 text-sky-400">
-                  {linkedinFollowupProspects.length}
-                </span>
-              </div>
-            </div>
-
-            {/* Column body — drop target */}
-            <div
-              onDragOver={(e) => handleDragOver(e, 'linkedin-followup')}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDropOnLinkedinFollowup}
-              className={cn(
-                'flex-1 rounded-b-xl border border-t-0 p-3 space-y-3 min-h-[160px] max-h-[70vh] overflow-y-auto transition-all duration-200',
-                'bg-stone-800/15 border-sky-500/30',
-                dragOverColumn === 'linkedin-followup' && 'ring-2 ring-sky-500/50 bg-sky-500/5 border-sky-500/30'
-              )}
-            >
-              {linkedinFollowupProspects.length === 0 ? (
-                <div className="flex items-center justify-center h-full min-h-[100px] text-[--exec-text-muted] text-sm">
-                  {dragOverColumn === 'linkedin-followup' ? 'Drop here' : 'None yet'}
-                </div>
-              ) : (
-                sortProspects(linkedinFollowupProspects, sortBy).map((prospect) => (
-                  <PipelineProspectCard
-                    key={prospect.id}
-                    prospect={prospect}
-                    onEdit={onEdit}
-                    onViewMessage={onViewMessage}
-                    onMarkResponse={onMarkResponse}
-                    isHighlighted={prospect.id === highlightProspectId}
-                    experiment={experimentMap.get(prospect.id)}
-                    isDragging={draggedProspectId === prospect.id}
-                    onDragStart={handleDragStart}
-                    onDragEnd={handleDragEnd}
-                  />
-                ))
-              )}
-            </div>
-          </div>
         </div>
       </div>
 

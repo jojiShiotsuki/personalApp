@@ -103,6 +103,7 @@ class ProspectStatus(str, Enum):
     CONNECTED = "CONNECTED"  # Legacy — kept for backward compat with existing DB rows
     # Multi-touch specific
     PENDING_ENGAGEMENT = "PENDING_ENGAGEMENT"
+    LINKEDIN_FOLLOWUP = "LINKEDIN_FOLLOWUP"
 
 
 class ResponseType(str, Enum):
