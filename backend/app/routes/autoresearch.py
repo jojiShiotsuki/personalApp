@@ -2111,6 +2111,28 @@ def _learn_from_edit(db: Session, original_subject: str, original_body: str, edi
         db.commit()
 
 
+SIGN_OFF = (
+    "\n\nCheers,\n"
+    "Joji Shiotsuki | Joji Web Solutions | jojishiotsuki.com\n\n"
+    'Not interested? Just reply "stop" and I won\'t email again.'
+)
+
+
+def _ensure_sign_off(body: str) -> str:
+    """Ensure the email body ends with the canonical sign-off. Strip any AI-generated variation and append the correct one."""
+    if not body:
+        return body
+    # Strip existing sign-off variations (case-insensitive)
+    # Look for "Cheers," or "Cheers\n" as the start of sign-off
+    import re as _re
+    pattern = _re.compile(
+        r'\n*\s*Cheers[,.]?\s*\n.*$',
+        _re.DOTALL | _re.IGNORECASE
+    )
+    cleaned = pattern.sub('', body).rstrip()
+    return cleaned + SIGN_OFF
+
+
 def _parse_followup_json(raw_text: str) -> dict:
     """Parse JSON from Claude's follow-up response, handling markdown fences."""
     text = raw_text.strip()
@@ -2409,7 +2431,7 @@ Return ONLY valid JSON (no markdown fences):
 
         return {
             "subject": result.get("subject", ""),
-            "body": result.get("body", ""),
+            "body": _ensure_sign_off(result.get("body", "")),
             "loom_script": "",
             "word_count": result.get("word_count", len(result.get("body", "").split())),
             "step_number": 1,
@@ -3593,11 +3615,16 @@ Return ONLY valid JSON. Use \\n for line breaks in the script:
 
     total_cost = cost_usd + loom_cost
 
+    # Ensure sign-off for email steps (not LinkedIn DMs)
+    final_body = result.get("body", "")
+    if channel_type not in ("linkedin_connect", "linkedin_message", "linkedin_engage"):
+        final_body = _ensure_sign_off(final_body)
+
     return {
         "subject": result.get("subject", f"Re: {original_subject}"),
-        "body": result.get("body", ""),
+        "body": final_body,
         "loom_script": loom_script,
-        "word_count": result.get("word_count", len(result.get("body", "").split())),
+        "word_count": result.get("word_count", len(final_body.split())),
         "step_number": step_number,
         "follow_up_number": follow_up_number,
         "model": model,
