@@ -2785,13 +2785,29 @@ Return ONLY valid JSON: {{"subject": "Re: {original_subject}", "body": "email bo
 
     # --- Build used angles list (shared by all channel types) ---
     used_angles = ""
+    used_ctas = []
+    used_angle_labels = []
     for prev_exp in all_experiments:
         if prev_exp.body and prev_exp.step_number <= step_number:
             snippet = (prev_exp.body or "")[:80].replace("\n", " ")
             channel_label = ""
             if prev_exp.step_number == step_number:
                 channel_label = " (current step)"
-            used_angles += f"\n- Step {prev_exp.step_number}{channel_label}: \"{snippet}...\""
+            cta_info = f" | CTA: \"{prev_exp.cta_used}\"" if prev_exp.cta_used else ""
+            angle_info = f" | Angle: {prev_exp.angle_used}" if prev_exp.angle_used else ""
+            used_angles += f"\n- Step {prev_exp.step_number}{channel_label}: \"{snippet}...\"{cta_info}{angle_info}"
+            if prev_exp.cta_used:
+                used_ctas.append(prev_exp.cta_used)
+            if prev_exp.angle_used:
+                used_angle_labels.append(prev_exp.angle_used)
+
+    # Explicit list of CTAs and angles already used (for hard enforcement)
+    cta_blacklist = ""
+    if used_ctas:
+        cta_blacklist = "\n\nCTAs ALREADY USED (you MUST pick a DIFFERENT one):\n" + "\n".join(f'- "{c}"' for c in used_ctas)
+    angle_blacklist = ""
+    if used_angle_labels:
+        angle_blacklist = "\n\nANGLES ALREADY USED (you MUST pick a DIFFERENT one):\n" + "\n".join(f"- {a}" for a in used_angle_labels)
 
     # --- Build the prompt based on channel type ---
     if channel_type == "linkedin_message" or is_linkedin_followup:
@@ -2841,6 +2857,8 @@ COMPLETE ENGAGEMENT HISTORY:
 
 PREVIOUS MESSAGES SENT (DO NOT repeat these):
 {used_angles if used_angles else "- None yet"}
+{cta_blacklist}
+{angle_blacklist}
 
 YOUR TASK: Write a LinkedIn DM that:
 1. READS the full engagement history — understand what's been said across ALL channels (email, LinkedIn, Loom)
@@ -2972,9 +2990,11 @@ AVAILABLE ANGLES (pick ONE that hasn't been used and fits the context):
 CTA A/B TESTING:
 - Your email MUST end with a specific call-to-action (CTA) BEFORE the sign-off block.
 - Check the CTA A/B TEST RESULTS in the performance data. If certain CTAs are getting replies, lean into similar ones. If no data yet, TEST something new each time.
-- VARY your CTA every time — never use the exact same CTA twice in a row for the same prospect.
+- CRITICAL: You MUST use a DIFFERENT CTA and angle from ALL previous emails to this prospect. Check the blacklists below.
 - The CTA should feel natural, not salesy. Match it to the angle and engagement level.
 - Examples of CTA styles: question ("Worth a quick chat?"), offer ("Want me to send a free mockup?"), curiosity ("Want me to show you what I found?"), direct ("Free to jump on a 10-min call this week?"), soft ("No pressure, just thought you should know")
+{cta_blacklist}
+{angle_blacklist}
 
 RULES:
 - Start with "G'day {first_name}," greeting
