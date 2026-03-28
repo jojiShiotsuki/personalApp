@@ -1524,7 +1524,7 @@ export const autoresearchApi = {
     const { data } = await api.post(`/api/autoresearch/send-email/${prospectId}`, { subject, body });
     return data;
   },
-  generateFollowup: async (prospectId: number, customInstruction?: string): Promise<{ subject: string; body: string; loom_script?: string; word_count: number; step_number: number; follow_up_number: number; model: string; cost_usd: number }> => {
+  generateFollowup: async (prospectId: number, customInstruction?: string): Promise<{ subject: string; body: string; loom_script?: string; word_count: number; step_number: number; follow_up_number: number; model: string; cost_usd: number; cta_used?: string; angle_used?: string }> => {
     const { data } = await api.post(`/api/autoresearch/generate-followup/${prospectId}`, {
       custom_instruction: customInstruction || undefined,
     });
