@@ -391,6 +391,11 @@ def create_campaign(data: CampaignCreate, db: Session = Depends(get_db)):
                 instruction_text=step_data.instruction_text,
                 requires_linkedin_connected=step_data.requires_linkedin_connected,
                 loom_script=step_data.loom_script,
+                condition_type=step_data.condition_type.value if step_data.condition_type else None,
+                condition_step_ref=step_data.condition_step_ref,
+                fallback_template_subject=step_data.fallback_template_subject,
+                fallback_template_content=step_data.fallback_template_content,
+                fallback_instruction_text=step_data.fallback_instruction_text,
             )
             db.add(step)
 
@@ -1065,6 +1070,11 @@ def update_campaign_steps(campaign_id: int, steps: List[MultiTouchStepCreate], d
             requires_linkedin_connected=step_data.requires_linkedin_connected,
             fallback_channel_type=step_data.fallback_channel_type,
             loom_script=step_data.loom_script,
+            condition_type=step_data.condition_type.value if step_data.condition_type else None,
+            condition_step_ref=step_data.condition_step_ref,
+            fallback_template_subject=step_data.fallback_template_subject,
+            fallback_template_content=step_data.fallback_template_content,
+            fallback_instruction_text=step_data.fallback_instruction_text,
         )
         db.add(step)
         new_steps.append(step)
@@ -1169,6 +1179,16 @@ def mark_engaged(campaign_id: int, prospect_id: int, db: Session = Depends(get_d
     campaign = prospect.campaign
     steps = {s.step_number: s for s in campaign.multi_touch_steps}
     current_step = prospect.current_step
+
+    # Log the current step's outcome before advancing
+    step_logs = db.query(ProspectStepLog).filter(
+        ProspectStepLog.prospect_id == prospect.id,
+        ProspectStepLog.campaign_id == campaign.id,
+    ).all()
+    current_step_obj = steps.get(prospect.current_step)
+    if current_step_obj:
+        resolved = resolve_step(current_step_obj, prospect, step_logs)
+        log_step_outcome(db, prospect, campaign.id, prospect.current_step, resolved["outcome"], resolved.get("channel"))
 
     # Find the actual next step (handles non-contiguous step numbers)
     next_step_num, next_step = find_next_step(steps, current_step, prospect)

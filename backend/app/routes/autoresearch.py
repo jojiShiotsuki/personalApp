@@ -35,7 +35,8 @@ from app.models.autoresearch import (
     GmailToken,
     Insight,
 )
-from app.models.outreach import OutreachProspect, ProspectStatus
+from app.models.outreach import OutreachProspect, ProspectStatus, ProspectStepLog
+from app.routes.cold_outreach import resolve_step
 from app.models.user import User
 from app.schemas.autoresearch import (
     AnalyticsOverview,
@@ -2157,12 +2158,14 @@ async def generate_followup_email(
         )
         if current_mt_step:
             channel_type = (current_mt_step.channel_type or "email").lower()
-            # If step requires LinkedIn connected but prospect isn't, use fallback
-            if (current_mt_step.requires_linkedin_connected
-                    and not getattr(prospect, "linkedin_connected", False)
-                    and current_mt_step.fallback_channel_type):
-                channel_type = current_mt_step.fallback_channel_type.lower()
-                logger.info("Prospect %d not LinkedIn-connected, using fallback channel: %s", prospect_id, channel_type)
+            # Evaluate generalized conditions and fallback logic
+            step_logs = db.query(ProspectStepLog).filter(
+                ProspectStepLog.prospect_id == prospect.id,
+                ProspectStepLog.campaign_id == campaign.id,
+            ).all()
+            resolved = resolve_step(current_mt_step, prospect, step_logs)
+            if resolved["channel"]:
+                channel_type = resolved["channel"].lower()
 
     # --- STEP 1: Generate initial cold email (no previous email to reference) ---
     if step_number == 1:
