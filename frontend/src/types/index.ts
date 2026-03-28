@@ -785,6 +785,26 @@ export enum StepChannelType {
   LOOM_EMAIL = "LOOM_EMAIL",
 }
 
+export enum ConditionType {
+  LINKEDIN_CONNECTED = 'LINKEDIN_CONNECTED',
+  EMAIL_REPLIED = 'EMAIL_REPLIED',
+  EMAIL_OPENED = 'EMAIL_OPENED',
+  EMAIL_DELIVERED = 'EMAIL_DELIVERED',
+  LINKEDIN_REPLIED = 'LINKEDIN_REPLIED',
+  STEP_COMPLETED = 'STEP_COMPLETED',
+  STEP_SKIPPED = 'STEP_SKIPPED',
+}
+
+export const CONDITION_LABELS: Record<ConditionType, string> = {
+  [ConditionType.LINKEDIN_CONNECTED]: 'LinkedIn connected',
+  [ConditionType.EMAIL_REPLIED]: 'Email replied',
+  [ConditionType.EMAIL_OPENED]: 'Email opened',
+  [ConditionType.EMAIL_DELIVERED]: 'Email delivered',
+  [ConditionType.LINKEDIN_REPLIED]: 'LinkedIn replied',
+  [ConditionType.STEP_COMPLETED]: 'Step completed',
+  [ConditionType.STEP_SKIPPED]: 'Step skipped',
+};
+
 export interface MultiTouchStep {
   id: number;
   campaign_id: number;
@@ -797,6 +817,11 @@ export interface MultiTouchStep {
   requires_linkedin_connected?: boolean;
   fallback_channel_type?: StepChannelType;
   loom_script?: string;
+  condition_type?: ConditionType;
+  condition_step_ref?: number;
+  fallback_template_subject?: string;
+  fallback_template_content?: string;
+  fallback_instruction_text?: string;
 }
 
 export interface MultiTouchStepCreate {
@@ -809,6 +834,11 @@ export interface MultiTouchStepCreate {
   requires_linkedin_connected?: boolean;
   fallback_channel_type?: StepChannelType;
   loom_script?: string;
+  condition_type?: ConditionType;
+  condition_step_ref?: number;
+  fallback_template_subject?: string;
+  fallback_template_content?: string;
+  fallback_instruction_text?: string;
 }
 
 export interface OutreachCampaign {
@@ -885,6 +915,10 @@ export interface OutreachProspect {
   linkedin_url?: string;
   facebook_url?: string;
   instagram_url?: string;
+  email_opened?: boolean;
+  email_bounced?: boolean;
+  linkedin_replied?: boolean;
+  step_outcome?: string;
   // Multi-touch enrichment
   current_step_detail?: MultiTouchStep;
   missing_data_warnings?: string[];
