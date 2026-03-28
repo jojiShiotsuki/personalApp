@@ -11,7 +11,8 @@ from app.database import get_db
 from app.models.outreach import (
     OutreachCampaign, OutreachProspect, OutreachEmailTemplate,
     OutreachTemplate, OutreachNiche, MultiTouchStep, CampaignSearchKeyword,
-    ProspectStatus, ResponseType, CampaignStatus, CampaignType, StepChannelType
+    ProspectStatus, ResponseType, CampaignStatus, CampaignType, StepChannelType,
+    ProspectStepLog,
 )
 from app.models.crm import Contact, Deal, ContactStatus, DealStage, Interaction, InteractionType
 from app.schemas.outreach import (
@@ -190,6 +191,28 @@ def resolve_step(step, prospect, step_logs: list) -> dict:
         }
     else:
         return {"channel": None, "outcome": "SKIPPED"}
+
+
+def log_step_outcome(db: Session, prospect, campaign_id: int, step_number: int, outcome: str, channel_used: str = None):
+    """Log step outcome to prospect_step_log. Upserts if entry already exists."""
+    existing = db.query(ProspectStepLog).filter(
+        ProspectStepLog.prospect_id == prospect.id,
+        ProspectStepLog.campaign_id == campaign_id,
+        ProspectStepLog.step_number == step_number,
+    ).first()
+    if existing:
+        existing.outcome = outcome
+        existing.channel_used = channel_used
+        existing.completed_at = datetime.utcnow()
+    else:
+        log_entry = ProspectStepLog(
+            prospect_id=prospect.id,
+            campaign_id=campaign_id,
+            step_number=step_number,
+            outcome=outcome,
+            channel_used=channel_used,
+        )
+        db.add(log_entry)
 
 
 # Minimum days between steps when advancing
@@ -510,6 +533,14 @@ def get_todays_queue(campaign_id: int, db: Session = Depends(get_db)):
                     if not p.email:
                         warnings.append("No email address")
                 resp.missing_data_warnings = warnings if warnings else None
+
+                # Evaluate condition and set step_outcome
+                step_logs = db.query(ProspectStepLog).filter(
+                    ProspectStepLog.prospect_id == p.id,
+                    ProspectStepLog.campaign_id == campaign.id,
+                ).all()
+                resolved = resolve_step(step, p, step_logs)
+                resp.step_outcome = resolved["outcome"]
             enriched.append(resp)
         return enriched
 
@@ -1061,10 +1092,37 @@ def advance_multi_touch_prospect(campaign_id: int, prospect_id: int, db: Session
     steps = {s.step_number: s for s in campaign.multi_touch_steps}
     current_step = prospect.current_step
 
+    # Fetch step logs for condition evaluation
+    step_logs = db.query(ProspectStepLog).filter(
+        ProspectStepLog.prospect_id == prospect.id,
+        ProspectStepLog.campaign_id == campaign.id,
+    ).all()
+
+    # Log the current step's outcome before advancing
+    current_step_obj = steps.get(prospect.current_step)
+    if current_step_obj:
+        resolved = resolve_step(current_step_obj, prospect, step_logs)
+        log_step_outcome(db, prospect, campaign.id, prospect.current_step, resolved["outcome"], resolved.get("channel"))
+
     prospect.last_contacted_at = datetime.utcnow()
 
     # Find the actual next step (handles non-contiguous step numbers)
     next_step_num, next_step = find_next_step(steps, current_step, prospect)
+
+    # Re-fetch logs after logging current step
+    step_logs = db.query(ProspectStepLog).filter(
+        ProspectStepLog.prospect_id == prospect.id,
+        ProspectStepLog.campaign_id == campaign.id,
+    ).all()
+
+    # Auto-skip consecutive steps whose condition is unmet and have no fallback
+    while next_step:
+        resolved_next = resolve_step(next_step, prospect, step_logs)
+        if resolved_next["outcome"] == "SKIPPED":
+            log_step_outcome(db, prospect, campaign.id, next_step_num, "SKIPPED")
+            next_step_num, next_step = find_next_step(steps, next_step_num, prospect)
+        else:
+            break
 
     if not next_step:
         # Sequence complete
@@ -1184,6 +1242,46 @@ def mark_mt_connected(campaign_id: int, prospect_id: int, db: Session = Depends(
         next_action_date=prospect.next_action_date,
         message=message
     )
+
+
+@router.post("/{campaign_id}/prospects/{prospect_id}/mark-email-opened")
+def mark_email_opened(campaign_id: int, prospect_id: int, db: Session = Depends(get_db)):
+    prospect = db.query(OutreachProspect).filter(
+        OutreachProspect.id == prospect_id,
+        OutreachProspect.campaign_id == campaign_id,
+    ).first()
+    if not prospect:
+        raise HTTPException(status_code=404, detail="Prospect not found")
+    prospect.email_opened = True
+    db.commit()
+    return {"message": "Email opened marked"}
+
+
+@router.post("/{campaign_id}/prospects/{prospect_id}/mark-email-bounced")
+def mark_email_bounced(campaign_id: int, prospect_id: int, db: Session = Depends(get_db)):
+    prospect = db.query(OutreachProspect).filter(
+        OutreachProspect.id == prospect_id,
+        OutreachProspect.campaign_id == campaign_id,
+    ).first()
+    if not prospect:
+        raise HTTPException(status_code=404, detail="Prospect not found")
+    prospect.email_bounced = True
+    db.commit()
+    return {"message": "Email bounced marked"}
+
+
+@router.post("/{campaign_id}/prospects/{prospect_id}/mark-linkedin-replied")
+def mark_linkedin_replied(campaign_id: int, prospect_id: int, db: Session = Depends(get_db)):
+    prospect = db.query(OutreachProspect).filter(
+        OutreachProspect.id == prospect_id,
+        OutreachProspect.campaign_id == campaign_id,
+    ).first()
+    if not prospect:
+        raise HTTPException(status_code=404, detail="Prospect not found")
+    prospect.linkedin_replied = True
+    log_step_outcome(db, prospect, campaign_id, prospect.current_step, "REPLIED")
+    db.commit()
+    return {"message": "LinkedIn replied marked"}
 
 
 # ============== EMAIL TEMPLATES ==============
