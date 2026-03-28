@@ -40,6 +40,7 @@ import {
   Search,
   Video,
   GitBranch,
+  GripVertical,
 
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -489,6 +490,15 @@ function isDueToday(dateStr?: string | null): boolean {
   return d <= today;
 }
 
+// Drag data shape for prospect drag-and-drop
+interface ProspectDragData {
+  prospectId: number;
+  campaignId: number;
+  currentStatus: ProspectStatus;
+  currentStep: number;
+  agencyName: string;
+}
+
 // Prospect card for pipeline view
 function PipelineProspectCard({
   prospect,
@@ -499,6 +509,9 @@ function PipelineProspectCard({
   isMuted,
   isHighlighted,
   experiment,
+  isDragging,
+  onDragStart,
+  onDragEnd,
 }: {
   prospect: OutreachProspect;
   onEdit: (prospect: OutreachProspect) => void;
@@ -508,6 +521,9 @@ function PipelineProspectCard({
   isMuted?: boolean;
   isHighlighted?: boolean;
   experiment?: any;
+  isDragging?: boolean;
+  onDragStart?: (e: React.DragEvent, prospect: OutreachProspect) => void;
+  onDragEnd?: () => void;
 }) {
   const cardRef = useRef<HTMLDivElement>(null);
 
@@ -539,18 +555,26 @@ function PipelineProspectCard({
   return (
     <div
       ref={cardRef}
+      draggable={!isMuted}
+      onDragStart={(e) => onDragStart?.(e, prospect)}
+      onDragEnd={() => onDragEnd?.()}
       className={cn(
         'bento-card p-4 transition-all duration-200 group',
+        !isMuted && 'cursor-grab active:cursor-grabbing',
         isMuted
           ? 'opacity-50 hover:opacity-75'
           : dueToday
             ? 'border-[--exec-accent]/40 shadow-[0_0_10px_rgba(var(--exec-accent-rgb,59,130,246),0.12)] hover:shadow-[0_0_16px_rgba(var(--exec-accent-rgb,59,130,246),0.2)]'
             : 'hover:shadow-lg hover:-translate-y-0.5',
-        isHighlighted && 'ring-2 ring-amber-400 shadow-[0_0_20px_rgba(251,191,36,0.3)] animate-pulse'
+        isHighlighted && 'ring-2 ring-amber-400 shadow-[0_0_20px_rgba(251,191,36,0.3)] animate-pulse',
+        isDragging && 'opacity-50 scale-95 ring-2 ring-blue-500/40'
       )}
     >
-      {/* Action buttons row */}
+      {/* Drag handle + Action buttons row */}
       <div className="flex items-center justify-center gap-1 mb-2 flex-wrap">
+        {!isMuted && (
+          <GripVertical className="w-3 h-3 text-[--exec-text-muted] opacity-0 group-hover:opacity-50 transition-opacity flex-shrink-0" />
+        )}
         {dueToday && !isMuted && (
           <span className="px-2 py-0.5 text-[10px] font-bold uppercase rounded-md bg-[--exec-accent]/20 text-[--exec-accent] tracking-wide">
             Today
@@ -906,6 +930,143 @@ function SequencePipelineView({
   const [savingStep, setSavingStep] = useState(false);
   const queryClient = useQueryClient();
 
+  // Drag-and-drop state
+  const [draggedProspectId, setDraggedProspectId] = useState<number | null>(null);
+  const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
+
+  const moveProspectMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: Partial<OutreachProspect> }) =>
+      coldOutreachApi.updateProspect(id, data),
+    onSuccess: (_result, variables) => {
+      const prospect = prospects.find((p) => p.id === variables.id);
+      const name = prospect?.agency_name || 'Prospect';
+      const status = variables.data.status;
+      const step = variables.data.current_step;
+      let destination = '';
+      if (status === ProspectStatus.IN_SEQUENCE && step != null) {
+        destination = `Step ${step}`;
+      } else if (status === ProspectStatus.REPLIED) {
+        destination = 'Replied';
+      } else if (status === ProspectStatus.CONVERTED) {
+        destination = 'Converted';
+      } else if (status === ProspectStatus.NOT_INTERESTED) {
+        destination = 'Not Interested';
+      } else if (status === ProspectStatus.LINKEDIN_FOLLOWUP) {
+        destination = 'LinkedIn Follow-up';
+      }
+      toast.success(`Moved ${name} to ${destination}`);
+      queryClient.invalidateQueries({ queryKey: ['mt-prospects'] });
+      queryClient.invalidateQueries({ queryKey: ['mt-campaign'] });
+      queryClient.invalidateQueries({ queryKey: ['multi-touch-campaigns'] });
+    },
+    onError: () => toast.error('Failed to move prospect'),
+  });
+
+  const handleDragStart = (e: React.DragEvent, prospect: OutreachProspect) => {
+    const dragData: ProspectDragData = {
+      prospectId: prospect.id,
+      campaignId: prospect.campaign_id,
+      currentStatus: prospect.status,
+      currentStep: prospect.current_step,
+      agencyName: prospect.agency_name,
+    };
+    e.dataTransfer.setData('text/plain', JSON.stringify(dragData));
+    e.dataTransfer.effectAllowed = 'move';
+    setDraggedProspectId(prospect.id);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedProspectId(null);
+    setDragOverColumn(null);
+  };
+
+  const handleDragOver = (e: React.DragEvent, columnKey: string) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (dragOverColumn !== columnKey) {
+      setDragOverColumn(columnKey);
+    }
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    // Only clear if actually leaving the column (not entering a child)
+    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+      setDragOverColumn(null);
+    }
+  };
+
+  const handleDropOnStep = (e: React.DragEvent, stepNumber: number) => {
+    e.preventDefault();
+    setDragOverColumn(null);
+    try {
+      const dragData: ProspectDragData = JSON.parse(e.dataTransfer.getData('text/plain'));
+      // If already in this step with IN_SEQUENCE status, do nothing
+      if (
+        dragData.currentStep === stepNumber &&
+        (dragData.currentStatus === ProspectStatus.IN_SEQUENCE ||
+         dragData.currentStatus === ProspectStatus.QUEUED ||
+         dragData.currentStatus === ProspectStatus.PENDING_CONNECTION ||
+         dragData.currentStatus === ProspectStatus.PENDING_ENGAGEMENT)
+      ) {
+        return;
+      }
+      const today = new Date().toISOString().split('T')[0];
+      moveProspectMutation.mutate({
+        id: dragData.prospectId,
+        data: {
+          status: ProspectStatus.IN_SEQUENCE,
+          current_step: stepNumber,
+          next_action_date: today,
+        } as Partial<OutreachProspect>,
+      });
+    } catch {
+      // Invalid drag data, ignore
+    }
+  };
+
+  const handleDropOnOutcome = (e: React.DragEvent, status: ProspectStatus) => {
+    e.preventDefault();
+    setDragOverColumn(null);
+    try {
+      const dragData: ProspectDragData = JSON.parse(e.dataTransfer.getData('text/plain'));
+      // If already in this status, do nothing
+      if (dragData.currentStatus === status) {
+        return;
+      }
+      const updateData: Record<string, unknown> = { status };
+      if (status === ProspectStatus.NOT_INTERESTED || status === ProspectStatus.CONVERTED) {
+        updateData.next_action_date = null;
+      }
+      moveProspectMutation.mutate({
+        id: dragData.prospectId,
+        data: updateData,
+      });
+    } catch {
+      // Invalid drag data, ignore
+    }
+  };
+
+  const handleDropOnLinkedinFollowup = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOverColumn(null);
+    try {
+      const dragData: ProspectDragData = JSON.parse(e.dataTransfer.getData('text/plain'));
+      if (dragData.currentStatus === ProspectStatus.LINKEDIN_FOLLOWUP) {
+        return;
+      }
+      const today = new Date().toISOString().split('T')[0];
+      moveProspectMutation.mutate({
+        id: dragData.prospectId,
+        data: {
+          status: ProspectStatus.LINKEDIN_FOLLOWUP,
+          next_action_date: today,
+        } as Partial<OutreachProspect>,
+      });
+    } catch {
+      // Invalid drag data, ignore
+    }
+  };
+
   // Fetch ALL experiments for this campaign once (not per card)
   // Fetch up to 500 to cover all prospects
   const campaignId = prospects[0]?.campaign_id;
@@ -970,6 +1131,7 @@ function SequencePipelineView({
     converted: [],
     not_interested: [],
   };
+  const linkedinFollowupProspects: OutreachProspect[] = [];
   const skippedProspects: OutreachProspect[] = [];
 
   for (const p of filteredProspects) {
@@ -981,6 +1143,8 @@ function SequencePipelineView({
       outcomeBuckets.converted.push(p);
     } else if (p.status === ProspectStatus.NOT_INTERESTED) {
       outcomeBuckets.not_interested.push(p);
+    } else if (p.status === ProspectStatus.LINKEDIN_FOLLOWUP) {
+      linkedinFollowupProspects.push(p);
     } else {
       const step = p.current_step;
       if (!stepBuckets[step]) stepBuckets[step] = [];
@@ -1012,7 +1176,7 @@ function SequencePipelineView({
       .map((stepNum) => ({ stepNumber: stepNum, label: `Step ${stepNum}` }));
   }
 
-  const totalColumns = stepColumns.length + OUTCOME_COLUMNS.length;
+  const totalColumns = stepColumns.length + OUTCOME_COLUMNS.length + 1; // +1 for LinkedIn Follow-up column
 
   return (
     <div className="space-y-4">
@@ -1167,16 +1331,20 @@ function SequencePipelineView({
                   )}
                 </div>
 
-                {/* Column body */}
+                {/* Column body — drop target */}
                 <div
+                  onDragOver={(e) => handleDragOver(e, `step-${col.stepNumber}`)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDropOnStep(e, col.stepNumber)}
                   className={cn(
-                    'flex-1 rounded-b-xl border border-t-0 p-3 space-y-3 min-h-[160px] max-h-[70vh] overflow-y-auto',
-                    'bg-stone-800/15 border-stone-700/40'
+                    'flex-1 rounded-b-xl border border-t-0 p-3 space-y-3 min-h-[160px] max-h-[70vh] overflow-y-auto transition-all duration-200',
+                    'bg-stone-800/15 border-stone-700/40',
+                    dragOverColumn === `step-${col.stepNumber}` && 'ring-2 ring-blue-500/50 bg-blue-500/5 border-blue-500/30'
                   )}
                 >
                   {bucket.length === 0 ? (
                     <div className="flex items-center justify-center h-full min-h-[100px] text-[--exec-text-muted] text-sm">
-                      No prospects
+                      {dragOverColumn === `step-${col.stepNumber}` ? 'Drop here' : 'No prospects'}
                     </div>
                   ) : (
                     bucket.map((prospect) => (
@@ -1189,6 +1357,9 @@ function SequencePipelineView({
                         onMarkConnected={onMarkConnected}
                         isHighlighted={prospect.id === highlightProspectId}
                         experiment={experimentMap.get(prospect.id)}
+                        isDragging={draggedProspectId === prospect.id}
+                        onDragStart={handleDragStart}
+                        onDragEnd={handleDragEnd}
                       />
                     ))
                   )}
@@ -1198,42 +1369,46 @@ function SequencePipelineView({
           })}
 
           {/* Outcome columns */}
-          {OUTCOME_COLUMNS.map((col) => {
-            const bucket = sortProspects(outcomeBuckets[col.key], sortBy);
-            const OutcomeIcon = col.icon;
+          {OUTCOME_COLUMNS.map((ocol) => {
+            const bucket = sortProspects(outcomeBuckets[ocol.key], sortBy);
+            const OutcomeIcon = ocol.icon;
 
             return (
-              <div key={col.key} className="flex flex-col min-w-0">
+              <div key={ocol.key} className="flex flex-col min-w-0">
                 {/* Column header */}
                 <div
                   className={cn(
                     'rounded-t-xl px-4 py-3 border border-b-0',
-                    col.headerBg,
-                    col.border
+                    ocol.headerBg,
+                    ocol.border
                   )}
                 >
                   <div className="flex items-center gap-2.5">
-                    <OutcomeIcon className={cn('w-4.5 h-4.5 flex-shrink-0', col.text)} />
-                    <span className={cn('text-sm font-semibold flex-1', col.text)}>
-                      {col.label}
+                    <OutcomeIcon className={cn('w-4.5 h-4.5 flex-shrink-0', ocol.text)} />
+                    <span className={cn('text-sm font-semibold flex-1', ocol.text)}>
+                      {ocol.label}
                     </span>
-                    <span className={cn('text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0', col.bg, col.text)}>
+                    <span className={cn('text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0', ocol.bg, ocol.text)}>
                       {bucket.length}
                     </span>
                   </div>
                 </div>
 
-                {/* Column body */}
+                {/* Column body — drop target */}
                 <div
+                  onDragOver={(e) => handleDragOver(e, `outcome-${ocol.key}`)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDropOnOutcome(e, ocol.status)}
                   className={cn(
-                    'flex-1 rounded-b-xl border border-t-0 p-3 space-y-3 min-h-[160px] max-h-[70vh] overflow-y-auto',
+                    'flex-1 rounded-b-xl border border-t-0 p-3 space-y-3 min-h-[160px] max-h-[70vh] overflow-y-auto transition-all duration-200',
                     'bg-stone-800/15',
-                    col.border
+                    ocol.border,
+                    dragOverColumn === `outcome-${ocol.key}` && 'ring-2 ring-blue-500/50 bg-blue-500/5 border-blue-500/30'
                   )}
                 >
                   {bucket.length === 0 ? (
                     <div className="flex items-center justify-center h-full min-h-[100px] text-[--exec-text-muted] text-sm">
-                      None yet
+                      {dragOverColumn === `outcome-${ocol.key}` ? 'Drop here' : 'None yet'}
                     </div>
                   ) : (
                     bucket.map((prospect) => (
@@ -1245,6 +1420,9 @@ function SequencePipelineView({
                         onMarkResponse={onMarkResponse}
                         isHighlighted={prospect.id === highlightProspectId}
                         experiment={experimentMap.get(prospect.id)}
+                        isDragging={draggedProspectId === prospect.id}
+                        onDragStart={handleDragStart}
+                        onDragEnd={handleDragEnd}
                       />
                     ))
                   )}
@@ -1252,6 +1430,60 @@ function SequencePipelineView({
               </div>
             );
           })}
+
+          {/* LinkedIn Follow-up column */}
+          <div className="flex flex-col min-w-0">
+            {/* Column header */}
+            <div
+              className={cn(
+                'rounded-t-xl px-4 py-3 border border-b-0',
+                'bg-sky-500/10 border-sky-500/30'
+              )}
+            >
+              <div className="flex items-center gap-2.5">
+                <Linkedin className={cn('w-4.5 h-4.5 flex-shrink-0 text-sky-400')} />
+                <span className="text-sm font-semibold flex-1 text-sky-400">
+                  LI Follow-up
+                </span>
+                <span className="text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0 bg-sky-500/15 text-sky-400">
+                  {linkedinFollowupProspects.length}
+                </span>
+              </div>
+            </div>
+
+            {/* Column body — drop target */}
+            <div
+              onDragOver={(e) => handleDragOver(e, 'linkedin-followup')}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDropOnLinkedinFollowup}
+              className={cn(
+                'flex-1 rounded-b-xl border border-t-0 p-3 space-y-3 min-h-[160px] max-h-[70vh] overflow-y-auto transition-all duration-200',
+                'bg-stone-800/15 border-sky-500/30',
+                dragOverColumn === 'linkedin-followup' && 'ring-2 ring-sky-500/50 bg-sky-500/5 border-sky-500/30'
+              )}
+            >
+              {linkedinFollowupProspects.length === 0 ? (
+                <div className="flex items-center justify-center h-full min-h-[100px] text-[--exec-text-muted] text-sm">
+                  {dragOverColumn === 'linkedin-followup' ? 'Drop here' : 'None yet'}
+                </div>
+              ) : (
+                sortProspects(linkedinFollowupProspects, sortBy).map((prospect) => (
+                  <PipelineProspectCard
+                    key={prospect.id}
+                    prospect={prospect}
+                    onEdit={onEdit}
+                    onViewMessage={onViewMessage}
+                    onMarkResponse={onMarkResponse}
+                    isHighlighted={prospect.id === highlightProspectId}
+                    experiment={experimentMap.get(prospect.id)}
+                    isDragging={draggedProspectId === prospect.id}
+                    onDragStart={handleDragStart}
+                    onDragEnd={handleDragEnd}
+                  />
+                ))
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
