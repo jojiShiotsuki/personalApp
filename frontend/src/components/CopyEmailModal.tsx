@@ -777,11 +777,14 @@ export default function CopyEmailModal({
             </div>
           )}
 
-          {/* Loom Script (only for LOOM_EMAIL steps) */}
+          {/* Loom Script (for LOOM_EMAIL steps OR fallback loom steps) */}
           {(() => {
             const stepNum = parseInt(selectedTemplate, 10);
             const curStep = multiTouchSteps?.find(s => s.step_number === stepNum);
-            return curStep && ['LOOM_EMAIL', 'loom_email'].includes(curStep.channel_type);
+            if (!curStep) return false;
+            const isDirectLoom = ['LOOM_EMAIL', 'loom_email'].includes(curStep.channel_type);
+            const isFallbackLoom = curStep.fallback_channel_type && ['LOOM_EMAIL', 'loom_email'].includes(curStep.fallback_channel_type);
+            return isDirectLoom || isFallbackLoom;
           })() && (
           <div className="mb-4 bg-rose-950/30 rounded-xl border border-rose-800/40 overflow-hidden">
             <button
