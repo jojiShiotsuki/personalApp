@@ -2374,6 +2374,7 @@ RULES:
 - Australian English, conversational, pub banter tone
 - No em dashes
 - Under 50 words total (excluding sign-off)
+- BANNED CTA PHRASES: "10 minutes", "15 minutes", "worth X minutes", "got X minutes", "quick chat", "jump on a call". Use creative alternatives instead.
 - End with a CTA, then: Cheers,\\nJoji Shiotsuki | Joji Web Solutions | jojishiotsuki.com\\n\\nNot interested? Just reply "stop" and I won't email again.
 {step1_learning}
 Return ONLY valid JSON (no markdown fences):
@@ -2549,7 +2550,7 @@ Return ONLY valid JSON: {{"subject": "Re: {original_subject}", "body": "email bo
         "CURIOSITY GAP: Tease a specific insight about their site (e.g. 'found something interesting on page 2 of your Google results') without giving the full answer. Drive them to reply.",
         "CASE STUDY: Share a brief before/after story of a similar business — 'fixed X for a plumber in Brisbane, their calls went up 40% in 2 weeks'.",
         "OBJECTION BUSTER: Preemptively address common objections (too busy, already have a guy, costs too much) with humor and a reframe.",
-        "DIRECT ASK: Simply and confidently ask for 15 minutes — 'worth a quick chat?' with a specific reason why now.",
+        "DIRECT ASK: Make a specific, low-friction offer — send them something useful (mockup, checklist, comparison) without asking for their time.",
     ]
     if channel_type == "loom_email":
         angle_pool.append("LOOM VIDEO DROP: Announce that you recorded a free 3-minute Loom walkthrough showing the issue and fix. Include [LOOM LINK] placeholder. The video IS the proof — push for a response.")
@@ -3292,17 +3293,26 @@ AVAILABLE ANGLES (pick ONE that hasn't been used and fits the context):
 
 CTA A/B TESTING:
 - Your email MUST end with a specific call-to-action (CTA) BEFORE the sign-off block.
-- Check the CTA A/B TEST RESULTS in the performance data. If certain CTAs are getting replies, lean into similar ones. If no data yet, TEST something new each time.
-- CRITICAL: You MUST use a DIFFERENT CTA and angle from ALL previous emails to this prospect. Check the blacklists below.
-- The CTA should feel natural, not salesy. Match it to the angle and engagement level.
-- Examples of CTA styles: question ("Worth a quick chat?"), offer ("Want me to send a free mockup?"), curiosity ("Want me to show you what I found?"), direct ("Free to jump on a 10-min call this week?"), soft ("No pressure, just thought you should know")
+- CRITICAL RULE: You MUST NOT use any CTA that mentions "10 minutes", "15 minutes", "quick chat", or "worth X minutes". These have been overused and are BANNED.
+- CRITICAL RULE: You MUST NOT reuse any CTA from the blacklists below, even with different wording.
+- Instead, use CREATIVE and VARIED CTAs. Categories to rotate through:
+  * OFFER: "Want me to mock up what a fix would look like?"
+  * CURIOSITY: "Noticed something interesting about page 2 of your Google results..."
+  * DIRECT VALUE: "I put together a quick list of the 3 things I'd fix first, want it?"
+  * SOCIAL: "Just helped a {prospect.niche or 'trade'} biz in your area with the same thing, happy to share what worked"
+  * SOFT EXIT: "No stress either way, just thought you should know"
+  * QUESTION: "Who handles your website stuff?"
+  * PROOF: "Want to see a before/after of a similar fix I did?"
+- Check the CTA A/B TEST RESULTS in the performance data. If certain CTA STYLES (not exact words) are getting replies, lean into that style.
 {cta_blacklist}
+{global_cta_blacklist}
 {angle_blacklist}
 
 RULES:
 - Start with "G'day {first_name}," greeting
 - Reference the original issue naturally, don't repeat the full explanation
 - ADD HUMOR: Use a funny analogy, witty comparison, or light self-deprecating joke. Tradies appreciate dry humor and straight talk. Think pub banter, not corporate comedy. One good joke per email max.
+- BANNED PHRASES in CTA: "10 minutes", "15 minutes", "worth X minutes", "got X minutes", "quick chat", "jump on a call"
 - Under 50 words total
 - Australian English, conversational
 - No em dashes
