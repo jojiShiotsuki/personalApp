@@ -2405,24 +2405,19 @@ Return ONLY valid JSON: {{"subject": "Re: {original_subject}", "body": "email bo
 
     is_last_email = is_last_step
 
-    # Email follow-up angles — based on follow-up NUMBER (how many emails sent before this one)
-    # These match the user's multi-touch sequence strategy:
-    # Follow-up 1 = Customer Perspective Reframe
-    # Follow-up 2 = Competitor Urgency
-    # Follow-up 3 = Unsolicited Loom Drop
-    # Follow-up 4 = Clean Exit (only if this is actually the last email)
-    email_angle_guidance = {
-        1: """CUSTOMER PERSPECTIVE REFRAME: Reframe the SAME problem from Step 1, but from the customer's point of view. What does their potential customer actually experience when they hit this issue? Make it visceral and specific. Use a funny analogy or comparison to make the point memorable (e.g. "it's like putting up a billboard in the dark"). No new problems. No self-promotion. No Loom offer. Under 50 words.""",
-        2: """COMPETITOR URGENCY WITH HUMOR: Same problem from Step 1, but now add urgency by pointing out that while this is broken, competitors are picking up the leads instead. Use light humor to make the competition angle sting without being aggressive (e.g. "meanwhile your competitors have their lights on and they're not even better looking"). Don't name specific competitors. No self-promotion. No Loom offer yet. Under 50 words.""",
-        3: """UNSOLICITED LOOM DROP: Announce that you recorded a free 3-minute Loom video showing exactly what's wrong and what a fix looks like. No permission asked. Just drop it with a light, casual tone. Include "[LOOM LINK]" as a placeholder where the Loom URL will go. Under 40 words.""",
-    }
-
-    if is_last_email:
-        email_angle_guidance[4] = """CLEAN EXIT WITH HUMOR (final email): This is the LAST email. Be gracious and funny. Self-deprecating humor works great here (e.g. "I promise this is the last time I'll bug you about this"). Acknowledge that fixing the issue might not be a priority and that's fine. Leave the door open. Under 35 words."""
-        default_email_angle = """CLEAN EXIT: Late-stage follow-up. Short, light humor, self-aware that you've been persistent. Wish them well. Under 25 words."""
-    else:
-        email_angle_guidance[4] = """GENTLE NUDGE WITH HUMOR: This is NOT the last touchpoint. Keep it light and funny. A quick witty observation about the issue, maybe self-aware humor about being persistent. Reference the original issue briefly. Under 35 words."""
-        default_email_angle = """GENTLE NUDGE: Brief, funny check-in referencing the original issue. Keep it conversational and witty. Under 25 words."""
+    # --- Build dynamic angle based on all available context ---
+    # Available angles the AI can choose from (pool of strategies)
+    angle_pool = [
+        "CUSTOMER PERSPECTIVE: Reframe the problem from their customer's POV — what does a visitor experience hitting this issue?",
+        "COMPETITOR URGENCY: Point out that while this is broken, competitors are picking up leads instead.",
+        "SOCIAL PROOF: Mention a similar business (same industry) that fixed this kind of issue and saw results.",
+        "COST OF INACTION: Quantify what this issue might be costing them (lost leads, bounce rate, trust).",
+        "SEASONAL/TIMING HOOK: Tie the issue to a timely reason to fix it now (busy season, new year, etc).",
+        "DIRECT VALUE OFFER: Offer one specific, small thing you could fix quickly as a gesture of goodwill.",
+        "CURIOSITY GAP: Tease a specific insight about their site without giving the full answer.",
+    ]
+    if channel_type == "loom_email":
+        angle_pool.append("LOOM VIDEO DROP: Announce that you recorded a free 3-minute Loom walkthrough showing the issue and fix. Include [LOOM LINK] placeholder.")
 
     # --- Get learning context for follow-up style ---
     followup_learning = ""
@@ -2504,12 +2499,40 @@ Return ONLY valid JSON: {{"subject": "Re: {original_subject}", "body": "email bo
         has_replied = any(e.replied for e in all_experiments)
         reply_status = "The prospect has replied previously — see engagement history." if has_replied else "The prospect has NOT replied to any previous emails."
 
-        angle = email_angle_guidance.get(email_followup_number, default_email_angle)
-        # If the resolved channel is NOT loom_email, strip any Loom references from the angle
-        # and replace Loom-specific angles with a generic nudge
-        if channel_type != "loom_email":
-            if "loom" in angle.lower() or "[LOOM LINK]" in angle:
-                angle = """GENTLE NUDGE WITH HUMOR: Quick, witty check-in referencing the original issue. Maybe self-aware humor about being persistent. Keep it conversational. Under 40 words. Do NOT mention Loom, video, or screen recording."""
+        # Build prospect state context for strategic angle selection
+        linkedin_status = "CONNECTED on LinkedIn" if getattr(prospect, 'linkedin_connected', False) else "NOT connected on LinkedIn"
+        email_opened_status = "has opened a previous email" if getattr(prospect, 'email_opened', False) else "has NOT opened any emails (or unknown)"
+        email_bounced_status = "WARNING: a previous email BOUNCED" if getattr(prospect, 'email_bounced', False) else ""
+        linkedin_replied_status = "has replied on LinkedIn" if getattr(prospect, 'linkedin_replied', False) else ""
+
+        prospect_signals = f"- LinkedIn: {linkedin_status}"
+        if email_opened_status:
+            prospect_signals += f"\n- Email engagement: {email_opened_status}"
+        if email_bounced_status:
+            prospect_signals += f"\n- {email_bounced_status}"
+        if linkedin_replied_status:
+            prospect_signals += f"\n- {linkedin_replied_status}"
+
+        # Build list of angles already used in previous emails
+        used_angles = ""
+        for prev_exp in all_experiments:
+            if prev_exp.body and prev_exp.step_number < step_number:
+                snippet = (prev_exp.body or "")[:80].replace("\n", " ")
+                used_angles += f"\n- Step {prev_exp.step_number}: \"{snippet}...\""
+
+        angles_list = "\n".join(f"  {i+1}. {a}" for i, a in enumerate(angle_pool))
+
+        # Channel-specific instructions
+        channel_note = ""
+        if channel_type == "loom_email":
+            channel_note = "\nThis is a LOOM EMAIL step. You MUST include [LOOM LINK] placeholder and reference the video walkthrough."
+        else:
+            channel_note = "\nThis is a standard email follow-up. Do NOT mention Loom, video, or screen recordings."
+
+        last_email_note = ""
+        if is_last_email:
+            last_email_note = "\nIMPORTANT: This is the LAST email in the sequence. Be gracious, self-aware about persistence, and leave the door open. Clean exit energy."
+
         prompt = f"""You are writing a follow-up cold email for Joji Shiotsuki, who works with trade businesses across Australia on their web presence.
 
 ORIGINAL EMAIL (Step 1):
@@ -2521,16 +2544,31 @@ ENGAGEMENT HISTORY:
 {engagement_context}
 {loom_context}
 
-This is email follow-up #{email_followup_number}. {reply_status}
-The prospect's first name is "{first_name}".
+PROSPECT STATE:
+{prospect_signals}
+{reply_status}
 
-FOLLOW-UP ANGLE FOR THIS STEP:
-{angle}
+PREVIOUS EMAIL ANGLES USED (DO NOT repeat these):
+{used_angles if used_angles else "- None yet (this is the first follow-up)"}
+
+This is email follow-up #{email_followup_number} out of the sequence.
+The prospect's first name is "{first_name}".
+{channel_note}
+{last_email_note}
+
+YOUR TASK: Pick the BEST angle for this follow-up based on ALL the context above. Consider:
+- What angles have already been used? Pick something DIFFERENT.
+- Is the prospect engaged (LinkedIn connected, email opened, replied)? Adjust warmth accordingly.
+- How many follow-ups deep are we? Earlier = more value-driven, later = lighter touch.
+- If email bounced, acknowledge delivery issues.
+
+AVAILABLE ANGLES (pick ONE that hasn't been used and fits the context):
+{angles_list}
 
 RULES:
 - Start with "G'day {first_name}," greeting
 - Reference the original issue naturally, don't repeat the full explanation
-- ADD HUMOR: Use a funny analogy, witty comparison, or light self-deprecating joke to make the email memorable. Tradies appreciate dry humor and straight talk. Think pub banter, not corporate comedy. One good joke per email max.
+- ADD HUMOR: Use a funny analogy, witty comparison, or light self-deprecating joke. Tradies appreciate dry humor and straight talk. Think pub banter, not corporate comedy. One good joke per email max.
 - Under 50 words total
 - Australian English, conversational
 - No em dashes
