@@ -34,7 +34,9 @@ function formatRate(rate: number): string {
 
 function timeAgo(dateStr: string): string {
   const now = new Date();
-  const date = new Date(dateStr);
+  // Backend stores UTC but serializes without Z suffix — append Z if missing
+  const normalized = dateStr.endsWith('Z') || dateStr.includes('+') ? dateStr : dateStr + 'Z';
+  const date = new Date(normalized);
   const diffMs = now.getTime() - date.getTime();
   const diffMins = Math.floor(diffMs / 60000);
   if (diffMins < 1) return 'just now';
