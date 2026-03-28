@@ -98,6 +98,8 @@ class Experiment(Base):
     was_edited = Column(Boolean, default=False)
     edit_type = Column(String(30), nullable=True)  # none/minor/major/rewrite
     subject_variant_used = Column(String(10), nullable=True)  # "original" or "variant"
+    cta_used = Column(String(500), nullable=True)  # The CTA line used in this email (for A/B testing)
+    angle_used = Column(String(100), nullable=True)  # The angle/strategy used (e.g. "competitor urgency")
 
     # Prospect context (snapshot at send time)
     niche = Column(String(255), nullable=True, index=True)

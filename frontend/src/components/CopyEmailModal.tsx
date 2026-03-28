@@ -122,6 +122,8 @@ export default function CopyEmailModal({
   const [regenerateInstruction, setRegenerateInstruction] = useState('');
   const [isRegeneratingLoom, setIsRegeneratingLoom] = useState(false);
   const [preGenerateContext, setPreGenerateContext] = useState('');
+  const [lastCtaUsed, setLastCtaUsed] = useState<string | undefined>();
+  const [lastAngleUsed, setLastAngleUsed] = useState<string | undefined>();
 
   const handleGenerateFollowUp = async (instruction?: string) => {
     setIsGeneratingFollowUp(true);
@@ -129,6 +131,8 @@ export default function CopyEmailModal({
       const result = await autoresearchApi.generateFollowup(prospect.id, instruction);
       setEditSubject(result.subject);
       setEditBody(result.body);
+      setLastCtaUsed(result.cta_used);
+      setLastAngleUsed(result.angle_used);
       if (result.loom_script) {
         setEditLoomScript(result.loom_script);
         setLoomExpanded(true);
@@ -451,6 +455,8 @@ export default function CopyEmailModal({
           finalBody,
           wasEdited,
           editLoomScript || undefined,
+          lastCtaUsed,
+          lastAngleUsed,
         );
       } catch {
         // Non-fatal

@@ -1443,7 +1443,7 @@ export const autoresearchApi = {
     const { data } = await api.post(`/api/autoresearch/audits/${auditId}/regenerate`, { instruction });
     return data;
   },
-  trackEmail: async (prospectId: number, stepNumber: number, subject: string, body: string, wasEdited: boolean, loomScript?: string) => {
+  trackEmail: async (prospectId: number, stepNumber: number, subject: string, body: string, wasEdited: boolean, loomScript?: string, ctaUsed?: string, angleUsed?: string) => {
     const { data } = await api.post('/api/autoresearch/track-email', {
       prospect_id: prospectId,
       step_number: stepNumber,
@@ -1451,6 +1451,8 @@ export const autoresearchApi = {
       body,
       was_edited: wasEdited,
       loom_script: loomScript || undefined,
+      cta_used: ctaUsed || undefined,
+      angle_used: angleUsed || undefined,
     });
     return data;
   },

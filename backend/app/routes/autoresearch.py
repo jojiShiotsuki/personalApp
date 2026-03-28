@@ -891,6 +891,8 @@ def track_email_content(
     body = payload.get("body")
     was_edited = payload.get("was_edited", False)
     loom_script = payload.get("loom_script")
+    cta_used = payload.get("cta_used")
+    angle_used = payload.get("angle_used")
 
     if not prospect_id:
         raise HTTPException(status_code=400, detail="prospect_id is required")
@@ -923,6 +925,10 @@ def track_email_content(
             experiment.edit_type = "minor_tweak"
         if loom_script:
             experiment.loom_script = loom_script
+        if cta_used:
+            experiment.cta_used = cta_used
+        if angle_used:
+            experiment.angle_used = angle_used
     else:
         # Create new experiment for this step
         audit = (
@@ -948,6 +954,8 @@ def track_email_content(
             niche=prospect.niche,
             company=prospect.agency_name,
             loom_script=loom_script,
+            cta_used=cta_used,
+            angle_used=angle_used,
         )
         db.add(experiment)
 
@@ -2233,7 +2241,7 @@ RULES:
 - End with: Cheers,\\nJoji Shiotsuki | Joji Web Solutions | jojishiotsuki.com\\n\\nNot interested? Just reply "stop" and I won't email again.
 {step1_learning}
 Return ONLY valid JSON (no markdown fences):
-{{"subject": "short punchy subject about the issue", "body": "email body here", "word_count": N}}"""
+{{"subject": "short punchy subject about the issue", "body": "email body here", "word_count": N, "cta_used": "the exact CTA line you used", "angle_used": "initial cold outreach"}}"""
 
         model = os.getenv("AUTORESEARCH_FOLLOWUP_MODEL", "claude-sonnet-4-6")
         try:
@@ -2271,6 +2279,8 @@ Return ONLY valid JSON (no markdown fences):
             "follow_up_number": 0,
             "model": model,
             "cost_usd": round(cost_usd, 6),
+            "cta_used": result.get("cta_used"),
+            "angle_used": result.get("angle_used"),
         }
 
     # --- STEP 2+: Find the step 1 context (experiment OR custom email fields) ---
@@ -2581,6 +2591,50 @@ Return ONLY valid JSON: {{"subject": "Re: {original_subject}", "body": "email bo
             cat_lines = [f"{cat}: {cnt}" for cat, cnt in category_stats]
             performance_context += f"\n\nREPLY CATEGORIES: " + ", ".join(cat_lines)
 
+        # CTA performance — what CTAs have been tested and their reply rates
+        cta_stats = (
+            db.query(
+                Experiment.cta_used,
+                func.count(Experiment.id).label("total"),
+                func.sum(func.cast(Experiment.replied, Integer)).label("replies"),
+            )
+            .filter(Experiment.sent_at.isnot(None), Experiment.cta_used.isnot(None))
+            .group_by(Experiment.cta_used)
+            .order_by(func.sum(func.cast(Experiment.replied, Integer)).desc())
+            .all()
+        )
+        if cta_stats:
+            cta_lines = []
+            for stat in cta_stats:
+                total = stat.total or 0
+                replies = stat.replies or 0
+                rate = round(replies / total * 100) if total > 0 else 0
+                cta_lines.append(f'"{stat.cta_used}": {replies}/{total} replies ({rate}%)')
+            performance_context += f"\n\nCTA A/B TEST RESULTS (reply rates by call-to-action used):\n" + "\n".join(cta_lines)
+        else:
+            performance_context += f"\n\nCTA A/B TESTING: No CTA data yet — start testing different CTAs. Vary your closing ask each time."
+
+        # Angle performance — what strategic angles have been tested
+        angle_stats = (
+            db.query(
+                Experiment.angle_used,
+                func.count(Experiment.id).label("total"),
+                func.sum(func.cast(Experiment.replied, Integer)).label("replies"),
+            )
+            .filter(Experiment.sent_at.isnot(None), Experiment.angle_used.isnot(None))
+            .group_by(Experiment.angle_used)
+            .order_by(func.sum(func.cast(Experiment.replied, Integer)).desc())
+            .all()
+        )
+        if angle_stats:
+            angle_lines = []
+            for stat in angle_stats:
+                total = stat.total or 0
+                replies = stat.replies or 0
+                rate = round(replies / total * 100) if total > 0 else 0
+                angle_lines.append(f"{stat.angle_used}: {replies}/{total} replies ({rate}%)")
+            performance_context += f"\n\nANGLE A/B TEST RESULTS (reply rates by strategy angle):\n" + "\n".join(angle_lines)
+
         if performance_context:
             followup_learning += f"\n\nPERFORMANCE DATA (use this to inform your approach):\n{performance_context}"
     except Exception:
@@ -2852,6 +2906,13 @@ YOUR TASK: Write the most strategically effective follow-up to move this prospec
 AVAILABLE ANGLES (pick ONE that hasn't been used and fits the context):
 {angles_list}
 
+CTA A/B TESTING:
+- Your email MUST end with a specific call-to-action (CTA) BEFORE the sign-off block.
+- Check the CTA A/B TEST RESULTS in the performance data. If certain CTAs are getting replies, lean into similar ones. If no data yet, TEST something new each time.
+- VARY your CTA every time — never use the exact same CTA twice in a row for the same prospect.
+- The CTA should feel natural, not salesy. Match it to the angle and engagement level.
+- Examples of CTA styles: question ("Worth a quick chat?"), offer ("Want me to send a free mockup?"), curiosity ("Want me to show you what I found?"), direct ("Free to jump on a 10-min call this week?"), soft ("No pressure, just thought you should know")
+
 RULES:
 - Start with "G'day {first_name}," greeting
 - Reference the original issue naturally, don't repeat the full explanation
@@ -2863,7 +2924,7 @@ RULES:
 - Subject MUST be exactly "Re: {original_subject}"
 {followup_learning}
 Return ONLY valid JSON (no markdown fences):
-{{"subject": "Re: {original_subject}", "body": "follow-up email body here", "word_count": N}}"""
+{{"subject": "Re: {original_subject}", "body": "follow-up email body here", "word_count": N, "cta_used": "the exact CTA line you used", "angle_used": "short label for the angle e.g. competitor urgency"}}"""
 
     # Inject custom instruction — if it's long (200+ chars) AND it's an email step, switch to conversation mode
     # Don't override LinkedIn prompts — they handle custom_instruction internally (e.g. pasted post for engage)
@@ -3145,6 +3206,8 @@ Return ONLY valid JSON. Use \\n for line breaks in the script:
         "follow_up_number": follow_up_number,
         "model": model,
         "cost_usd": round(total_cost, 6),
+        "cta_used": result.get("cta_used"),
+        "angle_used": result.get("angle_used"),
     }
 
 
