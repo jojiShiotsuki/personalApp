@@ -2184,6 +2184,11 @@ async def generate_followup_email(
             if resolved["channel"]:
                 channel_type = resolved["channel"].lower()
 
+    # Override channel for LinkedIn follow-up prospects
+    is_linkedin_followup = prospect.status == ProspectStatus.LINKEDIN_FOLLOWUP
+    if is_linkedin_followup:
+        channel_type = "linkedin_message"
+
     # --- STEP 1: Generate initial cold email (no previous email to reference) ---
     if step_number == 1:
         first_name = (prospect.contact_name or prospect.agency_name or "there").split()[0]
@@ -2356,21 +2361,7 @@ RULES:
 
 Return ONLY valid JSON: {{"subject": "LinkedIn Connect", "body": "connection note here", "word_count": N}}""",
 
-        "linkedin_message": f"""You are writing a LinkedIn direct message for Joji Shiotsuki, who works with trade businesses across Australia on their web presence.
-
-The prospect is "{first_name}" from "{prospect.agency_name}". They are already connected on LinkedIn. Joji previously emailed them about: {issue_type} — {issue_detail}
-
-This is step {step_number} of the outreach sequence. Joji has already reached out {follow_up_number} times via email and LinkedIn.
-{"This is the LAST touchpoint in the sequence. Write a clean exit message — gracious, self-aware about being persistent, light humor, leave the door open. Don't pitch. Don't reference the specific issue in detail. Just a warm final nudge acknowledging you've reached out a few times and wishing them well." if is_last_step else "Write a SHORT LinkedIn DM (under 30 words) that naturally references the website issue without being pushy. This is a different channel, so don't say 'following up on my email.'"}
-
-RULES:
-- Under {"25" if is_last_step else "30"} words
-- Casual LinkedIn tone
-- {"Self-deprecating humor about being persistent works great here" if is_last_step else "Reference the issue naturally (e.g. 'noticed your site's [issue] — happy to help sort it')"}
-- No em dashes
-- No sign-off block (it's a DM, not an email)
-
-Return ONLY valid JSON: {{"subject": "LinkedIn Message", "body": "DM text here", "word_count": N}}""",
+        "linkedin_message": "__FULL_CONTEXT__",  # Handled separately below with full data injection
 
         "linkedin_engage": f"""You are writing a LinkedIn comment for Joji Shiotsuki to leave on a prospect's post.
 
@@ -2792,9 +2783,88 @@ Return ONLY valid JSON: {{"subject": "Re: {original_subject}", "body": "email bo
         elif latest_loom.loom_watched is False:
             loom_context = "\nNote: A Loom video was sent but the prospect has NOT watched it yet."
 
+    # --- Build used angles list (shared by all channel types) ---
+    used_angles = ""
+    for prev_exp in all_experiments:
+        if prev_exp.body and prev_exp.step_number <= step_number:
+            snippet = (prev_exp.body or "")[:80].replace("\n", " ")
+            channel_label = ""
+            if prev_exp.step_number == step_number:
+                channel_label = " (current step)"
+            used_angles += f"\n- Step {prev_exp.step_number}{channel_label}: \"{snippet}...\""
+
     # --- Build the prompt based on channel type ---
-    if channel_type in channel_prompts:
-        # LinkedIn steps — use channel-specific prompt
+    if channel_type == "linkedin_message" or is_linkedin_followup:
+        # LinkedIn DM — full context prompt (same data richness as email follow-ups)
+        li_followup_count = getattr(prospect, 'linkedin_followup_count', 0) or 0
+
+        # Build prospect state context
+        linkedin_status = "CONNECTED on LinkedIn" if getattr(prospect, 'linkedin_connected', False) else "NOT connected on LinkedIn"
+        li_signals = f"- LinkedIn: {linkedin_status}"
+        if getattr(prospect, 'linkedin_replied', False):
+            li_signals += "\n- REPLIED on LinkedIn previously — this is an active conversation"
+        if getattr(prospect, 'email_opened', False):
+            li_signals += "\n- Has opened emails"
+
+        li_mode = ""
+        if is_linkedin_followup:
+            li_mode = f"""
+LINKEDIN FOLLOW-UP MODE:
+This prospect has finished the main outreach sequence and replied on LinkedIn.
+You are now in a direct LinkedIn conversation. This is follow-up #{li_followup_count + 1} of 5.
+{"This is the LAST LinkedIn follow-up. Be gracious, leave the door open, don't be pushy." if li_followup_count >= 4 else "Keep building the relationship. Be conversational, not salesy."}
+"""
+
+        prompt = f"""You are a strategic cold outreach specialist writing a LinkedIn DM for Joji Shiotsuki, who works with trade businesses across Australia on their web presence.
+
+GOAL: Convert this prospect into a paying client through LinkedIn conversation. Every message should move them closer to booking a call.
+
+PROSPECT INFO:
+- Name: {first_name}
+- Company: {prospect.agency_name}
+- Industry: {prospect.niche or 'trades'}
+- Website: {prospect.website or 'unknown'}
+- Website issues: {', '.join(prospect.website_issues) if prospect.website_issues else 'unknown'}
+
+{li_signals}
+{li_mode}
+
+ORIGINAL ISSUE FOUND:
+{issue_type} — {issue_detail}
+
+COMPLETE ENGAGEMENT HISTORY:
+{engagement_context}
+{email_thread_context}
+{loom_context}
+{step_log_context}
+{sequence_map}
+
+PREVIOUS MESSAGES SENT (DO NOT repeat these):
+{used_angles if used_angles else "- None yet"}
+
+YOUR TASK: Write a LinkedIn DM that:
+1. READS the full engagement history — understand what's been said across ALL channels (email, LinkedIn, Loom)
+2. If they replied on LinkedIn, REFERENCE their reply naturally — continue the conversation, don't restart it
+3. If they replied to an email, acknowledge it — "saw your reply" or similar
+4. If they watched a Loom, reference it — "noticed you checked out the walkthrough"
+5. Pick a DIFFERENT angle from previous messages
+6. Move them toward a call/meeting naturally
+{"7. This is the LAST follow-up — be gracious and leave the door open" if (is_linkedin_followup and li_followup_count >= 4) or is_last_step else ""}
+
+RULES:
+- Under 30 words (it's a DM, keep it short)
+- Casual LinkedIn tone — not an email, it's a chat
+- No em dashes
+- No sign-off block (no "Cheers, Joji" — it's a DM)
+- No "following up on my email" — reference the conversation naturally
+- Australian English, conversational, pub banter
+
+{followup_learning}
+Return ONLY valid JSON (no markdown fences):
+{{"subject": "LinkedIn Message", "body": "DM text here", "word_count": N, "cta_used": "the exact CTA/ask", "angle_used": "short angle label"}}"""
+
+    elif channel_type in channel_prompts and channel_prompts[channel_type] != "__FULL_CONTEXT__":
+        # Other LinkedIn steps (connect, engage) — use channel-specific prompt
         prompt = channel_prompts[channel_type]
     else:
         # Email steps — count how many EMAIL steps came before this one
@@ -2827,13 +2897,6 @@ Return ONLY valid JSON: {{"subject": "Re: {original_subject}", "body": "email bo
             prospect_signals += f"\n- {email_bounced_status}"
         if linkedin_replied_status:
             prospect_signals += f"\n- {linkedin_replied_status}"
-
-        # Build list of angles already used in previous emails
-        used_angles = ""
-        for prev_exp in all_experiments:
-            if prev_exp.body and prev_exp.step_number < step_number:
-                snippet = (prev_exp.body or "")[:80].replace("\n", " ")
-                used_angles += f"\n- Step {prev_exp.step_number}: \"{snippet}...\""
 
         angles_list = "\n".join(f"  {i+1}. {a}" for i, a in enumerate(angle_pool))
 
