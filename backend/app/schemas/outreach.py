@@ -301,6 +301,7 @@ class ProspectResponse(ProspectBase):
     email_opened: bool = False
     email_bounced: bool = False
     linkedin_replied: bool = False
+    linkedin_followup_count: int = 0
     step_outcome: Optional[str] = None
     # Multi-touch enrichment (populated by today queue endpoint)
     current_step_detail: Optional[MultiTouchStepResponse] = None
