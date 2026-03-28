@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from datetime import datetime, date
 from typing import Optional, List
 from enum import Enum
@@ -128,6 +128,24 @@ class StepChannelType(str, Enum):
     LINKEDIN_MESSAGE = "linkedin_message"
     LINKEDIN_ENGAGE = "linkedin_engage"
     FOLLOW_UP_EMAIL = "follow_up_email"
+    LOOM_EMAIL = "loom_email"
+
+
+class ConditionType(str, Enum):
+    LINKEDIN_CONNECTED = "linkedin_connected"
+    EMAIL_REPLIED = "email_replied"
+    EMAIL_OPENED = "email_opened"
+    EMAIL_DELIVERED = "email_delivered"
+    LINKEDIN_REPLIED = "linkedin_replied"
+    STEP_COMPLETED = "step_completed"
+    STEP_SKIPPED = "step_skipped"
+
+
+class StepOutcome(str, Enum):
+    COMPLETED = "completed"
+    SKIPPED = "skipped"
+    FALLBACK_USED = "fallback_used"
+    REPLIED = "replied"
 
 
 # Campaign Schemas
@@ -150,7 +168,23 @@ class MultiTouchStepCreate(BaseModel):
     instruction_text: Optional[str] = Field(None, max_length=500)
     requires_linkedin_connected: bool = False
     fallback_channel_type: Optional[str] = None
+    condition_type: Optional[ConditionType] = None
+    condition_step_ref: Optional[int] = None
+    fallback_template_subject: Optional[str] = Field(None, max_length=500)
+    fallback_template_content: Optional[str] = None
+    fallback_instruction_text: Optional[str] = Field(None, max_length=500)
     loom_script: Optional[str] = None
+
+    @model_validator(mode='after')
+    def validate_condition_step_ref(self):
+        condition_type = self.condition_type
+        v = self.condition_step_ref
+        if condition_type in (ConditionType.STEP_COMPLETED, ConditionType.STEP_SKIPPED):
+            if v is None or v < 1:
+                raise ValueError('condition_step_ref is required and must be >= 1 for step_completed/step_skipped')
+        elif v is not None:
+            raise ValueError('condition_step_ref must be null unless condition_type is step_completed or step_skipped')
+        return self
 
 
 class MultiTouchStepResponse(MultiTouchStepCreate):
@@ -264,6 +298,10 @@ class ProspectResponse(ProspectBase):
     linkedin_url: Optional[str] = None
     facebook_url: Optional[str] = None
     instagram_url: Optional[str] = None
+    email_opened: bool = False
+    email_bounced: bool = False
+    linkedin_replied: bool = False
+    step_outcome: Optional[str] = None
     # Multi-touch enrichment (populated by today queue endpoint)
     current_step_detail: Optional[MultiTouchStepResponse] = None
     missing_data_warnings: Optional[List[str]] = None
@@ -379,3 +417,16 @@ class SearchKeywordResponse(SearchKeywordBase):
 class SearchKeywordUpdate(BaseModel):
     is_searched: Optional[bool] = None
     leads_found: Optional[int] = None
+
+
+class ProspectStepLogResponse(BaseModel):
+    id: int
+    prospect_id: int
+    campaign_id: int
+    step_number: int
+    outcome: StepOutcome
+    channel_used: Optional[str] = None
+    completed_at: datetime
+
+    class Config:
+        from_attributes = True
