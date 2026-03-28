@@ -1027,7 +1027,7 @@ function SequencePipelineView({
   }
 
   // Build step columns: use campaignSteps if available, otherwise derive from prospect data
-  let stepColumns: { stepNumber: number; channelType?: StepChannelType; label: string; fallbackChannelType?: StepChannelType }[];
+  let stepColumns: { stepNumber: number; channelType?: StepChannelType; label: string; fallbackChannelType?: StepChannelType; conditionType?: string }[];
 
   if (campaignSteps.length > 0) {
     stepColumns = campaignSteps.map((step) => ({
@@ -1035,6 +1035,7 @@ function SequencePipelineView({
       channelType: step.channel_type as StepChannelType,
       label: CHANNEL_LABELS[step.channel_type as StepChannelType] || step.channel_type,
       fallbackChannelType: step.fallback_channel_type as StepChannelType | undefined,
+      conditionType: step.condition_type,
     }));
     const definedStepNums = new Set(campaignSteps.map((s) => s.step_number));
     for (const stepNum of Object.keys(stepBuckets).map(Number).sort((a, b) => a - b)) {
@@ -1165,8 +1166,8 @@ function SequencePipelineView({
                         {col.label}
                       </span>
                     </div>
-                    {col.requiresLinkedInConnected && (
-                      <span title="Only for LinkedIn connected prospects"><UserCheck className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" /></span>
+                    {col.conditionType && (
+                      <span title={`Condition: ${CONDITION_LABELS[col.conditionType as ConditionType] || col.conditionType}`}><GitBranch className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" /></span>
                     )}
                     <span className="text-xs bg-stone-700/60 text-[--exec-text-muted] px-2 py-0.5 rounded-full font-medium flex-shrink-0">
                       {bucket.length}
@@ -1175,7 +1176,7 @@ function SequencePipelineView({
                   {/* Fallback route visualization */}
                   {col.fallbackChannelType && (
                     <div className="flex items-center gap-1.5 mt-1.5 pl-8">
-                      <span className="text-[10px] text-stone-500">if not connected →</span>
+                      <span className="text-[10px] text-stone-500">fallback →</span>
                       {(() => {
                         const fbColors = CHANNEL_COLORS[col.fallbackChannelType];
                         const FbIcon = CHANNEL_ICONS[col.fallbackChannelType];
