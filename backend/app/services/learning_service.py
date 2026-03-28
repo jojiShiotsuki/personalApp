@@ -105,13 +105,17 @@ class LearningService:
         try:
             response = await self.client.messages.create(
                 model=model,
-                max_tokens=2000,
+                max_tokens=4096,
                 system=INSIGHT_SYSTEM_PROMPT,
                 messages=[{"role": "user", "content": summary}],
             )
         except Exception as api_err:
             logger.error("Claude API call failed during insight generation: %s", api_err, exc_info=True)
             return []
+
+        # Check for truncation
+        if response.stop_reason == "max_tokens":
+            logger.warning("Insight generation was truncated (hit max_tokens). Response may have incomplete JSON.")
 
         # Extract text from response
         raw_text = ""
@@ -1097,8 +1101,9 @@ class LearningService:
             logger.warning("Claude returned JSON but not an array, wrapping it")
             return [parsed] if isinstance(parsed, dict) else []
         except json.JSONDecodeError as exc:
-            logger.warning("Failed to parse Claude JSON response: %s — raw: %s", exc, raw_text[:1000])
-            # Try to extract JSON array from mixed text (Claude sometimes adds preamble)
+            logger.warning("Failed to parse Claude JSON response: %s — raw (first 1500 chars): %s", exc, raw_text[:1500])
+
+            # Strategy 1: Extract JSON array from mixed text (Claude adds preamble)
             array_match = re.search(r'\[[\s\S]*\]', text)
             if array_match:
                 try:
@@ -1108,4 +1113,19 @@ class LearningService:
                         return parsed
                 except json.JSONDecodeError:
                     pass
+
+            # Strategy 2: Truncated JSON — find all complete {...} objects
+            objects = []
+            for obj_match in re.finditer(r'\{[^{}]*\}', text):
+                try:
+                    obj = json.loads(obj_match.group(0))
+                    if isinstance(obj, dict) and "insight" in obj:
+                        objects.append(obj)
+                except json.JSONDecodeError:
+                    continue
+            if objects:
+                logger.info("Recovered %d individual insight objects from truncated/malformed response", len(objects))
+                return objects
+
+            logger.error("All JSON parsing strategies failed")
             return []
