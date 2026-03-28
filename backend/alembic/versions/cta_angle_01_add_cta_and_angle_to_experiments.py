@@ -1,13 +1,13 @@
 """add cta_used and angle_used to experiments
 
-Revision ID: a1b2c3d4e5f6
+Revision ID: cta_angle_01
 Revises: 23d5e8e2861d
 Create Date: 2026-03-28
 """
 from alembic import op
 import sqlalchemy as sa
 
-revision = 'a1b2c3d4e5f6'
+revision = 'cta_angle_01'
 down_revision = '23d5e8e2861d'
 branch_labels = None
 depends_on = None
