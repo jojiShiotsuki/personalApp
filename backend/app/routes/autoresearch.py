@@ -2546,27 +2546,143 @@ Return ONLY valid JSON: {{"subject": "Re: {original_subject}", "body": "email bo
         .order_by(Experiment.step_number.asc())
         .all()
     )
+
+    # --- Comprehensive engagement history with full context ---
     engagement_lines = []
     for prev_exp in all_experiments:
-        line = f"- Step {prev_exp.step_number}: "
+        # Get the step definition to know the channel type
+        exp_step = None
+        if campaign:
+            exp_step = (
+                db.query(MTStep)
+                .filter(MTStep.campaign_id == campaign.id, MTStep.step_number == prev_exp.step_number)
+                .first()
+            )
+        channel_label = (exp_step.channel_type or "email").lower() if exp_step else "email"
+
+        line = f"- Step {prev_exp.step_number} ({channel_label}): "
         if prev_exp.sent_at:
-            line += f"Sent {prev_exp.sent_at.strftime('%b %d')}"
+            line += f"Sent {prev_exp.sent_at.strftime('%b %d %H:%M')}"
+            if prev_exp.day_of_week:
+                line += f" ({prev_exp.day_of_week})"
+        else:
+            line += "Draft (not sent)"
+
+        # What was sent
+        if prev_exp.subject:
+            line += f"\n    Subject: {prev_exp.subject}"
+        if prev_exp.body:
+            line += f"\n    Body: {prev_exp.body[:300]}"
+        if prev_exp.was_edited:
+            line += f" [edited: {prev_exp.edit_type or 'unknown'}]"
+
+        # Reply data
         if prev_exp.replied:
-            line += f" — REPLIED (sentiment: {prev_exp.sentiment or 'unknown'})"
+            line += f"\n    → REPLIED (sentiment: {prev_exp.sentiment or 'unknown'}, category: {prev_exp.category or 'unknown'})"
+            if prev_exp.reply_at and prev_exp.sent_at:
+                hours = prev_exp.response_time_minutes / 60 if prev_exp.response_time_minutes else None
+                if hours:
+                    line += f" — replied in {hours:.0f}h"
             if prev_exp.full_reply_text:
-                line += f"\n  Reply: {prev_exp.full_reply_text[:200]}"
+                line += f"\n    Their reply: \"{prev_exp.full_reply_text[:400]}\""
+            if prev_exp.forwarded_internally:
+                line += "\n    [FORWARDED INTERNALLY — they shared it with their team, warm signal]"
         elif prev_exp.sent_at:
-            line += " — No reply"
+            line += "\n    → No reply"
+
+        # Loom data
         if prev_exp.loom_sent:
-            line += " | Loom sent"
+            line += "\n    Loom: sent"
             if prev_exp.loom_watched:
-                line += " (WATCHED)"
+                line += " → WATCHED (warm signal)"
             elif prev_exp.loom_watched is False:
-                line += " (not watched)"
+                line += " → not watched"
+            else:
+                line += " → unknown if watched"
+
+        # Conversion signals
+        if prev_exp.converted_to_call:
+            line += "\n    → CONVERTED TO CALL"
+        if prev_exp.converted_to_client:
+            line += f"\n    → CONVERTED TO CLIENT (deal value: ${prev_exp.deal_value or 'unknown'})"
+
         engagement_lines.append(line)
     engagement_context = "\n".join(engagement_lines) if engagement_lines else "No previous engagement data."
 
-    # Loom watched status for current context
+    # --- Full email thread from Gmail (actual messages sent and received) ---
+    email_thread_context = ""
+    try:
+        from app.models.autoresearch import EmailMatch
+        gmail_emails = (
+            db.query(EmailMatch)
+            .filter(EmailMatch.prospect_id == prospect_id)
+            .order_by(EmailMatch.received_at)
+            .all()
+        )
+        if gmail_emails:
+            thread_lines = []
+            for em in gmail_emails:
+                direction_label = "YOU SENT" if em.direction == "outbound" else "THEY REPLIED"
+                date_str = em.received_at.strftime('%b %d %H:%M') if em.received_at else "unknown date"
+                thread_line = f"[{direction_label} — {date_str}]"
+                if em.subject:
+                    thread_line += f"\n  Subject: {em.subject}"
+                if em.body_text:
+                    thread_line += f"\n  {em.body_text[:400]}"
+                # Include classification data for replies
+                if em.direction == "inbound":
+                    meta_parts = []
+                    if em.sentiment:
+                        meta_parts.append(f"sentiment={em.sentiment}")
+                    if em.category:
+                        meta_parts.append(f"category={em.category}")
+                    if em.wants_loom:
+                        meta_parts.append("WANTS LOOM")
+                    if em.wants_call:
+                        meta_parts.append("WANTS CALL")
+                    if em.forwarded_internally:
+                        meta_parts.append("FORWARDED INTERNALLY")
+                    if em.key_quote:
+                        meta_parts.append(f"key quote: \"{em.key_quote}\"")
+                    if meta_parts:
+                        thread_line += f"\n  [{', '.join(meta_parts)}]"
+                thread_lines.append(thread_line)
+            if thread_lines:
+                email_thread_context = "\n\nFULL EMAIL THREAD (actual sent/received messages):\n" + "\n\n".join(thread_lines)
+    except Exception:
+        pass  # Non-fatal
+
+    # --- Step log context: what happened at each step (completed, skipped, fallback used) ---
+    step_log_context = ""
+    try:
+        step_logs_all = db.query(ProspectStepLog).filter(
+            ProspectStepLog.prospect_id == prospect.id,
+            ProspectStepLog.campaign_id == prospect.campaign_id,
+        ).order_by(ProspectStepLog.step_number).all()
+        if step_logs_all:
+            log_lines = [f"- Step {sl.step_number}: {sl.outcome} (via {sl.channel_used or 'unknown'})" for sl in step_logs_all]
+            step_log_context = "\n\nSTEP OUTCOMES LOG:\n" + "\n".join(log_lines)
+    except Exception:
+        pass  # Non-fatal
+
+    # --- Full sequence map: what's the whole campaign plan ---
+    sequence_map = ""
+    if campaign:
+        all_campaign_steps = (
+            db.query(MTStep)
+            .filter(MTStep.campaign_id == campaign.id)
+            .order_by(MTStep.step_number)
+            .all()
+        )
+        if all_campaign_steps:
+            map_lines = []
+            for cs in all_campaign_steps:
+                marker = "→ CURRENT" if cs.step_number == step_number else ""
+                cond = f" [if {cs.condition_type} → {cs.fallback_channel_type or 'skip'}]" if cs.condition_type else ""
+                map_lines.append(f"  Step {cs.step_number}: {cs.channel_type} (delay {cs.delay_days}d){cond} {marker}")
+            sequence_map = "\n\nFULL SEQUENCE MAP:\n" + "\n".join(map_lines)
+
+    # --- Loom watched context ---
     latest_loom = next((e for e in reversed(all_experiments) if e.loom_sent), None)
     loom_context = ""
     if latest_loom:
@@ -2633,14 +2749,24 @@ Return ONLY valid JSON: {{"subject": "Re: {original_subject}", "body": "email bo
 
         prompt = f"""You are writing a follow-up cold email for Joji Shiotsuki, who works with trade businesses across Australia on their web presence.
 
+PROSPECT INFO:
+- Name: {first_name}
+- Company: {prospect.agency_name}
+- Industry: {prospect.niche or 'trades'}
+- Website: {prospect.website or 'unknown'}
+- Website issues: {', '.join(prospect.website_issues) if prospect.website_issues else 'unknown'}
+
 ORIGINAL EMAIL (Step 1):
 Subject: {original_subject}
 Body: {original_body}
 Issue found: {issue_type} — {issue_detail}
 
-ENGAGEMENT HISTORY:
+COMPLETE ENGAGEMENT HISTORY (every touchpoint with this prospect):
 {engagement_context}
+{email_thread_context}
 {loom_context}
+{step_log_context}
+{sequence_map}
 
 PROSPECT STATE:
 {prospect_signals}
@@ -2654,11 +2780,18 @@ The prospect's first name is "{first_name}".
 {channel_note}
 {last_email_note}
 
-YOUR TASK: Pick the BEST angle for this follow-up based on ALL the context above. Consider:
-- What angles have already been used? Pick something DIFFERENT.
-- Is the prospect engaged (LinkedIn connected, email opened, replied)? Adjust warmth accordingly.
-- How many follow-ups deep are we? Earlier = more value-driven, later = lighter touch.
-- If email bounced, acknowledge delivery issues.
+YOUR TASK: Write a strategically differentiated follow-up based on ALL the context above. You MUST:
+
+1. READ the full engagement history and email thread — understand what was said, what they replied (if anything), what tone worked.
+2. CHECK prospect state signals — LinkedIn connected? Email opened? Bounced? Replied on LinkedIn? Each changes your approach:
+   - Connected on LinkedIn but no email reply → reference the connection, warmer tone
+   - Email opened but no reply → they're reading, use curiosity
+   - Email bounced → acknowledge potential delivery issues
+   - Replied on LinkedIn → reference their LinkedIn response
+   - No engagement at all → try a completely different angle
+3. REVIEW previous emails sent — pick a DIFFERENT angle, different structure, different hook. Never repeat the same approach.
+4. CONSIDER the sequence map — where are we in the journey? What's coming next? Early = more value, late = lighter touch.
+5. USE the performance data and learned insights — lean into patterns that have worked.
 
 AVAILABLE ANGLES (pick ONE that hasn't been used and fits the context):
 {angles_list}
