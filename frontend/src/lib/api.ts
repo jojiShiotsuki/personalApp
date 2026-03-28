@@ -108,7 +108,7 @@ import {
 
 // Production API URL - hardcoded for reliability
 const API_URL = import.meta.env.VITE_API_URL ||
-  (import.meta.env.PROD ? 'https://vertex-api-smg3.onrender.com' : 'http://localhost:8001');
+  (import.meta.env.PROD ? 'https://vertex-api-smg3.onrender.com' : 'http://localhost:8000');
 
 const api = axios.create({
   baseURL: API_URL,
@@ -865,6 +865,21 @@ export const coldOutreachApi = {
 
   markMtConnected: async (campaignId: number, prospectId: number): Promise<{ prospect: OutreachProspect; next_action_date?: string; message: string }> => {
     const response = await api.post(`/api/outreach/campaigns/${campaignId}/prospects/${prospectId}/mark-mt-connected`);
+    return response.data;
+  },
+
+  markEmailOpened: async (campaignId: number, prospectId: number): Promise<{ message: string }> => {
+    const response = await api.post(`/api/outreach/campaigns/${campaignId}/prospects/${prospectId}/mark-email-opened`);
+    return response.data;
+  },
+
+  markEmailBounced: async (campaignId: number, prospectId: number): Promise<{ message: string }> => {
+    const response = await api.post(`/api/outreach/campaigns/${campaignId}/prospects/${prospectId}/mark-email-bounced`);
+    return response.data;
+  },
+
+  markLinkedinReplied: async (campaignId: number, prospectId: number): Promise<{ message: string }> => {
+    const response = await api.post(`/api/outreach/campaigns/${campaignId}/prospects/${prospectId}/mark-linkedin-replied`);
     return response.data;
   },
 
