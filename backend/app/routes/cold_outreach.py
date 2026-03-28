@@ -123,16 +123,73 @@ def _create_step_experiment(
 def find_next_step(steps: dict, current_step: int, prospect=None):
     """Find the next step after current_step by sorted step numbers.
     Handles non-contiguous step numbers (e.g., steps 1, 2, 4, 5 after step 3 was deleted).
-    Skips steps that require LinkedIn connected if the prospect isn't connected."""
+    No longer skips conditional steps — conditions are evaluated at display/execution time."""
     sorted_nums = sorted(steps.keys())
     for num in sorted_nums:
         if num > current_step:
-            step = steps[num]
-            # Skip steps requiring LinkedIn connection if prospect isn't connected
-            if prospect and getattr(step, 'requires_linkedin_connected', False) and not getattr(prospect, 'linkedin_connected', False):
-                continue
-            return num, step
+            return num, steps[num]
     return None, None
+
+
+def evaluate_condition(step, prospect, step_logs: list) -> bool:
+    """Returns True if condition is met (proceed normally), False if not met (use fallback).
+    If no condition_type is set, always returns True."""
+    condition = getattr(step, 'condition_type', None)
+    if not condition:
+        return True
+
+    condition = condition.upper() if isinstance(condition, str) else condition
+
+    if condition == "LINKEDIN_CONNECTED":
+        return getattr(prospect, 'linkedin_connected', False) is True
+    elif condition == "EMAIL_REPLIED":
+        return any(
+            log.outcome.upper() == "REPLIED"
+            for log in step_logs
+        )
+    elif condition == "EMAIL_OPENED":
+        return getattr(prospect, 'email_opened', False) is True
+    elif condition == "EMAIL_DELIVERED":
+        return getattr(prospect, 'email_bounced', False) is not True
+    elif condition == "LINKEDIN_REPLIED":
+        return getattr(prospect, 'linkedin_replied', False) is True
+    elif condition == "STEP_COMPLETED":
+        ref = getattr(step, 'condition_step_ref', None)
+        return any(
+            log.step_number == ref and log.outcome.upper() == "COMPLETED"
+            for log in step_logs
+        )
+    elif condition == "STEP_SKIPPED":
+        ref = getattr(step, 'condition_step_ref', None)
+        return any(
+            log.step_number == ref and log.outcome.upper() == "SKIPPED"
+            for log in step_logs
+        )
+    return True  # Unknown condition — proceed normally
+
+
+def resolve_step(step, prospect, step_logs: list) -> dict:
+    """Returns the effective channel, content, and outcome for a step after condition evaluation."""
+    condition_met = evaluate_condition(step, prospect, step_logs)
+
+    if condition_met:
+        return {
+            "channel": step.channel_type,
+            "subject": step.template_subject,
+            "content": step.template_content,
+            "instruction": step.instruction_text,
+            "outcome": "COMPLETED",
+        }
+    elif step.fallback_channel_type:
+        return {
+            "channel": step.fallback_channel_type,
+            "subject": getattr(step, 'fallback_template_subject', None),
+            "content": getattr(step, 'fallback_template_content', None),
+            "instruction": getattr(step, 'fallback_instruction_text', None),
+            "outcome": "FALLBACK_USED",
+        }
+    else:
+        return {"channel": None, "outcome": "SKIPPED"}
 
 
 # Minimum days between steps when advancing
