@@ -2920,27 +2920,55 @@ Return ONLY valid JSON: {{"subject": "Re: {original_subject}", "body": "email bo
     used_angles = ""
     used_ctas = []
     used_angle_labels = []
+
+    def _extract_cta_from_body(body: str) -> str | None:
+        """Extract the CTA line from an email body — typically the last question or call-to-action before the sign-off."""
+        if not body:
+            return None
+        lines = [l.strip() for l in body.strip().split("\n") if l.strip()]
+        # Walk backwards to find the CTA (skip sign-off lines)
+        sign_off_words = ["cheers", "joji", "not interested", "reply", "stop", "jojishiotsuki", "|"]
+        for line in reversed(lines):
+            lower = line.lower()
+            if any(w in lower for w in sign_off_words):
+                continue
+            if len(line) < 5:
+                continue
+            # CTA is usually a question or short ask
+            if "?" in line or any(w in lower for w in ["worth", "want", "happy to", "free to", "shall", "can i", "let me", "interested"]):
+                return line
+            # If it's a short line at the end (before sign-off), likely the CTA
+            if len(line) < 80:
+                return line
+            break
+        return None
+
     for prev_exp in all_experiments:
         if prev_exp.body and prev_exp.step_number <= step_number:
             snippet = (prev_exp.body or "")[:80].replace("\n", " ")
             channel_label = ""
             if prev_exp.step_number == step_number:
                 channel_label = " (current step)"
-            cta_info = f" | CTA: \"{prev_exp.cta_used}\"" if prev_exp.cta_used else ""
-            angle_info = f" | Angle: {prev_exp.angle_used}" if prev_exp.angle_used else ""
+
+            # Use stored CTA or extract from body
+            cta = prev_exp.cta_used or _extract_cta_from_body(prev_exp.body)
+            angle = prev_exp.angle_used
+
+            cta_info = f" | CTA: \"{cta}\"" if cta else ""
+            angle_info = f" | Angle: {angle}" if angle else ""
             used_angles += f"\n- Step {prev_exp.step_number}{channel_label}: \"{snippet}...\"{cta_info}{angle_info}"
-            if prev_exp.cta_used:
-                used_ctas.append(prev_exp.cta_used)
-            if prev_exp.angle_used:
-                used_angle_labels.append(prev_exp.angle_used)
+            if cta:
+                used_ctas.append(cta)
+            if angle:
+                used_angle_labels.append(angle)
 
     # Explicit list of CTAs and angles already used (for hard enforcement)
     cta_blacklist = ""
     if used_ctas:
-        cta_blacklist = "\n\nCTAs ALREADY USED (you MUST pick a DIFFERENT one):\n" + "\n".join(f'- "{c}"' for c in used_ctas)
+        cta_blacklist = "\n\nCTAs ALREADY USED (you MUST use something COMPLETELY DIFFERENT — not just a rewording):\n" + "\n".join(f'- "{c}"' for c in set(used_ctas))
     angle_blacklist = ""
     if used_angle_labels:
-        angle_blacklist = "\n\nANGLES ALREADY USED (you MUST pick a DIFFERENT one):\n" + "\n".join(f"- {a}" for a in used_angle_labels)
+        angle_blacklist = "\n\nANGLES ALREADY USED (you MUST pick a DIFFERENT strategy):\n" + "\n".join(f"- {a}" for a in set(used_angle_labels))
 
     # --- Build the prompt based on channel type ---
     if channel_type == "linkedin_message" or is_linkedin_followup:
