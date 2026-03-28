@@ -2164,6 +2164,15 @@ async def generate_followup_email(
                 ProspectStepLog.campaign_id == campaign.id,
             ).all()
             resolved = resolve_step(current_mt_step, prospect, step_logs)
+            logger.info(
+                f"[CONDITION DEBUG] prospect={prospect.id} step={step_number} "
+                f"original_channel={current_mt_step.channel_type} "
+                f"condition_type={current_mt_step.condition_type} "
+                f"fallback={current_mt_step.fallback_channel_type} "
+                f"linkedin_connected={getattr(prospect, 'linkedin_connected', None)} "
+                f"resolved_channel={resolved.get('channel')} "
+                f"resolved_outcome={resolved.get('outcome')}"
+            )
             if resolved["channel"]:
                 channel_type = resolved["channel"].lower()
 
