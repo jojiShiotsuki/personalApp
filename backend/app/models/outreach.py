@@ -1,5 +1,5 @@
 import enum
-from sqlalchemy import Column, Integer, String, Text, DateTime, Date, ForeignKey, UniqueConstraint, Enum, JSON, Boolean
+from sqlalchemy import Column, Integer, String, Text, DateTime, Date, ForeignKey, UniqueConstraint, Enum, JSON, Boolean, Index
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from app.database import Base
@@ -19,6 +19,23 @@ class StepChannelType(str, enum.Enum):
     LINKEDIN_ENGAGE = "LINKEDIN_ENGAGE"
     FOLLOW_UP_EMAIL = "FOLLOW_UP_EMAIL"
     LOOM_EMAIL = "LOOM_EMAIL"
+
+
+class ConditionType(str, enum.Enum):
+    LINKEDIN_CONNECTED = "LINKEDIN_CONNECTED"
+    EMAIL_REPLIED = "EMAIL_REPLIED"
+    EMAIL_OPENED = "EMAIL_OPENED"
+    EMAIL_DELIVERED = "EMAIL_DELIVERED"
+    LINKEDIN_REPLIED = "LINKEDIN_REPLIED"
+    STEP_COMPLETED = "STEP_COMPLETED"
+    STEP_SKIPPED = "STEP_SKIPPED"
+
+
+class StepOutcome(str, enum.Enum):
+    COMPLETED = "COMPLETED"
+    SKIPPED = "SKIPPED"
+    FALLBACK_USED = "FALLBACK_USED"
+    REPLIED = "REPLIED"
 
 
 class ProspectStatus(str, enum.Enum):
@@ -149,6 +166,9 @@ class OutreachProspect(Base):
 
     # LinkedIn connection tracking (separate from pipeline status)
     linkedin_connected = Column(Boolean, default=False, server_default="0")
+    email_opened = Column(Boolean, default=False, server_default="0")
+    email_bounced = Column(Boolean, default=False, server_default="0")
+    linkedin_replied = Column(Boolean, default=False, server_default="0")
 
     # Social links (copied from discovered lead during import)
     linkedin_url = Column(String(500), nullable=True)
@@ -200,6 +220,11 @@ class MultiTouchStep(Base):
     instruction_text = Column(String(500), nullable=True)  # guidance shown in queue
     requires_linkedin_connected = Column(Boolean, default=False, server_default="0")  # only runs if prospect accepted LinkedIn connection
     fallback_channel_type = Column(String(50), nullable=True)  # if requires_linkedin_connected and not connected, use this channel instead
+    condition_type = Column(String(50), nullable=True)
+    condition_step_ref = Column(Integer, nullable=True)
+    fallback_template_subject = Column(String(500), nullable=True)
+    fallback_template_content = Column(Text, nullable=True)
+    fallback_instruction_text = Column(String(500), nullable=True)
     loom_script = Column(Text, nullable=True)  # script for Loom video recording on LOOM_EMAIL steps
 
     campaign = relationship("OutreachCampaign", back_populates="multi_touch_steps")
@@ -210,6 +235,26 @@ class MultiTouchStep(Base):
 
     def __repr__(self):
         return f"<MultiTouchStep(id={self.id}, campaign_id={self.campaign_id}, step={self.step_number}, channel={self.channel_type})>"
+
+
+class ProspectStepLog(Base):
+    __tablename__ = "prospect_step_log"
+
+    id = Column(Integer, primary_key=True, index=True)
+    prospect_id = Column(Integer, ForeignKey("outreach_prospects.id", ondelete="CASCADE"), nullable=False)
+    campaign_id = Column(Integer, ForeignKey("outreach_campaigns.id", ondelete="CASCADE"), nullable=False)
+    step_number = Column(Integer, nullable=False)
+    outcome = Column(String(50), nullable=False)  # StepOutcome value
+    channel_used = Column(String(50), nullable=True)  # StepChannelType value
+    completed_at = Column(DateTime, default=datetime.utcnow)
+
+    prospect = relationship("OutreachProspect", backref="step_logs")
+    campaign = relationship("OutreachCampaign")
+
+    __table_args__ = (
+        UniqueConstraint("prospect_id", "campaign_id", "step_number", name="uq_prospect_step_log"),
+        Index("ix_prospect_step_log_prospect", "prospect_id"),
+    )
 
 
 class DiscoveredLead(Base):
