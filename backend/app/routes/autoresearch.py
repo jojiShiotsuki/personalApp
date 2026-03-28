@@ -2626,6 +2626,139 @@ Return ONLY valid JSON: {{"subject": "Re: {original_subject}", "body": "email bo
                 angle_lines.append(f"{stat.angle_used}: {replies}/{total} replies ({rate}%)")
             performance_context += f"\n\nANGLE A/B TEST RESULTS (reply rates by strategy angle):\n" + "\n".join(angle_lines)
 
+        # Subject line A/B testing — which subjects got replies?
+        replied_subjects = (
+            db.query(Experiment.subject)
+            .filter(Experiment.sent_at.isnot(None), Experiment.replied.is_(True), Experiment.subject.isnot(None))
+            .order_by(Experiment.reply_at.desc())
+            .limit(10)
+            .all()
+        )
+        no_reply_subjects = (
+            db.query(Experiment.subject)
+            .filter(Experiment.sent_at.isnot(None), Experiment.replied.is_(False), Experiment.subject.isnot(None))
+            .order_by(Experiment.sent_at.desc())
+            .limit(10)
+            .all()
+        )
+        if replied_subjects or no_reply_subjects:
+            performance_context += "\n\nSUBJECT LINE A/B TEST:"
+            if replied_subjects:
+                performance_context += "\n  Got replies:"
+                for s in replied_subjects:
+                    performance_context += f'\n    - "{s.subject}"'
+            if no_reply_subjects:
+                performance_context += "\n  No replies:"
+                for s in no_reply_subjects[:5]:
+                    performance_context += f'\n    - "{s.subject}"'
+            performance_context += "\n  → Study the patterns: What do replied subjects have in common? Length? Specificity? Tone? Use those patterns."
+
+        # Word count analysis — what email length gets replies?
+        replied_wc = (
+            db.query(func.avg(Experiment.word_count))
+            .filter(Experiment.sent_at.isnot(None), Experiment.replied.is_(True), Experiment.word_count.isnot(None))
+            .scalar()
+        )
+        no_reply_wc = (
+            db.query(func.avg(Experiment.word_count))
+            .filter(Experiment.sent_at.isnot(None), Experiment.replied.is_(False), Experiment.word_count.isnot(None))
+            .scalar()
+        )
+        if replied_wc or no_reply_wc:
+            performance_context += f"\n\nWORD COUNT ANALYSIS:"
+            if replied_wc:
+                performance_context += f"\n  Replied emails avg: {replied_wc:.0f} words"
+            if no_reply_wc:
+                performance_context += f"\n  No-reply emails avg: {no_reply_wc:.0f} words"
+            if replied_wc and no_reply_wc:
+                if replied_wc < no_reply_wc:
+                    performance_context += f"\n  → SHORTER emails get more replies. Keep it tight."
+                elif replied_wc > no_reply_wc:
+                    performance_context += f"\n  → LONGER emails get more replies. Add more value/detail."
+
+        # Body pattern analysis — what do replied emails look like vs no-reply?
+        replied_bodies = (
+            db.query(Experiment.body, Experiment.word_count, Experiment.was_edited, Experiment.edit_type)
+            .filter(Experiment.sent_at.isnot(None), Experiment.replied.is_(True), Experiment.body.isnot(None))
+            .order_by(Experiment.reply_at.desc())
+            .limit(5)
+            .all()
+        )
+        if replied_bodies:
+            performance_context += "\n\nEMAILS THAT GOT REPLIES (study these patterns — what makes them work?):"
+            for b in replied_bodies:
+                snippet = (b.body or "")[:150].replace("\n", " ")
+                edited_note = f" [user edited: {b.edit_type}]" if b.was_edited else " [AI original, not edited]"
+                performance_context += f'\n  - ({b.word_count or "?"} words{edited_note}) "{snippet}..."'
+
+        # Edit pattern analysis — when users edit, what do they change?
+        edited_count = db.query(func.count(Experiment.id)).filter(
+            Experiment.was_edited.is_(True)
+        ).scalar() or 0
+        unedited_count = db.query(func.count(Experiment.id)).filter(
+            Experiment.was_edited.is_(False), Experiment.sent_at.isnot(None)
+        ).scalar() or 0
+        if edited_count > 0:
+            edited_reply_count = db.query(func.count(Experiment.id)).filter(
+                Experiment.was_edited.is_(True), Experiment.replied.is_(True)
+            ).scalar() or 0
+            unedited_reply_count = db.query(func.count(Experiment.id)).filter(
+                Experiment.was_edited.is_(False), Experiment.replied.is_(True), Experiment.sent_at.isnot(None)
+            ).scalar() or 0
+            edited_rate = round(edited_reply_count / edited_count * 100) if edited_count > 0 else 0
+            unedited_rate = round(unedited_reply_count / unedited_count * 100) if unedited_count > 0 else 0
+            performance_context += f"\n\nEDIT VS UNEDITED PERFORMANCE:"
+            performance_context += f"\n  Edited by user: {edited_reply_count}/{edited_count} replies ({edited_rate}%)"
+            performance_context += f"\n  AI original (unedited): {unedited_reply_count}/{unedited_count} replies ({unedited_rate}%)"
+            if edited_rate > unedited_rate:
+                performance_context += "\n  → User edits IMPROVE reply rates. The AI should learn from what the user changes."
+            elif unedited_rate > edited_rate:
+                performance_context += "\n  → AI originals perform BETTER. The current style is working."
+
+        # Timing analysis — what day/hour gets replies?
+        timing_stats = (
+            db.query(
+                Experiment.day_of_week,
+                func.count(Experiment.id).label("total"),
+                func.sum(func.cast(Experiment.replied, Integer)).label("replies"),
+            )
+            .filter(Experiment.sent_at.isnot(None), Experiment.day_of_week.isnot(None))
+            .group_by(Experiment.day_of_week)
+            .having(func.count(Experiment.id) >= 2)
+            .all()
+        )
+        if timing_stats:
+            timing_lines = []
+            for stat in timing_stats:
+                total = stat.total or 0
+                replies = stat.replies or 0
+                rate = round(replies / total * 100) if total > 0 else 0
+                timing_lines.append(f"{stat.day_of_week}: {replies}/{total} ({rate}%)")
+            performance_context += f"\n\nDAY-OF-WEEK REPLY RATES:\n  " + ", ".join(timing_lines)
+
+        # Issue type analysis — what website issues get the best response?
+        issue_stats = (
+            db.query(
+                Experiment.issue_type,
+                func.count(Experiment.id).label("total"),
+                func.sum(func.cast(Experiment.replied, Integer)).label("replies"),
+            )
+            .filter(Experiment.sent_at.isnot(None), Experiment.issue_type.isnot(None))
+            .group_by(Experiment.issue_type)
+            .having(func.count(Experiment.id) >= 2)
+            .order_by(func.sum(func.cast(Experiment.replied, Integer)).desc())
+            .limit(8)
+            .all()
+        )
+        if issue_stats:
+            issue_lines = []
+            for stat in issue_stats:
+                total = stat.total or 0
+                replies = stat.replies or 0
+                rate = round(replies / total * 100) if total > 0 else 0
+                issue_lines.append(f"{stat.issue_type}: {replies}/{total} ({rate}%)")
+            performance_context += f"\n\nISSUE TYPE REPLY RATES (which problems resonate?):\n  " + "\n  ".join(issue_lines)
+
         if performance_context:
             followup_learning += f"\n\nPERFORMANCE DATA (use this to inform your approach):\n{performance_context}"
     except Exception:
@@ -2981,8 +3114,19 @@ YOUR TASK: Write the most strategically effective follow-up to move this prospec
    - No engagement at all → completely different angle, try something unexpected
 3. REVIEW previous emails — pick a DIFFERENT angle, different structure, different hook. Never repeat the same approach or analogy.
 4. CONSIDER position in sequence — early = establish value + credibility, middle = build urgency + social proof, late = direct ask or graceful exit.
-5. USE performance data — which steps/niches/approaches actually convert? Lean into proven patterns.
-6. THINK ABOUT THE CONVERSION PATH — what would make THIS specific prospect say "yeah, let's have a chat"? What's their likely objection and how do you address it naturally?
+5. USE performance data — study EVERY data point:
+   - Which SUBJECT LINES got replies vs didn't? Match the patterns that work (length, specificity, tone).
+   - Which WORD COUNTS get replies? If shorter emails win, keep it shorter. If longer, add more value.
+   - Which ISSUE TYPES resonate? Lead with the issues that get responses.
+   - Which DAYS get replies? Note if timing matters.
+   - Did USER EDITS improve reply rates? If so, the user's style is better — match it.
+   - Study the actual BODY TEXT of emails that got replies — what structure, tone, and hooks worked?
+6. A/B TEST EVERYTHING — you are running continuous experiments:
+   - Each email should test ONE new variable while keeping the rest consistent with what works.
+   - Variables to test: subject line style, opening hook, analogy type, CTA phrasing, email length, tone (humor vs direct vs value-led).
+   - If nothing has worked yet, try RADICALLY different approaches — not just minor variations.
+   - Once something gets a reply, lean into that pattern for similar prospects but keep testing variations.
+7. THINK ABOUT THE CONVERSION PATH — what would make THIS specific prospect say "yeah, let's have a chat"? What's their likely objection and how do you address it naturally?
 
 AVAILABLE ANGLES (pick ONE that hasn't been used and fits the context):
 {angles_list}
