@@ -329,12 +329,15 @@ export default function CopyEmailModal({
   // Advance / mark sent mutation
   const isLinkedinFollowup = prospect.status === 'LINKEDIN_FOLLOWUP';
   const advanceMutation = useMutation({
-    mutationFn: () =>
-      isLinkedinFollowup && campaignId
-        ? coldOutreachApi.advanceLinkedinFollowup(campaignId, prospect.id)
-        : campaignId
-          ? coldOutreachApi.advanceProspect(campaignId, prospect.id)
-          : coldOutreachApi.markSent(prospect.id),
+    mutationFn: async () => {
+      if (isLinkedinFollowup && campaignId) {
+        const result = await coldOutreachApi.advanceLinkedinFollowup(campaignId, prospect.id);
+        return { message: result.message } as { prospect: OutreachProspect; next_action_date?: string; message: string };
+      }
+      return campaignId
+        ? coldOutreachApi.advanceProspect(campaignId, prospect.id)
+        : coldOutreachApi.markSent(prospect.id);
+    },
     onSuccess: (data) => {
       toast.success(data.message);
       queryClient.invalidateQueries({ queryKey: ['outreach-today-queue'] });

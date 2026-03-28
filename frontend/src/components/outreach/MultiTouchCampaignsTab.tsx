@@ -526,7 +526,6 @@ function PipelineProspectCard({
   onDragEnd?: () => void;
 }) {
   const cardRef = useRef<HTMLDivElement>(null);
-  const queryClient = useQueryClient();
 
   const dueToday = isDueToday(prospect.next_action_date);
   const hasCustomMessage = !!(prospect.custom_email_subject || prospect.custom_email_body);
