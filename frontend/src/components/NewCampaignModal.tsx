@@ -4,8 +4,8 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { coldOutreachApi } from '@/lib/api';
 import type { OutreachCampaign, MultiTouchStepCreate } from '@/types';
-import { CampaignType, StepChannelType } from '@/types';
-import { X, Plus, Trash2, Mail, Linkedin, MessageCircle, Heart, Reply, ChevronDown, GripVertical, UserCheck, Video } from 'lucide-react';
+import { CampaignType, StepChannelType, ConditionType, CONDITION_LABELS } from '@/types';
+import { X, Plus, Trash2, Mail, Linkedin, MessageCircle, Heart, Reply, ChevronDown, GripVertical, Video, GitBranch } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -69,6 +69,12 @@ export default function NewCampaignModal({
           instruction_text: s.instruction_text,
           requires_linkedin_connected: s.requires_linkedin_connected || false,
           loom_script: s.loom_script,
+          condition_type: s.condition_type,
+          condition_step_ref: s.condition_step_ref,
+          fallback_channel_type: s.fallback_channel_type,
+          fallback_template_subject: s.fallback_template_subject,
+          fallback_template_content: s.fallback_template_content,
+          fallback_instruction_text: s.fallback_instruction_text,
         })));
       } else {
         setSteps([]);
@@ -391,19 +397,96 @@ export default function NewCampaignModal({
                                         className={cn(inputClasses, 'py-1.5 text-xs')}
                                       />
 
-                                      {/* LinkedIn connected only toggle */}
-                                      <label className="flex items-center gap-2 cursor-pointer group/toggle">
-                                        <input
-                                          type="checkbox"
-                                          checked={step.requires_linkedin_connected || false}
-                                          onChange={(e) => updateStep(index, { requires_linkedin_connected: e.target.checked })}
-                                          className="w-3.5 h-3.5 text-emerald-500 bg-stone-700 border-stone-600 rounded focus:ring-emerald-500/30 cursor-pointer"
-                                        />
-                                        <UserCheck className="w-3.5 h-3.5 text-emerald-400/60 group-hover/toggle:text-emerald-400 transition-colors" />
-                                        <span className="text-[11px] text-[--exec-text-muted] group-hover/toggle:text-[--exec-text-secondary] transition-colors">
-                                          Only if LinkedIn connected
-                                        </span>
-                                      </label>
+                                      {/* Condition & Fallback Section */}
+                                      <div className="mt-3 pt-3 border-t border-stone-700/30">
+                                        <div className="flex items-center gap-2 mb-2">
+                                          <GitBranch className="w-3.5 h-3.5 text-slate-400" />
+                                          <span className="text-xs font-medium text-slate-400">Condition & Fallback</span>
+                                        </div>
+
+                                        {/* Condition selector */}
+                                        <div className="mb-2">
+                                          <label className="block text-xs text-slate-400 mb-1">Only execute if...</label>
+                                          <select
+                                            value={step.condition_type || ''}
+                                            onChange={(e) => updateStep(index, {
+                                              condition_type: (e.target.value || undefined) as ConditionType | undefined,
+                                              condition_step_ref: undefined,
+                                            })}
+                                            className="w-full px-3 py-1.5 rounded-lg text-sm bg-stone-800/50 border border-stone-600/40 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                                          >
+                                            <option value="">Always (no condition)</option>
+                                            {Object.entries(CONDITION_LABELS).map(([value, label]) => (
+                                              <option key={value} value={value}>{label}</option>
+                                            ))}
+                                          </select>
+                                        </div>
+
+                                        {/* Step reference selector — only for STEP_COMPLETED / STEP_SKIPPED */}
+                                        {(step.condition_type === ConditionType.STEP_COMPLETED || step.condition_type === ConditionType.STEP_SKIPPED) && (
+                                          <div className="mb-2">
+                                            <label className="block text-xs text-slate-400 mb-1">Which step?</label>
+                                            <select
+                                              value={step.condition_step_ref || ''}
+                                              onChange={(e) => updateStep(index, { condition_step_ref: Number(e.target.value) || undefined })}
+                                              className="w-full px-3 py-1.5 rounded-lg text-sm bg-stone-800/50 border border-stone-600/40 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                                            >
+                                              <option value="">Select step...</option>
+                                              {steps.filter((_, i) => i < index).map((s, i) => (
+                                                <option key={i} value={s.step_number}>Step {s.step_number}</option>
+                                              ))}
+                                            </select>
+                                          </div>
+                                        )}
+
+                                        {/* Fallback section — visible when condition is set */}
+                                        {step.condition_type && (
+                                          <div className="mt-2 p-2.5 bg-stone-800/30 rounded-lg border border-stone-700/30">
+                                            <label className="block text-xs text-slate-400 mb-1">Otherwise:</label>
+                                            <select
+                                              value={step.fallback_channel_type || 'skip'}
+                                              onChange={(e) => updateStep(index, {
+                                                fallback_channel_type: e.target.value === 'skip' ? undefined : e.target.value as StepChannelType,
+                                              })}
+                                              className="w-full px-3 py-1.5 rounded-lg text-sm mb-2 bg-stone-800/50 border border-stone-600/40 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                                            >
+                                              <option value="skip">Skip this step</option>
+                                              {Object.values(StepChannelType).map((ch) => (
+                                                <option key={ch} value={ch}>{ch.replace(/_/g, ' ')}</option>
+                                              ))}
+                                            </select>
+
+                                            {/* Fallback content fields — only when a fallback channel is selected */}
+                                            {step.fallback_channel_type && (
+                                              <>
+                                                {['EMAIL', 'FOLLOW_UP_EMAIL', 'LOOM_EMAIL'].includes(step.fallback_channel_type) && (
+                                                  <input
+                                                    type="text"
+                                                    value={step.fallback_template_subject || ''}
+                                                    onChange={(e) => updateStep(index, { fallback_template_subject: e.target.value })}
+                                                    placeholder="Fallback subject line..."
+                                                    className="w-full px-3 py-1.5 rounded-lg text-sm mb-2 bg-stone-800/50 border border-stone-600/40 text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                                                  />
+                                                )}
+                                                <textarea
+                                                  value={step.fallback_template_content || ''}
+                                                  onChange={(e) => updateStep(index, { fallback_template_content: e.target.value })}
+                                                  placeholder="Fallback content/template..."
+                                                  rows={2}
+                                                  className="w-full px-3 py-1.5 rounded-lg text-sm mb-2 resize-none bg-stone-800/50 border border-stone-600/40 text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                                                />
+                                                <input
+                                                  type="text"
+                                                  value={step.fallback_instruction_text || ''}
+                                                  onChange={(e) => updateStep(index, { fallback_instruction_text: e.target.value })}
+                                                  placeholder="Fallback instruction..."
+                                                  className="w-full px-3 py-1.5 rounded-lg text-sm bg-stone-800/50 border border-stone-600/40 text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                                                />
+                                              </>
+                                            )}
+                                          </div>
+                                        )}
+                                      </div>
 
                                       {/* Template fields for email/message/connect steps */}
                                       {(step.channel_type === StepChannelType.EMAIL ||
