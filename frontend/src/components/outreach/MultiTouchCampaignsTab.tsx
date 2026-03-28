@@ -40,7 +40,7 @@ import {
   Search,
   Video,
   GitBranch,
-  Eye,
+
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -510,7 +510,7 @@ function PipelineProspectCard({
   experiment?: any;
 }) {
   const cardRef = useRef<HTMLDivElement>(null);
-  const cardQueryClient = useQueryClient();
+
   const dueToday = isDueToday(prospect.next_action_date);
   const hasCustomMessage = !!(prospect.custom_email_subject || prospect.custom_email_body);
   const [linkedinReplyProspect, setLinkedinReplyProspect] = useState<OutreachProspect | null>(null);
@@ -518,8 +518,6 @@ function PipelineProspectCard({
   const [linkedinSaving, setLinkedinSaving] = useState(false);
   const [loomWatched, setLoomWatched] = useState(experiment?.loom_watched === true);
   const [linkedinReplied, setLinkedinReplied] = useState(experiment?.replied === true);
-  const [emailOpened, setEmailOpened] = useState(prospect.email_opened === true);
-  const [emailBounced, setEmailBounced] = useState(prospect.email_bounced === true);
 
   // Update when experiment prop changes
   useEffect(() => {
@@ -589,50 +587,6 @@ function PipelineProspectCard({
               title="Mark response"
             >
               <MessageSquare className="w-3.5 h-3.5" />
-            </button>
-          )}
-          {!isMuted && prospect.email && (
-            <button
-              onClick={async () => {
-                try {
-                  await coldOutreachApi.markEmailOpened(prospect.campaign_id, prospect.id);
-                  setEmailOpened(prev => !prev);
-                  cardQueryClient.invalidateQueries({ queryKey: ['mt-prospects'] });
-                } catch {
-                  toast.error('Failed to update email opened status');
-                }
-              }}
-              className={cn(
-                'p-1.5 rounded-md transition-colors',
-                emailOpened
-                  ? 'text-green-400 bg-green-900/30'
-                  : 'text-[--exec-text-muted] hover:text-[--exec-text] hover:bg-stone-700'
-              )}
-              title={emailOpened ? 'Email opened' : 'Mark email opened'}
-            >
-              <Eye className="w-3.5 h-3.5" />
-            </button>
-          )}
-          {!isMuted && prospect.email && (
-            <button
-              onClick={async () => {
-                try {
-                  await coldOutreachApi.markEmailBounced(prospect.campaign_id, prospect.id);
-                  setEmailBounced(prev => !prev);
-                  cardQueryClient.invalidateQueries({ queryKey: ['mt-prospects'] });
-                } catch {
-                  toast.error('Failed to update email bounced status');
-                }
-              }}
-              className={cn(
-                'p-1.5 rounded-md transition-colors',
-                emailBounced
-                  ? 'text-red-400 bg-red-900/30'
-                  : 'text-[--exec-text-muted] hover:text-[--exec-text] hover:bg-stone-700'
-              )}
-              title={emailBounced ? 'Email bounced' : 'Mark email bounced'}
-            >
-              <AlertTriangle className="w-3.5 h-3.5" />
             </button>
           )}
           {!isMuted && (
