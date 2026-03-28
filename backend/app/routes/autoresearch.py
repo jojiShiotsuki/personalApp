@@ -2505,6 +2505,10 @@ Return ONLY valid JSON: {{"subject": "Re: {original_subject}", "body": "email bo
         reply_status = "The prospect has replied previously — see engagement history." if has_replied else "The prospect has NOT replied to any previous emails."
 
         angle = email_angle_guidance.get(email_followup_number, default_email_angle)
+        # If the resolved channel is NOT loom_email but the angle is the Loom drop (#3),
+        # skip the Loom angle and use a gentle nudge instead
+        if email_followup_number == 3 and channel_type != "loom_email":
+            angle = """GENTLE NUDGE WITH HUMOR: Quick, witty check-in referencing the original issue. Maybe self-aware humor about being persistent. Keep it conversational. Under 40 words. Do NOT mention Loom or video."""
         prompt = f"""You are writing a follow-up cold email for Joji Shiotsuki, who works with trade businesses across Australia on their web presence.
 
 ORIGINAL EMAIL (Step 1):
