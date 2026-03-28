@@ -10,7 +10,7 @@ import type {
   MultiTouchStep,
   ProspectCreate,
 } from '@/types';
-import { ProspectStatus, CampaignType, StepChannelType } from '@/types';
+import { ProspectStatus, CampaignType, StepChannelType, ConditionType, CONDITION_LABELS } from '@/types';
 import {
   Layers,
   Plus,
@@ -39,6 +39,7 @@ import {
   XCircle,
   Search,
   Video,
+  GitBranch,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -1478,12 +1479,22 @@ function SequenceStepsPanel({
                           : `wait ${step.delay_days}d after prev`}
                     </span>
 
-                    {/* LinkedIn connected only badge */}
-                    {step.requires_linkedin_connected && (
-                      <div className="flex items-center gap-1 mt-0.5">
-                        <UserCheck className="w-3 h-3 text-emerald-400" />
-                        <span className="text-[10px] text-emerald-400 font-medium">Connected only</span>
+                    {/* Condition badges */}
+                    {step.condition_type && (
+                      <div className="flex items-center gap-1 mt-1">
+                        <GitBranch className="w-3 h-3 text-amber-400" />
+                        <span className="text-[10px] text-amber-400 font-medium">
+                          If {CONDITION_LABELS[step.condition_type as ConditionType] || step.condition_type}
+                          {step.condition_step_ref ? ` #${step.condition_step_ref}` : ''}
+                        </span>
                       </div>
+                    )}
+                    {step.condition_type && (
+                      <span className="text-[10px] text-slate-500">
+                        {step.fallback_channel_type
+                          ? `Fallback: ${CHANNEL_LABELS[step.fallback_channel_type as StepChannelType] || step.fallback_channel_type}`
+                          : 'Fallback: Skip'}
+                      </span>
                     )}
 
                     {/* Instruction text */}
