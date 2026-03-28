@@ -45,11 +45,14 @@ INSIGHT_SYSTEM_PROMPT = (
     "For Loom script insights, be equally specific: 'Loom scripts under 120 words "
     "had 25% reply rate vs 10% for longer ones' or 'scripts that opened the website "
     "within the first 10 seconds correlated with more replies'.\n\n"
-    "Return JSON array of insights, each with: insight (string), "
+    "Return ONLY a valid JSON array (no markdown fences, no preamble, no explanation text). "
+    "Each element must have these fields: insight (string), "
     "confidence (high/medium/low based on sample size: 50+=high, 20-49=medium, <20=low), "
     "sample_size (int), recommendation (string — this gets injected into the audit prompt "
     "and Loom script generator, so write it as a direct instruction to the AI), "
-    "applies_to (niche name or 'all_niches')."
+    "applies_to (niche name or 'all_niches').\n\n"
+    "Example format: [{\"insight\": \"...\", \"confidence\": \"medium\", \"sample_size\": 25, "
+    "\"recommendation\": \"...\", \"applies_to\": \"all_niches\"}]"
 )
 
 MIN_EXPERIMENTS_FOR_CONTEXT = 10
@@ -1094,6 +1097,15 @@ class LearningService:
             logger.warning("Claude returned JSON but not an array, wrapping it")
             return [parsed] if isinstance(parsed, dict) else []
         except json.JSONDecodeError as exc:
-            logger.warning("Failed to parse Claude JSON response: %s", exc)
-            logger.debug("Raw response text: %s", raw_text[:500])
+            logger.warning("Failed to parse Claude JSON response: %s — raw: %s", exc, raw_text[:1000])
+            # Try to extract JSON array from mixed text (Claude sometimes adds preamble)
+            array_match = re.search(r'\[[\s\S]*\]', text)
+            if array_match:
+                try:
+                    parsed = json.loads(array_match.group(0))
+                    if isinstance(parsed, list):
+                        logger.info("Recovered JSON array from mixed response")
+                        return parsed
+                except json.JSONDecodeError:
+                    pass
             return []
