@@ -2441,6 +2441,104 @@ Return ONLY valid JSON: {{"subject": "Re: {original_subject}", "body": "email bo
     except Exception:
         pass  # Non-fatal
 
+    # --- Cross-prospect performance data: what's working across all prospects ---
+    performance_context = ""
+    try:
+        from sqlalchemy import func
+        # Reply rates by step number (which steps get replies?)
+        step_stats = (
+            db.query(
+                Experiment.step_number,
+                func.count(Experiment.id).label("total"),
+                func.sum(func.cast(Experiment.replied, Integer)).label("replies"),
+            )
+            .filter(Experiment.sent_at.isnot(None))
+            .group_by(Experiment.step_number)
+            .order_by(Experiment.step_number)
+            .all()
+        )
+        if step_stats:
+            perf_lines = []
+            for stat in step_stats:
+                total = stat.total or 0
+                replies = stat.replies or 0
+                rate = round(replies / total * 100) if total > 0 else 0
+                perf_lines.append(f"Step {stat.step_number}: {replies}/{total} replies ({rate}%)")
+            performance_context += "REPLY RATES BY STEP (across all prospects):\n" + "\n".join(perf_lines)
+
+        # What niches respond best
+        niche_stats = (
+            db.query(
+                Experiment.niche,
+                func.count(Experiment.id).label("total"),
+                func.sum(func.cast(Experiment.replied, Integer)).label("replies"),
+            )
+            .filter(Experiment.sent_at.isnot(None), Experiment.niche.isnot(None))
+            .group_by(Experiment.niche)
+            .having(func.count(Experiment.id) >= 3)
+            .order_by(func.sum(func.cast(Experiment.replied, Integer)).desc())
+            .limit(5)
+            .all()
+        )
+        if niche_stats:
+            niche_lines = []
+            for stat in niche_stats:
+                total = stat.total or 0
+                replies = stat.replies or 0
+                rate = round(replies / total * 100) if total > 0 else 0
+                niche_lines.append(f"{stat.niche}: {replies}/{total} ({rate}%)")
+            performance_context += "\n\nTOP RESPONDING NICHES:\n" + "\n".join(niche_lines)
+
+        # LinkedIn connected prospects vs not — reply rates
+        li_connected_replies = (
+            db.query(func.count(Experiment.id))
+            .join(OutreachProspect, OutreachProspect.id == Experiment.prospect_id)
+            .filter(Experiment.sent_at.isnot(None), Experiment.replied.is_(True), OutreachProspect.linkedin_connected.is_(True))
+            .scalar()
+        ) or 0
+        li_connected_total = (
+            db.query(func.count(Experiment.id))
+            .join(OutreachProspect, OutreachProspect.id == Experiment.prospect_id)
+            .filter(Experiment.sent_at.isnot(None), OutreachProspect.linkedin_connected.is_(True))
+            .scalar()
+        ) or 0
+        li_not_total = (
+            db.query(func.count(Experiment.id))
+            .join(OutreachProspect, OutreachProspect.id == Experiment.prospect_id)
+            .filter(Experiment.sent_at.isnot(None), OutreachProspect.linkedin_connected.isnot(True))
+            .scalar()
+        ) or 0
+        li_not_replies = (
+            db.query(func.count(Experiment.id))
+            .join(OutreachProspect, OutreachProspect.id == Experiment.prospect_id)
+            .filter(Experiment.sent_at.isnot(None), Experiment.replied.is_(True), OutreachProspect.linkedin_connected.isnot(True))
+            .scalar()
+        ) or 0
+        if li_connected_total > 0 or li_not_total > 0:
+            li_rate = round(li_connected_replies / li_connected_total * 100) if li_connected_total > 0 else 0
+            no_li_rate = round(li_not_replies / li_not_total * 100) if li_not_total > 0 else 0
+            performance_context += f"\n\nLINKEDIN EFFECT ON EMAIL REPLIES:\n- Connected: {li_connected_replies}/{li_connected_total} ({li_rate}%)\n- Not connected: {li_not_replies}/{li_not_total} ({no_li_rate}%)"
+
+        # Loom watched → reply correlation
+        loom_watched_replies = (
+            db.query(func.count(Experiment.id))
+            .filter(Experiment.loom_watched.is_(True), Experiment.replied.is_(True))
+            .scalar()
+        ) or 0
+        loom_watched_total = (
+            db.query(func.count(Experiment.id))
+            .filter(Experiment.loom_watched.is_(True))
+            .scalar()
+        ) or 0
+        if loom_watched_total > 0:
+            lw_rate = round(loom_watched_replies / loom_watched_total * 100)
+            performance_context += f"\n\nLOOM WATCHED → REPLY RATE: {loom_watched_replies}/{loom_watched_total} ({lw_rate}%)"
+
+        if performance_context:
+            followup_learning += f"\n\nPERFORMANCE DATA (use this to inform your approach):\n{performance_context}"
+    except Exception:
+        pass  # Non-fatal — don't block email generation if stats query fails
+
     # --- Build engagement history context ---
     all_experiments = (
         db.query(Experiment)
