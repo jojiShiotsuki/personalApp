@@ -2408,16 +2408,19 @@ Return ONLY valid JSON: {{"subject": "Re: {original_subject}", "body": "email bo
     # --- Build dynamic angle based on all available context ---
     # Available angles the AI can choose from (pool of strategies)
     angle_pool = [
-        "CUSTOMER PERSPECTIVE: Reframe the problem from their customer's POV — what does a visitor experience hitting this issue?",
-        "COMPETITOR URGENCY: Point out that while this is broken, competitors are picking up leads instead.",
-        "SOCIAL PROOF: Mention a similar business (same industry) that fixed this kind of issue and saw results.",
-        "COST OF INACTION: Quantify what this issue might be costing them (lost leads, bounce rate, trust).",
-        "SEASONAL/TIMING HOOK: Tie the issue to a timely reason to fix it now (busy season, new year, etc).",
-        "DIRECT VALUE OFFER: Offer one specific, small thing you could fix quickly as a gesture of goodwill.",
-        "CURIOSITY GAP: Tease a specific insight about their site without giving the full answer.",
+        "CUSTOMER PERSPECTIVE: Reframe the problem from their customer's POV — what does a visitor experience hitting this issue? Make them feel what their customers feel.",
+        "COMPETITOR URGENCY: Point out that while this is broken, competitors are picking up leads instead. Create FOMO without being aggressive.",
+        "SOCIAL PROOF: Reference a similar business (same industry) that fixed this kind of issue and saw real results. Numbers if possible.",
+        "COST OF INACTION: Quantify what this issue might be costing them — lost leads per week, bounce rate, trust erosion. Make the invisible visible.",
+        "SEASONAL/TIMING HOOK: Tie the issue to a timely reason to fix it NOW (busy season coming, new financial year, etc).",
+        "DIRECT VALUE OFFER: Offer one specific, small thing you could fix quickly for free — shows competence and generosity, lowers barrier to engagement.",
+        "CURIOSITY GAP: Tease a specific insight about their site (e.g. 'found something interesting on page 2 of your Google results') without giving the full answer. Drive them to reply.",
+        "CASE STUDY: Share a brief before/after story of a similar business — 'fixed X for a plumber in Brisbane, their calls went up 40% in 2 weeks'.",
+        "OBJECTION BUSTER: Preemptively address common objections (too busy, already have a guy, costs too much) with humor and a reframe.",
+        "DIRECT ASK: Simply and confidently ask for 15 minutes — 'worth a quick chat?' with a specific reason why now.",
     ]
     if channel_type == "loom_email":
-        angle_pool.append("LOOM VIDEO DROP: Announce that you recorded a free 3-minute Loom walkthrough showing the issue and fix. Include [LOOM LINK] placeholder.")
+        angle_pool.append("LOOM VIDEO DROP: Announce that you recorded a free 3-minute Loom walkthrough showing the issue and fix. Include [LOOM LINK] placeholder. The video IS the proof — push for a response.")
 
     # --- Get learning context for follow-up style ---
     followup_learning = ""
@@ -2533,6 +2536,50 @@ Return ONLY valid JSON: {{"subject": "Re: {original_subject}", "body": "email bo
         if loom_watched_total > 0:
             lw_rate = round(loom_watched_replies / loom_watched_total * 100)
             performance_context += f"\n\nLOOM WATCHED → REPLY RATE: {loom_watched_replies}/{loom_watched_total} ({lw_rate}%)"
+
+        # Conversion funnel stats
+        total_sent = db.query(func.count(Experiment.id)).filter(Experiment.sent_at.isnot(None)).scalar() or 0
+        total_replied = db.query(func.count(Experiment.id)).filter(Experiment.replied.is_(True)).scalar() or 0
+        total_calls = db.query(func.count(Experiment.id)).filter(Experiment.converted_to_call.is_(True)).scalar() or 0
+        total_clients = db.query(func.count(Experiment.id)).filter(Experiment.converted_to_client.is_(True)).scalar() or 0
+        if total_sent > 0:
+            performance_context += f"\n\nCONVERSION FUNNEL (all-time):"
+            performance_context += f"\n  Sent: {total_sent} → Replied: {total_replied} ({round(total_replied/total_sent*100)}%) → Calls: {total_calls} → Clients: {total_clients}"
+
+        # What step number do conversions happen at?
+        conversion_steps = (
+            db.query(Experiment.step_number, func.count(Experiment.id))
+            .filter(Experiment.converted_to_call.is_(True) | Experiment.converted_to_client.is_(True))
+            .group_by(Experiment.step_number)
+            .all()
+        )
+        if conversion_steps:
+            conv_lines = [f"Step {s}: {c} conversions" for s, c in conversion_steps]
+            performance_context += f"\n\nCONVERSIONS BY STEP: " + ", ".join(conv_lines)
+
+        # What reply sentiments lead to conversions?
+        positive_replies = db.query(func.count(Experiment.id)).filter(
+            Experiment.replied.is_(True), Experiment.sentiment == "positive"
+        ).scalar() or 0
+        neutral_replies = db.query(func.count(Experiment.id)).filter(
+            Experiment.replied.is_(True), Experiment.sentiment == "neutral"
+        ).scalar() or 0
+        negative_replies = db.query(func.count(Experiment.id)).filter(
+            Experiment.replied.is_(True), Experiment.sentiment == "negative"
+        ).scalar() or 0
+        if total_replied > 0:
+            performance_context += f"\n\nREPLY SENTIMENT BREAKDOWN: positive={positive_replies}, neutral={neutral_replies}, negative={negative_replies}"
+
+        # What categories do replies fall into?
+        category_stats = (
+            db.query(Experiment.category, func.count(Experiment.id))
+            .filter(Experiment.replied.is_(True), Experiment.category.isnot(None))
+            .group_by(Experiment.category)
+            .all()
+        )
+        if category_stats:
+            cat_lines = [f"{cat}: {cnt}" for cat, cnt in category_stats]
+            performance_context += f"\n\nREPLY CATEGORIES: " + ", ".join(cat_lines)
 
         if performance_context:
             followup_learning += f"\n\nPERFORMANCE DATA (use this to inform your approach):\n{performance_context}"
@@ -2747,7 +2794,9 @@ Return ONLY valid JSON: {{"subject": "Re: {original_subject}", "body": "email bo
         if is_last_email:
             last_email_note = "\nIMPORTANT: This is the LAST email in the sequence. Be gracious, self-aware about persistence, and leave the door open. Clean exit energy."
 
-        prompt = f"""You are writing a follow-up cold email for Joji Shiotsuki, who works with trade businesses across Australia on their web presence.
+        prompt = f"""You are a strategic cold outreach specialist writing for Joji Shiotsuki, who works with trade businesses across Australia on their web presence.
+
+GOAL: Convert this prospect into a paying client. Every email must move them closer to booking a call or saying yes. You are not just "following up" — you are strategically nurturing a lead through a sales pipeline. Read ALL the data below and craft the most effective next touch.
 
 PROSPECT INFO:
 - Name: {first_name}
@@ -2780,18 +2829,25 @@ The prospect's first name is "{first_name}".
 {channel_note}
 {last_email_note}
 
-YOUR TASK: Write a strategically differentiated follow-up based on ALL the context above. You MUST:
+YOUR TASK: Write the most strategically effective follow-up to move this prospect closer to becoming a client. You MUST:
 
-1. READ the full engagement history and email thread — understand what was said, what they replied (if anything), what tone worked.
-2. CHECK prospect state signals — LinkedIn connected? Email opened? Bounced? Replied on LinkedIn? Each changes your approach:
-   - Connected on LinkedIn but no email reply → reference the connection, warmer tone
-   - Email opened but no reply → they're reading, use curiosity
-   - Email bounced → acknowledge potential delivery issues
-   - Replied on LinkedIn → reference their LinkedIn response
-   - No engagement at all → try a completely different angle
-3. REVIEW previous emails sent — pick a DIFFERENT angle, different structure, different hook. Never repeat the same approach.
-4. CONSIDER the sequence map — where are we in the journey? What's coming next? Early = more value, late = lighter touch.
-5. USE the performance data and learned insights — lean into patterns that have worked.
+1. READ the full engagement history and email thread — understand what was said, what they replied (if anything), what tone and angle got the most engagement.
+2. ADAPT to prospect signals — each signal changes your strategy:
+   - Connected on LinkedIn + no email reply → they know who you are, warmer tone, reference the connection
+   - Connected on LinkedIn + replied on LinkedIn → very warm, almost conversational, reference your LinkedIn chat
+   - Email opened but no reply → they're interested but not enough to reply, use curiosity or urgency
+   - Email bounced → try a different approach, mention you're not sure if they got the last one
+   - Replied positively → push toward a call/meeting, be direct about next steps
+   - Replied with question → answer it concisely, then pivot to a call
+   - Replied negatively → acknowledge their concern, offer a no-pressure option
+   - Forwarded internally → someone else is interested, acknowledge this is a team decision
+   - Loom watched → they've seen the proof, reference it, push for action
+   - Loom not watched → don't mention it again, try a different hook
+   - No engagement at all → completely different angle, try something unexpected
+3. REVIEW previous emails — pick a DIFFERENT angle, different structure, different hook. Never repeat the same approach or analogy.
+4. CONSIDER position in sequence — early = establish value + credibility, middle = build urgency + social proof, late = direct ask or graceful exit.
+5. USE performance data — which steps/niches/approaches actually convert? Lean into proven patterns.
+6. THINK ABOUT THE CONVERSION PATH — what would make THIS specific prospect say "yeah, let's have a chat"? What's their likely objection and how do you address it naturally?
 
 AVAILABLE ANGLES (pick ONE that hasn't been used and fits the context):
 {angles_list}
