@@ -1027,14 +1027,13 @@ function SequencePipelineView({
   }
 
   // Build step columns: use campaignSteps if available, otherwise derive from prospect data
-  let stepColumns: { stepNumber: number; channelType?: StepChannelType; label: string; requiresLinkedInConnected?: boolean; fallbackChannelType?: StepChannelType }[];
+  let stepColumns: { stepNumber: number; channelType?: StepChannelType; label: string; fallbackChannelType?: StepChannelType }[];
 
   if (campaignSteps.length > 0) {
     stepColumns = campaignSteps.map((step) => ({
       stepNumber: step.step_number,
       channelType: step.channel_type as StepChannelType,
       label: CHANNEL_LABELS[step.channel_type as StepChannelType] || step.channel_type,
-      requiresLinkedInConnected: step.requires_linkedin_connected,
       fallbackChannelType: step.fallback_channel_type as StepChannelType | undefined,
     }));
     const definedStepNums = new Set(campaignSteps.map((s) => s.step_number));
@@ -1465,7 +1464,6 @@ function SequencePipelineView({
                 onClick={async () => {
                   setSavingStep(true);
                   try {
-                    const isLinkedIn = (ch: string) => ['LINKEDIN_CONNECT', 'LINKEDIN_MESSAGE', 'LINKEDIN_ENGAGE'].includes(ch);
                     const updatedSteps = campaignSteps.map(s => {
                       const isEdited = s.step_number === editingStep.stepNumber;
                       const channelType = isEdited ? editStepChannel : s.channel_type;
@@ -1476,7 +1474,6 @@ function SequencePipelineView({
                         template_subject: s.template_subject || undefined,
                         template_content: s.template_content || undefined,
                         instruction_text: s.instruction_text || undefined,
-                        requires_linkedin_connected: isEdited ? isLinkedIn(editStepChannel) : s.requires_linkedin_connected,
                         fallback_channel_type: (isEdited
                           ? (editStepFallback || undefined)
                           : s.fallback_channel_type) as StepChannelType | undefined,

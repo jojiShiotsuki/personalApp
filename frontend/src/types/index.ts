@@ -814,7 +814,6 @@ export interface MultiTouchStep {
   template_subject?: string;
   template_content?: string;
   instruction_text?: string;
-  requires_linkedin_connected?: boolean;
   fallback_channel_type?: StepChannelType;
   loom_script?: string;
   condition_type?: ConditionType;
@@ -831,7 +830,6 @@ export interface MultiTouchStepCreate {
   template_subject?: string;
   template_content?: string;
   instruction_text?: string;
-  requires_linkedin_connected?: boolean;
   fallback_channel_type?: StepChannelType;
   loom_script?: string;
   condition_type?: ConditionType;

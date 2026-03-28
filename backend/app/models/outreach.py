@@ -218,8 +218,7 @@ class MultiTouchStep(Base):
     template_subject = Column(String(500), nullable=True)  # for email steps
     template_content = Column(Text, nullable=True)  # for email/message steps
     instruction_text = Column(String(500), nullable=True)  # guidance shown in queue
-    requires_linkedin_connected = Column(Boolean, default=False, server_default="0")  # only runs if prospect accepted LinkedIn connection
-    fallback_channel_type = Column(String(50), nullable=True)  # if requires_linkedin_connected and not connected, use this channel instead
+    fallback_channel_type = Column(String(50), nullable=True)  # if condition not met, use this channel instead
     condition_type = Column(String(50), nullable=True)
     condition_step_ref = Column(Integer, nullable=True)
     fallback_template_subject = Column(String(500), nullable=True)

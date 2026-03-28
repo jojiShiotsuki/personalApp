@@ -166,7 +166,6 @@ class MultiTouchStepCreate(BaseModel):
     template_subject: Optional[str] = Field(None, max_length=500)
     template_content: Optional[str] = None
     instruction_text: Optional[str] = Field(None, max_length=500)
-    requires_linkedin_connected: bool = False
     fallback_channel_type: Optional[str] = None
     condition_type: Optional[ConditionType] = None
     condition_step_ref: Optional[int] = None

@@ -67,7 +67,6 @@ export default function NewCampaignModal({
           template_subject: s.template_subject,
           template_content: s.template_content,
           instruction_text: s.instruction_text,
-          requires_linkedin_connected: s.requires_linkedin_connected || false,
           loom_script: s.loom_script,
           condition_type: s.condition_type,
           condition_step_ref: s.condition_step_ref,
