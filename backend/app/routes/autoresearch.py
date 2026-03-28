@@ -2189,6 +2189,123 @@ async def generate_followup_email(
     if is_linkedin_followup:
         channel_type = "linkedin_message"
 
+    # --- Build global performance context (used by ALL steps including Step 1) ---
+    global_perf = ""
+    global_cta_blacklist = ""
+    try:
+        from sqlalchemy import func as sqlfunc
+
+        # Recent CTAs used across ALL prospects (to avoid the same CTA for every prospect)
+        recent_ctas = (
+            db.query(Experiment.cta_used)
+            .filter(Experiment.sent_at.isnot(None), Experiment.cta_used.isnot(None))
+            .order_by(Experiment.sent_at.desc())
+            .limit(30)
+            .all()
+        )
+        recent_cta_set = list(set(c.cta_used for c in recent_ctas))
+        if recent_cta_set:
+            global_cta_blacklist = "\n\nRECENT CTAs USED ACROSS ALL PROSPECTS (use something DIFFERENT):\n" + "\n".join(f'- "{c}"' for c in recent_cta_set[:15])
+
+        # If no stored CTAs, extract from recent email bodies
+        if not recent_cta_set:
+            def _extract_cta_quick(body: str) -> str | None:
+                if not body:
+                    return None
+                lines = [l.strip() for l in body.strip().split("\n") if l.strip()]
+                skip = ["cheers", "joji", "not interested", "reply", "stop", "jojishiotsuki", "|"]
+                for line in reversed(lines):
+                    lower = line.lower()
+                    if any(w in lower for w in skip) or len(line) < 5:
+                        continue
+                    if "?" in line or any(w in lower for w in ["worth", "want", "happy", "free to", "shall", "can i", "got"]):
+                        return line
+                    if len(line) < 80:
+                        return line
+                    break
+                return None
+
+            recent_bodies = (
+                db.query(Experiment.body)
+                .filter(Experiment.sent_at.isnot(None), Experiment.body.isnot(None))
+                .order_by(Experiment.sent_at.desc())
+                .limit(20)
+                .all()
+            )
+            extracted = list(set(c for b in recent_bodies if (c := _extract_cta_quick(b.body))))
+            if extracted:
+                global_cta_blacklist = "\n\nRECENT CTAs USED ACROSS ALL PROSPECTS (use something COMPLETELY DIFFERENT — not a rewording):\n" + "\n".join(f'- "{c}"' for c in extracted[:15])
+
+        # Step 1 subject line performance
+        total_step1 = sqlfunc.count(Experiment.id)
+        replied_step1_subjects = (
+            db.query(Experiment.subject)
+            .filter(Experiment.step_number == 1, Experiment.sent_at.isnot(None), Experiment.replied.is_(True), Experiment.subject.isnot(None))
+            .limit(5)
+            .all()
+        )
+        no_reply_step1_subjects = (
+            db.query(Experiment.subject)
+            .filter(Experiment.step_number == 1, Experiment.sent_at.isnot(None), Experiment.replied.is_(False), Experiment.subject.isnot(None))
+            .limit(5)
+            .all()
+        )
+        if replied_step1_subjects:
+            global_perf += "\nSTEP 1 SUBJECTS THAT GOT REPLIES:"
+            for s in replied_step1_subjects:
+                global_perf += f'\n  ✓ "{s.subject}"'
+        if no_reply_step1_subjects:
+            global_perf += "\nSTEP 1 SUBJECTS WITH NO REPLY:"
+            for s in no_reply_step1_subjects[:3]:
+                global_perf += f'\n  ✗ "{s.subject}"'
+
+        # Word count that works
+        replied_wc = (
+            db.query(sqlfunc.avg(Experiment.word_count))
+            .filter(Experiment.sent_at.isnot(None), Experiment.replied.is_(True), Experiment.word_count.isnot(None))
+            .scalar()
+        )
+        if replied_wc:
+            global_perf += f"\n\nREPLIED EMAILS AVERAGE: {replied_wc:.0f} words"
+
+        # Best performing issue types
+        from sqlalchemy import Integer as SAInteger
+        issue_perf = (
+            db.query(
+                Experiment.issue_type,
+                sqlfunc.count(Experiment.id).label("total"),
+                sqlfunc.sum(sqlfunc.cast(Experiment.replied, SAInteger)).label("replies"),
+            )
+            .filter(Experiment.sent_at.isnot(None), Experiment.issue_type.isnot(None))
+            .group_by(Experiment.issue_type)
+            .having(sqlfunc.count(Experiment.id) >= 2)
+            .order_by(sqlfunc.sum(sqlfunc.cast(Experiment.replied, SAInteger)).desc())
+            .limit(5)
+            .all()
+        )
+        if issue_perf:
+            global_perf += "\n\nISSUE TYPES THAT GET REPLIES:"
+            for ip in issue_perf:
+                rate = round((ip.replies or 0) / ip.total * 100) if ip.total else 0
+                global_perf += f"\n  {ip.issue_type}: {ip.replies}/{ip.total} ({rate}%)"
+
+        # Emails that got replies (study the body pattern)
+        replied_emails = (
+            db.query(Experiment.body, Experiment.word_count, Experiment.was_edited)
+            .filter(Experiment.sent_at.isnot(None), Experiment.replied.is_(True), Experiment.body.isnot(None))
+            .order_by(Experiment.reply_at.desc())
+            .limit(3)
+            .all()
+        )
+        if replied_emails:
+            global_perf += "\n\nEMAILS THAT GOT REPLIES (study these — replicate what works):"
+            for e in replied_emails:
+                snippet = (e.body or "")[:200].replace("\n", " ")
+                edited = " [user edited]" if e.was_edited else ""
+                global_perf += f'\n  ({e.word_count or "?"}w{edited}) "{snippet}..."'
+    except Exception:
+        pass  # Non-fatal
+
     # --- STEP 1: Generate initial cold email (no previous email to reference) ---
     if step_number == 1:
         first_name = (prospect.contact_name or prospect.agency_name or "there").split()[0]
@@ -2222,7 +2339,11 @@ AUDIT FINDINGS:
         except Exception:
             pass
 
-        step1_prompt = f"""You are writing an initial cold email for Joji Shiotsuki, who works with trade businesses across Australia on their web presence.
+        step1_prompt = f"""You are a strategic cold outreach specialist writing the FIRST email (Step 1) for Joji Shiotsuki, who works with trade businesses across Australia on their web presence.
+
+GOAL: Get this prospect to reply. This is the FIRST touchpoint — make it count. Every word matters.
+
+This is STEP 1 of the multi-touch sequence. There are more touchpoints after this.
 
 PROSPECT:
 - Name: {first_name}
@@ -2232,9 +2353,19 @@ PROSPECT:
 - Detected issues: {issues_text}
 {audit_context}
 
-Write a short, punchy initial cold email that identifies a specific problem with their website and offers to help fix it.
-
 {custom_instruction if custom_instruction else ''}
+
+A/B TESTING — you are running continuous experiments. Study the data below:
+{global_perf if global_perf else "No performance data yet — test DIFFERENT approaches for each prospect."}
+{global_cta_blacklist if global_cta_blacklist else ""}
+
+YOUR STRATEGY:
+1. Study which subject lines got replies vs didn't. Use patterns that WORK.
+2. Study which email bodies got replies. Replicate the structure, tone, and hooks.
+3. Use a DIFFERENT CTA from previous emails. Not a rewording — a genuinely different ask.
+4. If shorter emails get more replies, keep it tight. If longer works, add value.
+5. Lead with the issue type that gets the best reply rates for this niche.
+6. Test something NEW with each email — vary one thing (subject style, CTA type, opening hook, analogy).
 
 RULES:
 - Start with "G'day {first_name},"
@@ -2243,10 +2374,10 @@ RULES:
 - Australian English, conversational, pub banter tone
 - No em dashes
 - Under 50 words total (excluding sign-off)
-- End with: Cheers,\\nJoji Shiotsuki | Joji Web Solutions | jojishiotsuki.com\\n\\nNot interested? Just reply "stop" and I won't email again.
+- End with a CTA, then: Cheers,\\nJoji Shiotsuki | Joji Web Solutions | jojishiotsuki.com\\n\\nNot interested? Just reply "stop" and I won't email again.
 {step1_learning}
 Return ONLY valid JSON (no markdown fences):
-{{"subject": "short punchy subject about the issue", "body": "email body here", "word_count": N, "cta_used": "the exact CTA line you used", "angle_used": "initial cold outreach"}}"""
+{{"subject": "short punchy subject about the issue", "body": "email body here", "word_count": N, "cta_used": "the exact CTA line you used", "angle_used": "short label for the approach you took"}}"""
 
         model = os.getenv("AUTORESEARCH_FOLLOWUP_MODEL", "claude-sonnet-4-6")
         try:
