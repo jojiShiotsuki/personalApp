@@ -558,3 +558,14 @@ code {
   border-top: 1px solid rgba(255, 255, 255, 0.1);
   margin: 0.5em 0;
 }
+
+/* Paste-friendly text: visually light on screen, copies as black for emails/docs */
+.prose-chat,
+.prose-chat * {
+  color: #000;
+  -webkit-text-fill-color: var(--exec-text);
+}
+
+.prose-chat a {
+  -webkit-text-fill-color: var(--exec-accent);
+}
