@@ -582,25 +582,7 @@ function PipelineProspectCard({
           </span>
         )}
         <div className="flex items-center gap-0.5">
-          {prospect.status === 'LINKEDIN_FOLLOWUP' ? (
-            <button
-              onClick={async () => {
-                try {
-                  const result = await coldOutreachApi.advanceLinkedinFollowup(prospect.campaign_id, prospect.id);
-                  toast.success(result.message);
-                  queryClient.invalidateQueries({ queryKey: ['mt-prospects'] });
-                  queryClient.invalidateQueries({ queryKey: ['campaign-stats'] });
-                } catch {
-                  toast.error('Failed to advance LinkedIn follow-up');
-                }
-              }}
-              className="p-1.5 text-sky-400 hover:text-sky-300 hover:bg-sky-500/15 rounded-md transition-colors"
-              title={`Mark LinkedIn follow-up ${(prospect.linkedin_followup_count || 0) + 1}/5 sent`}
-            >
-              <Send className="w-3.5 h-3.5 mr-0.5" />
-              <span className="text-[10px] font-medium">Followed up</span>
-            </button>
-          ) : prospect.email ? (
+          {prospect.email && (
             <button
               onClick={() => onViewMessage(prospect)}
               className="p-1.5 text-[--exec-text-muted] hover:text-blue-400 hover:bg-blue-500/15 rounded-md transition-colors"
@@ -608,7 +590,7 @@ function PipelineProspectCard({
             >
               <Mail className="w-3.5 h-3.5" />
             </button>
-          ) : null}
+          )}
           {!isMuted && onMarkConnected && (
             <button
               onClick={() => onMarkConnected(prospect)}

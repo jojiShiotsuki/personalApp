@@ -327,11 +327,14 @@ export default function CopyEmailModal({
   });
 
   // Advance / mark sent mutation
+  const isLinkedinFollowup = prospect.status === 'LINKEDIN_FOLLOWUP';
   const advanceMutation = useMutation({
     mutationFn: () =>
-      campaignId
-        ? coldOutreachApi.advanceProspect(campaignId, prospect.id)
-        : coldOutreachApi.markSent(prospect.id),
+      isLinkedinFollowup && campaignId
+        ? coldOutreachApi.advanceLinkedinFollowup(campaignId, prospect.id)
+        : campaignId
+          ? coldOutreachApi.advanceProspect(campaignId, prospect.id)
+          : coldOutreachApi.markSent(prospect.id),
     onSuccess: (data) => {
       toast.success(data.message);
       queryClient.invalidateQueries({ queryKey: ['outreach-today-queue'] });
@@ -973,7 +976,7 @@ export default function CopyEmailModal({
               ) : (
                 <>
                   <Send className="w-4 h-4" />
-                  Send & Next Step
+                  {isLinkedinFollowup ? `Send & Mark Follow-up ${(prospect.linkedin_followup_count || 0) + 1}/5` : 'Send & Next Step'}
                 </>
               )}
             </button>
@@ -983,7 +986,7 @@ export default function CopyEmailModal({
               disabled={advanceMutation.isPending}
               className={cn(
                 'flex items-center gap-2 px-4 py-2 text-sm font-medium text-white rounded-lg',
-                'bg-[--exec-accent] hover:bg-[--exec-accent-dark]',
+                isLinkedinFollowup ? 'bg-sky-600 hover:bg-sky-700' : 'bg-[--exec-accent] hover:bg-[--exec-accent-dark]',
                 'shadow-sm hover:shadow-md transition-all',
                 'disabled:opacity-50 disabled:cursor-not-allowed'
               )}
@@ -991,12 +994,12 @@ export default function CopyEmailModal({
               {advanceMutation.isPending ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  Advancing...
+                  {isLinkedinFollowup ? 'Updating...' : 'Advancing...'}
                 </>
               ) : (
                 <>
                   <Send className="w-4 h-4" />
-                  Mark Done & Next Step
+                  {isLinkedinFollowup ? `Mark Follow-up ${(prospect.linkedin_followup_count || 0) + 1}/5` : 'Mark Done & Next Step'}
                 </>
               )}
             </button>
