@@ -405,7 +405,7 @@ export default function NewCampaignModal({
 
                                         {/* Condition selector */}
                                         <div className="mb-2">
-                                          <label className="block text-xs text-slate-400 mb-1">Only execute if...</label>
+                                          <label className="block text-xs text-slate-400 mb-1">If...</label>
                                           <select
                                             value={step.condition_type || ''}
                                             onChange={(e) => updateStep(index, {
@@ -441,7 +441,7 @@ export default function NewCampaignModal({
                                         {/* Fallback section — visible when condition is set */}
                                         {step.condition_type && (
                                           <div className="mt-2 p-2.5 bg-stone-800/30 rounded-lg border border-stone-700/30">
-                                            <label className="block text-xs text-slate-400 mb-1">Otherwise:</label>
+                                            <label className="block text-xs text-slate-400 mb-1">Then use:</label>
                                             <select
                                               value={step.fallback_channel_type || 'skip'}
                                               onChange={(e) => updateStep(index, {
