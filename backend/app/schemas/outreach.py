@@ -132,20 +132,20 @@ class StepChannelType(str, Enum):
 
 
 class ConditionType(str, Enum):
-    LINKEDIN_CONNECTED = "linkedin_connected"
-    EMAIL_REPLIED = "email_replied"
-    EMAIL_OPENED = "email_opened"
-    EMAIL_DELIVERED = "email_delivered"
-    LINKEDIN_REPLIED = "linkedin_replied"
-    STEP_COMPLETED = "step_completed"
-    STEP_SKIPPED = "step_skipped"
+    LINKEDIN_CONNECTED = "LINKEDIN_CONNECTED"
+    EMAIL_REPLIED = "EMAIL_REPLIED"
+    EMAIL_OPENED = "EMAIL_OPENED"
+    EMAIL_DELIVERED = "EMAIL_DELIVERED"
+    LINKEDIN_REPLIED = "LINKEDIN_REPLIED"
+    STEP_COMPLETED = "STEP_COMPLETED"
+    STEP_SKIPPED = "STEP_SKIPPED"
 
 
 class StepOutcome(str, Enum):
-    COMPLETED = "completed"
-    SKIPPED = "skipped"
-    FALLBACK_USED = "fallback_used"
-    REPLIED = "replied"
+    COMPLETED = "COMPLETED"
+    SKIPPED = "SKIPPED"
+    FALLBACK_USED = "FALLBACK_USED"
+    REPLIED = "REPLIED"
 
 
 # Campaign Schemas
