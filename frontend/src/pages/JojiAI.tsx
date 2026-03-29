@@ -320,7 +320,7 @@ export default function JojiAI() {
       {/* Mobile sidebar overlay — starts below Vertex header (h-14 = 56px) */}
       {showMobileSidebar && (
         <div
-          className="fixed inset-0 top-14 bg-black/50 z-40 lg:hidden"
+          className="fixed inset-0 top-14 bg-black/50 z-40 sm:hidden"
           onClick={() => setShowMobileSidebar(false)}
         />
       )}
@@ -328,8 +328,8 @@ export default function JojiAI() {
       {/* Left Sidebar — hidden on mobile, visible on lg+ */}
       <div className={cn(
         'flex-shrink-0 h-full z-50 transition-transform duration-200',
-        // Desktop: always visible
-        'hidden lg:block lg:relative lg:w-[280px]',
+        // Desktop/tablet: always visible
+        'hidden sm:block sm:relative sm:w-[280px]',
       )}>
         {showSettings ? (
           <AISettingsPanel onBack={() => setShowSettings(false)} />
@@ -344,7 +344,7 @@ export default function JojiAI() {
       {/* Mobile sidebar — slide in from left, below Vertex header */}
       <div className={cn(
         'fixed top-14 bottom-0 left-0 w-[300px] z-50 transition-transform duration-200 lg:hidden',
-        'bg-stone-900 border-r border-stone-700/40 shadow-2xl',
+        'bg-stone-900 border-r border-stone-700/40 shadow-2xl sm:hidden',
         showMobileSidebar ? 'translate-x-0' : '-translate-x-full'
       )}>
         <div className="flex flex-col h-full">
@@ -377,8 +377,8 @@ export default function JojiAI() {
 
       {/* Chat Area */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Mobile header — compact, sits below the Vertex header */}
-        <div className="flex items-center gap-2 px-3 py-2 border-b border-stone-700/30 lg:hidden">
+        {/* Mobile header — only visible when Vertex mobile header is also visible (< sm) */}
+        <div className="flex items-center gap-2 px-3 py-2 border-b border-stone-700/30 sm:hidden">
           <button
             onClick={() => setShowMobileSidebar(true)}
             className="p-1.5 text-stone-400 hover:text-white hover:bg-stone-700/50 rounded-lg"
@@ -400,7 +400,7 @@ export default function JojiAI() {
         </div>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto px-4 py-4 lg:px-6 lg:py-6 space-y-4">
+        <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-6 space-y-4">
           {messages.length === 0 && !streamingMessage && !isStreaming ? (
             /* Empty state */
             <div className="flex flex-col items-center justify-center h-full text-center">
@@ -486,9 +486,9 @@ export default function JojiAI() {
         </div>
 
         {/* Input Area */}
-        <div className="border-t border-stone-700/30 px-3 py-3 lg:px-6 lg:py-4">
+        <div className="border-t border-stone-700/30 px-3 py-3 sm:px-6 sm:py-4">
           <div className={cn(
-            'flex items-end gap-2 lg:gap-3',
+            'flex items-end gap-2 sm:gap-3',
             'bg-stone-800/50 border border-stone-600/40 rounded-xl',
             'focus-within:ring-2 focus-within:ring-[#E07A5F]/20 focus-within:border-[#E07A5F]/50',
             'transition-all duration-200',
@@ -544,7 +544,7 @@ export default function JojiAI() {
               )}
             </button>
           </div>
-          <p className="hidden lg:block text-[10px] text-stone-600 mt-2 text-center">
+          <p className="hidden sm:block text-[10px] text-stone-600 mt-2 text-center">
             Shift+Enter for newlines. Joji AI has access to your CRM data and knowledge vault.
           </p>
         </div>
