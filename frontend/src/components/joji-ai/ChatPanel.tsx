@@ -335,7 +335,8 @@ export default function ChatPanel() {
       <button
         onClick={() => openChat()}
         className={cn(
-          'fixed bottom-6 right-6 w-12 h-12 rounded-full',
+          'fixed bottom-20 sm:bottom-6 right-4 sm:right-6',
+          'w-14 h-14 sm:w-12 sm:h-12 rounded-full',
           'bg-[#E07A5F] hover:bg-[#C65D42]',
           'shadow-lg hover:shadow-xl',
           'flex items-center justify-center',
@@ -344,7 +345,7 @@ export default function ChatPanel() {
         )}
         title="Open Joji AI"
       >
-        <Brain className="w-6 h-6 text-white" />
+        <Brain className="w-7 h-7 sm:w-6 sm:h-6 text-white" />
       </button>
     );
   }
@@ -353,10 +354,13 @@ export default function ChatPanel() {
   return (
     <div
       className={cn(
-        'fixed bottom-6 right-6',
-        'w-[400px] h-[600px]',
-        'bg-[--exec-surface] rounded-2xl shadow-2xl',
-        'border border-stone-600/40',
+        // Mobile: full screen
+        'fixed inset-0',
+        // Desktop: positioned bottom-right
+        'sm:inset-auto sm:bottom-6 sm:right-6',
+        'sm:w-[400px] sm:h-[600px]',
+        'bg-[--exec-surface] sm:rounded-2xl shadow-2xl',
+        'sm:border sm:border-stone-600/40',
         'z-50',
         'flex flex-col',
         'animate-in zoom-in-95 fade-in duration-200'
