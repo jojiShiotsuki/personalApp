@@ -127,20 +127,20 @@ export default function ConversationSidebar({ onShowSettings, showSettings }: Co
   })();
 
   return (
-    <div className="w-full lg:w-[280px] flex-shrink-0 flex flex-col h-full bg-[--exec-surface] lg:border-r border-stone-700/30">
+    <div className="w-full lg:w-[280px] flex-shrink-0 flex flex-col h-full bg-stone-900 lg:border-r border-stone-700/30">
       {/* New Chat Button */}
       <div className="p-3">
         <button
           onClick={() => newConversation()}
           className={cn(
             'w-full flex items-center gap-2 px-3 py-2.5 rounded-lg',
-            'bg-stone-800/50 border border-stone-600/40',
-            'text-[--exec-text] text-sm font-medium',
-            'hover:bg-stone-700/50 hover:border-stone-500/40',
+            'bg-[#E07A5F] text-white text-sm font-medium',
+            'hover:bg-[#C65D42]',
+            'shadow-sm hover:shadow-md',
             'transition-all duration-200'
           )}
         >
-          <Plus className="w-4 h-4 text-[--exec-accent]" />
+          <Plus className="w-4 h-4" />
           New Chat
         </button>
       </div>
@@ -153,8 +153,8 @@ export default function ConversationSidebar({ onShowSettings, showSettings }: Co
           </div>
         ) : conversations.length === 0 ? (
           <div className="px-3 py-8 text-center">
-            <MessageSquare className="w-8 h-8 text-stone-600 mx-auto mb-2" />
-            <p className="text-xs text-[--exec-text-muted]">No conversations yet</p>
+            <MessageSquare className="w-8 h-8 text-stone-700 mx-auto mb-2" />
+            <p className="text-xs text-stone-500">No conversations yet</p>
           </div>
         ) : (
           GROUP_ORDER.map((group) => {
@@ -175,18 +175,18 @@ export default function ConversationSidebar({ onShowSettings, showSettings }: Co
                     <div
                       key={conv.id}
                       className={cn(
-                        'group relative flex items-center gap-2 px-3 py-2 rounded-lg mx-1 cursor-pointer',
+                        'group relative flex items-center gap-2 px-3 py-2.5 rounded-lg mx-1 cursor-pointer',
                         'transition-all duration-150',
                         isActive
-                          ? 'bg-[--exec-accent-bg] text-[--exec-accent]'
-                          : 'text-[--exec-text-secondary] hover:bg-stone-700/30 hover:text-[--exec-text]'
+                          ? 'bg-stone-700 text-white'
+                          : 'text-stone-400 hover:bg-stone-800 hover:text-stone-200'
                       )}
                       onClick={() => !isRenaming && setActiveConversation(conv.id)}
                       onDoubleClick={() => handleDoubleClick(conv)}
                     >
                       <MessageSquare className={cn(
                         'w-3.5 h-3.5 flex-shrink-0',
-                        isActive ? 'text-[--exec-accent]' : 'text-stone-500'
+                        isActive ? 'text-[#E07A5F]' : 'text-stone-600'
                       )} />
 
                       {isRenaming ? (
@@ -256,11 +256,11 @@ export default function ConversationSidebar({ onShowSettings, showSettings }: Co
           onClick={onShowSettings}
           className={cn(
             'w-full flex items-center gap-2 px-3 py-2 rounded-lg',
-            'text-xs text-[--exec-text-secondary]',
+            'text-xs',
             'transition-all duration-200',
             showSettings
-              ? 'bg-stone-700/50 text-[--exec-text]'
-              : 'hover:bg-stone-700/30 hover:text-[--exec-text]'
+              ? 'bg-stone-700 text-white'
+              : 'text-stone-400 hover:bg-stone-800 hover:text-stone-200'
           )}
         >
           <Settings className="w-3.5 h-3.5" />

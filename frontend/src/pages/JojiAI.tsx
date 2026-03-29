@@ -344,19 +344,19 @@ export default function JojiAI() {
       {/* Mobile sidebar — slide in from left, below Vertex header */}
       <div className={cn(
         'fixed top-14 bottom-0 left-0 w-[300px] z-50 transition-transform duration-200 lg:hidden',
-        'bg-[--exec-surface] border-r border-stone-600/40 shadow-2xl',
+        'bg-stone-900 border-r border-stone-700/40 shadow-2xl',
         showMobileSidebar ? 'translate-x-0' : '-translate-x-full'
       )}>
         <div className="flex flex-col h-full">
           {/* Mobile sidebar header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-stone-700/30">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-stone-700/40 bg-stone-900">
             <div className="flex items-center gap-2">
               <Brain className="w-4 h-4 text-[#E07A5F]" />
-              <span className="text-sm font-semibold text-[--exec-text]">Conversations</span>
+              <span className="text-sm font-semibold text-white">Conversations</span>
             </div>
             <button
               onClick={() => setShowMobileSidebar(false)}
-              className="p-1.5 text-stone-400 hover:text-white hover:bg-stone-700/50 rounded-lg"
+              className="p-1.5 text-stone-400 hover:text-white hover:bg-stone-700 rounded-lg"
             >
               <X className="w-4 h-4" />
             </button>
