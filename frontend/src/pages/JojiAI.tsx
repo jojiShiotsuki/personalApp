@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Send, Brain, Loader2, Wrench, Mic, MicOff } from 'lucide-react';
+import { Send, Brain, Loader2, Wrench, Mic, MicOff, Menu, X, MessageSquare } from 'lucide-react';
 import { useSpeechToText } from '@/hooks/useSpeechToText';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -49,6 +49,7 @@ export default function JojiAI() {
   const [streamingToolCalls, setStreamingToolCalls] = useState<string[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showMobileSidebar, setShowMobileSidebar] = useState(false);
   const [inputValue, setInputValue] = useState('');
 
   const { isListening, transcript, toggleListening, isSupported: speechSupported } = useSpeechToText((text) => {
@@ -83,11 +84,12 @@ export default function JojiAI() {
     }
   }, [conversationData, isSuccess, activeConversationId]);
 
-  // Clear messages when starting a new conversation
+  // Clear messages when starting a new conversation + close mobile sidebar
   useEffect(() => {
     if (activeConversationId === null) {
       setMessages([]);
     }
+    setShowMobileSidebar(false);
   }, [activeConversationId]);
 
   // Auto-scroll to bottom on new messages or streaming
@@ -314,9 +316,21 @@ export default function JojiAI() {
     : null;
 
   return (
-    <div className="flex h-full bg-[--exec-bg]">
-      {/* Left Sidebar */}
-      <div className="w-[280px] flex-shrink-0 h-full">
+    <div className="flex h-full bg-[--exec-bg] relative">
+      {/* Mobile sidebar overlay */}
+      {showMobileSidebar && (
+        <div
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          onClick={() => setShowMobileSidebar(false)}
+        />
+      )}
+
+      {/* Left Sidebar — hidden on mobile, visible on lg+ */}
+      <div className={cn(
+        'flex-shrink-0 h-full z-50 transition-transform duration-200',
+        // Desktop: always visible
+        'hidden lg:block lg:relative lg:w-[280px]',
+      )}>
         {showSettings ? (
           <AISettingsPanel onBack={() => setShowSettings(false)} />
         ) : (
@@ -327,10 +341,54 @@ export default function JojiAI() {
         )}
       </div>
 
+      {/* Mobile sidebar — slide in from left */}
+      <div className={cn(
+        'fixed inset-y-0 left-0 w-[280px] z-50 bg-[--exec-bg] transition-transform duration-200 lg:hidden',
+        showMobileSidebar ? 'translate-x-0' : '-translate-x-full'
+      )}>
+        <div className="h-full relative">
+          <button
+            onClick={() => setShowMobileSidebar(false)}
+            className="absolute top-3 right-3 p-1.5 text-stone-400 hover:text-white hover:bg-stone-700/50 rounded-lg z-10"
+          >
+            <X className="w-5 h-5" />
+          </button>
+          {showSettings ? (
+            <AISettingsPanel onBack={() => setShowSettings(false)} />
+          ) : (
+            <ConversationSidebar
+              onShowSettings={() => setShowSettings(true)}
+              showSettings={showSettings}
+            />
+          )}
+        </div>
+      </div>
+
       {/* Chat Area */}
       <div className="flex-1 flex flex-col min-w-0">
+        {/* Mobile header */}
+        <div className="flex items-center gap-3 px-4 py-3 border-b border-stone-700/30 lg:hidden">
+          <button
+            onClick={() => setShowMobileSidebar(true)}
+            className="p-1.5 text-stone-400 hover:text-white hover:bg-stone-700/50 rounded-lg"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <Brain className="w-5 h-5 text-[#E07A5F] flex-shrink-0" />
+            <span className="text-sm font-semibold text-[--exec-text] truncate">Joji AI</span>
+          </div>
+          <button
+            onClick={() => { setActiveConversation(null); }}
+            className="p-1.5 text-stone-400 hover:text-white hover:bg-stone-700/50 rounded-lg"
+            title="New conversation"
+          >
+            <MessageSquare className="w-5 h-5" />
+          </button>
+        </div>
+
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto px-6 py-6 space-y-4">
+        <div className="flex-1 overflow-y-auto px-4 py-4 lg:px-6 lg:py-6 space-y-4">
           {messages.length === 0 && !streamingMessage && !isStreaming ? (
             /* Empty state */
             <div className="flex flex-col items-center justify-center h-full text-center">
@@ -416,9 +474,9 @@ export default function JojiAI() {
         </div>
 
         {/* Input Area */}
-        <div className="border-t border-stone-700/30 px-6 py-4">
+        <div className="border-t border-stone-700/30 px-3 py-3 lg:px-6 lg:py-4">
           <div className={cn(
-            'flex items-end gap-3',
+            'flex items-end gap-2 lg:gap-3',
             'bg-stone-800/50 border border-stone-600/40 rounded-xl',
             'focus-within:ring-2 focus-within:ring-[#E07A5F]/20 focus-within:border-[#E07A5F]/50',
             'transition-all duration-200',
@@ -474,7 +532,7 @@ export default function JojiAI() {
               )}
             </button>
           </div>
-          <p className="text-[10px] text-stone-600 mt-2 text-center">
+          <p className="hidden lg:block text-[10px] text-stone-600 mt-2 text-center">
             Shift+Enter for newlines. Joji AI has access to your CRM data and knowledge vault.
           </p>
         </div>
