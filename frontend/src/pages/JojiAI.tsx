@@ -317,10 +317,10 @@ export default function JojiAI() {
 
   return (
     <div className="flex h-full bg-[--exec-bg] relative">
-      {/* Mobile sidebar overlay */}
+      {/* Mobile sidebar overlay — starts below Vertex header (h-14 = 56px) */}
       {showMobileSidebar && (
         <div
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          className="fixed inset-0 top-14 bg-black/50 z-40 lg:hidden"
           onClick={() => setShowMobileSidebar(false)}
         />
       )}
@@ -341,9 +341,9 @@ export default function JojiAI() {
         )}
       </div>
 
-      {/* Mobile sidebar — slide in from left */}
+      {/* Mobile sidebar — slide in from left, below Vertex header */}
       <div className={cn(
-        'fixed inset-y-0 left-0 w-[280px] z-50 bg-[--exec-bg] transition-transform duration-200 lg:hidden',
+        'fixed top-14 bottom-0 left-0 w-[280px] z-50 bg-[--exec-bg] transition-transform duration-200 lg:hidden',
         showMobileSidebar ? 'translate-x-0' : '-translate-x-full'
       )}>
         <div className="h-full relative">
@@ -366,24 +366,25 @@ export default function JojiAI() {
 
       {/* Chat Area */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Mobile header */}
-        <div className="flex items-center gap-3 px-4 py-3 border-b border-stone-700/30 lg:hidden">
+        {/* Mobile header — compact, sits below the Vertex header */}
+        <div className="flex items-center gap-2 px-3 py-2 border-b border-stone-700/30 lg:hidden">
           <button
             onClick={() => setShowMobileSidebar(true)}
             className="p-1.5 text-stone-400 hover:text-white hover:bg-stone-700/50 rounded-lg"
+            title="Conversations"
           >
-            <Menu className="w-5 h-5" />
+            <Menu className="w-4 h-4" />
           </button>
-          <div className="flex items-center gap-2 flex-1 min-w-0">
-            <Brain className="w-5 h-5 text-[#E07A5F] flex-shrink-0" />
-            <span className="text-sm font-semibold text-[--exec-text] truncate">Joji AI</span>
+          <div className="flex items-center gap-1.5 flex-1 min-w-0">
+            <Brain className="w-4 h-4 text-[#E07A5F] flex-shrink-0" />
+            <span className="text-xs font-semibold text-[--exec-text] truncate">Joji AI</span>
           </div>
           <button
             onClick={() => { setActiveConversation(null); }}
             className="p-1.5 text-stone-400 hover:text-white hover:bg-stone-700/50 rounded-lg"
             title="New conversation"
           >
-            <MessageSquare className="w-5 h-5" />
+            <MessageSquare className="w-4 h-4" />
           </button>
         </div>
 
