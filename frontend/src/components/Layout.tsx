@@ -92,11 +92,8 @@ export default function Layout({ children }: LayoutProps) {
 
   return (
     <div className="flex h-screen bg-[--exec-bg]">
-      {/* Mobile Header Bar — hidden on /ai page to prevent overlap with Joji AI's own controls */}
-      <div className={cn(
-        "fixed top-0 left-0 right-0 z-40 flex items-center h-14 px-4 bg-[--sidebar-bg] border-b border-[--sidebar-border] sm:hidden",
-        location.pathname === '/ai' && 'hidden'
-      )}>
+      {/* Mobile Header Bar */}
+      <div className="fixed top-0 left-0 right-0 z-40 flex items-center h-14 px-4 bg-[--sidebar-bg] border-b border-[--sidebar-border] sm:hidden">
         <button
           onClick={() => setIsMobileOpen(true)}
           className="p-2 text-[--sidebar-text] hover:text-white hover:bg-stone-600 rounded-lg transition-colors"
@@ -325,7 +322,7 @@ export default function Layout({ children }: LayoutProps) {
       </aside>
 
       {/* Main Content */}
-      <main className={cn("flex-1 overflow-y-auto bg-[--exec-bg] sm:pt-0", location.pathname === '/ai' ? 'pt-0' : 'pt-14')}>
+      <main className="flex-1 overflow-y-auto bg-[--exec-bg] pt-14 sm:pt-0">
         {children}
       </main>
 
