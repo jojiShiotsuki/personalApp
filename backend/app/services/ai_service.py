@@ -274,7 +274,7 @@ class JojiAIService:
         # ------------------------------------------------------------------
         # 6-7. Call Claude with streaming + handle tool use
         # ------------------------------------------------------------------
-        tools = get_tools_for_page("all")
+        tools = list(get_tools_for_page("all"))  # Copy to avoid mutating the shared list
         # Add Anthropic's built-in server-side web search tool
         tools.append({
             "type": "web_search_20250305",
