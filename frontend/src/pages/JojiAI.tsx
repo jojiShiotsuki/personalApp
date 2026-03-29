@@ -316,11 +316,11 @@ export default function JojiAI() {
     : null;
 
   return (
-    <div className="flex h-[calc(100dvh-3.5rem)] sm:h-full bg-[--exec-bg] relative">
+    <div className="flex h-full bg-[--exec-bg] relative">
       {/* Mobile sidebar overlay — starts below Vertex header (h-14 = 56px) */}
       {showMobileSidebar && (
         <div
-          className="fixed inset-0 top-14 bg-black/50 z-30 sm:hidden"
+          className="fixed inset-0 bg-black/50 z-30 sm:hidden"
           onClick={() => setShowMobileSidebar(false)}
         />
       )}
@@ -341,10 +341,10 @@ export default function JojiAI() {
         )}
       </div>
 
-      {/* Mobile sidebar — slide in from left, below Vertex header */}
+      {/* Mobile sidebar — slide in from left, full height (no Vertex header on /ai) */}
       <div className={cn(
-        'fixed top-14 bottom-0 left-0 w-[300px] z-50 transition-transform duration-200 lg:hidden',
-        'bg-stone-900 border-r border-stone-700/40 shadow-2xl sm:hidden z-30',
+        'fixed inset-y-0 left-0 w-[300px] z-30 transition-transform duration-200 sm:hidden',
+        'bg-stone-900 border-r border-stone-700/40 shadow-2xl',
         showMobileSidebar ? 'translate-x-0' : '-translate-x-full'
       )}>
         <div className="flex flex-col h-full">
