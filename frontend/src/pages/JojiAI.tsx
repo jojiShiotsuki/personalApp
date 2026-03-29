@@ -343,24 +343,35 @@ export default function JojiAI() {
 
       {/* Mobile sidebar — slide in from left, below Vertex header */}
       <div className={cn(
-        'fixed top-14 bottom-0 left-0 w-[280px] z-50 bg-[--exec-bg] transition-transform duration-200 lg:hidden',
+        'fixed top-14 bottom-0 left-0 w-[300px] z-50 transition-transform duration-200 lg:hidden',
+        'bg-[--exec-surface] border-r border-stone-600/40 shadow-2xl',
         showMobileSidebar ? 'translate-x-0' : '-translate-x-full'
       )}>
-        <div className="h-full relative">
-          <button
-            onClick={() => setShowMobileSidebar(false)}
-            className="absolute top-3 right-3 p-1.5 text-stone-400 hover:text-white hover:bg-stone-700/50 rounded-lg z-10"
-          >
-            <X className="w-5 h-5" />
-          </button>
-          {showSettings ? (
-            <AISettingsPanel onBack={() => setShowSettings(false)} />
-          ) : (
-            <ConversationSidebar
-              onShowSettings={() => setShowSettings(true)}
-              showSettings={showSettings}
-            />
-          )}
+        <div className="flex flex-col h-full">
+          {/* Mobile sidebar header */}
+          <div className="flex items-center justify-between px-4 py-3 border-b border-stone-700/30">
+            <div className="flex items-center gap-2">
+              <Brain className="w-4 h-4 text-[#E07A5F]" />
+              <span className="text-sm font-semibold text-[--exec-text]">Conversations</span>
+            </div>
+            <button
+              onClick={() => setShowMobileSidebar(false)}
+              className="p-1.5 text-stone-400 hover:text-white hover:bg-stone-700/50 rounded-lg"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+          {/* Sidebar content */}
+          <div className="flex-1 overflow-hidden">
+            {showSettings ? (
+              <AISettingsPanel onBack={() => setShowSettings(false)} />
+            ) : (
+              <ConversationSidebar
+                onShowSettings={() => setShowSettings(true)}
+                showSettings={showSettings}
+              />
+            )}
+          </div>
         </div>
       </div>
 

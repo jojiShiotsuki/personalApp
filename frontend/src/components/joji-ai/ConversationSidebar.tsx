@@ -127,7 +127,7 @@ export default function ConversationSidebar({ onShowSettings, showSettings }: Co
   })();
 
   return (
-    <div className="w-[280px] flex-shrink-0 flex flex-col h-full bg-[--exec-surface] border-r border-stone-700/30">
+    <div className="w-full lg:w-[280px] flex-shrink-0 flex flex-col h-full bg-[--exec-surface] lg:border-r border-stone-700/30">
       {/* New Chat Button */}
       <div className="p-3">
         <button
