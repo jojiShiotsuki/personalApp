@@ -368,9 +368,43 @@ export default function ContentForm({
 
             {/* Repurpose Tracking */}
             <div>
-              <label className="block text-sm font-semibold text-stone-300 mb-2">
-                Repurpose Tracker
-              </label>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-sm font-semibold text-stone-300">
+                  Repurpose Tracker
+                </label>
+                {(() => {
+                  const allFormatIds = REPURPOSE_GROUPS.flatMap(g => g.formats.map(f => f.id));
+                  const allSelected = allFormatIds.every(fid => repurposeFormats.some(rf => rf.format === fid));
+                  return (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (allSelected) {
+                          setRepurposeFormats([]);
+                        } else {
+                          const newFormats = allFormatIds
+                            .filter(fid => !repurposeFormats.some(rf => rf.format === fid))
+                            .map(fid => ({
+                              format: fid,
+                              status: 'NOT_STARTED' as ContentStatus,
+                              scheduled_date: getScheduledDate(fid),
+                            }));
+                          setRepurposeFormats(prev => [...prev, ...newFormats]);
+                        }
+                      }}
+                      disabled={isLoading}
+                      className={cn(
+                        "px-3 py-1 rounded-lg text-xs font-medium transition-all duration-200",
+                        allSelected
+                          ? "bg-orange-500/20 text-orange-400 hover:bg-orange-500/30"
+                          : "bg-stone-700 text-stone-300 hover:bg-stone-600"
+                      )}
+                    >
+                      {allSelected ? 'Deselect All' : 'Select All'}
+                    </button>
+                  );
+                })()}
+              </div>
               <p className="text-xs text-stone-400 mb-3">
                 Track status for each format you plan to repurpose this content into
               </p>

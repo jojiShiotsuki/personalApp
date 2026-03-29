@@ -219,17 +219,37 @@ def delete_content(content_id: int, db: Session = Depends(get_db)):
 
 @router.get("/by-date/{year}/{month}")
 def get_month_content(year: int, month: int, db: Session = Depends(get_db)):
-    """Get all content for a specific month"""
+    """Get all content for a specific month, including cross-month repurpose content."""
     start_date = date(year, month, 1)
     if month == 12:
         end_date = date(year + 1, 1, 1) - timedelta(days=1)
     else:
         end_date = date(year, month + 1, 1) - timedelta(days=1)
 
+    # Get content with content_date in this month
     results = db.query(SocialContentModel).filter(
         SocialContentModel.content_date >= start_date,
         SocialContentModel.content_date <= end_date,
     ).order_by(SocialContentModel.content_date).all()
+
+    result_ids = {r.id for r in results}
+
+    # Also get content from OTHER months that has repurpose_formats scheduled in this month
+    # repurpose_formats is a JSON column containing objects with scheduled_date fields
+    month_prefix = f"{year}-{month:02d}"
+    cross_month = db.query(SocialContentModel).filter(
+        SocialContentModel.repurpose_formats.isnot(None),
+        SocialContentModel.id.notin_(result_ids) if result_ids else True,
+    ).all()
+
+    for item in cross_month:
+        if not item.repurpose_formats:
+            continue
+        for fmt in item.repurpose_formats:
+            scheduled = fmt.get("scheduled_date", "") if isinstance(fmt, dict) else ""
+            if scheduled and scheduled.startswith(month_prefix):
+                results.append(item)
+                break
 
     return [content_to_dict(c) for c in results]
 
