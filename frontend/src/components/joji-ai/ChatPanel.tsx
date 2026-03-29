@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Brain, X, ExternalLink, Send, Loader2, Wrench, Globe } from 'lucide-react';
+import { Brain, X, ExternalLink, Send, Loader2, Wrench, Globe, Mic, MicOff } from 'lucide-react';
+import { useSpeechToText } from '@/hooks/useSpeechToText';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { jojiAiApi } from '@/lib/api';
@@ -57,6 +58,17 @@ export default function ChatPanel() {
   const [streamingToolCalls, setStreamingToolCalls] = useState<string[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const [inputValue, setInputValue] = useState('');
+
+  const { isListening, transcript, toggleListening, isSupported: speechSupported } = useSpeechToText((text) => {
+    setInputValue(prev => prev ? prev + ' ' + text : text);
+  });
+
+  // Update input with interim transcript while listening
+  useEffect(() => {
+    if (isListening && transcript) {
+      setInputValue(transcript);
+    }
+  }, [isListening, transcript]);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -184,7 +196,7 @@ export default function ChatPanel() {
                 if (parsed.conversation_id) {
                   setTimeout(async () => {
                     try {
-                      const resp = await fetch(`${import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://vertex-api-smg3.onrender.com' : 'http://localhost:8001')}/api/ai/conversations/${parsed.conversation_id}/learn-status`, {
+                      const resp = await fetch(`${import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://vertex-api-smg3.onrender.com' : 'http://localhost:8000')}/api/ai/conversations/${parsed.conversation_id}/learn-status`, {
                         headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` },
                       });
                       if (resp.ok) {
@@ -518,6 +530,22 @@ export default function ChatPanel() {
               'max-h-[120px]'
             )}
           />
+          {speechSupported && (
+            <button
+              onClick={toggleListening}
+              disabled={isStreaming}
+              className={cn(
+                'flex-shrink-0 p-1.5 rounded-md',
+                'transition-all duration-200',
+                isListening
+                  ? 'bg-red-500 text-white animate-pulse'
+                  : 'bg-stone-700/30 text-stone-400 hover:text-stone-200 hover:bg-stone-600/30'
+              )}
+              title={isListening ? 'Stop recording' : 'Voice input'}
+            >
+              {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+            </button>
+          )}
           <button
             onClick={handleSend}
             disabled={isStreaming || !inputValue.trim()}
