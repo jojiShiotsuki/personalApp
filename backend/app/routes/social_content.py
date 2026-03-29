@@ -14,6 +14,17 @@ from app.schemas.social_content import (
 router = APIRouter(prefix="/api/social-content", tags=["social-content"])
 
 
+def _serialize_value(v):
+    """Ensure date/datetime objects are converted to ISO strings."""
+    if isinstance(v, (date, datetime)):
+        return v.isoformat()
+    if isinstance(v, dict):
+        return {k: _serialize_value(val) for k, val in v.items()}
+    if isinstance(v, list):
+        return [_serialize_value(item) for item in v]
+    return v
+
+
 def content_to_dict(content):
     """Convert SQLAlchemy content model to dict for proper serialization"""
     return {
@@ -32,7 +43,7 @@ def content_to_dict(content):
         "thumbnail_reference": content.thumbnail_reference,
         "notes": content.notes,
         "project_id": content.project_id,
-        "repurpose_formats": content.repurpose_formats,
+        "repurpose_formats": _serialize_value(content.repurpose_formats),
         "created_at": content.created_at.isoformat() if content.created_at else None,
         "updated_at": content.updated_at.isoformat() if content.updated_at else None,
     }
@@ -110,7 +121,15 @@ def create_content(
     db: Session = Depends(get_db),
 ):
     """Create new social content item"""
-    db_content = SocialContentModel(**content.model_dump())
+    dump = content.model_dump()
+    # Convert any date objects in repurpose_formats to ISO strings for JSON storage
+    if dump.get("repurpose_formats"):
+        for fmt in dump["repurpose_formats"]:
+            if isinstance(fmt, dict):
+                for k, v in fmt.items():
+                    if isinstance(v, date):
+                        fmt[k] = v.isoformat()
+    db_content = SocialContentModel(**dump)
     db.add(db_content)
     db.commit()
     db.refresh(db_content)
