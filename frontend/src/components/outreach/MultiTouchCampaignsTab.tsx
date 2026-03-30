@@ -101,6 +101,7 @@ function ProspectLinks({ prospect }: { prospect: OutreachProspect }) {
           href={prospect.linkedin_url}
           target="_blank"
           rel="noopener noreferrer"
+          draggable="false"
           className={cn(btnClass, 'hover:text-blue-400')}
           title="LinkedIn"
         >
@@ -112,6 +113,7 @@ function ProspectLinks({ prospect }: { prospect: OutreachProspect }) {
           href={prospect.website.startsWith('http') ? prospect.website : `https://${prospect.website}`}
           target="_blank"
           rel="noopener noreferrer"
+          draggable="false"
           className={btnClass}
           title="Website"
         >
@@ -122,6 +124,7 @@ function ProspectLinks({ prospect }: { prospect: OutreachProspect }) {
         href={`https://www.google.com/maps/search/${encodeURIComponent(prospect.agency_name)}`}
         target="_blank"
         rel="noopener noreferrer"
+        draggable="false"
         className={btnClass}
         title="Google Maps"
       >
@@ -559,7 +562,7 @@ function PipelineProspectCard({
       onDragStart={(e) => onDragStart?.(e, prospect)}
       onDragEnd={() => onDragEnd?.()}
       className={cn(
-        'bento-card p-4 transition-all duration-200 group',
+        'bento-card p-4 transition-all duration-200 group select-none',
         !isMuted && 'cursor-grab active:cursor-grabbing',
         isMuted
           ? 'opacity-50 hover:opacity-75'
@@ -998,8 +1001,10 @@ function SequencePipelineView({
   const handleDropOnStep = (e: React.DragEvent, stepNumber: number) => {
     e.preventDefault();
     setDragOverColumn(null);
+    const raw = e.dataTransfer.getData('text/plain');
+    if (!raw) return;
     try {
-      const dragData: ProspectDragData = JSON.parse(e.dataTransfer.getData('text/plain'));
+      const dragData: ProspectDragData = JSON.parse(raw);
       // If already in this step with IN_SEQUENCE status, do nothing
       if (
         dragData.currentStep === stepNumber &&
@@ -1020,15 +1025,17 @@ function SequencePipelineView({
         } as Partial<OutreachProspect>,
       });
     } catch {
-      // Invalid drag data, ignore
+      toast.error('Drop failed — try dragging from the card body, not a link');
     }
   };
 
   const handleDropOnOutcome = (e: React.DragEvent, status: ProspectStatus) => {
     e.preventDefault();
     setDragOverColumn(null);
+    const raw = e.dataTransfer.getData('text/plain');
+    if (!raw) return;
     try {
-      const dragData: ProspectDragData = JSON.parse(e.dataTransfer.getData('text/plain'));
+      const dragData: ProspectDragData = JSON.parse(raw);
       // If already in this status, do nothing
       if (dragData.currentStatus === status) {
         return;
@@ -1042,15 +1049,17 @@ function SequencePipelineView({
         data: updateData,
       });
     } catch {
-      // Invalid drag data, ignore
+      toast.error('Drop failed — try dragging from the card body, not a link');
     }
   };
 
   const handleDropOnLinkedinFollowup = (e: React.DragEvent) => {
     e.preventDefault();
     setDragOverColumn(null);
+    const raw = e.dataTransfer.getData('text/plain');
+    if (!raw) return;
     try {
-      const dragData: ProspectDragData = JSON.parse(e.dataTransfer.getData('text/plain'));
+      const dragData: ProspectDragData = JSON.parse(raw);
       if (dragData.currentStatus === ProspectStatus.LINKEDIN_FOLLOWUP) {
         return;
       }
@@ -1063,7 +1072,7 @@ function SequencePipelineView({
         } as Partial<OutreachProspect>,
       });
     } catch {
-      // Invalid drag data, ignore
+      toast.error('Drop failed — try dragging from the card body, not a link');
     }
   };
 
