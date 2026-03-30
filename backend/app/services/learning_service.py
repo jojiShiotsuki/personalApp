@@ -75,11 +75,15 @@ class LearningService:
     async def generate_insights(self, db: Session) -> list[dict[str, Any]]:
         """Analyze experiment data and rejection patterns, generate insights via Claude."""
 
-        # Fix stale edit_pattern insights so they get included in all contexts
-        stale = db.query(Insight).filter(Insight.applies_to == "edit_pattern").all()
-        for ins in stale:
-            ins.applies_to = "all_niches"
-        if stale:
+        # Re-activate any edit_pattern insights that were previously deactivated
+        deactivated_edits = (
+            db.query(Insight)
+            .filter(Insight.applies_to == "edit_pattern", Insight.is_active.is_(False))
+            .all()
+        )
+        for ins in deactivated_edits:
+            ins.is_active = True
+        if deactivated_edits:
             db.commit()
 
         summary_parts: list[str] = []
@@ -136,9 +140,14 @@ class LearningService:
             logger.warning("Failed to parse insights from Claude response")
             return []
 
-        # Deactivate old active insights
+        # Deactivate old active insights (preserve edit_pattern — those are
+        # user-observed preferences that should survive statistical refreshes)
         new_insight_ids: list[int] = []
-        old_active = db.query(Insight).filter(Insight.is_active.is_(True)).all()
+        old_active = (
+            db.query(Insight)
+            .filter(Insight.is_active.is_(True), Insight.applies_to != "edit_pattern")
+            .all()
+        )
 
         # Store new Insight records
         for item in insights_data:

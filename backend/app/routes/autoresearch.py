@@ -2125,7 +2125,7 @@ def _learn_from_edit(db: Session, original_subject: str, original_body: str, edi
         insight = Insight(
             insight=pattern,
             recommendation=pattern,
-            applies_to="all_niches",
+            applies_to="edit_pattern",
             confidence="high",
             sample_size=1,
             is_active=True,
