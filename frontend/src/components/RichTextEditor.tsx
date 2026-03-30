@@ -14,8 +14,9 @@ interface RichTextEditorProps {
 // Configure DOMPurify to allow safe HTML elements
 const PURIFY_CONFIG = {
   ALLOWED_TAGS: ['p', 'br', 'b', 'strong', 'i', 'em', 'u', 'h1', 'h2', 'h3', 'ul', 'ol', 'li', 'div', 'span'],
-  ALLOWED_ATTR: ['class', 'style'],
+  ALLOWED_ATTR: ['class'],
   ALLOW_DATA_ATTR: false,
+  FORBID_ATTR: ['style'],
 };
 
 export default function RichTextEditor({
@@ -44,6 +45,17 @@ export default function RichTextEditor({
     }
   };
 
+  const handlePaste = (e: React.ClipboardEvent) => {
+    e.preventDefault();
+    const html = e.clipboardData.getData('text/html');
+    const plain = e.clipboardData.getData('text/plain');
+    // Sanitize pasted HTML to strip inline styles and foreign formatting
+    const clean = html
+      ? DOMPurify.sanitize(html, PURIFY_CONFIG)
+      : plain.replace(/\n/g, '<br>');
+    document.execCommand('insertHTML', false, clean);
+  };
+
   const execCommand = (command: string, value?: string) => {
     document.execCommand(command, false, value);
     if (editorRef.current) {
@@ -70,6 +82,7 @@ export default function RichTextEditor({
         ref={editorRef}
         contentEditable={!disabled}
         onInput={handleInput}
+        onPaste={handlePaste}
         className={cn(
           "p-3 min-h-[150px] outline-none max-w-none text-sm text-gray-900 dark:text-white",
           "[&_h1]:text-xl [&_h1]:font-bold [&_h1]:mb-2 [&_h1]:mt-2",
