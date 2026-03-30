@@ -1648,10 +1648,36 @@ async def update_loom_status(
     if payload.loom_watched is not None:
         experiment.loom_watched = payload.loom_watched
 
+    # Auto-move NOT_INTERESTED prospects when they watch the Loom
+    prospect_moved_to = None
+    if payload.loom_watched is True and experiment.prospect_id:
+        prospect = db.query(OutreachProspect).filter(
+            OutreachProspect.id == experiment.prospect_id
+        ).first()
+        if prospect and prospect.status == ProspectStatus.NOT_INTERESTED:
+            today = datetime.utcnow().date()
+            if prospect.linkedin_connected:
+                prospect.status = ProspectStatus.LINKEDIN_FOLLOWUP
+                prospect.next_action_date = today
+                prospect_moved_to = "linkedin_followup"
+            elif prospect.email:
+                prospect.status = ProspectStatus.IN_SEQUENCE
+                prospect.current_step = prospect.current_step + 1 if prospect.current_step else 1
+                prospect.next_action_date = today
+                prospect_moved_to = "in_sequence"
+            else:
+                prospect.status = ProspectStatus.LINKEDIN_FOLLOWUP
+                prospect.next_action_date = today
+                prospect_moved_to = "linkedin_followup"
+
     db.commit()
     db.refresh(experiment)
 
-    return {"message": "Loom status updated", "experiment_id": experiment_id}
+    return {
+        "message": "Loom status updated",
+        "experiment_id": experiment_id,
+        "prospect_moved_to": prospect_moved_to,
+    }
 
 
 # ──────────────────────────────────────────────

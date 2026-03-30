@@ -529,6 +529,7 @@ function PipelineProspectCard({
   onDragEnd?: () => void;
 }) {
   const cardRef = useRef<HTMLDivElement>(null);
+  const queryClient = useQueryClient();
 
   const dueToday = isDueToday(prospect.next_action_date);
   const hasCustomMessage = !!(prospect.custom_email_subject || prospect.custom_email_body);
@@ -632,12 +633,20 @@ function PipelineProspectCard({
                   }
 
                   const newWatched = !loomWatched;
-                  await autoresearchApi.updateLoomStatus(exp.id, {
+                  const result = await autoresearchApi.updateLoomStatus(exp.id, {
                     loom_sent: true,
                     loom_watched: newWatched,
                   });
                   setLoomWatched(newWatched);
-                  toast.success(newWatched ? 'Loom marked as watched' : 'Loom unmarked as watched');
+                  if (result.prospect_moved_to === 'linkedin_followup') {
+                    toast.success(`Loom watched! Moved ${prospect.agency_name} to LinkedIn Follow-up — reach out today`);
+                    queryClient.invalidateQueries({ queryKey: ['mt-prospects'] });
+                  } else if (result.prospect_moved_to === 'in_sequence') {
+                    toast.success(`Loom watched! Moved ${prospect.agency_name} back into sequence — send follow-up email today`);
+                    queryClient.invalidateQueries({ queryKey: ['mt-prospects'] });
+                  } else {
+                    toast.success(newWatched ? 'Loom marked as watched' : 'Loom unmarked as watched');
+                  }
                 } catch {
                   toast.error('Failed to update Loom status');
                 }
