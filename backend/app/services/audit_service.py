@@ -130,6 +130,7 @@ CRITICAL RULES:
 - Start the email with "G'day [first_name],"
 - The email must sound human and conversational, not salesy or robotic
 - Focus on ONE main issue — don't list multiple problems in the email
+- NEVER use em dashes (—). Use commas, full stops, or rewrite the sentence instead.
 
 VERIFICATION DATA RULES (if interactive verification data is provided above):
 - If a link is marked "scroll-to-section" or "ok", do NOT flag it as broken_links
@@ -786,6 +787,7 @@ CRITICAL RULES:
 - Start the email with "G'day [first_name],"
 - The email must sound human and conversational, not salesy or robotic
 - Focus on ONE main issue — don't list multiple problems in the email
+- NEVER use em dashes (—). Use commas, full stops, or rewrite the sentence instead.
 
 SIGN-OFF (use this EXACTLY):
 Cheers,

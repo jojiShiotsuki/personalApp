@@ -2420,7 +2420,7 @@ RULES:
 - Lead with the most impactful issue found (be SPECIFIC to their site, not generic)
 - Use a funny analogy or witty comparison to make the issue memorable
 - Australian English, conversational, pub banter tone
-- No em dashes
+- NEVER use em dashes (—). Use commas, full stops, or rewrite the sentence instead
 - Under 50 words total (excluding sign-off)
 - BANNED CTA PHRASES: "10 minutes", "15 minutes", "worth X minutes", "got X minutes", "quick chat", "jump on a call". Use creative alternatives instead.
 - End with a CTA, then: Cheers,\\nJoji Shiotsuki | Joji Web Solutions | jojishiotsuki.com\\n\\nNot interested? Just reply "stop" and I won't email again.
@@ -2535,7 +2535,7 @@ Examples of good connection notes:
 
 RULES:
 - Under 20 words
-- No em dashes
+- NEVER use em dashes (—). Use commas, full stops, or rewrite the sentence instead
 - No mention of emails or website audits
 - Casual, friendly, Australian
 
@@ -2578,7 +2578,7 @@ RULES:
 - Start with "G'day {first_name},"
 - Under 40 words
 - Australian English, conversational
-- No em dashes
+- NEVER use em dashes (—). Use commas, full stops, or rewrite the sentence instead
 - End with: Cheers,\\nJoji Shiotsuki | Joji Web Solutions | jojishiotsuki.com\\n\\nNot interested? Just reply "stop" and I won't email again.
 
 Return ONLY valid JSON: {{"subject": "Re: {original_subject}", "body": "email body here", "word_count": N}}""",
@@ -3213,7 +3213,7 @@ YOUR TASK: Write a LinkedIn DM that:
 RULES:
 - Under 30 words (it's a DM, keep it short)
 - Casual LinkedIn tone — not an email, it's a chat
-- No em dashes
+- NEVER use em dashes (—). Use commas, full stops, or rewrite the sentence instead
 - No sign-off block (no "Cheers, Joji" — it's a DM)
 - No "following up on my email" — reference the conversation naturally
 - Australian English, conversational, pub banter
@@ -3363,7 +3363,7 @@ RULES:
 - BANNED PHRASES in CTA: "10 minutes", "15 minutes", "worth X minutes", "got X minutes", "quick chat", "jump on a call"
 - Under 50 words total
 - Australian English, conversational
-- No em dashes
+- NEVER use em dashes (—). Use commas, full stops, or rewrite the sentence instead
 - End with: Cheers,\\nJoji Shiotsuki | Joji Web Solutions | jojishiotsuki.com\\n\\nNot interested? Just reply "stop" and I won't email again.
 - Subject MUST be exactly "Re: {original_subject}"
 {followup_learning}
@@ -3399,7 +3399,7 @@ RULES:
 - If they've replied positively, this is a WARM lead — don't treat them like a cold prospect
 - If they watched the Loom / fixed issues / showed interest, acknowledge it and push toward a call
 - Australian English, conversational, match Joji's voice
-- No em dashes
+- NEVER use em dashes (—). Use commas, full stops, or rewrite the sentence instead
 - Keep it natural and conversational — not a templated cold email
 - End with: Cheers,\\nJoji Shiotsuki | Joji Web Solutions | jojishiotsuki.com
 - Subject MUST be exactly "Re: {original_subject}"
@@ -3601,7 +3601,7 @@ FORMATTING RULES:
 CONTENT RULES:
 - Conversational and natural, not scripted-sounding
 - Australian English
-- No em dashes
+- NEVER use em dashes (—). Use commas, full stops, or rewrite the sentence instead
 - Be SPECIFIC to their website and issues, not generic advice
 - Reference details from the audit and past emails so it feels personal and connected
 - Under 150 words of spoken content (action cues don't count)

@@ -627,9 +627,23 @@ def check_forms(page) -> dict:
             const inputs = form.querySelectorAll(
                 'input:not([type="hidden"]):not([type="submit"]), textarea, select'
             );
-            const submitBtn = form.querySelector(
-                'button[type="submit"], input[type="submit"], button:not([type])'
-            );
+            // Broad selector: any element that looks like a submit/action button
+            const btnSelector = [
+                'button', 'input[type="submit"]', 'input[type="image"]',
+                '[role="button"]', 'a.btn', 'a.button',
+                'a[class*="submit"]', 'a[class*="btn"]',
+                'div[class*="submit"]', 'div[class*="btn"]',
+                'span[class*="submit"]', 'span[class*="btn"]',
+                '[onclick]', '[class*="cta"]', '[class*="send"]',
+            ].join(', ');
+            let submitBtn = form.querySelector(btnSelector);
+            // Check siblings and parent container if not found inside form
+            if (!submitBtn) {
+                const parent = form.parentElement;
+                if (parent) {
+                    submitBtn = parent.querySelector(btnSelector);
+                }
+            }
             details.push({
                 fields: inputs.length,
                 has_submit: !!submitBtn,
@@ -1129,10 +1143,11 @@ def build_verification_report(checks: dict, pagespeed: dict | None = None) -> st
                 f"    Form {i}: {fields} field(s), "
                 f"submit button={'yes' if has_submit else 'MISSING'}"
             )
-            if not has_submit:
-                confirmed_issues.append(
-                    f"FORM MISSING SUBMIT: Form {i} has {fields} field(s) but "
-                    f"no visible submit button"
+            if not has_submit and fields > 0:
+                # Downgrade to observation, not confirmed issue — many sites use
+                # custom JS buttons or styled elements that evade detection
+                sections.append(
+                    f"    ⚠ Form {i} may lack a standard submit button (verify in screenshot)"
                 )
 
     # ── Metadata ─────────────────────────────────────────────────
