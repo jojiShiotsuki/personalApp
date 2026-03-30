@@ -75,6 +75,13 @@ class LearningService:
     async def generate_insights(self, db: Session) -> list[dict[str, Any]]:
         """Analyze experiment data and rejection patterns, generate insights via Claude."""
 
+        # Fix stale edit_pattern insights so they get included in all contexts
+        stale = db.query(Insight).filter(Insight.applies_to == "edit_pattern").all()
+        for ins in stale:
+            ins.applies_to = "all_niches"
+        if stale:
+            db.commit()
+
         summary_parts: list[str] = []
 
         # Source 1: Experiment performance data (if enough exists)
@@ -277,9 +284,11 @@ class LearningService:
         )
 
         style_lines: list[str] = []
+        # Global applies_to values that should always be included regardless of niche
+        global_applies = {"all_niches", "edit_pattern"}
         for ins in active_insights:
             applies = ins.applies_to or "all_niches"
-            if niche and applies != "all_niches" and applies.lower() != niche.lower():
+            if niche and applies.lower() not in global_applies and applies.lower() != niche.lower():
                 continue
             style_lines.append(f"- [{ins.confidence.upper()}] {ins.recommendation or ins.insight}")
 
@@ -555,12 +564,16 @@ class LearningService:
         if other_rejections:
             # Group by category
             by_category: dict[str, list[str]] = {}
+            issue_wrong_types: dict[str, int] = {}
             for row in other_rejections:
                 cat = row.rejection_category
                 if cat not in by_category:
                     by_category[cat] = []
                 detail = row.rejection_reason or row.issue_type or "no reason given"
                 by_category[cat].append(f"{row.agency_name}: {detail}")
+                # Track which issue_types get rejected as wrong
+                if cat == "issue_wrong" and row.issue_type:
+                    issue_wrong_types[row.issue_type] = issue_wrong_types.get(row.issue_type, 0) + 1
 
             lines.append("OTHER REJECTION PATTERNS — avoid these mistakes:")
             for cat, details in by_category.items():
@@ -568,6 +581,17 @@ class LearningService:
                 for d in details[:5]:
                     lines.append(f"    - {d}")
             lines.append("")
+
+            # Generate concrete instructions for issue types that keep getting rejected
+            if issue_wrong_types:
+                lines.append("ISSUE TYPES THE USER KEEPS REJECTING (the AI flagged these but the user says they're wrong):")
+                for issue_type, count in sorted(issue_wrong_types.items(), key=lambda x: -x[1]):
+                    if count >= 2:
+                        lines.append(f"  - DO NOT flag '{issue_type}' unless you are VERY confident. Rejected {count}x.")
+                    else:
+                        lines.append(f"  - Be cautious with '{issue_type}'. Rejected {count}x.")
+                lines.append("Verify these issues carefully in screenshots before reporting them.")
+                lines.append("")
 
         return lines
 
