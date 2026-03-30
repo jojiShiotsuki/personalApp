@@ -15,10 +15,10 @@ const billingFrequencyLabels: Record<string, string> = {
 };
 
 const serviceStatusConfig: Record<string, { label: string; color: string; icon: typeof CheckCircle }> = {
-  active: { label: 'Active', color: 'bg-[--exec-success-bg] text-[--exec-success]', icon: CheckCircle },
-  paused: { label: 'Paused', color: 'bg-[--exec-warning-bg] text-[--exec-warning]', icon: PauseCircle },
-  pending: { label: 'Pending', color: 'bg-[--exec-info-bg] text-[--exec-info]', icon: Clock },
-  cancelled: { label: 'Cancelled', color: 'bg-[--exec-danger-bg] text-[--exec-danger]', icon: AlertCircle },
+  ACTIVE: { label: 'Active', color: 'bg-[--exec-success-bg] text-[--exec-success]', icon: CheckCircle },
+  PAUSED: { label: 'Paused', color: 'bg-[--exec-warning-bg] text-[--exec-warning]', icon: PauseCircle },
+  PENDING: { label: 'Pending', color: 'bg-[--exec-info-bg] text-[--exec-info]', icon: Clock },
+  CANCELLED: { label: 'Cancelled', color: 'bg-[--exec-danger-bg] text-[--exec-danger]', icon: AlertCircle },
 };
 
 // Convert any billing frequency to monthly amount for MRR calculation
@@ -324,9 +324,8 @@ export default function Services() {
               <tbody className="divide-y divide-[--exec-border-subtle]">
                 {sortedServices.map((service: Deal, idx: number) => {
                   const billingStatus = getBillingStatus(service.next_billing_date);
-                  const statusConfig = service.service_status
-                    ? serviceStatusConfig[service.service_status]
-                    : serviceStatusConfig.pending;
+                  const statusConfig = (service.service_status && serviceStatusConfig[service.service_status])
+                    || serviceStatusConfig.PENDING;
                   const StatusIcon = statusConfig.icon;
 
                   return (
