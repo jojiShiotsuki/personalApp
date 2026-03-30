@@ -266,7 +266,7 @@ class ProspectUpdate(BaseModel):
     niche: Optional[str] = Field(None, max_length=500)
     custom_fields: Optional[dict] = None
     status: Optional[ProspectStatus] = None
-    current_step: Optional[int] = Field(None, ge=1, le=7)
+    current_step: Optional[int] = Field(None, ge=1)
     next_action_date: Optional[date] = None
     notes: Optional[str] = None
     custom_email_note: Optional[str] = None
