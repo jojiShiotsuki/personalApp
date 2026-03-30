@@ -171,12 +171,11 @@ def evaluate_condition(step, prospect, step_logs: list) -> bool:
 
 def resolve_step(step, prospect, step_logs: list) -> dict:
     """Returns the effective channel, content, and outcome for a step after condition evaluation.
-    Logic: if condition is MET, use FALLBACK. If NOT met, use ORIGINAL.
-    This matches the mental model: 'If [condition], do [fallback]; otherwise do [original].'"""
+    Logic: if condition is MET, use ORIGINAL. If NOT met, use FALLBACK or SKIP."""
     condition_met = evaluate_condition(step, prospect, step_logs)
 
-    if not condition_met or not step.condition_type:
-        # No condition or condition not met — use original step
+    if condition_met or not step.condition_type:
+        # No condition or condition met — use original step
         return {
             "channel": step.channel_type,
             "subject": step.template_subject,
@@ -185,7 +184,7 @@ def resolve_step(step, prospect, step_logs: list) -> dict:
             "outcome": "COMPLETED",
         }
     elif step.fallback_channel_type:
-        # Condition met — use fallback
+        # Condition not met — use fallback
         return {
             "channel": step.fallback_channel_type,
             "subject": getattr(step, 'fallback_template_subject', None),
@@ -194,7 +193,7 @@ def resolve_step(step, prospect, step_logs: list) -> dict:
             "outcome": "FALLBACK_USED",
         }
     else:
-        # Condition met but no fallback configured — skip
+        # Condition not met and no fallback configured — skip
         return {"channel": None, "outcome": "SKIPPED"}
 
 
