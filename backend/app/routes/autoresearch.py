@@ -2507,22 +2507,28 @@ Return ONLY valid JSON (no markdown fences):
     first_name = (prospect.contact_name or prospect.agency_name or "there").split()[0]
 
     # Check if there are more steps after this one (to determine if this is the last touchpoint)
-    has_more_steps = False
-    if campaign:
-        remaining_steps = (
-            db.query(MTStep)
-            .filter(MTStep.campaign_id == campaign.id, MTStep.step_number > step_number)
-            .all()
-        )
-        for rs in remaining_steps:
-            ch = (rs.channel_type or "").lower()
-            if ch in ("email", "follow_up_email", "loom_email"):
-                has_more_steps = True
-                break
-            if ch in ("linkedin_message",) and getattr(prospect, "linkedin_connected", False):
-                has_more_steps = True
-                break
-    is_last_step = not has_more_steps
+    is_linkedin_followup = prospect.status == ProspectStatus.LINKEDIN_FOLLOWUP
+    if is_linkedin_followup:
+        # LinkedIn follow-up mode: last step is based on the follow-up counter, not campaign steps
+        li_count = getattr(prospect, 'linkedin_followup_count', 0) or 0
+        is_last_step = li_count >= 4  # 5th follow-up (0-indexed count of 4) is the last
+    else:
+        has_more_steps = False
+        if campaign:
+            remaining_steps = (
+                db.query(MTStep)
+                .filter(MTStep.campaign_id == campaign.id, MTStep.step_number > step_number)
+                .all()
+            )
+            for rs in remaining_steps:
+                ch = (rs.channel_type or "").lower()
+                if ch in ("email", "follow_up_email", "loom_email"):
+                    has_more_steps = True
+                    break
+                if ch in ("linkedin_message",) and getattr(prospect, "linkedin_connected", False):
+                    has_more_steps = True
+                    break
+        is_last_step = not has_more_steps
 
     # Channel-specific prompt templates
     channel_prompts = {
