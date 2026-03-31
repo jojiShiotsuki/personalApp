@@ -2235,6 +2235,10 @@ async def generate_followup_email(
             elif resolved["channel"]:
                 channel_type = resolved["channel"].lower()
 
+    # Guard: never generate loom content for prospects not connected on LinkedIn
+    if channel_type == "loom_email" and not getattr(prospect, 'linkedin_connected', False):
+        channel_type = "email"
+
     # Override channel for LinkedIn follow-up prospects
     is_linkedin_followup = prospect.status == ProspectStatus.LINKEDIN_FOLLOWUP
     if is_linkedin_followup:
