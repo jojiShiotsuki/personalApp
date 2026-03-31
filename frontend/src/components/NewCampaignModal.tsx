@@ -405,7 +405,7 @@ export default function NewCampaignModal({
 
                                         {/* Condition selector */}
                                         <div className="mb-2">
-                                          <label className="block text-xs text-slate-400 mb-1">Only run this step if...</label>
+                                          <label className="block text-xs text-slate-400 mb-1">If...</label>
                                           <select
                                             value={step.condition_type || ''}
                                             onChange={(e) => updateStep(index, {
@@ -441,7 +441,7 @@ export default function NewCampaignModal({
                                         {/* Fallback section — visible when condition is set */}
                                         {step.condition_type && (
                                           <div className="mt-2 p-2.5 bg-stone-800/30 rounded-lg border border-stone-700/30">
-                                            <label className="block text-xs text-slate-400 mb-1">Otherwise:</label>
+                                            <label className="block text-xs text-slate-400 mb-1">Then:</label>
                                             <select
                                               value={step.fallback_channel_type || 'skip'}
                                               onChange={(e) => updateStep(index, {
@@ -449,7 +449,7 @@ export default function NewCampaignModal({
                                               })}
                                               className="w-full px-3 py-1.5 rounded-lg text-sm mb-2 bg-stone-800/50 border border-stone-600/40 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                                             >
-                                              <option value="skip">Skip this step</option>
+                                              <option value="skip">Just run this step (skip if not met)</option>
                                               {Object.values(StepChannelType).map((ch) => (
                                                 <option key={ch} value={ch}>{ch.replace(/_/g, ' ')}</option>
                                               ))}

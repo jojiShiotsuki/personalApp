@@ -170,12 +170,20 @@ def evaluate_condition(step, prospect, step_logs: list) -> bool:
 
 
 def resolve_step(step, prospect, step_logs: list) -> dict:
-    """Returns the effective channel, content, and outcome for a step after condition evaluation.
-    Logic: if condition is MET, use ORIGINAL. If NOT met, use FALLBACK or SKIP."""
+    """Two modes based on whether an action channel is configured:
+
+    WITH action (upgrade mode):  channel is default, IF condition THEN switch to action.
+      - condition met   → use action channel
+      - condition not met → use default channel
+
+    WITHOUT action (gate mode):  channel only runs IF condition is met.
+      - condition met   → use default channel
+      - condition not met → SKIP
+    """
     condition_met = evaluate_condition(step, prospect, step_logs)
 
-    if condition_met or not step.condition_type:
-        # No condition or condition met — use original step
+    if not step.condition_type:
+        # No condition — always run default channel
         return {
             "channel": step.channel_type,
             "subject": step.template_subject,
@@ -183,18 +191,37 @@ def resolve_step(step, prospect, step_logs: list) -> dict:
             "instruction": step.instruction_text,
             "outcome": "COMPLETED",
         }
-    elif step.fallback_channel_type:
-        # Condition not met — use fallback
-        return {
-            "channel": step.fallback_channel_type,
-            "subject": getattr(step, 'fallback_template_subject', None),
-            "content": getattr(step, 'fallback_template_content', None),
-            "instruction": getattr(step, 'fallback_instruction_text', None),
-            "outcome": "FALLBACK_USED",
-        }
+
+    if step.fallback_channel_type:
+        # UPGRADE MODE: IF condition THEN switch to action channel
+        if condition_met:
+            return {
+                "channel": step.fallback_channel_type,
+                "subject": getattr(step, 'fallback_template_subject', None),
+                "content": getattr(step, 'fallback_template_content', None),
+                "instruction": getattr(step, 'fallback_instruction_text', None),
+                "outcome": "CONDITION_MET",
+            }
+        else:
+            return {
+                "channel": step.channel_type,
+                "subject": step.template_subject,
+                "content": step.template_content,
+                "instruction": step.instruction_text,
+                "outcome": "COMPLETED",
+            }
     else:
-        # Condition not met and no fallback configured — skip
-        return {"channel": None, "outcome": "SKIPPED"}
+        # GATE MODE: only run IF condition is met, otherwise skip
+        if condition_met:
+            return {
+                "channel": step.channel_type,
+                "subject": step.template_subject,
+                "content": step.template_content,
+                "instruction": step.instruction_text,
+                "outcome": "COMPLETED",
+            }
+        else:
+            return {"channel": None, "outcome": "SKIPPED"}
 
 
 def log_step_outcome(db: Session, prospect, campaign_id: int, step_number: int, outcome: str, channel_used: str = None):
