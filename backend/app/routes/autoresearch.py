@@ -2229,7 +2229,10 @@ async def generate_followup_email(
                 f"resolved_channel={resolved.get('channel')} "
                 f"resolved_outcome={resolved.get('outcome')}"
             )
-            if resolved["channel"]:
+            if resolved["outcome"] == "SKIPPED":
+                # Condition not met and no fallback — treat as plain email
+                channel_type = "email"
+            elif resolved["channel"]:
                 channel_type = resolved["channel"].lower()
 
     # Override channel for LinkedIn follow-up prospects
