@@ -1583,7 +1583,7 @@ function SequencePipelineView({
 
               {/* Condition selector */}
               <div className="mb-2">
-                <label className="block text-[10px] text-[--exec-text-muted] mb-1">If...</label>
+                <label className="block text-[10px] text-[--exec-text-muted] mb-1">Only run this step if...</label>
                 <select
                   value={editConditionType || ''}
                   onChange={(e) => {
@@ -1621,7 +1621,7 @@ function SequencePipelineView({
               {/* Fallback section — visible when condition is set */}
               {editConditionType && (
                 <div className="mt-2 p-2.5 bg-stone-800/30 rounded-lg border border-stone-700/30">
-                  <label className="block text-[10px] text-[--exec-text-muted] mb-1">Then use:</label>
+                  <label className="block text-[10px] text-[--exec-text-muted] mb-1">Otherwise:</label>
                   <select
                     value={editStepFallback || 'skip'}
                     onChange={(e) => setEditStepFallback(e.target.value === 'skip' ? '' : e.target.value)}
@@ -1838,7 +1838,7 @@ function SequenceStepsPanel({
                       <div className="flex items-center gap-1 mt-1">
                         <GitBranch className="w-3 h-3 text-amber-400" />
                         <span className="text-[10px] text-amber-400 font-medium">
-                          If {CONDITION_LABELS[step.condition_type as ConditionType] || step.condition_type}
+                          Only if {CONDITION_LABELS[step.condition_type as ConditionType] || step.condition_type}
                           {step.condition_step_ref ? ` #${step.condition_step_ref}` : ''}
                         </span>
                       </div>
@@ -1846,8 +1846,8 @@ function SequenceStepsPanel({
                     {step.condition_type && (
                       <span className="text-[10px] text-slate-500">
                         {step.fallback_channel_type
-                          ? `Then: ${CHANNEL_LABELS[step.fallback_channel_type as StepChannelType] || step.fallback_channel_type}`
-                          : 'Then: Skip'}
+                          ? `Otherwise: ${CHANNEL_LABELS[step.fallback_channel_type as StepChannelType] || step.fallback_channel_type}`
+                          : 'Otherwise: Skip'}
                       </span>
                     )}
 
