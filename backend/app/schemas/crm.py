@@ -66,7 +66,7 @@ class ContactResponse(ContactBase):
 
 # Deal Schemas
 class DealBase(BaseModel):
-    contact_id: int
+    contact_id: Optional[int] = None
     title: str = Field(..., min_length=1, max_length=255)
     description: Optional[str] = None
     value: Optional[Decimal] = None
@@ -119,36 +119,31 @@ class DealResponse(DealBase):
     @model_validator(mode='before')
     @classmethod
     def populate_contact(cls, data: Any) -> Any:
-        # If data is a SQLAlchemy model instance
         if hasattr(data, '__dict__'):
-            # Check if it has a contact relationship loaded
-            if hasattr(data, 'contact') and data.contact is not None:
-                # Convert to dict and add contact
-                result = {
-                    'id': data.id,
-                    'contact_id': data.contact_id,
-                    'title': data.title,
-                    'description': data.description,
-                    'value': data.value,
-                    'stage': data.stage,
-                    'probability': data.probability,
-                    'expected_close_date': data.expected_close_date,
-                    'actual_close_date': data.actual_close_date,
-                    'next_followup_date': data.next_followup_date,
-                    'hourly_rate': data.hourly_rate,
-                    # Subscription fields
-                    'is_recurring': data.is_recurring,
-                    'billing_frequency': data.billing_frequency,
-                    'recurring_amount': data.recurring_amount,
-                    'next_billing_date': data.next_billing_date,
-                    'service_status': data.service_status,
-                    'service_start_date': data.service_start_date,
-                    'created_at': data.created_at,
-                    'updated_at': data.updated_at,
-                    'contact': ContactResponse.model_validate(data.contact),
-                    'followup_count': getattr(data, 'followup_count', 0)
-                }
-                return result
+            result = {
+                'id': data.id,
+                'contact_id': data.contact_id,
+                'title': data.title,
+                'description': data.description,
+                'value': data.value,
+                'stage': data.stage,
+                'probability': data.probability,
+                'expected_close_date': data.expected_close_date,
+                'actual_close_date': data.actual_close_date,
+                'next_followup_date': data.next_followup_date,
+                'hourly_rate': data.hourly_rate,
+                'is_recurring': data.is_recurring,
+                'billing_frequency': data.billing_frequency,
+                'recurring_amount': data.recurring_amount,
+                'next_billing_date': data.next_billing_date,
+                'service_status': data.service_status,
+                'service_start_date': data.service_start_date,
+                'created_at': data.created_at,
+                'updated_at': data.updated_at,
+                'contact': ContactResponse.model_validate(data.contact) if data.contact is not None else None,
+                'followup_count': getattr(data, 'followup_count', 0)
+            }
+            return result
         return data
 
 # Interaction Schemas

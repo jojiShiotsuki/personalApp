@@ -205,20 +205,21 @@ def get_deal(deal_id: int, db: Session = Depends(get_db)):
 @router.post("/deals", response_model=DealResponse, status_code=201)
 def create_deal(deal: DealCreate, db: Session = Depends(get_db)):
     """Create a new deal"""
-    # Verify contact exists
-    contact = db.query(Contact).filter(Contact.id == deal.contact_id).first()
-    if not contact:
-        raise HTTPException(status_code=404, detail="Contact not found")
+    # Verify contact exists if provided
+    if deal.contact_id is not None:
+        contact = db.query(Contact).filter(Contact.id == deal.contact_id).first()
+        if not contact:
+            raise HTTPException(status_code=404, detail="Contact not found")
 
     db_deal = Deal(**deal.model_dump())
-    
+
     # Auto-set next follow-up date to 3 days from now if not provided
     if db_deal.next_followup_date is None:
         db_deal.next_followup_date = (datetime.utcnow() + timedelta(days=3)).date()
     db.add(db_deal)
     db.commit()
     db.refresh(db_deal)
-    # Load the contact relationship
+    # Load the contact relationship (may be None)
     db.refresh(db_deal, attribute_names=['contact'])
     # Log activity
     log_activity(db, "deal_created", "deal", db_deal.id, {
