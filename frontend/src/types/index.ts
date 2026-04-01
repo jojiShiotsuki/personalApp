@@ -317,7 +317,7 @@ export type ContactCreate = {
 
 export type Deal = {
   id: number;
-  contact_id: number;
+  contact_id?: number | null;
   title: string;
   description?: string;
   value?: number;
@@ -341,7 +341,7 @@ export type Deal = {
 }
 
 export type DealCreate = {
-  contact_id: number;
+  contact_id?: number | null;
   title: string;
   description?: string;
   value?: number;

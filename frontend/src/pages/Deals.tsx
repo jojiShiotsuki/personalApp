@@ -179,10 +179,6 @@ export default function Deals() {
 
     // Validate required fields
     const contactId = formData.get('contact_id') as string;
-    if (!contactId) {
-      toast.error('Please select a contact');
-      return;
-    }
 
     const title = formData.get('title') as string;
     if (!title?.trim()) {
@@ -191,7 +187,7 @@ export default function Deals() {
     }
 
     const data: DealCreate = {
-      contact_id: parseInt(contactId),
+      contact_id: contactId ? parseInt(contactId) : null,
       title: formData.get('title') as string,
       description: formData.get('description') as string || undefined,
       value: formData.get('value') ? parseFloat(formData.get('value') as string) : undefined,
@@ -427,15 +423,14 @@ export default function Deals() {
 
                 <div>
                   <label className="block text-sm font-medium text-[--exec-text-secondary] mb-1.5">
-                    Contact <span className="text-red-400">*</span>
+                    Contact
                   </label>
                   <select
                     name="contact_id"
-                    defaultValue={editingDeal?.contact_id}
-                    required
+                    defaultValue={editingDeal?.contact_id ?? ''}
                     className="w-full px-4 py-2.5 rounded-lg bg-stone-800/50 border border-stone-600/40 text-[--exec-text] focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]/50 transition-all text-sm"
                   >
-                    <option value="">Select a contact</option>
+                    <option value="">No contact (link later)</option>
                     {contacts.map((contact) => (
                       <option key={contact.id} value={contact.id}>
                         {contact.name}
