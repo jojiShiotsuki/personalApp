@@ -99,7 +99,8 @@ export default function Services() {
   const annualRecurringRevenue = monthlyRecurringRevenue * 12;
 
   // Get contact name by ID
-  const getContactName = (contactId: number): string => {
+  const getContactName = (contactId: number | null | undefined): string => {
+    if (!contactId) return 'No contact';
     const contact = contacts.find((c: Contact) => c.id === contactId);
     return contact?.name || 'Unknown';
   };
