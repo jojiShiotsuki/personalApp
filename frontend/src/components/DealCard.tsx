@@ -190,11 +190,11 @@ export default function DealCard({ deal, index, contacts, onEdit, onDelete, onAd
               </div>
             </div>
             <div className="flex items-center gap-2">
-              {onAddInteraction && (
+              {onAddInteraction && deal.contact_id && (
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    onAddInteraction(deal.contact_id);
+                    onAddInteraction(deal.contact_id!);
                   }}
                   className="flex-1 px-2 py-1 text-xs bg-stone-700/50 text-[--exec-text-secondary] hover:bg-stone-600/50 rounded flex items-center justify-center gap-1 transition-colors"
                   title="Add follow-up interaction"
