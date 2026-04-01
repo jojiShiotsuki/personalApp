@@ -102,7 +102,7 @@ class Contact(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships
-    deals = relationship("Deal", back_populates="contact", cascade="all, delete-orphan")
+    deals = relationship("Deal", back_populates="contact", cascade="all")
     interactions = relationship("Interaction", back_populates="contact", cascade="all, delete-orphan")
 
     def __repr__(self):
@@ -112,7 +112,7 @@ class Deal(Base):
     __tablename__ = "crm_deals"
 
     id = Column(Integer, primary_key=True, index=True)
-    contact_id = Column(Integer, ForeignKey("crm_contacts.id", ondelete="CASCADE"), nullable=False, index=True)
+    contact_id = Column(Integer, ForeignKey("crm_contacts.id", ondelete="SET NULL"), nullable=True, index=True)
     title = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
     value = Column(Numeric(12, 2), nullable=True)
