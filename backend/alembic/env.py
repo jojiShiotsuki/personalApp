@@ -36,6 +36,8 @@ from app.models.crm import Contact, Deal, Interaction
 from app.models.goal import Goal
 from app.models.project import Project
 from app.models.outreach import SearchPlannerCombination
+from app.models.social_content import SocialContent
+from app.models.tiktok_video import TikTokVideo
 
 target_metadata = Base.metadata
 
