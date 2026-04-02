@@ -67,7 +67,7 @@ const navigationGroups = [
       { name: 'Time', href: '/time', icon: Clock },
       { name: 'Content', href: '/social-calendar', icon: Calendar },
       { name: 'Reports', href: '/reports', icon: BarChart3 },
-      { name: 'TikTok', href: '/tiktok-analytics', icon: TrendingUp },
+      { name: 'Analytics', href: '/analytics', icon: TrendingUp },
     ],
   },
 ];
