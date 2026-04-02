@@ -1777,3 +1777,67 @@ export interface AISSEEvent {
   event: AISSEEventType;
   data: any;
 }
+
+// ===== TikTok Analytics =====
+
+export interface TikTokVideo {
+  id: number;
+  tiktok_id: string;
+  caption: string | null;
+  hashtags: string[];
+  create_time: string | null;
+  views: number;
+  likes: number;
+  comments: number;
+  shares: number;
+  saves: number;
+  engagement_rate: number;
+  video_duration: number | null;
+  sound_name: string | null;
+  imported_at: string | null;
+  social_content_id: number | null;
+}
+
+export interface TikTokImportResult {
+  imported: number;
+  updated: number;
+  skipped: number;
+  errors: string[];
+  total: number;
+}
+
+export interface TikTokVideoSummary {
+  id: number;
+  caption: string | null;
+  views: number;
+}
+
+export interface TikTokSummary {
+  total_videos: number;
+  total_views: number;
+  total_likes: number;
+  total_comments: number;
+  total_shares: number;
+  total_saves: number;
+  avg_views_per_video: number;
+  avg_engagement_rate: number;
+  best_video: TikTokVideoSummary | null;
+  lowest_views_video: TikTokVideoSummary | null;
+  date_range: { earliest: string; latest: string } | null;
+}
+
+export interface TikTokHashtagStat {
+  hashtag: string;
+  count: number;
+  avg_views: number;
+  avg_engagement: number;
+}
+
+export interface TikTokPatterns {
+  top_hashtags: TikTokHashtagStat[];
+  best_posting_days: { day: string; avg_views: number; video_count: number }[];
+  best_posting_hours: { hour: number; avg_views: number; video_count: number }[];
+  top_sounds: { sound: string; count: number; avg_views: number }[];
+  engagement_by_duration: { range: string; avg_engagement: number; count: number }[];
+  caption_length_correlation: Record<string, { max_chars: number; avg_views: number; count: number }>;
+}

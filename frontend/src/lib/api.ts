@@ -99,6 +99,10 @@ import type {
   VaultSyncStatus,
   JojiAISettings,
   JojiAISettingsUpdate,
+  TikTokVideo,
+  TikTokImportResult,
+  TikTokSummary,
+  TikTokPatterns,
 } from '../types/index';
 import {
   TaskStatus,
@@ -1637,6 +1641,63 @@ export const jojiAiApi = {
   updateSettings: async (settings: JojiAISettingsUpdate): Promise<JojiAISettings> => {
     const { data } = await api.put('/api/ai/settings', settings);
     return data;
+  },
+};
+
+// ===== TikTok Analytics API =====
+
+export const tiktokApi = {
+  importData: async (file: File): Promise<TikTokImportResult> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await api.post('/api/tiktok/import', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+  },
+
+  listVideos: async (params?: {
+    search?: string;
+    hashtag?: string;
+    date_from?: string;
+    date_to?: string;
+    sort_by?: string;
+    sort_order?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<TikTokVideo[]> => {
+    const response = await api.get('/api/tiktok/videos', { params });
+    return response.data;
+  },
+
+  getVideo: async (id: number): Promise<TikTokVideo> => {
+    const response = await api.get(`/api/tiktok/videos/${id}`);
+    return response.data;
+  },
+
+  deleteVideo: async (id: number): Promise<void> => {
+    await api.delete(`/api/tiktok/videos/${id}`);
+  },
+
+  bulkDelete: async (): Promise<void> => {
+    await api.delete('/api/tiktok/videos', { params: { confirm: true } });
+  },
+
+  getSummary: async (): Promise<TikTokSummary> => {
+    const response = await api.get('/api/tiktok/summary');
+    return response.data;
+  },
+
+  getPatterns: async (): Promise<TikTokPatterns> => {
+    const response = await api.get('/api/tiktok/patterns');
+    return response.data;
+  },
+
+  getTopPerformers: async (sortBy = 'views', limit = 10): Promise<TikTokVideo[]> => {
+    const response = await api.get('/api/tiktok/top-performers', {
+      params: { sort_by: sortBy, limit },
+    });
+    return response.data;
   },
 };
 
