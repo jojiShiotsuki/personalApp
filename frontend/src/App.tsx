@@ -23,6 +23,7 @@ const Sprint = lazy(() => import('./pages/Sprint'));
 const Reports = lazy(() => import('./pages/Reports'));
 const Autoresearch = lazy(() => import('./pages/Autoresearch'));
 const JojiAI = lazy(() => import('./pages/JojiAI'));
+const TikTokAnalytics = lazy(() => import('./pages/TikTokAnalytics'));
 import QuickAddModal from './components/QuickAddModal';
 import CommandPalette from './components/CommandPalette';
 import ShortcutsModal from './components/ShortcutsModal';
@@ -129,6 +130,7 @@ function AuthenticatedApp() {
           <Route path="/reports" element={<Reports />} />
           <Route path="/autoresearch" element={<Autoresearch />} />
           <Route path="/ai" element={<JojiAI />} />
+          <Route path="/tiktok-analytics" element={<TikTokAnalytics />} />
           <Route path="/login" element={<Navigate to="/" replace />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
