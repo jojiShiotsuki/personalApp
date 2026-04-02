@@ -65,9 +65,9 @@ export default function TikTokAnalytics() {
           </div>
           <button
             onClick={() => setImportOpen(true)}
-            className="group flex items-center px-4 py-2 bg-[--exec-accent] text-white rounded-xl hover:bg-[--exec-accent-dark] transition-all duration-200 shadow-sm hover:shadow-md"
+            className="group flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[--exec-accent] to-[--exec-accent-dark] text-white rounded-2xl hover:shadow-lg hover:shadow-[--exec-accent]/25 hover:-translate-y-0.5 transition-all duration-200 font-semibold"
           >
-            <Upload className="w-5 h-5 mr-2" />
+            <Upload className="w-5 h-5" />
             Import Data
           </button>
         </div>
@@ -84,7 +84,7 @@ export default function TikTokAnalytics() {
             </p>
             <button
               onClick={() => setImportOpen(true)}
-              className="px-4 py-2 bg-[--exec-accent] text-white rounded-xl hover:bg-[--exec-accent-dark] transition-all"
+              className="px-5 py-2.5 bg-gradient-to-r from-[--exec-accent] to-[--exec-accent-dark] text-white rounded-2xl hover:shadow-lg hover:shadow-[--exec-accent]/25 hover:-translate-y-0.5 transition-all duration-200 font-semibold"
             >
               Import Data
             </button>
