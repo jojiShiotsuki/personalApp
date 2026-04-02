@@ -356,6 +356,82 @@ export default function Dashboard() {
         {/* Main Grid */}
         <div className="grid grid-cols-1 md:grid-cols-12 gap-5 mt-6">
 
+          {/* Deal Follow-ups This Week — TOP PRIORITY */}
+          {followUpDeals.length > 0 && (
+            <div className="col-span-1 md:col-span-12 bento-card overflow-hidden animate-fade-slide-up delay-4">
+              <div className="flex items-center justify-between px-6 py-5 border-b border-[--exec-border-subtle]">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-[--exec-warning-bg] flex items-center justify-center">
+                    <Bell className="w-5 h-5 text-[--exec-warning]" />
+                  </div>
+                  <div>
+                    <h2 className="font-semibold text-[--exec-text]">Follow-ups Due</h2>
+                    <p className="text-xs text-[--exec-text-muted]">{followUpDeals.length} deals need attention</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => navigate('/deals')}
+                  className="flex items-center gap-2 text-sm text-[--exec-text-muted] hover:text-[--exec-accent] transition-colors font-medium group"
+                >
+                  View all
+                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                </button>
+              </div>
+
+              <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                {followUpDeals.slice(0, 6).map((deal) => {
+                  const followupDate = deal.next_followup_date ? parseISO(deal.next_followup_date) : null;
+                  const isOverdueFollowup = followupDate && isPast(followupDate) && !isToday(followupDate);
+                  const isTodayFollowup = followupDate && isToday(followupDate);
+                  return (
+                    <button
+                      key={deal.id}
+                      onClick={() => navigate('/deals')}
+                      className={cn(
+                        "w-full flex items-center justify-between p-4 rounded-2xl text-left transition-all group",
+                        isOverdueFollowup
+                          ? "bg-[--exec-danger-bg] hover:bg-[--exec-danger]/10"
+                          : isTodayFollowup
+                          ? "bg-[--exec-warning-bg] hover:bg-[--exec-warning]/10"
+                          : "bg-[--exec-surface-alt] hover:bg-[--exec-surface-warm]"
+                      )}
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p className={cn(
+                          "text-sm font-medium truncate",
+                          isOverdueFollowup ? "text-[--exec-danger]" : "text-[--exec-text] group-hover:text-[--exec-accent]"
+                        )}>
+                          {deal.title}
+                        </p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-xs text-[--exec-text-muted] bg-[--exec-surface] px-2 py-0.5 rounded-full">
+                            {deal.stage}
+                          </span>
+                          {deal.contact_name && (
+                            <span className="text-xs text-[--exec-text-muted]">{deal.contact_name}</span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0 ml-3">
+                        <span className={cn(
+                          "text-sm font-bold",
+                          isOverdueFollowup ? "text-[--exec-danger]" : isTodayFollowup ? "text-[--exec-warning]" : "text-[--exec-text-secondary]"
+                        )} style={{ fontFamily: 'var(--font-display)' }}>
+                          {followupDate ? (
+                            isOverdueFollowup ? 'Overdue' : isTodayFollowup ? 'Today' : format(followupDate, 'MMM d')
+                          ) : '—'}
+                        </span>
+                        <p className="text-xs text-[--exec-text-muted] mt-0.5">
+                          {formatCurrency(Number(deal.value) || 0)}
+                        </p>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {/* Priority Tasks - Large Card */}
           <div className="col-span-1 md:col-span-7 bento-card overflow-hidden animate-fade-slide-up delay-5">
             <div className="flex items-center justify-between px-6 py-5 border-b border-[--exec-border-subtle]">
@@ -569,86 +645,10 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Deal Follow-ups This Week */}
-          {followUpDeals.length > 0 && (
-            <div className="col-span-1 md:col-span-6 bento-card overflow-hidden animate-fade-slide-up delay-8">
-              <div className="flex items-center justify-between px-6 py-5 border-b border-[--exec-border-subtle]">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-[--exec-warning-bg] flex items-center justify-center">
-                    <Bell className="w-5 h-5 text-[--exec-warning]" />
-                  </div>
-                  <div>
-                    <h2 className="font-semibold text-[--exec-text]">Follow-ups Due</h2>
-                    <p className="text-xs text-[--exec-text-muted]">{followUpDeals.length} deals need attention</p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => navigate('/deals')}
-                  className="flex items-center gap-2 text-sm text-[--exec-text-muted] hover:text-[--exec-accent] transition-colors font-medium group"
-                >
-                  View all
-                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                </button>
-              </div>
-
-              <div className="p-4 space-y-2">
-                {followUpDeals.slice(0, 5).map((deal) => {
-                  const followupDate = deal.next_followup_date ? parseISO(deal.next_followup_date) : null;
-                  const isOverdueFollowup = followupDate && isPast(followupDate) && !isToday(followupDate);
-                  const isTodayFollowup = followupDate && isToday(followupDate);
-                  return (
-                    <button
-                      key={deal.id}
-                      onClick={() => navigate('/deals')}
-                      className={cn(
-                        "w-full flex items-center justify-between p-4 rounded-2xl text-left transition-all group",
-                        isOverdueFollowup
-                          ? "bg-[--exec-danger-bg] hover:bg-[--exec-danger]/10"
-                          : isTodayFollowup
-                          ? "bg-[--exec-warning-bg] hover:bg-[--exec-warning]/10"
-                          : "bg-[--exec-surface-alt] hover:bg-[--exec-surface-warm]"
-                      )}
-                    >
-                      <div className="min-w-0 flex-1">
-                        <p className={cn(
-                          "text-sm font-medium truncate",
-                          isOverdueFollowup ? "text-[--exec-danger]" : "text-[--exec-text] group-hover:text-[--exec-accent]"
-                        )}>
-                          {deal.title}
-                        </p>
-                        <div className="flex items-center gap-2 mt-1">
-                          <span className="text-xs text-[--exec-text-muted] bg-[--exec-surface] px-2 py-0.5 rounded-full">
-                            {deal.stage}
-                          </span>
-                          {deal.contact_name && (
-                            <span className="text-xs text-[--exec-text-muted]">{deal.contact_name}</span>
-                          )}
-                        </div>
-                      </div>
-                      <div className="text-right shrink-0 ml-3">
-                        <span className={cn(
-                          "text-sm font-bold",
-                          isOverdueFollowup ? "text-[--exec-danger]" : isTodayFollowup ? "text-[--exec-warning]" : "text-[--exec-text-secondary]"
-                        )} style={{ fontFamily: 'var(--font-display)' }}>
-                          {followupDate ? (
-                            isOverdueFollowup ? 'Overdue' : isTodayFollowup ? 'Today' : format(followupDate, 'MMM d')
-                          ) : '—'}
-                        </span>
-                        <p className="text-xs text-[--exec-text-muted] mt-0.5">
-                          {formatCurrency(Number(deal.value) || 0)}
-                        </p>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
           {/* Task Velocity Chart */}
           <div className={cn(
-            "bento-card overflow-hidden animate-fade-slide-up delay-9",
-            followUpDeals.length > 0 ? "col-span-1 md:col-span-6" : "col-span-1 md:col-span-12"
+            "bento-card overflow-hidden animate-fade-slide-up delay-8",
+            "col-span-1 md:col-span-12"
           )}>
             <div className="flex items-center justify-between px-6 py-5 border-b border-[--exec-border-subtle]">
               <div className="flex items-center gap-3">
