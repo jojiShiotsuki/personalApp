@@ -41,7 +41,7 @@ import {
   Video,
   GitBranch,
   GripVertical,
-
+  Check,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -568,6 +568,13 @@ function PipelineProspectCard({
       draggable={!isMuted}
       onDragStart={(e) => onDragStart?.(e, prospect)}
       onDragEnd={() => onDragEnd?.()}
+      onClick={(e) => {
+        if (onToggleSelect && (e.ctrlKey || e.metaKey || e.shiftKey)) {
+          e.preventDefault();
+          e.stopPropagation();
+          onToggleSelect();
+        }
+      }}
       className={cn(
         'bento-card relative p-4 transition-all duration-200 group select-none',
         !isMuted && 'cursor-grab active:cursor-grabbing',
@@ -577,23 +584,18 @@ function PipelineProspectCard({
             ? 'border-[--exec-accent]/40 shadow-[0_0_10px_rgba(var(--exec-accent-rgb,59,130,246),0.12)] hover:shadow-[0_0_16px_rgba(var(--exec-accent-rgb,59,130,246),0.2)]'
             : 'hover:shadow-lg hover:-translate-y-0.5',
         isHighlighted && 'ring-2 ring-amber-400 shadow-[0_0_20px_rgba(251,191,36,0.3)] animate-pulse',
-        isDragging && 'opacity-50 scale-95 ring-2 ring-blue-500/40'
+        isDragging && 'opacity-50 scale-95 ring-2 ring-blue-500/40',
+        isSelected && 'ring-2 ring-[#E07A5F] border-[#E07A5F]/40'
       )}
     >
+      {/* Selection indicator */}
+      {isSelected && (
+        <div className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-[#E07A5F] flex items-center justify-center z-10">
+          <Check className="w-3 h-3 text-white" />
+        </div>
+      )}
       {/* Drag handle + Action buttons row */}
       <div className="flex items-center justify-center gap-1 mb-2 flex-wrap">
-        {onToggleSelect && (
-          <input
-            type="checkbox"
-            checked={isSelected || false}
-            onChange={(e) => {
-              e.stopPropagation();
-              onToggleSelect();
-            }}
-            onClick={(e) => e.stopPropagation()}
-            className="w-3.5 h-3.5 text-[#E07A5F] bg-stone-800/50 border-stone-600/60 rounded focus:ring-[#E07A5F]/30 cursor-pointer flex-shrink-0 accent-[#E07A5F]"
-          />
-        )}
         {!isMuted && (
           <GripVertical className="w-3 h-3 text-[--exec-text-muted] opacity-0 group-hover:opacity-50 transition-opacity flex-shrink-0" />
         )}
@@ -2361,21 +2363,32 @@ export default function MultiTouchCampaignsTab({ initialCampaignId, initialProsp
           />
         )}
 
-        {/* Select All Checkbox */}
+        {/* Bulk selection controls */}
         {selectedCampaignId && allProspects.length > 0 && (
           <div className="flex items-center gap-3 mb-3">
-            <input
-              type="checkbox"
-              checked={
-                selectedProspectIds.size > 0 &&
-                (allProspects || [])
-                  .filter(p => ACTIONABLE_STATUSES.includes(p.status))
-                  .every(p => selectedProspectIds.has(p.id))
-              }
-              onChange={selectAllActionable}
-              className="w-4 h-4 text-[#E07A5F] bg-stone-800 border-stone-600 rounded focus:ring-[#E07A5F] cursor-pointer"
-            />
-            <span className="text-xs text-[--exec-text-muted]">Select all actionable prospects</span>
+            <button
+              onClick={selectAllActionable}
+              className={cn(
+                "flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-lg transition-all",
+                selectedProspectIds.size > 0
+                  ? "bg-[#E07A5F]/15 text-[#E07A5F] border border-[#E07A5F]/30 hover:bg-[#E07A5F]/25"
+                  : "text-[--exec-text-muted] border border-stone-700/40 hover:border-stone-600/60 hover:text-[--exec-text-secondary]"
+              )}
+            >
+              {selectedProspectIds.size > 0 ? (
+                <>
+                  <div className="w-4 h-4 rounded-full bg-[#E07A5F] flex items-center justify-center">
+                    <Check className="w-2.5 h-2.5 text-white" />
+                  </div>
+                  {selectedProspectIds.size} selected — click to clear
+                </>
+              ) : (
+                'Select all actionable'
+              )}
+            </button>
+            <span className="text-[10px] text-[--exec-text-muted]">
+              Ctrl+click cards to select individually
+            </span>
           </div>
         )}
 
