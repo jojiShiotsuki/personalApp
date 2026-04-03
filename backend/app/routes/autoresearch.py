@@ -48,6 +48,9 @@ from app.schemas.autoresearch import (
     AutoresearchSettingsUpdate,
     BatchAuditResponse,
     BatchProgressResponse,
+    BulkGenerateRequest,
+    BulkGenerateResponse,
+    BulkGenerateResultItem,
     ExperimentListResponse,
     ExperimentResponse,
     InsightResponse,
@@ -3680,6 +3683,65 @@ async def generate_followup_email(
         db=db,
         current_user=current_user,
         custom_instruction=custom_instruction,
+    )
+
+
+@router.post("/bulk-generate-followup", response_model=BulkGenerateResponse)
+async def bulk_generate_followup(
+    request: BulkGenerateRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Generate AI follow-up messages for multiple prospects sequentially."""
+    # Deduplicate
+    unique_ids = list(dict.fromkeys(request.prospect_ids))
+
+    results = []
+    total_cost = 0.0
+    succeeded = 0
+    failed = 0
+
+    for prospect_id in unique_ids:
+        try:
+            result = await _generate_followup_for_prospect(
+                prospect_id=prospect_id,
+                db=db,
+                current_user=current_user,
+            )
+            # Save to prospect record server-side
+            prospect = db.query(OutreachProspect).filter(
+                OutreachProspect.id == prospect_id
+            ).first()
+            if prospect:
+                prospect.custom_email_subject = result.get("subject", "")
+                prospect.custom_email_body = result.get("body", "")
+                db.commit()
+
+            cost = result.get("cost_usd", 0.0)
+            total_cost += cost
+            succeeded += 1
+            results.append(BulkGenerateResultItem(
+                prospect_id=prospect_id,
+                status="success",
+                subject=result.get("subject"),
+                word_count=result.get("word_count"),
+                angle_used=result.get("angle_used"),
+                cost_usd=cost,
+            ))
+        except Exception as e:
+            failed += 1
+            results.append(BulkGenerateResultItem(
+                prospect_id=prospect_id,
+                status="error",
+                error=str(e),
+            ))
+
+    return BulkGenerateResponse(
+        results=results,
+        total=len(unique_ids),
+        succeeded=succeeded,
+        failed=failed,
+        total_cost_usd=round(total_cost, 6),
     )
 
 
