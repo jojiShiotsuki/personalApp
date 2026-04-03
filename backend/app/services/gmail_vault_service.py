@@ -146,7 +146,11 @@ class GmailVaultService:
         total_skipped = 0
 
         for gmail_service, user_email in accounts:
-            thread_ids = self._fetch_thread_ids(gmail_service, query)
+            try:
+                thread_ids = self._fetch_thread_ids(gmail_service, query)
+            except Exception as exc:
+                logger.warning("Gmail vault sync: failed to fetch threads for %s (token may be expired): %s", user_email, exc)
+                continue
 
             # Skip threads we already have
             new_thread_ids = [
