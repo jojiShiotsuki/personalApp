@@ -88,19 +88,8 @@ export default function AuditsTab() {
         edited_body: editedBody,
         subject_variant_used: subjectVariantUsed,
       }),
-    onSuccess: async (_data, variables) => {
-      // Find the audit to get the email body for clipboard
-      const audit = audits.find((a) => a.id === variables.auditId);
-      const bodyToCopy = variables.editedBody || audit?.edited_body || audit?.generated_body || '';
-
-      if (bodyToCopy) {
-        navigator.clipboard.writeText(bodyToCopy).then(
-          () => toast.success('Approved and copied to clipboard'),
-          () => toast.success('Approved (clipboard copy failed)')
-        );
-      } else {
-        toast.success('Audit approved');
-      }
+    onSuccess: () => {
+      toast.success('Audit approved');
       queryClient.invalidateQueries({ queryKey: ['autoresearch-audits'] });
     },
     onError: (error) => {
