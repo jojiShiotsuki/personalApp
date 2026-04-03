@@ -2173,21 +2173,19 @@ def _parse_followup_json(raw_text: str) -> dict:
         return {"error": str(exc), "raw_response": raw_text[:500]}
 
 
-@router.post("/generate-followup/{prospect_id}")
-async def generate_followup_email(
+async def _generate_followup_for_prospect(
     prospect_id: int,
-    payload: dict = None,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
+    db: Session,
+    current_user=None,
+    custom_instruction: str | None = None,
+) -> dict:
     """
-    Generate an AI-personalised follow-up email that references the original
-    audit issue. Uses Claude Haiku for cost efficiency.
-
-    Returns JSON with subject, body, loom_script, word_count, step_number, and cost_usd.
-    Accepts optional custom_instruction in body to guide generation (e.g. "focus on slow site speed").
+    Core AI follow-up generation for a single prospect.
+    Returns dict with: subject, body, loom_script, word_count, step_number,
+    follow_up_number, model, cost_usd, cta_used, angle_used.
+    Does NOT save to database — caller decides.
     """
-    custom_instruction = (payload or {}).get("custom_instruction", "")
+    custom_instruction = custom_instruction or ""
     svc = _require_audit_service()  # ensures ANTHROPIC_API_KEY is set
 
     # --- Fetch prospect ---
@@ -3667,6 +3665,22 @@ Return ONLY valid JSON. Use \\n for line breaks in the script:
         "cta_used": result.get("cta_used"),
         "angle_used": result.get("angle_used"),
     }
+
+
+@router.post("/generate-followup/{prospect_id}")
+async def generate_followup_email(
+    prospect_id: int,
+    payload: dict = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    custom_instruction = (payload or {}).get("custom_instruction", "")
+    return await _generate_followup_for_prospect(
+        prospect_id=prospect_id,
+        db=db,
+        current_user=current_user,
+        custom_instruction=custom_instruction,
+    )
 
 
 # ──────────────────────────────────────────────
