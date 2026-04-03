@@ -2377,7 +2377,7 @@ async def _generate_followup_for_prospect(
         audit_context = ""
         if audit:
             audit_context = f"""
-AUDIT FINDINGS:
+AUDIT FINDINGS (raw — you must reprioritize these, see ISSUE PRIORITY below):
 - Primary issue: {audit.issue_type or 'unknown'} - {audit.issue_detail or 'N/A'}
 - Secondary issue: {audit.secondary_issue or 'none'} - {audit.secondary_detail or 'N/A'}
 - Site quality: {audit.site_quality or 'unknown'}"""
@@ -2408,16 +2408,29 @@ PROSPECT:
 
 {custom_instruction if custom_instruction else ''}
 
-CASE STUDY (use this as proof in every email):
-Joji got a barbershop in Cebu ranking #1 on Google and showing up in AI search results within 3 months. Their site went from invisible to the first thing people see.
+ISSUE PRIORITY (CRITICAL — pick the BEST issue to lead with):
+The auditor finds multiple issues. You MUST reprioritize them for the email. Use this ranking:
+1. BROKEN FUNCTIONALITY (highest priority) — buttons linking to wrong pages, broken links, forms that don't submit, 404 pages, dead clicks. These are undeniable and verifiable in 10 seconds.
+2. WRONG INFORMATION — wrong phone number, wrong address, wrong business hours, outdated pricing. Costs them customers right now.
+3. MISSING CRITICAL ELEMENTS — no phone number visible, no contact form, no way to request a quote. Visitors leave without converting.
+4. PERFORMANCE ISSUES — mobile site so slow it bounces paid traffic, site not loading on phones. Only use if it clearly costs them money.
+5. COSMETIC ISSUES (LOWEST PRIORITY) — outdated copyright dates, text-heavy pages, ugly design, old photos. NEVER lead with these. They trigger "stop" replies because the prospect doesn't see them as real problems.
 
-FRAMING RULES (CRITICAL — this is the #1 change):
-- DO NOT lead with criticism or problems ("your site is broken", "walls of text", "copyright 2014")
-- DO lead with PROOF first (the case study result), then frame their audit findings as OPPORTUNITIES
-- The prospect should feel excited about potential, NOT defensive about their site
-- Frame issues as "quick wins" or "opportunities to show up higher", never as failures
-- Example framing: "Ran your site through the same tools, [company] has some quick wins that could get you showing up higher when people search for [trade] in [area]"
-- The Loom/CTA should be attached to a RESULT ("want me to show you what I found?"), not a request for time
+If the only issues found are cosmetic (copyright dates, walls of text), reframe them as a business impact: "visitors are bouncing because they can't find your number" rather than "your site has walls of text."
+
+EMAIL STRUCTURE (this exact flow):
+1. "G'day [first name]," opening
+2. Lead with THE ONE specific broken/wrong thing you found. Be concrete: "I noticed the 'Get a Quote' button on your homepage links to a 404 page" or "Your contact form isn't submitting." Something they can check in 10 seconds and can't argue with.
+3. Frame it as costing them money: "that means anyone clicking it to hire you hits a dead end"
+4. Credibility line: "I do this for tradies full-time, recently got a business ranking #1 on Google within 3 months."
+5. CTA framed as showing the opportunity (not delivering the full fix): "Want me to show you what I found?" or "Recorded a quick walkthrough if you want to see it."
+
+WHAT NOT TO DO:
+- DO NOT lead with the case study. It's the credibility line, not the opener.
+- DO NOT lead with cosmetic complaints (copyright dates, "walls of text", "your site looks outdated").
+- DO NOT list multiple issues. Pick THE ONE most undeniable broken thing.
+- DO NOT give away the full diagnosis. Tease that there's more. The full audit is gated behind a conversation.
+- DO NOT be vague. "I found some issues with your site" is worthless. Be specific.
 
 A/B TESTING — study the data below:
 {global_perf if global_perf else "No performance data yet — test DIFFERENT approaches for each prospect."}
@@ -2427,20 +2440,18 @@ YOUR STRATEGY:
 1. Study which subject lines got replies vs didn't. Use patterns that WORK.
 2. Study which email bodies got replies. Replicate the structure, tone, and hooks.
 3. Use a DIFFERENT CTA from previous emails. Not a rewording, a genuinely different ask.
-4. Test something NEW with each email. Vary one thing (subject style, CTA type, opening hook, proof angle).
-5. The proof-first structure: [G'day + case study result] → [their site has similar opportunities] → [low-effort CTA attached to a result]
+4. Test something NEW with each email. Vary one thing (subject style, CTA type, opening hook).
 
 RULES:
 - Start with "G'day {first_name},"
-- Lead with proof/result (case study), then bridge to their opportunity
-- Australian English, conversational, pub banter tone
+- Australian English, conversational, casual tone
 - NEVER use em dashes (—). Use commas, full stops, or rewrite the sentence instead
-- 65-90 words total (excluding sign-off). Not under 50, not over 90.
+- 65-90 words total (excluding sign-off)
 - BANNED CTA PHRASES: "10 minutes", "15 minutes", "worth X minutes", "got X minutes", "quick chat", "jump on a call". Use creative alternatives attached to results.
 - End with a CTA, then: Cheers,\\nJoji Shiotsuki | Joji Web Solutions | jojishiotsuki.com\\n\\nNot interested? Just reply "stop" and I won't email again.
 {step1_learning}
 Return ONLY valid JSON (no markdown fences):
-{{"subject": "short punchy subject about the opportunity (not the problem)", "body": "email body here", "word_count": N, "cta_used": "the exact CTA line you used", "angle_used": "short label for the approach you took"}}"""
+{{"subject": "short punchy subject about the specific issue found (not generic)", "body": "email body here", "word_count": N, "cta_used": "the exact CTA line you used", "angle_used": "short label for the approach you took"}}"""
 
         model = os.getenv("AUTORESEARCH_FOLLOWUP_MODEL", "claude-sonnet-4-6")
         try:
