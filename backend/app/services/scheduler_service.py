@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
@@ -101,8 +102,8 @@ async def crm_batch_sync_job():
         db.close()
 
 
-async def gmail_vault_sync_job():
-    """Scheduled job: sync recent Gmail threads to vault."""
+def _gmail_vault_sync_blocking():
+    """Blocking Gmail vault sync — runs in a thread to avoid blocking the event loop."""
     from app.database.connection import SessionLocal
     from app.models.autoresearch import GmailToken
     from app.services.gmail_vault_service import GmailVaultService
@@ -125,6 +126,16 @@ async def gmail_vault_sync_job():
         logger.error("Gmail vault sync job failed: %s", e)
     finally:
         db.close()
+
+
+async def gmail_vault_sync_job():
+    """Scheduled job: sync recent Gmail threads to vault.
+
+    Runs the blocking sync in a thread executor so it doesn't block the
+    async event loop (Gmail API + Claude summarization + git push can take minutes).
+    """
+    loop = asyncio.get_event_loop()
+    await loop.run_in_executor(None, _gmail_vault_sync_blocking)
 
 
 def start_scheduler():
