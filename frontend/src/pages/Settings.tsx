@@ -23,7 +23,7 @@ export default function Settings() {
       if (result.status === 'skipped') {
         toast.info(result.reason || 'Gmail not connected');
       } else {
-        toast.success(`Gmail synced — ${result.threads_indexed || 0} new threads indexed`);
+        toast.success(result.message || 'Gmail vault sync started in background');
       }
     } catch {
       toast.error('Gmail sync failed');

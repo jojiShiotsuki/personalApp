@@ -651,11 +651,25 @@ async def upload_to_library(
 
 @router.post("/vault/gmail-sync-now")
 def gmail_sync_now(
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
-    """Manually trigger one round of Gmail vault sync."""
-    from app.services.gmail_vault_service import GmailVaultService
+    """Manually trigger one round of Gmail vault sync (runs in background)."""
+    user_id = user.id
 
-    service = GmailVaultService()
-    return service.incremental_sync(db, user.id)
+    def _run_sync():
+        from app.database.connection import SessionLocal
+        from app.services.gmail_vault_service import GmailVaultService
+        sync_db = SessionLocal()
+        try:
+            service = GmailVaultService()
+            result = service.incremental_sync(sync_db, user_id)
+            logger.info("Manual Gmail vault sync completed: %s", result)
+        except Exception as e:
+            logger.error("Manual Gmail vault sync failed: %s", e)
+        finally:
+            sync_db.close()
+
+    background_tasks.add_task(_run_sync)
+    return {"status": "started", "message": "Gmail vault sync started in background. Check back in a few minutes."}
