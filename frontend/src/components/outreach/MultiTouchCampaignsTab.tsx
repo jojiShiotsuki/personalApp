@@ -580,8 +580,9 @@ function PipelineProspectCard({
         isDragging && 'opacity-50 scale-95 ring-2 ring-blue-500/40'
       )}
     >
-      {onToggleSelect && (
-        <div className="absolute top-2 left-2 z-10">
+      {/* Drag handle + Action buttons row */}
+      <div className="flex items-center justify-center gap-1 mb-2 flex-wrap">
+        {onToggleSelect && (
           <input
             type="checkbox"
             checked={isSelected || false}
@@ -589,12 +590,10 @@ function PipelineProspectCard({
               e.stopPropagation();
               onToggleSelect();
             }}
-            className="w-4 h-4 text-[#E07A5F] bg-stone-800 border-stone-600 rounded focus:ring-[#E07A5F] cursor-pointer"
+            onClick={(e) => e.stopPropagation()}
+            className="w-3.5 h-3.5 text-[#E07A5F] bg-stone-800/50 border-stone-600/60 rounded focus:ring-[#E07A5F]/30 cursor-pointer flex-shrink-0 accent-[#E07A5F]"
           />
-        </div>
-      )}
-      {/* Drag handle + Action buttons row */}
-      <div className="flex items-center justify-center gap-1 mb-2 flex-wrap">
+        )}
         {!isMuted && (
           <GripVertical className="w-3 h-3 text-[--exec-text-muted] opacity-0 group-hover:opacity-50 transition-opacity flex-shrink-0" />
         )}
