@@ -1539,6 +1539,27 @@ export const autoresearchApi = {
     });
     return data;
   },
+
+  bulkGenerateFollowups: async (prospectIds: number[]): Promise<{
+    results: Array<{
+      prospect_id: number;
+      status: string;
+      subject?: string;
+      word_count?: number;
+      angle_used?: string;
+      cost_usd?: number;
+      error?: string;
+    }>;
+    total: number;
+    succeeded: number;
+    failed: number;
+    total_cost_usd: number;
+  }> => {
+    const { data } = await api.post('/api/autoresearch/bulk-generate-followup', {
+      prospect_ids: prospectIds,
+    }, { timeout: 180000 }); // 180s timeout for bulk generation
+    return data;
+  },
 };
 
 // ============ Joji AI API ============
