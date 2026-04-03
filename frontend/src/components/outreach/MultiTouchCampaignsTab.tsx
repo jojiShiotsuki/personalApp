@@ -1906,6 +1906,8 @@ function SequenceStepsPanel({
   );
 }
 
+const ACTIONABLE_STATUSES = ['QUEUED', 'IN_SEQUENCE', 'PENDING_ENGAGEMENT', 'LINKEDIN_FOLLOWUP'];
+
 // Main component
 export default function MultiTouchCampaignsTab({ initialCampaignId, initialProspectId }: { initialCampaignId?: number | null; initialProspectId?: number }) {
   const [selectedCampaignId, setSelectedCampaignId] = useState<number | null>(initialCampaignId ?? null);
@@ -1928,6 +1930,11 @@ export default function MultiTouchCampaignsTab({ initialCampaignId, initialProsp
   const [bulkError, setBulkError] = useState<string | null>(null);
   const [showBulkModal, setShowBulkModal] = useState(false);
   const [bulkTotalCount, setBulkTotalCount] = useState(0);
+
+  // Clear prospect selection when switching campaigns
+  useEffect(() => {
+    setSelectedProspectIds(new Set());
+  }, [selectedCampaignId]);
 
   const queryClient = useQueryClient();
 
@@ -2022,8 +2029,6 @@ export default function MultiTouchCampaignsTab({ initialCampaignId, initialProsp
     queryClient.invalidateQueries({ queryKey: ['mt-campaign'] });
     queryClient.invalidateQueries({ queryKey: ['multi-touch-campaigns'] });
   }
-
-  const ACTIONABLE_STATUSES = ['QUEUED', 'IN_SEQUENCE', 'PENDING_ENGAGEMENT', 'LINKEDIN_FOLLOWUP'];
 
   const toggleProspectSelection = (prospectId: number) => {
     setSelectedProspectIds(prev => {

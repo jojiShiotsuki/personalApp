@@ -3728,12 +3728,22 @@ async def bulk_generate_followup(
                 angle_used=result.get("angle_used"),
                 cost_usd=cost,
             ))
-        except Exception as e:
+        except HTTPException as he:
+            db.rollback()
             failed += 1
             results.append(BulkGenerateResultItem(
                 prospect_id=prospect_id,
                 status="error",
-                error=str(e),
+                error=he.detail,
+            ))
+        except Exception as e:
+            logger.error("Bulk generation failed for prospect %d: %s", prospect_id, e, exc_info=True)
+            db.rollback()
+            failed += 1
+            results.append(BulkGenerateResultItem(
+                prospect_id=prospect_id,
+                status="error",
+                error="Generation failed unexpectedly",
             ))
 
     return BulkGenerateResponse(
