@@ -2391,9 +2391,9 @@ AUDIT FINDINGS:
         except Exception:
             pass
 
-        step1_prompt = f"""You are a strategic cold outreach specialist writing the FIRST email (Step 1) for Joji Shiotsuki, who works with trade businesses across Australia on their web presence.
+        step1_prompt = f"""You are a strategic cold outreach specialist writing the FIRST email (Step 1) for Joji Shiotsuki, who runs Joji Web Solutions and helps trade businesses across Australia get found online.
 
-GOAL: Get this prospect to reply. This is the FIRST touchpoint — make it count. Every word matters.
+GOAL: Get this prospect to reply. This is the FIRST touchpoint. Every word matters.
 
 This is STEP 1 of the multi-touch sequence. There are more touchpoints after this.
 
@@ -2401,36 +2401,46 @@ PROSPECT:
 - Name: {first_name}
 - Company: {prospect.agency_name}
 - Industry: {prospect.niche or 'trades'}
+- Location: {prospect.situation or 'Australia'}
 - Website: {prospect.website or 'unknown'}
 - Detected issues: {issues_text}
 {audit_context}
 
 {custom_instruction if custom_instruction else ''}
 
-A/B TESTING — you are running continuous experiments. Study the data below:
+CASE STUDY (use this as proof in every email):
+Joji got a barbershop in Cebu ranking #1 on Google and showing up in AI search results within 3 months. Their site went from invisible to the first thing people see.
+
+FRAMING RULES (CRITICAL — this is the #1 change):
+- DO NOT lead with criticism or problems ("your site is broken", "walls of text", "copyright 2014")
+- DO lead with PROOF first (the case study result), then frame their audit findings as OPPORTUNITIES
+- The prospect should feel excited about potential, NOT defensive about their site
+- Frame issues as "quick wins" or "opportunities to show up higher", never as failures
+- Example framing: "Ran your site through the same tools, [company] has some quick wins that could get you showing up higher when people search for [trade] in [area]"
+- The Loom/CTA should be attached to a RESULT ("want me to show you what I found?"), not a request for time
+
+A/B TESTING — study the data below:
 {global_perf if global_perf else "No performance data yet — test DIFFERENT approaches for each prospect."}
 {global_cta_blacklist if global_cta_blacklist else ""}
 
 YOUR STRATEGY:
 1. Study which subject lines got replies vs didn't. Use patterns that WORK.
 2. Study which email bodies got replies. Replicate the structure, tone, and hooks.
-3. Use a DIFFERENT CTA from previous emails. Not a rewording — a genuinely different ask.
-4. If shorter emails get more replies, keep it tight. If longer works, add value.
-5. Lead with the issue type that gets the best reply rates for this niche.
-6. Test something NEW with each email — vary one thing (subject style, CTA type, opening hook, analogy).
+3. Use a DIFFERENT CTA from previous emails. Not a rewording, a genuinely different ask.
+4. Test something NEW with each email. Vary one thing (subject style, CTA type, opening hook, proof angle).
+5. The proof-first structure: [G'day + case study result] → [their site has similar opportunities] → [low-effort CTA attached to a result]
 
 RULES:
 - Start with "G'day {first_name},"
-- Lead with the most impactful issue found (be SPECIFIC to their site, not generic)
-- Use a funny analogy or witty comparison to make the issue memorable
+- Lead with proof/result (case study), then bridge to their opportunity
 - Australian English, conversational, pub banter tone
 - NEVER use em dashes (—). Use commas, full stops, or rewrite the sentence instead
-- Under 50 words total (excluding sign-off)
-- BANNED CTA PHRASES: "10 minutes", "15 minutes", "worth X minutes", "got X minutes", "quick chat", "jump on a call". Use creative alternatives instead.
+- 65-90 words total (excluding sign-off). Not under 50, not over 90.
+- BANNED CTA PHRASES: "10 minutes", "15 minutes", "worth X minutes", "got X minutes", "quick chat", "jump on a call". Use creative alternatives attached to results.
 - End with a CTA, then: Cheers,\\nJoji Shiotsuki | Joji Web Solutions | jojishiotsuki.com\\n\\nNot interested? Just reply "stop" and I won't email again.
 {step1_learning}
 Return ONLY valid JSON (no markdown fences):
-{{"subject": "short punchy subject about the issue", "body": "email body here", "word_count": N, "cta_used": "the exact CTA line you used", "angle_used": "short label for the approach you took"}}"""
+{{"subject": "short punchy subject about the opportunity (not the problem)", "body": "email body here", "word_count": N, "cta_used": "the exact CTA line you used", "angle_used": "short label for the approach you took"}}"""
 
         model = os.getenv("AUTORESEARCH_FOLLOWUP_MODEL", "claude-sonnet-4-6")
         try:
