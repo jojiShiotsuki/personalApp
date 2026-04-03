@@ -358,3 +358,29 @@ class LinkedInReplyUpdate(BaseModel):
     replied: bool = True
     sentiment: Optional[str] = None  # positive/neutral/negative
     full_reply_text: Optional[str] = None  # pasted conversation
+
+
+# ──────────────────────────────────────────────
+# Bulk Generation Schemas
+# ──────────────────────────────────────────────
+
+class BulkGenerateRequest(BaseModel):
+    prospect_ids: list[int] = Field(..., max_length=30)
+
+
+class BulkGenerateResultItem(BaseModel):
+    prospect_id: int
+    status: str  # "success" or "error"
+    subject: str | None = None
+    word_count: int | None = None
+    angle_used: str | None = None
+    cost_usd: float | None = None
+    error: str | None = None
+
+
+class BulkGenerateResponse(BaseModel):
+    results: list[BulkGenerateResultItem]
+    total: int
+    succeeded: int
+    failed: int
+    total_cost_usd: float
