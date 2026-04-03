@@ -515,6 +515,8 @@ function PipelineProspectCard({
   isDragging,
   onDragStart,
   onDragEnd,
+  isSelected,
+  onToggleSelect,
 }: {
   prospect: OutreachProspect;
   onEdit: (prospect: OutreachProspect) => void;
@@ -527,6 +529,8 @@ function PipelineProspectCard({
   isDragging?: boolean;
   onDragStart?: (e: React.DragEvent, prospect: OutreachProspect) => void;
   onDragEnd?: () => void;
+  isSelected?: boolean;
+  onToggleSelect?: () => void;
 }) {
   const cardRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
@@ -563,7 +567,7 @@ function PipelineProspectCard({
       onDragStart={(e) => onDragStart?.(e, prospect)}
       onDragEnd={() => onDragEnd?.()}
       className={cn(
-        'bento-card p-4 transition-all duration-200 group select-none',
+        'bento-card relative p-4 transition-all duration-200 group select-none',
         !isMuted && 'cursor-grab active:cursor-grabbing',
         isMuted
           ? 'opacity-50 hover:opacity-75'
@@ -574,6 +578,19 @@ function PipelineProspectCard({
         isDragging && 'opacity-50 scale-95 ring-2 ring-blue-500/40'
       )}
     >
+      {onToggleSelect && (
+        <div className="absolute top-2 left-2 z-10">
+          <input
+            type="checkbox"
+            checked={isSelected || false}
+            onChange={(e) => {
+              e.stopPropagation();
+              onToggleSelect();
+            }}
+            className="w-4 h-4 text-[#E07A5F] bg-stone-800 border-stone-600 rounded focus:ring-[#E07A5F] cursor-pointer"
+          />
+        </div>
+      )}
       {/* Drag handle + Action buttons row */}
       <div className="flex items-center justify-center gap-1 mb-2 flex-wrap">
         {!isMuted && (
@@ -919,6 +936,8 @@ function SequencePipelineView({
   onMarkResponse,
   onMarkConnected,
   highlightProspectId,
+  selectedProspectIds,
+  onToggleProspectSelection,
 }: {
   prospects: OutreachProspect[];
   campaignSteps: MultiTouchStep[];
@@ -927,6 +946,8 @@ function SequencePipelineView({
   onMarkResponse: (prospect: OutreachProspect) => void;
   onMarkConnected: (prospect: OutreachProspect) => void;
   highlightProspectId?: number;
+  selectedProspectIds?: Set<number>;
+  onToggleProspectSelection?: (id: number) => void;
 }) {
   const [showSkipped, setShowSkipped] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>('date_asc');
@@ -1378,6 +1399,8 @@ function SequencePipelineView({
                         isDragging={draggedProspectId === prospect.id}
                         onDragStart={handleDragStart}
                         onDragEnd={handleDragEnd}
+                        isSelected={selectedProspectIds?.has(prospect.id)}
+                        onToggleSelect={() => onToggleProspectSelection?.(prospect.id)}
                       />
                     ))
                   )}
@@ -1434,6 +1457,8 @@ function SequencePipelineView({
                     isDragging={draggedProspectId === prospect.id}
                     onDragStart={handleDragStart}
                     onDragEnd={handleDragEnd}
+                    isSelected={selectedProspectIds?.has(prospect.id)}
+                    onToggleSelect={() => onToggleProspectSelection?.(prospect.id)}
                   />
                 ))
               )}
@@ -1495,6 +1520,8 @@ function SequencePipelineView({
                         isDragging={draggedProspectId === prospect.id}
                         onDragStart={handleDragStart}
                         onDragEnd={handleDragEnd}
+                        isSelected={selectedProspectIds?.has(prospect.id)}
+                        onToggleSelect={() => onToggleProspectSelection?.(prospect.id)}
                       />
                     ))
                   )}
@@ -1541,6 +1568,8 @@ function SequencePipelineView({
                     isMuted
                     isHighlighted={prospect.id === highlightProspectId}
                     experiment={experimentMap.get(prospect.id)}
+                    isSelected={selectedProspectIds?.has(prospect.id)}
+                    onToggleSelect={() => onToggleProspectSelection?.(prospect.id)}
                   />
                 ))}
               </div>
