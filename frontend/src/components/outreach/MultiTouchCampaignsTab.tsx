@@ -51,6 +51,8 @@ import CopyEmailModal from '@/components/CopyEmailModal';
 import ProspectStatusBadge from '@/components/outreach/ProspectStatusBadge';
 import ResponseOutcomeModal from '@/components/ResponseOutcomeModal';
 import CampaignKeywordTracker from './CampaignKeywordTracker';
+import { BulkGenerateBar } from './BulkGenerateBar';
+import { BulkGenerateModal } from './BulkGenerateModal';
 import { WEBSITE_ISSUE_LABELS } from '@/lib/outreachConstants';
 
 // Channel type colors for step indicators and badges
@@ -1920,6 +1922,12 @@ export default function MultiTouchCampaignsTab({ initialCampaignId, initialProsp
   const [isAddProspectOpen, setIsAddProspectOpen] = useState(false);
   const [emailModalProspect, setEmailModalProspect] = useState<OutreachProspect | null>(null);
   const [responseModalProspect, setResponseModalProspect] = useState<OutreachProspect | null>(null);
+  const [selectedProspectIds, setSelectedProspectIds] = useState<Set<number>>(new Set());
+  const [isBulkGenerating, setIsBulkGenerating] = useState(false);
+  const [bulkResults, setBulkResults] = useState<Awaited<ReturnType<typeof autoresearchApi.bulkGenerateFollowups>> | null>(null);
+  const [bulkError, setBulkError] = useState<string | null>(null);
+  const [showBulkModal, setShowBulkModal] = useState(false);
+  const [bulkTotalCount, setBulkTotalCount] = useState(0);
 
   const queryClient = useQueryClient();
 
@@ -2014,6 +2022,58 @@ export default function MultiTouchCampaignsTab({ initialCampaignId, initialProsp
     queryClient.invalidateQueries({ queryKey: ['mt-campaign'] });
     queryClient.invalidateQueries({ queryKey: ['multi-touch-campaigns'] });
   }
+
+  const ACTIONABLE_STATUSES = ['QUEUED', 'IN_SEQUENCE', 'PENDING_ENGAGEMENT', 'LINKEDIN_FOLLOWUP'];
+
+  const toggleProspectSelection = (prospectId: number) => {
+    setSelectedProspectIds(prev => {
+      const next = new Set(prev);
+      if (next.has(prospectId)) {
+        next.delete(prospectId);
+      } else {
+        next.add(prospectId);
+      }
+      return next;
+    });
+  };
+
+  const selectAllActionable = () => {
+    const actionable = (allProspects || [])
+      .filter(p => ACTIONABLE_STATUSES.includes(p.status))
+      .map(p => p.id);
+    const allSelected = actionable.every(id => selectedProspectIds.has(id));
+    if (allSelected) {
+      setSelectedProspectIds(new Set());
+    } else {
+      setSelectedProspectIds(new Set(actionable));
+    }
+  };
+
+  const handleBulkGenerate = async () => {
+    setBulkTotalCount(selectedProspectIds.size);
+    setIsBulkGenerating(true);
+    setBulkResults(null);
+    setBulkError(null);
+    setShowBulkModal(true);
+    try {
+      const result = await autoresearchApi.bulkGenerateFollowups(
+        Array.from(selectedProspectIds)
+      );
+      setBulkResults(result);
+      setSelectedProspectIds(new Set());
+      invalidateAll();
+    } catch (err: unknown) {
+      setBulkError(err instanceof Error ? err.message : 'Bulk generation failed');
+    } finally {
+      setIsBulkGenerating(false);
+    }
+  };
+
+  const closeBulkModal = () => {
+    setShowBulkModal(false);
+    setBulkResults(null);
+    setBulkError(null);
+  };
 
   const handleDeleteCampaign = (e: React.MouseEvent, campaignId: number) => {
     e.stopPropagation();
@@ -2297,6 +2357,24 @@ export default function MultiTouchCampaignsTab({ initialCampaignId, initialProsp
           />
         )}
 
+        {/* Select All Checkbox */}
+        {selectedCampaignId && allProspects.length > 0 && (
+          <div className="flex items-center gap-3 mb-3">
+            <input
+              type="checkbox"
+              checked={
+                selectedProspectIds.size > 0 &&
+                (allProspects || [])
+                  .filter(p => ACTIONABLE_STATUSES.includes(p.status))
+                  .every(p => selectedProspectIds.has(p.id))
+              }
+              onChange={selectAllActionable}
+              className="w-4 h-4 text-[#E07A5F] bg-stone-800 border-stone-600 rounded focus:ring-[#E07A5F] cursor-pointer"
+            />
+            <span className="text-xs text-[--exec-text-muted]">Select all actionable prospects</span>
+          </div>
+        )}
+
         {/* Pipeline View */}
         {selectedCampaignId ? (
           <SequencePipelineView
@@ -2307,6 +2385,8 @@ export default function MultiTouchCampaignsTab({ initialCampaignId, initialProsp
             onMarkResponse={setResponseModalProspect}
             onMarkConnected={(prospect) => markConnectedMutation.mutate(prospect.id)}
             highlightProspectId={highlightProspectId}
+            selectedProspectIds={selectedProspectIds}
+            onToggleProspectSelection={toggleProspectSelection}
           />
         ) : (
           <div className="bento-card p-12 text-center">
@@ -2385,6 +2465,22 @@ export default function MultiTouchCampaignsTab({ initialCampaignId, initialProsp
           prospect={responseModalProspect}
         />
       )}
+
+      <BulkGenerateBar
+        selectedCount={selectedProspectIds.size}
+        onGenerate={handleBulkGenerate}
+        onClear={() => setSelectedProspectIds(new Set())}
+        isGenerating={isBulkGenerating}
+      />
+
+      <BulkGenerateModal
+        isOpen={showBulkModal}
+        onClose={closeBulkModal}
+        isGenerating={isBulkGenerating}
+        totalCount={bulkTotalCount}
+        results={bulkResults}
+        error={bulkError}
+      />
     </>
   );
 }
