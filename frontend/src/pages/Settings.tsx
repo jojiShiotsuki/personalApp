@@ -1,18 +1,35 @@
 import { useState } from 'react';
-import { Settings as SettingsIcon, Moon, DollarSign, Database, Download, Keyboard } from 'lucide-react';
+import { Settings as SettingsIcon, Moon, DollarSign, Database, Download, Keyboard, RefreshCw, Mail } from 'lucide-react';
 import { CURRENCY_OPTIONS, getCurrencySymbol, setCurrencySymbol } from '@/lib/currency';
-import { exportApi } from '@/lib/api';
+import { exportApi, jojiAiApi } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
 export default function Settings() {
   const [currency, setCurrency] = useState(getCurrencySymbol());
   const [isBackingUp, setIsBackingUp] = useState(false);
+  const [isSyncingGmail, setIsSyncingGmail] = useState(false);
 
   const handleCurrencyChange = (symbol: string) => {
     setCurrencySymbol(symbol);
     setCurrency(symbol);
     toast.success('Currency updated — refresh pages to see changes');
+  };
+
+  const handleGmailSync = async () => {
+    setIsSyncingGmail(true);
+    try {
+      const result = await jojiAiApi.gmailVaultSyncNow();
+      if (result.status === 'skipped') {
+        toast.info(result.reason || 'Gmail not connected');
+      } else {
+        toast.success(`Gmail synced — ${result.threads_indexed || 0} new threads indexed`);
+      }
+    } catch {
+      toast.error('Gmail sync failed');
+    } finally {
+      setIsSyncingGmail(false);
+    }
   };
 
   const handleBackup = async () => {
@@ -129,6 +146,43 @@ export default function Settings() {
                 <>
                   <Download className="w-4 h-4" />
                   Download Full Backup
+                </>
+              )}
+            </button>
+          </div>
+
+          {/* Sync Section */}
+          <div className="bento-card-static p-6 mb-6">
+            <div className="flex items-center gap-3 mb-6">
+              <RefreshCw className="w-6 h-6 text-[--exec-accent]" />
+              <h2 className="text-lg font-semibold text-[--exec-text]">
+                Sync
+              </h2>
+            </div>
+
+            <p className="text-sm text-[--exec-text-muted] mb-4">
+              Manually trigger a Gmail-to-vault sync. This runs automatically every 30 minutes, but you can kick it off now.
+            </p>
+
+            <button
+              onClick={handleGmailSync}
+              disabled={isSyncingGmail}
+              className={cn(
+                'flex items-center gap-2 px-5 py-3 rounded-lg text-sm font-medium transition-all duration-200',
+                'bg-stone-800/50 border border-stone-600/40 text-stone-200',
+                'hover:bg-stone-700/50 hover:border-stone-500/50',
+                'disabled:opacity-50 disabled:cursor-not-allowed'
+              )}
+            >
+              {isSyncingGmail ? (
+                <>
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                  Syncing Gmail...
+                </>
+              ) : (
+                <>
+                  <Mail className="w-4 h-4" />
+                  Sync Gmail to Vault
                 </>
               )}
             </button>

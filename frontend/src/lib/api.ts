@@ -1621,6 +1621,11 @@ export const jojiAiApi = {
     return data;
   },
 
+  gmailVaultSyncNow: async (): Promise<{ status: string; threads_indexed?: number; threads_skipped?: number; reason?: string }> => {
+    const { data } = await api.post('/api/ai/vault/gmail-sync-now', {}, { timeout: 120000 });
+    return data;
+  },
+
   getVaultStatus: async (): Promise<VaultSyncStatus> => {
     const { data } = await api.get('/api/ai/vault/status');
     return data;
