@@ -274,13 +274,24 @@ def create_from_prospect(
 # ──────────────────────────────────────────
 @router.put("/leads/{lead_id}", response_model=NurtureLeadResponse)
 def update_lead(lead_id: int, data: NurtureLeadUpdate, db: Session = Depends(get_db)):
-    """Update notes/status on a nurture lead."""
+    """Update notes/status/current_step on a nurture lead."""
     lead = _load_lead(db, lead_id)
 
     if data.notes is not None:
         lead.notes = data.notes
     if data.status is not None:
         lead.status = data.status
+    if data.current_step is not None and 1 <= data.current_step <= 5:
+        # Create step log if moving to a new step that doesn't have one
+        existing_log = (
+            db.query(NurtureStepLog)
+            .filter(NurtureStepLog.nurture_lead_id == lead_id, NurtureStepLog.step_number == data.current_step)
+            .first()
+        )
+        if not existing_log:
+            db.add(NurtureStepLog(nurture_lead_id=lead_id, step_number=data.current_step))
+        lead.current_step = data.current_step
+        lead.last_action_at = datetime.utcnow()
 
     lead.updated_at = datetime.utcnow()
     db.commit()

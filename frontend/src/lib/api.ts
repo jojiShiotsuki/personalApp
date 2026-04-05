@@ -1511,6 +1511,7 @@ export const nurtureApi = {
   updateLead: async (id: number, data: {
     notes?: string;
     status?: string;
+    current_step?: number;
   }): Promise<NurtureLead> => {
     const res = await api.put(`/api/nurture/leads/${id}`, data);
     return res.data;

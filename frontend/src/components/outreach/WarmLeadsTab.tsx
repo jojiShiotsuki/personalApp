@@ -255,6 +255,63 @@ export default function WarmLeadsTab() {
     },
   });
 
+  // Drag-and-drop state
+  const [draggedLeadId, setDraggedLeadId] = useState<number | null>(null);
+  const [dragOverStep, setDragOverStep] = useState<number | null>(null);
+
+  const moveLeadMutation = useMutation({
+    mutationFn: ({ id, step }: { id: number; step: number }) =>
+      nurtureApi.updateLead(id, { current_step: step }),
+    onMutate: async (variables) => {
+      await queryClient.cancelQueries({ queryKey: ['nurture-leads'] });
+      queryClient.setQueryData<NurtureLead[]>(['nurture-leads'], (old) =>
+        old?.map((l) => l.id === variables.id ? { ...l, current_step: variables.step } : l)
+      );
+      toast.success('Lead moved');
+      return {};
+    },
+    onError: () => {
+      toast.error('Failed to move lead');
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['nurture-leads'] });
+      queryClient.invalidateQueries({ queryKey: ['nurture-stats'] });
+    },
+  });
+
+  const handleDragStart = (e: React.DragEvent, lead: NurtureLead) => {
+    e.dataTransfer.setData('text/plain', String(lead.id));
+    e.dataTransfer.effectAllowed = 'move';
+    setDraggedLeadId(lead.id);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedLeadId(null);
+    setDragOverStep(null);
+  };
+
+  const handleDragOver = (e: React.DragEvent, step: number) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (dragOverStep !== step) setDragOverStep(step);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+      setDragOverStep(null);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent, targetStep: number) => {
+    e.preventDefault();
+    setDragOverStep(null);
+    const leadId = Number(e.dataTransfer.getData('text/plain'));
+    if (!leadId) return;
+    const lead = leads.find((l) => l.id === leadId);
+    if (!lead || lead.current_step === targetStep) return;
+    moveLeadMutation.mutate({ id: leadId, step: targetStep });
+  };
+
   const updateProspectMutation = useMutation({
     mutationFn: ({ id, data }: { id: number; data: Partial<OutreachProspect> }) =>
       coldOutreachApi.updateProspect(id, data),
@@ -367,10 +424,14 @@ export default function WarmLeadsTab() {
             return (
               <div
                 key={step.step}
+                onDragOver={(e) => handleDragOver(e, step.step)}
+                onDragLeave={handleDragLeave}
+                onDrop={(e) => handleDrop(e, step.step)}
                 className={cn(
                   'bg-stone-900/30 rounded-xl p-3 min-w-[220px] flex-1',
-                  'border-t-2',
-                  STEP_BORDER_COLORS[step.step]
+                  'border-t-2 transition-all',
+                  STEP_BORDER_COLORS[step.step],
+                  dragOverStep === step.step && 'ring-2 ring-[--exec-accent]/40 bg-stone-800/40'
                 )}
               >
                 {/* Column Header */}
@@ -397,12 +458,16 @@ export default function WarmLeadsTab() {
                     return (
                       <div
                         key={lead.id}
+                        draggable
+                        onDragStart={(e) => handleDragStart(e, lead)}
+                        onDragEnd={handleDragEnd}
                         onClick={() => handleSelectLead(lead)}
                         className={cn(
-                          'bg-stone-800/50 border rounded-lg p-4 cursor-pointer transition-all group',
+                          'bg-stone-800/50 border rounded-lg p-4 cursor-grab active:cursor-grabbing transition-all group',
                           selectedLeadId === lead.id
                             ? 'border-[--exec-accent] shadow-md'
-                            : 'border-stone-600/40 hover:border-stone-500/60 hover:shadow-lg hover:-translate-y-0.5'
+                            : 'border-stone-600/40 hover:border-stone-500/60 hover:shadow-lg hover:-translate-y-0.5',
+                          draggedLeadId === lead.id && 'opacity-50 scale-95 ring-2 ring-blue-500/40'
                         )}
                       >
                         {/* Action buttons row */}
