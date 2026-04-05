@@ -1,5 +1,6 @@
 import asyncio
 import logging
+from datetime import datetime, timedelta
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 logger = logging.getLogger(__name__)
@@ -138,6 +139,59 @@ async def gmail_vault_sync_job():
     await loop.run_in_executor(None, _gmail_vault_sync_blocking)
 
 
+def _nurture_followup_check_blocking():
+    """Check for quiet nurture leads and update follow-up stages."""
+    from app.database.connection import SessionLocal
+    from app.models.nurture import NurtureLead, NurtureStatus, FollowupStage
+
+    db = SessionLocal()
+    try:
+        active_leads = (
+            db.query(NurtureLead)
+            .filter(NurtureLead.status == NurtureStatus.ACTIVE)
+            .all()
+        )
+        now = datetime.utcnow()
+        for lead in active_leads:
+            days_quiet = (now - lead.last_action_at).days
+
+            if days_quiet >= 20:
+                lead.status = NurtureStatus.LONG_TERM
+                lead.followup_stage = FollowupStage.LONG_TERM
+                lead.next_followup_at = None
+            elif days_quiet >= 10:
+                lead.followup_stage = FollowupStage.DAY_10
+                lead.next_followup_at = lead.last_action_at + timedelta(days=10)
+                if not lead.quiet_since:
+                    lead.quiet_since = now
+            elif days_quiet >= 5:
+                lead.followup_stage = FollowupStage.DAY_5
+                lead.next_followup_at = lead.last_action_at + timedelta(days=5)
+                if not lead.quiet_since:
+                    lead.quiet_since = now
+            elif days_quiet >= 2:
+                lead.followup_stage = FollowupStage.DAY_2
+                lead.next_followup_at = lead.last_action_at + timedelta(days=2)
+                if not lead.quiet_since:
+                    lead.quiet_since = now
+            else:
+                lead.followup_stage = None
+                lead.next_followup_at = None
+                lead.quiet_since = None
+
+        db.commit()
+    except Exception as e:
+        logger.error("Nurture follow-up check failed: %s", e)
+    finally:
+        db.close()
+
+
+async def nurture_followup_check_job():
+    """Scheduled job: check nurture leads for follow-up triggers."""
+    loop = asyncio.get_event_loop()
+    await loop.run_in_executor(None, _nurture_followup_check_blocking)
+
+
 def start_scheduler():
     """Start the background scheduler with all jobs."""
     scheduler.add_job(
@@ -175,11 +229,19 @@ def start_scheduler():
         id="daily_learn",
         replace_existing=True,
     )
+    scheduler.add_job(
+        nurture_followup_check_job,
+        "interval",
+        minutes=30,
+        id="nurture_followup_check",
+        replace_existing=True,
+    )
     scheduler.start()
     logger.info(
         "Scheduler started with Gmail polling every 5 min, "
         "vault sync every 30 min, CRM batch sync every 30 min, "
         "Gmail vault sync every 30 min, "
+        "nurture follow-up check every 30 min, "
         "and daily learning refresh at 22:00"
     )
 
