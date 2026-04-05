@@ -272,7 +272,7 @@ def get_campaign_stats(campaign: OutreachCampaign, db: Session) -> CampaignStats
 
     queued = status_counts.get(ProspectStatus.QUEUED, 0)
     in_sequence = status_counts.get(ProspectStatus.IN_SEQUENCE, 0)
-    replied = status_counts.get(ProspectStatus.REPLIED, 0)
+    replied = status_counts.get(ProspectStatus.REPLIED, 0) + status_counts.get(ProspectStatus.CONVERTED, 0)
     not_interested = status_counts.get(ProspectStatus.NOT_INTERESTED, 0)
     converted = status_counts.get(ProspectStatus.CONVERTED, 0)
     pending_connection = status_counts.get(ProspectStatus.PENDING_CONNECTION, 0)
