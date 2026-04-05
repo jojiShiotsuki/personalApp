@@ -42,6 +42,7 @@ class NurtureLeadResponse(BaseModel):
     prospect_linkedin_url: Optional[str] = None
     prospect_facebook_url: Optional[str] = None
     prospect_instagram_url: Optional[str] = None
+    prospect_linkedin_connected: bool = False
     campaign_name: Optional[str] = None
     contact_name: Optional[str] = None
     step_logs: List[NurtureStepLogResponse] = []

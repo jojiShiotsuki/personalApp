@@ -65,6 +65,7 @@ def _build_lead_response(lead: NurtureLead) -> NurtureLeadResponse:
         prospect_linkedin_url=prospect.linkedin_url if prospect else None,
         prospect_facebook_url=prospect.facebook_url if prospect else None,
         prospect_instagram_url=prospect.instagram_url if prospect else None,
+        prospect_linkedin_connected=prospect.linkedin_connected if prospect else False,
         campaign_name=campaign.name if campaign else None,
         contact_name=contact.name if contact else None,
         step_logs=step_logs,

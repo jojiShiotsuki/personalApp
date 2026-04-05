@@ -1628,6 +1628,7 @@ export interface NurtureLead {
   prospect_linkedin_url: string | null;
   prospect_facebook_url: string | null;
   prospect_instagram_url: string | null;
+  prospect_linkedin_connected: boolean;
   campaign_name: string | null;
   contact_name: string | null;
   step_logs: NurtureStepLog[];
