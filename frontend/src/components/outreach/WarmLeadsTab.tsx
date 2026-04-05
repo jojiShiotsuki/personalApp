@@ -488,16 +488,24 @@ export default function WarmLeadsTab() {
                           <button
                             onClick={async (e) => {
                               e.stopPropagation();
+                              const newValue = !lead.prospect_linkedin_connected;
+                              // Optimistic update
+                              queryClient.setQueryData<NurtureLead[]>(['nurture-leads'], (old) =>
+                                old?.map((l) => l.id === lead.id ? { ...l, prospect_linkedin_connected: newValue } : l)
+                              );
                               try {
-                                const newValue = !lead.prospect_linkedin_connected;
                                 await coldOutreachApi.updateProspect(lead.prospect_id, {
                                   linkedin_connected: newValue,
                                 } as Partial<OutreachProspect>);
-                                queryClient.invalidateQueries({ queryKey: ['nurture-leads'] });
                                 toast.success(newValue ? 'LinkedIn connected' : 'LinkedIn disconnected');
                               } catch {
+                                // Rollback
+                                queryClient.setQueryData<NurtureLead[]>(['nurture-leads'], (old) =>
+                                  old?.map((l) => l.id === lead.id ? { ...l, prospect_linkedin_connected: !newValue } : l)
+                                );
                                 toast.error('Failed to update LinkedIn status');
                               }
+                              queryClient.invalidateQueries({ queryKey: ['nurture-leads'] });
                             }}
                             className={cn(
                               'p-1.5 rounded-md transition-colors',
