@@ -774,19 +774,6 @@ function PipelineProspectCard({
 // Outcome column configuration
 const OUTCOME_COLUMNS = [
   {
-    key: 'replied' as const,
-    label: 'Replied',
-    status: ProspectStatus.REPLIED,
-    icon: MessageSquare,
-    bg: 'bg-green-500/15',
-    border: 'border-green-500/30',
-    text: 'text-green-400',
-    dot: 'bg-green-400',
-    headerBg: 'bg-green-500/10',
-    borderTop: 'border-t-green-500',
-    badgeBg: 'bg-green-500/20',
-  },
-  {
     key: 'converted' as const,
     label: 'Converted',
     status: ProspectStatus.CONVERTED,
@@ -1137,7 +1124,6 @@ function SequencePipelineView({
   // Group prospects by step (non-outcome) or by outcome status
   const stepBuckets: Record<number, OutreachProspect[]> = {};
   const outcomeBuckets: Record<string, OutreachProspect[]> = {
-    replied: [],
     converted: [],
     not_interested: [],
   };
@@ -1147,8 +1133,6 @@ function SequencePipelineView({
   for (const p of filteredProspects) {
     if (p.status === ProspectStatus.SKIPPED) {
       skippedProspects.push(p);
-    } else if (p.status === ProspectStatus.REPLIED) {
-      outcomeBuckets.replied.push(p);
     } else if (p.status === ProspectStatus.CONVERTED) {
       outcomeBuckets.converted.push(p);
     } else if (p.status === ProspectStatus.NOT_INTERESTED) {
