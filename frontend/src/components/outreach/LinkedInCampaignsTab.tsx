@@ -31,6 +31,7 @@ import {
   ExternalLink,
   FileText,
   Search,
+  Heart,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -495,6 +496,29 @@ function LinkedInProspectCard({
               >
                 <MessageSquare className="w-4 h-4" />
                 They Replied
+              </button>
+              <button
+                onClick={async () => {
+                  try {
+                    const { nurtureApi } = await import('@/lib/api');
+                    await nurtureApi.createFromProspect(prospect.id, {});
+                    toast.success('Moved to Warm Leads');
+                  } catch (err: unknown) {
+                    const axiosErr = err as { response?: { status?: number } };
+                    if (axiosErr.response?.status === 409) {
+                      toast.info('Already in Warm Leads');
+                    } else {
+                      toast.error('Failed to move to warm leads');
+                    }
+                  }
+                }}
+                className={cn(
+                  'flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200',
+                  'bg-pink-600 text-white hover:bg-pink-500 hover:scale-105 hover:shadow-lg active:scale-95'
+                )}
+              >
+                <Heart className="w-4 h-4" />
+                Warm Lead
               </button>
             </>
           )}

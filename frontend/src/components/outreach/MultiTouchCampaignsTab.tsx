@@ -637,6 +637,33 @@ function PipelineProspectCard({
               <MessageSquare className="w-3.5 h-3.5" />
             </button>
           )}
+          {!isMuted && prospect.status !== ProspectStatus.CONVERTED && (
+            <button
+              onClick={async (e) => {
+                e.stopPropagation();
+                try {
+                  const { nurtureApi } = await import('@/lib/api');
+                  await nurtureApi.createFromProspect(prospect.id, {});
+                  toast.success('Moved to Warm Leads');
+                  queryClient.invalidateQueries({ queryKey: ['nurture-leads'] });
+                  queryClient.invalidateQueries({ queryKey: ['nurture-stats'] });
+                  queryClient.invalidateQueries({ queryKey: ['mt-prospects'] });
+                  queryClient.invalidateQueries({ queryKey: ['mt-campaign'] });
+                } catch (err: unknown) {
+                  const axiosErr = err as { response?: { status?: number } };
+                  if (axiosErr.response?.status === 409) {
+                    toast.info('Already in Warm Leads');
+                  } else {
+                    toast.error('Failed to move to warm leads');
+                  }
+                }
+              }}
+              className="p-1.5 text-[--exec-text-muted] hover:text-pink-400 hover:bg-pink-500/15 rounded-md transition-colors"
+              title="Move to Warm Leads"
+            >
+              <Heart className="w-3.5 h-3.5" />
+            </button>
+          )}
           {!isMuted && (
             <button
               onClick={async () => {
