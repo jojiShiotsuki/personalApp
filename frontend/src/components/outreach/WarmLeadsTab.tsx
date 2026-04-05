@@ -305,6 +305,7 @@ export default function WarmLeadsTab() {
   const handleDrop = (e: React.DragEvent, targetStep: number) => {
     e.preventDefault();
     setDragOverStep(null);
+    setDraggedLeadId(null);
     const leadId = Number(e.dataTransfer.getData('text/plain'));
     if (!leadId) return;
     const lead = leads.find((l) => l.id === leadId);
