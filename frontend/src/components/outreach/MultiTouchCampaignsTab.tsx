@@ -1495,6 +1495,7 @@ function SequencePipelineView({
                     onEdit={onEdit}
                     onViewMessage={onViewMessage}
                     onMarkResponse={onMarkResponse}
+                    onMarkConnected={onMarkConnected}
                     isHighlighted={prospect.id === highlightProspectId}
                     experiment={experimentMap.get(prospect.id)}
                     isDragging={draggedProspectId === prospect.id}
@@ -1555,6 +1556,7 @@ function SequencePipelineView({
                         onEdit={onEdit}
                         onViewMessage={onViewMessage}
                         onMarkResponse={onMarkResponse}
+                        onMarkConnected={onMarkConnected}
                         isHighlighted={prospect.id === highlightProspectId}
                         experiment={experimentMap.get(prospect.id)}
                         isDragging={draggedProspectId === prospect.id}
