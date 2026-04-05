@@ -18,10 +18,10 @@ class NurtureStepLogResponse(BaseModel):
 
 class NurtureLeadResponse(BaseModel):
     id: int
-    prospect_id: int
+    prospect_id: Optional[int] = None
     contact_id: Optional[int] = None
     deal_id: Optional[int] = None
-    campaign_id: int
+    campaign_id: Optional[int] = None
     source_channel: Optional[str] = None
     current_step: int
     current_step_name: str = ""
