@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { nurtureApi } from '@/lib/api';
-import type { NurtureLead } from '@/types';
+import { nurtureApi, coldOutreachApi } from '@/lib/api';
+import type { NurtureLead, OutreachProspect } from '@/types';
 import { NurtureStatus, FollowupStage } from '@/types';
+import CopyEmailModal from '@/components/CopyEmailModal';
 import {
   Heart,
   Users,
@@ -109,6 +110,22 @@ export default function WarmLeadsTab() {
   const queryClient = useQueryClient();
   const [selectedLeadId, setSelectedLeadId] = useState<number | null>(null);
   const [followupOpen, setFollowupOpen] = useState(true);
+  const [emailModalProspect, setEmailModalProspect] = useState<OutreachProspect | null>(null);
+
+  const handleViewEmail = async (lead: NurtureLead) => {
+    try {
+      const prospects = await coldOutreachApi.getProspects(lead.campaign_id);
+      const prospect = prospects.find((p: OutreachProspect) => p.id === lead.prospect_id);
+      if (prospect) {
+        setEmailModalProspect(prospect);
+      }
+    } catch {
+      // Fallback: just open mailto
+      if (lead.prospect_email) {
+        window.open(`mailto:${lead.prospect_email}`);
+      }
+    }
+  };
 
   // Queries
   const { data: stats } = useQuery({
@@ -282,14 +299,16 @@ export default function WarmLeadsTab() {
                         {/* Action buttons row */}
                         <div className="flex items-center justify-center gap-0.5 mb-2 flex-wrap">
                           {lead.prospect_email && (
-                            <a
-                              href={`mailto:${lead.prospect_email}`}
-                              onClick={(e) => e.stopPropagation()}
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleViewEmail(lead);
+                              }}
                               className="p-1.5 text-[--exec-text-muted] hover:text-blue-400 hover:bg-blue-500/15 rounded-md transition-colors"
-                              title="Send email"
+                              title="View email"
                             >
                               <Mail className="w-3.5 h-3.5" />
-                            </a>
+                            </button>
                           )}
                           <button
                             onClick={(e) => e.stopPropagation()}
@@ -441,6 +460,16 @@ export default function WarmLeadsTab() {
           })}
         </div>
       </div>
+
+      {/* Copy Email Modal */}
+      {emailModalProspect && (
+        <CopyEmailModal
+          isOpen={true}
+          onClose={() => setEmailModalProspect(null)}
+          prospect={emailModalProspect}
+          campaignId={emailModalProspect.campaign_id}
+        />
+      )}
 
       {/* Follow-up Section */}
       {followupLeads.length > 0 && (
