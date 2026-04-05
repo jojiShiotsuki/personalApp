@@ -56,13 +56,13 @@ import { BulkGenerateModal } from './BulkGenerateModal';
 import { WEBSITE_ISSUE_LABELS } from '@/lib/outreachConstants';
 
 // Channel type colors for step indicators and badges
-const CHANNEL_COLORS: Record<StepChannelType, { bg: string; text: string; dot: string }> = {
-  [StepChannelType.EMAIL]: { bg: 'bg-blue-500/20', text: 'text-blue-400', dot: 'bg-blue-400' },
-  [StepChannelType.LINKEDIN_CONNECT]: { bg: 'bg-sky-500/20', text: 'text-sky-400', dot: 'bg-sky-400' },
-  [StepChannelType.LINKEDIN_MESSAGE]: { bg: 'bg-indigo-500/20', text: 'text-indigo-400', dot: 'bg-indigo-400' },
-  [StepChannelType.LINKEDIN_ENGAGE]: { bg: 'bg-amber-500/20', text: 'text-amber-400', dot: 'bg-amber-400' },
-  [StepChannelType.FOLLOW_UP_EMAIL]: { bg: 'bg-purple-500/20', text: 'text-purple-400', dot: 'bg-purple-400' },
-  [StepChannelType.LOOM_EMAIL]: { bg: 'bg-rose-500/20', text: 'text-rose-400', dot: 'bg-rose-400' },
+const CHANNEL_COLORS: Record<StepChannelType, { bg: string; text: string; dot: string; borderTop: string }> = {
+  [StepChannelType.EMAIL]: { bg: 'bg-blue-500/20', text: 'text-blue-400', dot: 'bg-blue-400', borderTop: 'border-t-blue-400' },
+  [StepChannelType.LINKEDIN_CONNECT]: { bg: 'bg-sky-500/20', text: 'text-sky-400', dot: 'bg-sky-400', borderTop: 'border-t-sky-400' },
+  [StepChannelType.LINKEDIN_MESSAGE]: { bg: 'bg-indigo-500/20', text: 'text-indigo-400', dot: 'bg-indigo-400', borderTop: 'border-t-indigo-400' },
+  [StepChannelType.LINKEDIN_ENGAGE]: { bg: 'bg-amber-500/20', text: 'text-amber-400', dot: 'bg-amber-400', borderTop: 'border-t-amber-400' },
+  [StepChannelType.FOLLOW_UP_EMAIL]: { bg: 'bg-purple-500/20', text: 'text-purple-400', dot: 'bg-purple-400', borderTop: 'border-t-purple-400' },
+  [StepChannelType.LOOM_EMAIL]: { bg: 'bg-rose-500/20', text: 'text-rose-400', dot: 'bg-rose-400', borderTop: 'border-t-rose-400' },
 };
 
 const CHANNEL_LABELS: Record<StepChannelType, string> = {
@@ -874,6 +874,8 @@ const OUTCOME_COLUMNS = [
     text: 'text-green-400',
     dot: 'bg-green-400',
     headerBg: 'bg-green-500/10',
+    borderTop: 'border-t-green-500',
+    badgeBg: 'bg-green-500/20',
   },
   {
     key: 'converted' as const,
@@ -885,6 +887,8 @@ const OUTCOME_COLUMNS = [
     text: 'text-purple-400',
     dot: 'bg-purple-400',
     headerBg: 'bg-purple-500/10',
+    borderTop: 'border-t-purple-500',
+    badgeBg: 'bg-purple-500/20',
   },
   {
     key: 'not_interested' as const,
@@ -896,6 +900,8 @@ const OUTCOME_COLUMNS = [
     text: 'text-red-400',
     dot: 'bg-red-400',
     headerBg: 'bg-red-500/10',
+    borderTop: 'border-t-red-500',
+    badgeBg: 'bg-red-500/20',
   },
 ];
 
@@ -1273,8 +1279,6 @@ function SequencePipelineView({
       .map((stepNum) => ({ stepNumber: stepNum, label: `Step ${stepNum}` }));
   }
 
-  const totalColumns = stepColumns.length + OUTCOME_COLUMNS.length + 1; // +1 for LinkedIn Follow-up column
-
   return (
     <div className="space-y-4">
       {/* Search and sort controls */}
@@ -1335,13 +1339,8 @@ function SequencePipelineView({
 
       {/* Pipeline columns */}
       <div className="overflow-x-auto pb-4 -mx-2">
-        <div
-          className="grid gap-4 px-2"
-          style={{
-            gridTemplateColumns: `repeat(${totalColumns}, minmax(220px, 1fr))`,
-            minWidth: totalColumns > 4 ? `${totalColumns * 240}px` : undefined,
-          }}
-        >
+        <div className="flex gap-3 px-2">
+
           {/* Step columns */}
           {stepColumns.map((col) => {
             const colors = col.channelType ? CHANNEL_COLORS[col.channelType] : undefined;
@@ -1352,7 +1351,15 @@ function SequencePipelineView({
             const noCustomCount = bucket.filter(p => p.email && !(p.custom_email_subject || p.custom_email_body)).length;
 
             return (
-              <div key={col.stepNumber} className="flex flex-col min-w-0">
+              <div
+                key={col.stepNumber}
+                className={cn(
+                  'bg-stone-900/30 rounded-xl p-3 min-w-[220px] flex-1',
+                  'border-t-2 transition-all',
+                  colors?.borderTop || 'border-t-stone-500',
+                  dragOverColumn === `step-${col.stepNumber}` && 'ring-2 ring-[--exec-accent]/40 bg-stone-800/40'
+                )}
+              >
                 {/* Column header — click to edit step type */}
                 <div
                   onClick={() => {
@@ -1366,78 +1373,59 @@ function SequencePipelineView({
                     setEditFallbackContent(step?.fallback_template_content || '');
                     setEditFallbackInstruction(step?.fallback_instruction_text || '');
                   }}
-                  className={cn(
-                    'rounded-t-xl px-4 py-3 border border-b-0 cursor-pointer',
-                    'bg-stone-800/50 border-stone-700/40',
-                    'hover:bg-stone-700/50 transition-colors'
-                  )}
+                  className="flex items-center justify-between mb-3 cursor-pointer"
                   title="Click to change step type"
                 >
-                  <div className="flex items-center gap-2.5">
-                    <span
-                      className={cn(
-                        'flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold flex-shrink-0',
-                        colors?.bg || 'bg-stone-600/30',
-                        colors?.text || 'text-stone-400'
-                      )}
-                    >
-                      {col.stepNumber}
+                  <div className="flex items-center gap-2 min-w-0">
+                    {Icon && <Icon className={cn('w-4 h-4 flex-shrink-0', colors?.text || 'text-stone-400')} />}
+                    <span className={cn('text-xs font-semibold truncate', colors?.text || 'text-stone-400')}>
+                      Step {col.stepNumber}: {col.label}
                     </span>
-                    <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                      {Icon && <Icon className={cn('w-4 h-4 flex-shrink-0', colors?.text || 'text-stone-400')} />}
-                      <span className={cn('text-sm font-semibold truncate', colors?.text || 'text-stone-400')}>
-                        {col.label}
-                      </span>
-                    </div>
                     {col.conditionType && (
-                      <span title={`Condition: ${CONDITION_LABELS[col.conditionType as ConditionType] || col.conditionType}`}><GitBranch className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" /></span>
+                      <span title={`Condition: ${CONDITION_LABELS[col.conditionType as ConditionType] || col.conditionType}`}><GitBranch className="w-3 h-3 text-amber-400 flex-shrink-0" /></span>
                     )}
-                    <span className="text-xs bg-stone-700/60 text-[--exec-text-muted] px-2 py-0.5 rounded-full font-medium flex-shrink-0">
-                      {bucket.length}
+                  </div>
+                  <span className={cn('text-xs font-medium px-1.5 py-0.5 rounded-full flex-shrink-0', colors?.bg || 'bg-stone-600/30', colors?.text || 'text-stone-400')}>
+                    {bucket.length}
+                  </span>
+                </div>
+                {/* Fallback route visualization */}
+                {col.fallbackChannelType && (
+                  <div className="flex items-center gap-1.5 mb-2 pl-6">
+                    <span className="text-[10px] text-stone-500">fallback →</span>
+                    {(() => {
+                      const fbColors = CHANNEL_COLORS[col.fallbackChannelType];
+                      const FbIcon = CHANNEL_ICONS[col.fallbackChannelType];
+                      const fbLabel = CHANNEL_LABELS[col.fallbackChannelType];
+                      return (
+                        <span className={cn('inline-flex items-center gap-1 text-[10px] font-medium', fbColors?.text || 'text-stone-400')}>
+                          {FbIcon && <FbIcon className="w-3 h-3" />}
+                          {fbLabel}
+                        </span>
+                      );
+                    })()}
+                  </div>
+                )}
+                {/* Custom message counts for steps with email prospects */}
+                {bucket.length > 0 && (customCount > 0 || noCustomCount > 0) && (
+                  <div className="flex items-center gap-2 mb-2 pb-2 border-b border-stone-700/30">
+                    <span className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-400">
+                      <Mail className="w-2.5 h-2.5" />
+                      {customCount} custom
+                    </span>
+                    <span className="text-[10px] text-stone-600">|</span>
+                    <span className="inline-flex items-center gap-1 text-[10px] font-medium text-stone-500">
+                      {noCustomCount} no msg
                     </span>
                   </div>
-                  {/* Fallback route visualization */}
-                  {col.fallbackChannelType && (
-                    <div className="flex items-center gap-1.5 mt-1.5 pl-8">
-                      <span className="text-[10px] text-stone-500">fallback →</span>
-                      {(() => {
-                        const fbColors = CHANNEL_COLORS[col.fallbackChannelType];
-                        const FbIcon = CHANNEL_ICONS[col.fallbackChannelType];
-                        const fbLabel = CHANNEL_LABELS[col.fallbackChannelType];
-                        return (
-                          <span className={cn('inline-flex items-center gap-1 text-[10px] font-medium', fbColors?.text || 'text-stone-400')}>
-                            {FbIcon && <FbIcon className="w-3 h-3" />}
-                            {fbLabel}
-                          </span>
-                        );
-                      })()}
-                    </div>
-                  )}
-                  {/* Custom message counts for steps with email prospects */}
-                  {bucket.length > 0 && (customCount > 0 || noCustomCount > 0) && (
-                    <div className="flex items-center gap-2 mt-2 pt-2 border-t border-stone-700/30">
-                      <span className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-400">
-                        <Mail className="w-2.5 h-2.5" />
-                        {customCount} custom
-                      </span>
-                      <span className="text-[10px] text-stone-600">|</span>
-                      <span className="inline-flex items-center gap-1 text-[10px] font-medium text-stone-500">
-                        {noCustomCount} no msg
-                      </span>
-                    </div>
-                  )}
-                </div>
+                )}
 
-                {/* Column body — drop target */}
+                {/* Cards — drop target */}
                 <div
                   onDragOver={(e) => handleDragOver(e, `step-${col.stepNumber}`)}
                   onDragLeave={handleDragLeave}
                   onDrop={(e) => handleDropOnStep(e, col.stepNumber)}
-                  className={cn(
-                    'flex-1 rounded-b-xl border border-t-0 p-3 space-y-3 min-h-[160px] max-h-[70vh] overflow-y-auto transition-all duration-200',
-                    'bg-stone-800/15 border-stone-700/40',
-                    dragOverColumn === `step-${col.stepNumber}` && 'ring-2 ring-blue-500/50 bg-blue-500/5 border-blue-500/30'
-                  )}
+                  className="space-y-2 min-h-[100px] max-h-[70vh] overflow-y-auto"
                 >
                   {bucket.length === 0 ? (
                     <div className="flex items-center justify-center h-full min-h-[100px] text-[--exec-text-muted] text-sm">
@@ -1468,35 +1456,32 @@ function SequencePipelineView({
           })}
 
           {/* LinkedIn Follow-up column (after sequence steps, before outcome columns) */}
-          <div className="flex flex-col min-w-0">
+          <div
+            className={cn(
+              'bg-stone-900/30 rounded-xl p-3 min-w-[220px] flex-1',
+              'border-t-2 border-t-sky-500 transition-all',
+              dragOverColumn === 'linkedin-followup' && 'ring-2 ring-[--exec-accent]/40 bg-stone-800/40'
+            )}
+          >
             {/* Column header */}
-            <div
-              className={cn(
-                'rounded-t-xl px-4 py-3 border border-b-0',
-                'bg-sky-500/10 border-sky-500/30'
-              )}
-            >
-              <div className="flex items-center gap-2.5">
-                <Linkedin className={cn('w-4.5 h-4.5 flex-shrink-0 text-sky-400')} />
-                <span className="text-sm font-semibold flex-1 text-sky-400">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Linkedin className="w-4 h-4 flex-shrink-0 text-sky-400" />
+                <span className="text-xs font-semibold text-sky-400">
                   LI Follow-up
                 </span>
-                <span className="text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0 bg-sky-500/15 text-sky-400">
-                  {linkedinFollowupProspects.length}
-                </span>
               </div>
+              <span className="text-xs font-medium px-1.5 py-0.5 rounded-full bg-sky-500/20 text-sky-400">
+                {linkedinFollowupProspects.length}
+              </span>
             </div>
 
-            {/* Column body — drop target */}
+            {/* Cards — drop target */}
             <div
               onDragOver={(e) => handleDragOver(e, 'linkedin-followup')}
               onDragLeave={handleDragLeave}
               onDrop={handleDropOnLinkedinFollowup}
-              className={cn(
-                'flex-1 rounded-b-xl border border-t-0 p-3 space-y-3 min-h-[160px] max-h-[70vh] overflow-y-auto transition-all duration-200',
-                'bg-stone-800/15 border-sky-500/30',
-                dragOverColumn === 'linkedin-followup' && 'ring-2 ring-sky-500/50 bg-sky-500/5 border-sky-500/30'
-              )}
+              className="space-y-2 min-h-[100px] max-h-[70vh] overflow-y-auto"
             >
               {linkedinFollowupProspects.length === 0 ? (
                 <div className="flex items-center justify-center h-full min-h-[100px] text-[--exec-text-muted] text-sm">
@@ -1529,37 +1514,34 @@ function SequencePipelineView({
             const OutcomeIcon = ocol.icon;
 
             return (
-              <div key={ocol.key} className="flex flex-col min-w-0">
+              <div
+                key={ocol.key}
+                className={cn(
+                  'bg-stone-900/30 rounded-xl p-3 min-w-[220px] flex-1',
+                  'border-t-2 transition-all',
+                  ocol.borderTop,
+                  dragOverColumn === `outcome-${ocol.key}` && 'ring-2 ring-[--exec-accent]/40 bg-stone-800/40'
+                )}
+              >
                 {/* Column header */}
-                <div
-                  className={cn(
-                    'rounded-t-xl px-4 py-3 border border-b-0',
-                    ocol.headerBg,
-                    ocol.border
-                  )}
-                >
-                  <div className="flex items-center gap-2.5">
-                    <OutcomeIcon className={cn('w-4.5 h-4.5 flex-shrink-0', ocol.text)} />
-                    <span className={cn('text-sm font-semibold flex-1', ocol.text)}>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <OutcomeIcon className={cn('w-4 h-4 flex-shrink-0', ocol.text)} />
+                    <span className={cn('text-xs font-semibold', ocol.text)}>
                       {ocol.label}
                     </span>
-                    <span className={cn('text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0', ocol.bg, ocol.text)}>
-                      {bucket.length}
-                    </span>
                   </div>
+                  <span className={cn('text-xs font-medium px-1.5 py-0.5 rounded-full', ocol.badgeBg, ocol.text)}>
+                    {bucket.length}
+                  </span>
                 </div>
 
-                {/* Column body — drop target */}
+                {/* Cards — drop target */}
                 <div
                   onDragOver={(e) => handleDragOver(e, `outcome-${ocol.key}`)}
                   onDragLeave={handleDragLeave}
                   onDrop={(e) => handleDropOnOutcome(e, ocol.status)}
-                  className={cn(
-                    'flex-1 rounded-b-xl border border-t-0 p-3 space-y-3 min-h-[160px] max-h-[70vh] overflow-y-auto transition-all duration-200',
-                    'bg-stone-800/15',
-                    ocol.border,
-                    dragOverColumn === `outcome-${ocol.key}` && 'ring-2 ring-blue-500/50 bg-blue-500/5 border-blue-500/30'
-                  )}
+                  className="space-y-2 min-h-[100px] max-h-[70vh] overflow-y-auto"
                 >
                   {bucket.length === 0 ? (
                     <div className="flex items-center justify-center h-full min-h-[100px] text-[--exec-text-muted] text-sm">
