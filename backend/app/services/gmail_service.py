@@ -481,7 +481,9 @@ class GmailService:
                 if category == "stop" or category == "not_interested":
                     prospect.status = ProspectStatus.NOT_INTERESTED
                 elif category in ("interested", "curious"):
-                    prospect.status = ProspectStatus.REPLIED
+                    prospect.status = ProspectStatus.CONVERTED
+                    # Auto-route to nurture pipeline
+                    self._auto_create_nurture_lead(db, prospect)
                 elif sentiment:
                     prospect.status = ProspectStatus.REPLIED
 
@@ -546,6 +548,71 @@ class GmailService:
             result["new_sent_matches"],
         )
         return result
+
+    # ──────────────────────────────────────────────
+    # Auto-Nurture Routing
+    # ──────────────────────────────────────────────
+
+    @staticmethod
+    def _auto_create_nurture_lead(db: Session, prospect) -> None:
+        """Auto-create a NurtureLead when Gmail polling detects an interested reply."""
+        from app.models.nurture import NurtureLead, NurtureStepLog, NurtureStatus
+        from app.models.crm import Contact, ContactStatus, Interaction, InteractionType
+
+        # Skip if already in nurture
+        existing = db.query(NurtureLead).filter(NurtureLead.prospect_id == prospect.id).first()
+        if existing:
+            return
+
+        # Create Contact if not already linked
+        contact_id = prospect.converted_contact_id
+        if not contact_id:
+            contact = Contact(
+                name=prospect.agency_name,
+                email=prospect.email,
+                company=prospect.agency_name,
+                source=f"Cold Outreach - {prospect.campaign.name}" if prospect.campaign else "Cold Outreach",
+                status=ContactStatus.LEAD,
+                notes=f"Auto-converted from reply.\nNiche: {prospect.niche or 'N/A'}\nWebsite: {prospect.website or 'N/A'}",
+            )
+            db.add(contact)
+            db.flush()
+            contact_id = contact.id
+            prospect.converted_contact_id = contact_id
+
+            interaction = Interaction(
+                contact_id=contact_id,
+                type=InteractionType.EMAIL,
+                subject="Cold Outreach Reply",
+                notes="Auto-detected interested reply via Gmail polling",
+                interaction_date=datetime.utcnow(),
+            )
+            db.add(interaction)
+
+        # Determine source channel
+        source_channel = prospect.campaign.campaign_type.value if prospect.campaign else "EMAIL"
+
+        # Create NurtureLead
+        now = datetime.utcnow()
+        nurture_lead = NurtureLead(
+            prospect_id=prospect.id,
+            contact_id=contact_id,
+            campaign_id=prospect.campaign_id,
+            source_channel=source_channel,
+            current_step=1,
+            status=NurtureStatus.ACTIVE,
+            last_action_at=now,
+        )
+        db.add(nurture_lead)
+        db.flush()
+
+        step_log = NurtureStepLog(
+            nurture_lead_id=nurture_lead.id,
+            step_number=1,
+        )
+        db.add(step_log)
+
+        logger.info("Auto-routed prospect %d (%s) to nurture pipeline", prospect.id, prospect.agency_name)
 
     # ──────────────────────────────────────────────
     # Reply Classification
