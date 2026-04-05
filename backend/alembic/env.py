@@ -33,7 +33,6 @@ if config.config_file_name is not None:
 from app.database.connection import Base
 from app.models.task import Task
 from app.models.crm import Contact, Deal, Interaction
-from app.models.goal import Goal
 from app.models.project import Project
 from app.models.outreach import SearchPlannerCombination
 from app.models.social_content import SocialContent

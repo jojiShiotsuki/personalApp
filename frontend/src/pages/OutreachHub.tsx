@@ -19,20 +19,13 @@ import { cn } from '@/lib/utils';
 import ProspectStatusBadge from '@/components/outreach/ProspectStatusBadge';
 
 // Import tab content components
-import DMScriptsTab from '@/components/outreach/DMScriptsTab';
 import LinkedInCampaignsTab from '@/components/outreach/LinkedInCampaignsTab';
 import MultiTouchCampaignsTab from '@/components/outreach/MultiTouchCampaignsTab';
 import WarmLeadsTab from '@/components/outreach/WarmLeadsTab';
 
-type TabType = 'dm-scripts' | 'linkedin-campaigns' | 'multi-touch' | 'warm-leads';
+type TabType = 'linkedin-campaigns' | 'multi-touch' | 'warm-leads';
 
 const tabs = [
-  {
-    id: 'dm-scripts' as TabType,
-    name: 'DM Scripts',
-    icon: MessageCircle,
-    description: 'TikTok cold outreach scripts',
-  },
   {
     id: 'linkedin-campaigns' as TabType,
     name: 'LinkedIn Campaigns',
@@ -55,7 +48,7 @@ const tabs = [
 
 export default function OutreachHub() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const initialTab = (searchParams.get('tab') as TabType) || 'dm-scripts';
+  const initialTab = (searchParams.get('tab') as TabType) || 'linkedin-campaigns';
   const [activeTab, setActiveTab] = useState<TabType>(initialTab);
   const [globalSearch, setGlobalSearch] = useState('');
   const [isSearchFocused, setIsSearchFocused] = useState(false);
@@ -300,7 +293,6 @@ export default function OutreachHub() {
 
       {/* Tab Content */}
       <div className="animate-fade-slide-up delay-5">
-        {activeTab === 'dm-scripts' && <DMScriptsTab />}
         {activeTab === 'linkedin-campaigns' && <LinkedInCampaignsTab initialCampaignId={jumpToCampaign?.id} initialProspectId={jumpToCampaign?.prospectId} key={`linkedin-${jumpToCampaign?.ts ?? 0}`} />}
         {activeTab === 'multi-touch' && <MultiTouchCampaignsTab initialCampaignId={jumpToCampaign?.id} initialProspectId={jumpToCampaign?.prospectId} key={`mt-${jumpToCampaign?.ts ?? 0}`} />}
         {activeTab === 'warm-leads' && <WarmLeadsTab />}

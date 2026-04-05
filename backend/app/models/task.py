@@ -34,16 +34,12 @@ class Task(Base):
     due_time = Column(Time, nullable=True)
     priority = Column(Enum(TaskPriority), default=TaskPriority.MEDIUM)
     status = Column(Enum(TaskStatus), default=TaskStatus.PENDING, index=True)
-    goal_id = Column(Integer, ForeignKey('goals.id', ondelete='SET NULL'), nullable=True, index=True)
     created_at = Column(DateTime, default=datetime.utcnow, index=True)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     completed_at = Column(DateTime, nullable=True)
 
     # Project relationship
     project_id = Column(Integer, ForeignKey("projects.id", ondelete="SET NULL"), nullable=True, index=True)
-
-    # Sprint day relationship (for tasks within a sprint)
-    sprint_day_id = Column(Integer, ForeignKey("sprint_days.id", ondelete="SET NULL"), nullable=True, index=True)
 
     # Recurrence fields
     is_recurring = Column(Boolean, default=False, nullable=False)
@@ -58,9 +54,7 @@ class Task(Base):
     
     # Relationships
     project = relationship("Project", back_populates="tasks")
-    goal = relationship("Goal", back_populates="tasks")
     parent_task = relationship("Task", remote_side=[id], foreign_keys=[parent_task_id], backref="child_tasks")
-    sprint_day = relationship("SprintDay", back_populates="sprint_tasks")
     links = relationship("TaskLink", backref="task", cascade="all, delete-orphan", lazy="selectin")
     notes = relationship("TaskNote", backref="task", cascade="all, delete-orphan", lazy="selectin", order_by="TaskNote.created_at.desc()")
 

@@ -1,11 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
-import { taskApi, dealApi, timeApi, dailyOutreachApi } from '@/lib/api';
+import { taskApi, dealApi, dailyOutreachApi } from '@/lib/api';
 import { TaskStatus, DealStage } from '@/types';
-import type { DailyOutreachStats, TimeEntry } from '@/types';
+import type { DailyOutreachStats } from '@/types';
 import {
   CheckCircle2,
   Send,
-  Clock,
   TrendingUp,
   Zap,
   ArrowRight,
@@ -74,7 +73,6 @@ function ScoreCard({ icon, label, current, target, suffix = '', color, bgColor, 
 
 export default function TodayScorecard() {
   const navigate = useNavigate();
-  const todayStr = format(new Date(), 'yyyy-MM-dd');
 
   // Fetch tasks
   const { data: allTasks = [] } = useQuery({
@@ -86,12 +84,6 @@ export default function TodayScorecard() {
   const { data: outreachStats } = useQuery<DailyOutreachStats>({
     queryKey: ['daily-outreach-stats'],
     queryFn: dailyOutreachApi.getTodayStats,
-  });
-
-  // Fetch time entries for today
-  const { data: timeEntries = [] } = useQuery({
-    queryKey: ['time-entries', todayStr],
-    queryFn: () => timeApi.listEntries({ start_date: todayStr, end_date: todayStr }),
   });
 
   // Fetch deals for pipeline
@@ -121,12 +113,6 @@ export default function TodayScorecard() {
       (outreachStats.calls?.target || 0) +
       (outreachStats.looms?.target || 0)
     : 0;
-
-  // Calculate time logged today (in hours)
-  const totalSecondsToday = timeEntries.reduce((sum: number, entry: TimeEntry) => {
-    return sum + (entry.duration_seconds || 0);
-  }, 0);
-  const hoursLogged = Math.round((totalSecondsToday / 3600) * 10) / 10;
 
   // Calculate pipeline value
   const activeDeals = Array.isArray(allDeals)
@@ -197,7 +183,7 @@ export default function TodayScorecard() {
       </div>
 
       {/* Score Cards Grid */}
-      <div className="p-4 grid grid-cols-4 gap-3">
+      <div className="p-4 grid grid-cols-3 gap-3">
         <ScoreCard
           icon={<CheckCircle2 className="w-5 h-5 text-[--exec-sage]" />}
           label="Tasks Done"
@@ -215,17 +201,7 @@ export default function TodayScorecard() {
           target={outreachTarget || undefined}
           color="bg-[--exec-info-bg]"
           bgColor="bg-[--exec-surface-alt]"
-          onClick={() => navigate('/outreach?tab=dm-scripts')}
-        />
-
-        <ScoreCard
-          icon={<Clock className="w-5 h-5 text-[--exec-accent]" />}
-          label="Time Logged"
-          current={hoursLogged}
-          suffix="hrs"
-          color="bg-[--exec-accent-bg]"
-          bgColor="bg-[--exec-surface-alt]"
-          onClick={() => navigate('/time')}
+          onClick={() => navigate('/outreach')}
         />
 
         <ScoreCard

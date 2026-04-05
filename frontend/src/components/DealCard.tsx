@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Draggable } from '@hello-pangea/dnd';
-import { Edit, Trash2, Plus, Play, Square } from 'lucide-react';
+import { Edit, Trash2, Plus } from 'lucide-react';
 import { Deal, Contact } from '@/types';
 import { formatCurrency } from '@/lib/currency';
 import { cn } from '@/lib/utils';
@@ -8,10 +8,7 @@ import FollowUpBadge from './FollowUpBadge';
 import NextFollowUpBadge from './NextFollowUpBadge';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { dealApi } from '@/lib/api';
-import { Timer } from 'lucide-react';
 import ConfirmModal from './ConfirmModal';
-import { useTimer, formatElapsedTime } from '@/contexts/TimerContext';
-import { toast } from 'sonner';
 
 interface DealCardProps {
   deal: Deal;
@@ -37,22 +34,6 @@ export default function DealCard({ deal, index, contacts, onEdit, onDelete, onAd
   const daysInStage = getDaysInStage(deal.updated_at);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const queryClient = useQueryClient();
-  const { currentTimer, startTimer, stopTimer, elapsedSeconds } = useTimer();
-  const isTimerRunningForThis = currentTimer?.deal_id === deal.id;
-
-  const handleTimerClick = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (isTimerRunningForThis) {
-      await stopTimer();
-      toast.success('Timer stopped');
-    } else {
-      await startTimer({
-        deal_id: deal.id,
-        description: deal.title,
-      });
-      toast.success('Timer started');
-    }
-  };
 
   const snoozeMutation = useMutation({
     mutationFn: (id: number) => dealApi.snooze(id),
@@ -104,31 +85,9 @@ export default function DealCard({ deal, index, contacts, onEdit, onDelete, onAd
                 <h3 className="font-bold text-[--exec-text] text-sm leading-snug line-clamp-2">
                   {deal.title}
                 </h3>
-              {isTimerRunningForThis && (
-                <span className="inline-flex items-center mt-1 text-xs font-mono font-semibold text-green-400 bg-green-900/20 px-2 py-0.5 rounded animate-pulse">
-                  {formatElapsedTime(elapsedSeconds)}
-                </span>
-              )}
               </div>
             </div>
-            <div className={cn(
-              "flex-shrink-0 flex gap-1 transition-opacity",
-              isTimerRunningForThis ? "opacity-100" : "opacity-0 group-hover:opacity-100"
-            )}>
-              {/* Timer Button */}
-              <button
-                onClick={handleTimerClick}
-                className={cn(
-                  "p-1.5 rounded-md transition-colors",
-                  isTimerRunningForThis
-                    ? "text-red-400 hover:text-red-300 hover:bg-red-900/30"
-                    : "text-green-400 hover:text-green-300 hover:bg-green-900/30"
-                )}
-                title={isTimerRunningForThis ? "Stop timer" : "Start timer"}
-                aria-label={isTimerRunningForThis ? "Stop timer" : "Start timer"}
-              >
-                {isTimerRunningForThis ? <Square className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
-              </button>
+            <div className="flex-shrink-0 flex gap-1 transition-opacity opacity-0 group-hover:opacity-100">
               <button
                 onClick={(e) => {
                   e.stopPropagation();

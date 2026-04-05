@@ -10,10 +10,6 @@ import type {
   Interaction,
   InteractionCreate,
   ContextExport,
-  Goal,
-  GoalCreate,
-  GoalUpdate,
-  GoalBulkParseResponse,
   Project,
   ProjectCreate,
   ProjectUpdate,
@@ -21,12 +17,6 @@ import type {
   SocialContentCreate,
   SocialContentUpdate,
   YearSummary,
-  TimeEntry,
-  TimeEntryStart,
-  TimeEntryCreate,
-  TimeEntryUpdate,
-  TimeSummary,
-  TimeSummaryResponse,
   OutreachCampaign,
   CampaignWithStats,
   CampaignCreate,
@@ -51,12 +41,6 @@ import type {
   OutreachSettings,
   OutreachSettingsUpdate,
   OutreachActivityType,
-  Sprint,
-  SprintListItem,
-  SprintCreate,
-  SprintDay,
-  ToggleTaskResponse,
-  UpdateNotesResponse,
   LoomAudit,
   LoomAuditCreate,
   LoomAuditUpdate,
@@ -109,7 +93,6 @@ import type {
 import {
   TaskStatus,
   DealStage,
-  Quarter,
 } from '../types/index';
 
 // Production API URL - hardcoded for reliability
@@ -408,53 +391,6 @@ export const exportApi = {
   },
 };
 
-// Goal API
-export const goalApi = {
-  getAll: async (quarter?: Quarter, year?: number): Promise<Goal[]> => {
-    const params: Record<string, string | number> = {};
-    if (quarter) params.quarter = quarter;
-    if (year) params.year = year;
-    const response = await api.get('/api/goals', { params });
-    return response.data;
-  },
-
-  getById: async (id: number): Promise<Goal> => {
-    const response = await api.get(`/api/goals/${id}`);
-    return response.data;
-  },
-
-  create: async (goal: GoalCreate): Promise<Goal> => {
-    const response = await api.post('/api/goals/', goal);
-    return response.data;
-  },
-
-  update: async (id: number, goal: GoalUpdate): Promise<Goal> => {
-    const response = await api.put(`/api/goals/${id}`, goal);
-    return response.data;
-  },
-
-  delete: async (id: number): Promise<void> => {
-    await api.delete(`/api/goals/${id}`);
-  },
-
-  updateProgress: async (id: number, progress: number): Promise<Goal> => {
-    const response = await api.patch(`/api/goals/${id}/progress`, null, {
-      params: { progress }
-    });
-    return response.data;
-  },
-
-  parse: async (text: string): Promise<Goal> => {
-    const response = await api.post('/api/goal-parser/parse', { text });
-    return response.data;
-  },
-
-  parseBulk: async (text: string): Promise<GoalBulkParseResponse> => {
-    const response = await api.post('/api/goal-parser/parse-bulk', { text });
-    return response.data;
-  },
-};
-
 // Project API
 export const projectApi = {
   getAll: async (): Promise<Project[]> => {
@@ -590,89 +526,6 @@ export const dashboardApi = {
 
   logDealFollowup: async (dealId: number) => {
     const response = await api.post(`/api/dashboard/actions/deal/${dealId}/log-followup`);
-    return response.data;
-  },
-};
-
-// Time Tracking API
-export const timeApi = {
-  // Timer control
-  getCurrent: async (): Promise<TimeEntry | null> => {
-    const response = await api.get('/api/time/current');
-    return response.data;
-  },
-
-  start: async (data: TimeEntryStart): Promise<TimeEntry> => {
-    const response = await api.post('/api/time/start', data);
-    return response.data;
-  },
-
-  stop: async (): Promise<TimeEntry> => {
-    const response = await api.post('/api/time/stop');
-    return response.data;
-  },
-
-  pause: async (): Promise<TimeEntry> => {
-    const response = await api.post('/api/time/pause');
-    return response.data;
-  },
-
-  resume: async (): Promise<TimeEntry> => {
-    const response = await api.post('/api/time/resume');
-    return response.data;
-  },
-
-  // Time entries CRUD
-  listEntries: async (params?: {
-    start_date?: string;
-    end_date?: string;
-    task_id?: number;
-    project_id?: number;
-    deal_id?: number;
-    limit?: number;
-    offset?: number;
-  }): Promise<TimeEntry[]> => {
-    const response = await api.get('/api/time/entries', { params });
-    return response.data;
-  },
-
-  createEntry: async (data: TimeEntryCreate): Promise<TimeEntry> => {
-    const response = await api.post('/api/time/entries', data);
-    return response.data;
-  },
-
-  getEntry: async (id: number): Promise<TimeEntry> => {
-    const response = await api.get(`/api/time/entries/${id}`);
-    return response.data;
-  },
-
-  updateEntry: async (id: number, data: TimeEntryUpdate): Promise<TimeEntry> => {
-    const response = await api.put(`/api/time/entries/${id}`, data);
-    return response.data;
-  },
-
-  deleteEntry: async (id: number): Promise<void> => {
-    await api.delete(`/api/time/entries/${id}`);
-  },
-
-  // Summaries
-  getSummary: async (): Promise<TimeSummaryResponse> => {
-    const response = await api.get('/api/time/summary');
-    return response.data;
-  },
-
-  getDealSummary: async (dealId: number): Promise<TimeSummary> => {
-    const response = await api.get(`/api/time/summary/deal/${dealId}`);
-    return response.data;
-  },
-
-  getProjectSummary: async (projectId: number): Promise<TimeSummary> => {
-    const response = await api.get(`/api/time/summary/project/${projectId}`);
-    return response.data;
-  },
-
-  getTaskSummary: async (taskId: number): Promise<TimeSummary> => {
-    const response = await api.get(`/api/time/summary/task/${taskId}`);
     return response.data;
   },
 };
@@ -1137,104 +990,6 @@ export const dailyOutreachApi = {
   },
 };
 
-// Sprint API
-export const sprintApi = {
-  getActive: async (): Promise<Sprint | null> => {
-    const response = await api.get('/api/sprint');
-    return response.data;
-  },
-
-  getAll: async (): Promise<SprintListItem[]> => {
-    const response = await api.get('/api/sprint/all');
-    return response.data;
-  },
-
-  create: async (data?: SprintCreate): Promise<Sprint> => {
-    const response = await api.post('/api/sprint', data || {});
-    return response.data;
-  },
-
-  getById: async (id: number): Promise<Sprint> => {
-    const response = await api.get(`/api/sprint/${id}`);
-    return response.data;
-  },
-
-  pause: async (id: number): Promise<Sprint> => {
-    const response = await api.post(`/api/sprint/${id}/pause`);
-    return response.data;
-  },
-
-  resume: async (id: number): Promise<Sprint> => {
-    const response = await api.post(`/api/sprint/${id}/resume`);
-    return response.data;
-  },
-
-  abandon: async (id: number): Promise<Sprint> => {
-    const response = await api.post(`/api/sprint/${id}/abandon`);
-    return response.data;
-  },
-
-  complete: async (id: number): Promise<Sprint> => {
-    const response = await api.post(`/api/sprint/${id}/complete`);
-    return response.data;
-  },
-
-  advanceDay: async (id: number): Promise<Sprint> => {
-    const response = await api.post(`/api/sprint/${id}/advance-day`);
-    return response.data;
-  },
-
-  goBackDay: async (id: number): Promise<Sprint> => {
-    const response = await api.post(`/api/sprint/${id}/go-back-day`);
-    return response.data;
-  },
-
-  getDay: async (sprintId: number, dayNumber: number): Promise<SprintDay> => {
-    const response = await api.get(`/api/sprint/${sprintId}/day/${dayNumber}`);
-    return response.data;
-  },
-
-  toggleTask: async (
-    sprintId: number,
-    dayNumber: number,
-    taskIndex: number
-  ): Promise<ToggleTaskResponse> => {
-    const response = await api.post(
-      `/api/sprint/${sprintId}/day/${dayNumber}/task/${taskIndex}`
-    );
-    return response.data;
-  },
-
-  updateNotes: async (
-    sprintId: number,
-    dayNumber: number,
-    notes: string
-  ): Promise<UpdateNotesResponse> => {
-    const response = await api.put(
-      `/api/sprint/${sprintId}/day/${dayNumber}/notes`,
-      { notes }
-    );
-    return response.data;
-  },
-
-  update: async (id: number, data: { title?: string; description?: string }): Promise<SprintListItem> => {
-    const response = await api.put(`/api/sprint/${id}`, data);
-    return response.data;
-  },
-
-  delete: async (id: number): Promise<void> => {
-    await api.delete(`/api/sprint/${id}`);
-  },
-
-  getPlaybookSuggestions: async (dayNumber: number): Promise<{
-    day_number: number;
-    suggestions: Array<{ title: string; description?: string }>;
-  }> => {
-    const response = await api.get(`/api/sprint/playbook/${dayNumber}`);
-    return response.data;
-  },
-};
-
 // Loom Audit API
 export const loomAuditApi = {
   getAll: async (params?: {
@@ -1398,11 +1153,6 @@ export const reportsApi = {
 
   getRevenue: async (startDate: string, endDate: string) => {
     const res = await api.get('/api/reports/revenue', { params: { start_date: startDate, end_date: endDate } });
-    return res.data;
-  },
-
-  getTime: async (startDate: string, endDate: string) => {
-    const res = await api.get('/api/reports/time', { params: { start_date: startDate, end_date: endDate } });
     return res.data;
   },
 

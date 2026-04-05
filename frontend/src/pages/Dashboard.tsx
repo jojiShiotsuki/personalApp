@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { taskApi, dealApi, socialContentApi, goalApi } from '@/lib/api';
+import { taskApi, dealApi, socialContentApi } from '@/lib/api';
 import { TaskStatus, DealStage } from '@/types';
 import {
   CheckCircle2,
@@ -9,7 +9,6 @@ import {
   ArrowRight,
   ArrowUpRight,
   Calendar,
-  Target,
   Zap,
   DollarSign,
   Activity,
@@ -32,7 +31,6 @@ import { formatDateForApi } from '@/lib/dateUtils';
 import { cn } from '@/lib/utils';
 import MorningBriefing from '@/components/MorningBriefing';
 import DailyOutreachTracker from '@/components/DailyOutreachTracker';
-import SprintTracker from '@/components/SprintTracker';
 import LoomAuditTracker from '@/components/LoomAuditTracker';
 import PipelineCalculator from '@/components/PipelineCalculator';
 import DiscoveryCallTracker from '@/components/DiscoveryCallTracker';
@@ -83,14 +81,6 @@ export default function Dashboard() {
       end_date: formatDateForApi(nextWeek)
     }),
   });
-
-  const { data: goals = [] } = useQuery({
-    queryKey: ['goals', currentYear],
-    queryFn: () => goalApi.getAll(undefined, currentYear),
-  });
-
-
-  const activeGoals = goals.filter(g => g.progress < 100).slice(0, 3);
 
   // Calculate metrics
   const todayTasks = allTasks.filter((task) =>
@@ -244,11 +234,6 @@ export default function Dashboard() {
           <DailyOutreachTracker />
         </div>
 
-        {/* Sprint Tracker */}
-        <div className="mt-6">
-          <SprintTracker />
-        </div>
-
         {/* Loom Audit Tracker */}
         <div className="mt-6">
           <LoomAuditTracker />
@@ -341,16 +326,6 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Active Goals */}
-          <div className="bento-card p-6 animate-fade-slide-up delay-4">
-            <div className="w-12 h-12 rounded-2xl bg-[--exec-accent-bg] flex items-center justify-center">
-              <Target className="w-6 h-6 text-[--exec-accent]" />
-            </div>
-            <p className="text-3xl font-bold text-[--exec-text] mt-4" style={{ fontFamily: 'var(--font-display)' }}>
-              {activeGoals.length}
-            </p>
-            <p className="text-sm text-[--exec-text-muted] mt-1 font-medium">Active Goals</p>
-          </div>
         </div>
 
         {/* Main Grid */}
@@ -520,61 +495,8 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Goals Card */}
-          <div className="col-span-1 md:col-span-5 bento-card overflow-hidden animate-fade-slide-up delay-6">
-            <div className="flex items-center justify-between px-6 py-5 border-b border-[--exec-border-subtle]">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-[--exec-sage-bg] flex items-center justify-center">
-                  <Target className="w-5 h-5 text-[--exec-sage]" />
-                </div>
-                <h2 className="font-semibold text-[--exec-text]">Goals</h2>
-              </div>
-              <button
-                onClick={() => navigate('/goals')}
-                className="flex items-center gap-2 text-sm text-[--exec-text-muted] hover:text-[--exec-accent] transition-colors font-medium group"
-              >
-                View all
-                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-              </button>
-            </div>
-
-            <div className="p-5 space-y-5">
-              {activeGoals.length > 0 ? (
-                activeGoals.map((goal) => (
-                  <div key={goal.id} className="group">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm text-[--exec-text] truncate flex-1 pr-2 font-medium group-hover:text-[--exec-accent] transition-colors">
-                        {goal.title}
-                      </span>
-                      <span className="text-sm font-bold text-[--exec-sage]" style={{ fontFamily: 'var(--font-display)' }}>
-                        {goal.progress}%
-                      </span>
-                    </div>
-                    <div className="progress-exec">
-                      <div
-                        className="progress-exec-fill"
-                        style={{ width: `${goal.progress}%` }}
-                      />
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <div className="text-center py-8 text-[--exec-text-muted]">
-                  <Target className="w-8 h-8 mx-auto mb-2 opacity-30" />
-                  <p className="text-sm">No active goals</p>
-                  <button
-                    onClick={() => navigate('/goals')}
-                    className="mt-3 text-xs font-medium text-[--exec-accent] hover:text-[--exec-accent-dark]"
-                  >
-                    Set your first goal →
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-
           {/* Deals Card */}
-          <div className="col-span-1 md:col-span-6 bento-card overflow-hidden animate-fade-slide-up delay-7">
+          <div className="col-span-1 md:col-span-5 bento-card overflow-hidden animate-fade-slide-up delay-6">
             <div className="flex items-center justify-between px-6 py-5 border-b border-[--exec-border-subtle]">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-[--exec-success-bg] flex items-center justify-center">

@@ -1,12 +1,9 @@
 from .task import Task, TaskPriority, TaskStatus
 from .crm import Contact, Deal, Interaction, ContactStatus, DealStage, InteractionType
 from .project import Project, ProjectStatus
-from .goal import Goal
 from .social_content import SocialContent, ContentType, ContentStatus, EditingStyle
-from .time_entry import TimeEntry
 from .activity_log import ActivityLog
 from .daily_outreach import DailyOutreachLog, OutreachSettings
-from .sprint import Sprint, SprintDay, SprintStatus
 from .loom_audit import LoomAudit, LoomResponseType
 from .pipeline_calculator import PipelineSettings
 from .discovery_call import DiscoveryCall, CallOutcome
@@ -23,12 +20,9 @@ __all__ = [
     "ContactStatus", "DealStage", "InteractionType",
     "Project", "ProjectStatus",
     "ProjectTemplate", "ProjectTemplateTask",
-    "Goal",
     "SocialContent", "ContentType", "ContentStatus", "EditingStyle",
-    "TimeEntry",
     "ActivityLog",
     "DailyOutreachLog", "OutreachSettings",
-    "Sprint", "SprintDay", "SprintStatus",
     "LoomAudit", "LoomResponseType",
     "PipelineSettings",
     "DiscoveryCall", "CallOutcome",

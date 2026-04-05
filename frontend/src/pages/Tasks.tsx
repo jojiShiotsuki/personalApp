@@ -1,13 +1,13 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { taskApi, goalApi, projectApi, dashboardApi, timeApi } from '@/lib/api';
+import { taskApi, projectApi, dashboardApi } from '@/lib/api';
 import type { Task, TaskCreate, TaskUpdate } from '@/types';
 import { TaskStatus, TaskPriority, RecurrenceType } from '@/types';
 import TaskList from '@/components/TaskList';
 import TaskKanbanBoard from '@/components/TaskKanbanBoard';
 import RecurrenceCustomModal from '@/components/RecurrenceCustomModal';
 import ConfirmModal from '@/components/ConfirmModal';
-import { Filter, Plus, X, Repeat, LayoutList, Kanban, Clock, Bookmark, Save, Trash2 } from 'lucide-react';
+import { Filter, Plus, X, Repeat, LayoutList, Kanban, Bookmark, Save, Trash2 } from 'lucide-react';
 import { cn, getErrorMessage } from '@/lib/utils';
 import { getNextOccurrences, getRecurrenceText } from '@/lib/recurrence';
 import { useRecurrence } from '@/hooks/useRecurrence';
@@ -124,21 +124,9 @@ export default function Tasks() {
     queryFn: () => taskApi.getAll(getApiFilter(filter)),
   });
 
-  const { data: goals = [] } = useQuery({
-    queryKey: ['goals'],
-    queryFn: () => goalApi.getAll(),
-  });
-
   const { data: projects = [] } = useQuery({
     queryKey: ['projects'],
     queryFn: projectApi.getAll,
-  });
-
-  // Fetch time entries for the task being edited
-  const { data: taskTimeEntries = [] } = useQuery({
-    queryKey: ['time-entries', 'task', editingTask?.id],
-    queryFn: () => timeApi.listEntries({ task_id: editingTask!.id }),
-    enabled: !!editingTask,
   });
 
   const createMutation = useMutation({
@@ -933,7 +921,6 @@ export default function Tasks() {
                   <TaskKanbanBoard
                     tasks={filteredAndSortedTasks}
                     projects={projects}
-                    goals={goals}
                     onStatusChange={handleStatusChange}
                     onTaskClick={handleTaskClick}
                   />
@@ -948,7 +935,6 @@ export default function Tasks() {
                     searchQuery={searchQuery}
                     selectedTaskIds={isEditMode ? selectedTaskIds : undefined}
                     onToggleSelect={isEditMode ? handleToggleSelect : undefined}
-                    goals={goals}
                   />
                 )}
               </div>
@@ -1170,66 +1156,7 @@ export default function Tasks() {
                   </select>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-[--exec-text-secondary] mb-1.5">
-                    Goal (Optional)
-                  </label>
-                  <select
-                    name="goal_id"
-                    defaultValue={editingTask?.goal_id || ''}
-                    className="w-full px-4 py-2.5 bg-stone-800 border border-stone-700 rounded-xl text-[--exec-text] focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent] transition-all appearance-none"
-                  >
-                    <option value="">No Goal</option>
-                    {goals.map((goal) => (
-                      <option key={goal.id} value={goal.id}>
-                        {goal.title} ({goal.quarter} {goal.year})
-                      </option>
-                    ))}
-                  </select>
-                </div>
               </div>
-
-              {/* Time Entries for this task */}
-              {editingTask && taskTimeEntries.length > 0 && (
-                <div className="border-t border-[--exec-border] pt-5">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Clock className="w-4 h-4 text-[--exec-text-muted]" />
-                    <span className="text-sm font-semibold text-[--exec-text]">
-                      Time Tracked
-                    </span>
-                    <span className="text-xs text-[--exec-text-muted] ml-auto">
-                      {(() => {
-                        const totalSeconds = taskTimeEntries.reduce((sum, e) => sum + (e.duration_seconds || 0), 0);
-                        const hours = Math.floor(totalSeconds / 3600);
-                        const mins = Math.floor((totalSeconds % 3600) / 60);
-                        return hours > 0 ? `${hours}h ${mins}m total` : `${mins}m total`;
-                      })()}
-                    </span>
-                  </div>
-                  <div className="space-y-2 max-h-32 overflow-y-auto">
-                    {taskTimeEntries.slice(0, 5).map((entry) => (
-                      <div key={entry.id} className="flex items-center justify-between py-1.5 px-3 rounded-lg bg-stone-800/50 text-xs">
-                        <span className="text-[--exec-text-secondary] truncate flex-1">
-                          {entry.description || 'No description'}
-                        </span>
-                        <span className="text-[--exec-text-muted] ml-2 shrink-0">
-                          {(() => {
-                            const secs = entry.duration_seconds || 0;
-                            const h = Math.floor(secs / 3600);
-                            const m = Math.floor((secs % 3600) / 60);
-                            return h > 0 ? `${h}h ${m}m` : `${m}m`;
-                          })()}
-                        </span>
-                      </div>
-                    ))}
-                    {taskTimeEntries.length > 5 && (
-                      <p className="text-xs text-[--exec-text-muted] text-center">
-                        +{taskTimeEntries.length - 5} more entries
-                      </p>
-                    )}
-                  </div>
-                </div>
-              )}
 
               {/* Apply to all recurring tasks option */}
               {editingTask && (editingTask.is_recurring || editingTask.parent_task_id) && (

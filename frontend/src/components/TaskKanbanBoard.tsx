@@ -1,13 +1,12 @@
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
-import { Task, TaskStatus, TaskPriority, Project, Goal } from '@/types';
+import { Task, TaskStatus, TaskPriority, Project } from '@/types';
 import { format, isPast, isToday } from 'date-fns';
-import { Clock, Folder, Target } from 'lucide-react';
+import { Clock, Folder } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface TaskKanbanBoardProps {
   tasks: Task[];
   projects?: Project[];
-  goals?: Goal[];
   onStatusChange: (id: number, status: TaskStatus) => void;
   onTaskClick: (task: Task) => void;
 }
@@ -57,7 +56,7 @@ const priorityConfig = {
   [TaskPriority.LOW]: { color: 'bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700', label: 'Low' },
 };
 
-export default function TaskKanbanBoard({ tasks, projects = [], goals = [], onStatusChange, onTaskClick }: TaskKanbanBoardProps) {
+export default function TaskKanbanBoard({ tasks, projects = [], onStatusChange, onTaskClick }: TaskKanbanBoardProps) {
   const onDragEnd = (result: DropResult) => {
     const { destination, source, draggableId } = result;
 
@@ -83,11 +82,6 @@ export default function TaskKanbanBoard({ tasks, projects = [], goals = [], onSt
   const getProjectName = (projectId?: number) => {
     if (!projectId) return null;
     return projects.find(p => p.id === projectId)?.name;
-  };
-
-  const getGoalTitle = (goalId?: number) => {
-    if (!goalId) return null;
-    return goals.find(g => g.id === goalId)?.title;
   };
 
   return (
@@ -176,21 +170,13 @@ export default function TaskKanbanBoard({ tasks, projects = [], goals = [], onSt
                               </p>
                             )}
 
-                            {/* Footer: Project & Goal Tags */}
-                            {(task.project_id || task.goal_id) && (
+                            {/* Footer: Project Tag */}
+                            {task.project_id && getProjectName(task.project_id) && (
                               <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-gray-50 dark:border-gray-700">
-                                {task.project_id && getProjectName(task.project_id) && (
-                                  <div className="flex items-center gap-1 text-[10px] text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700 px-1.5 py-0.5 rounded border border-gray-100 dark:border-gray-600 max-w-full truncate">
-                                    <Folder className="w-3 h-3 flex-shrink-0" />
-                                    <span className="truncate">{getProjectName(task.project_id)}</span>
-                                  </div>
-                                )}
-                                {task.goal_id && getGoalTitle(task.goal_id) && (
-                                  <div className="flex items-center gap-1 text-[10px] text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700 px-1.5 py-0.5 rounded border border-gray-100 dark:border-gray-600 max-w-full truncate">
-                                    <Target className="w-3 h-3 flex-shrink-0" />
-                                    <span className="truncate">{getGoalTitle(task.goal_id)}</span>
-                                  </div>
-                                )}
+                                <div className="flex items-center gap-1 text-[10px] text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700 px-1.5 py-0.5 rounded border border-gray-100 dark:border-gray-600 max-w-full truncate">
+                                  <Folder className="w-3 h-3 flex-shrink-0" />
+                                  <span className="truncate">{getProjectName(task.project_id)}</span>
+                                </div>
                               </div>
                             )}
                           </div>

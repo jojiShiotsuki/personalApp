@@ -1,4 +1,4 @@
-import type { Task, Goal } from '@/types';
+import type { Task } from '@/types';
 import { TaskStatus } from '@/types';
 import TaskItem from './TaskItem';
 import { CheckSquare } from 'lucide-react';
@@ -14,10 +14,9 @@ interface TaskListProps {
   searchQuery?: string;
   selectedTaskIds?: Set<number>;
   onToggleSelect?: (id: number) => void;
-  goals?: Goal[];
 }
 
-export default function TaskList({ tasks, onStatusChange, onTaskClick, onDelete, onSnooze, isUpdating, searchQuery, selectedTaskIds, onToggleSelect, goals }: TaskListProps) {
+export default function TaskList({ tasks, onStatusChange, onTaskClick, onDelete, onSnooze, isUpdating, searchQuery, selectedTaskIds, onToggleSelect }: TaskListProps) {
   if (tasks.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16">
@@ -60,7 +59,6 @@ export default function TaskList({ tasks, onStatusChange, onTaskClick, onDelete,
           isUpdating={isUpdating}
           isSelected={selectedTaskIds?.has(task.id)}
           onToggleSelect={onToggleSelect}
-          goals={goals}
         />
       ))}
     </div>

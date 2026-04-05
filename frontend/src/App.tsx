@@ -10,16 +10,13 @@ const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Tasks = lazy(() => import('./pages/Tasks'));
 const Contacts = lazy(() => import('./pages/Contacts'));
 const Deals = lazy(() => import('./pages/Deals'));
-const Goals = lazy(() => import('./pages/Goals'));
 const Projects = lazy(() => import('./pages/Projects'));
 const ProjectDetail = lazy(() => import('./pages/ProjectDetail'));
 const Export = lazy(() => import('./pages/Export'));
 const SocialCalendar = lazy(() => import('./pages/SocialCalendar'));
-const Time = lazy(() => import('./pages/Time'));
 const OutreachHub = lazy(() => import('./pages/OutreachHub'));
 const Services = lazy(() => import('./pages/Services'));
 const Settings = lazy(() => import('./pages/Settings'));
-const Sprint = lazy(() => import('./pages/Sprint'));
 const Reports = lazy(() => import('./pages/Reports'));
 const Autoresearch = lazy(() => import('./pages/Autoresearch'));
 const JojiAI = lazy(() => import('./pages/JojiAI'));
@@ -28,7 +25,6 @@ import QuickAddModal from './components/QuickAddModal';
 import CommandPalette from './components/CommandPalette';
 import ShortcutsModal from './components/ShortcutsModal';
 import { ThemeProvider } from './components/ThemeProvider';
-import { TimerProvider } from './contexts/TimerContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ChatProvider } from './contexts/ChatContext';
 import ChatPanel from './components/joji-ai/ChatPanel';
@@ -37,13 +33,10 @@ import ErrorBoundary from './components/ErrorBoundary';
 const NAV_SHORTCUTS: Record<string, string> = {
   '1': '/',
   '2': '/tasks',
-  '3': '/sprint',
-  '4': '/contacts',
-  '5': '/deals',
-  '6': '/projects',
-  '7': '/goals',
-  '8': '/time',
-  '9': '/settings',
+  '3': '/contacts',
+  '4': '/deals',
+  '5': '/projects',
+  '6': '/settings',
 };
 
 function AuthenticatedApp() {
@@ -108,7 +101,6 @@ function AuthenticatedApp() {
   };
 
   return (
-    <TimerProvider>
       <ChatProvider>
       <Layout>
         <Suspense fallback={<div className="min-h-screen bg-[--exec-bg] flex items-center justify-center"><div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[--exec-accent]" /></div>}>
@@ -117,16 +109,13 @@ function AuthenticatedApp() {
           <Route path="/tasks" element={<Tasks />} />
           <Route path="/contacts" element={<Contacts />} />
           <Route path="/deals" element={<Deals />} />
-          <Route path="/goals" element={<Goals />} />
           <Route path="/projects" element={<Projects />} />
           <Route path="/projects/:id" element={<ProjectDetail />} />
           <Route path="/export" element={<Export />} />
           <Route path="/social-calendar" element={<SocialCalendar />} />
-          <Route path="/time" element={<Time />} />
           <Route path="/outreach" element={<OutreachHub />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/services" element={<Services />} />
-          <Route path="/sprint" element={<Sprint />} />
           <Route path="/reports" element={<Reports />} />
           <Route path="/autoresearch" element={<Autoresearch />} />
           <Route path="/ai" element={<JojiAI />} />
@@ -152,7 +141,6 @@ function AuthenticatedApp() {
       />
       <ChatPanel />
       </ChatProvider>
-    </TimerProvider>
   );
 }
 

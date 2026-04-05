@@ -8,13 +8,11 @@ import {
   CheckSquare,
   Users,
   DollarSign,
-  Target,
   Folder,
   Download,
   Calendar,
   Plus,
   Search,
-  Clock,
   User,
 } from 'lucide-react';
 
@@ -221,14 +219,6 @@ export default function CommandPalette({ open, onOpenChange, onQuickAdd }: Comma
           <Command.Item value="contacts people crm" onSelect={() => runCommand(() => navigate('/contacts'))}>
             <Users className="w-4 h-4 mr-2" />
             Contacts
-          </Command.Item>
-          <Command.Item value="goals targets okr" onSelect={() => runCommand(() => navigate('/goals'))}>
-            <Target className="w-4 h-4 mr-2" />
-            Goals
-          </Command.Item>
-          <Command.Item value="time tracking hours clock" onSelect={() => runCommand(() => navigate('/time'))}>
-            <Clock className="w-4 h-4 mr-2" />
-            Time Tracking
           </Command.Item>
           <Command.Item value="export data backup" onSelect={() => runCommand(() => navigate('/export'))}>
             <Download className="w-4 h-4 mr-2" />

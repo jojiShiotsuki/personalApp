@@ -28,8 +28,6 @@ import {
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 
-import FloatingTimer from './FloatingTimer';
-
 interface LayoutProps {
   children: ReactNode;
 }
@@ -46,7 +44,6 @@ const navigationGroups = [
     items: [
       { name: 'Dashboard', href: '/', icon: LayoutDashboard, accent: true },
       { name: 'Tasks', href: '/tasks', icon: CheckSquare },
-      { name: 'Sprint', href: '/sprint', icon: Rocket },
     ],
   },
   {
@@ -63,8 +60,6 @@ const navigationGroups = [
     label: 'Studio',
     items: [
       { name: 'Projects', href: '/projects', icon: Folder },
-      { name: 'Goals', href: '/goals', icon: Target },
-      { name: 'Time', href: '/time', icon: Clock },
       { name: 'Content', href: '/social-calendar', icon: Calendar },
       { name: 'Reports', href: '/reports', icon: BarChart3 },
       { name: 'Analytics', href: '/analytics', icon: TrendingUp },
@@ -328,8 +323,6 @@ export default function Layout({ children }: LayoutProps) {
         {children}
       </main>
 
-      {/* Floating Timer Widget */}
-      <FloatingTimer />
     </div>
   );
 }

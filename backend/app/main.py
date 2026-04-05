@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 from app.database import init_db
 from app.services.scheduler_service import start_scheduler, stop_scheduler
 from app.auth import get_current_user
-from app.routes import auth, tasks, crm, task_parser, export, goals, goal_parser, projects, project_templates, social_content, dashboard, time, outreach, cold_outreach, lead_discovery, daily_outreach, sprint, loom_audit, pipeline_calculator, discovery_call, search_planner, reports, autoresearch, joji_ai, tiktok, nurture
+from app.routes import auth, tasks, crm, task_parser, export, projects, project_templates, social_content, dashboard, outreach, cold_outreach, lead_discovery, daily_outreach, loom_audit, pipeline_calculator, discovery_call, search_planner, reports, autoresearch, joji_ai, tiktok, nurture
 
 app = FastAPI(
     title="Personal Productivity App",
@@ -149,25 +149,19 @@ def _debug_projects_full():
         return JSONResponse(content={"ok": False, "error": str(e), "type": type(e).__name__, "tb": tb}, status_code=200)
 
 # Register API routers (all protected by auth)
-# IMPORTANT: task_parser and goal_parser must come BEFORE tasks/goals to match
-# /parse and /parse-bulk before the generic /{id} route
 auth_dep = [Depends(get_current_user)]
 app.include_router(task_parser.router, dependencies=auth_dep)
-app.include_router(goal_parser.router, dependencies=auth_dep)
 app.include_router(tasks.router, dependencies=auth_dep)
 app.include_router(crm.router, dependencies=auth_dep)
 app.include_router(export.router, dependencies=auth_dep)
-app.include_router(goals.router, dependencies=auth_dep)
 app.include_router(projects.router, dependencies=auth_dep)
 app.include_router(project_templates.router, dependencies=auth_dep)
 app.include_router(social_content.router, dependencies=auth_dep)
 app.include_router(dashboard.router, dependencies=auth_dep)
-app.include_router(time.router, dependencies=auth_dep)
 app.include_router(outreach.router, dependencies=auth_dep)
 app.include_router(cold_outreach.router, dependencies=auth_dep)
 app.include_router(lead_discovery.router, dependencies=auth_dep)
 app.include_router(daily_outreach.router, dependencies=auth_dep)
-app.include_router(sprint.router, dependencies=auth_dep)
 app.include_router(loom_audit.router, dependencies=auth_dep)
 app.include_router(pipeline_calculator.router, dependencies=auth_dep)
 app.include_router(discovery_call.router, dependencies=auth_dep)

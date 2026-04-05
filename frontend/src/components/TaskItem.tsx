@@ -1,12 +1,10 @@
 import { useState } from 'react';
-import type { Task, Goal } from '@/types';
+import type { Task } from '@/types';
 import { TaskStatus, TaskPriority } from '@/types';
 import { format, isPast, isToday, isTomorrow, parseISO, differenceInDays, startOfDay } from 'date-fns';
-import { Check, Clock, Trash2, Edit, Target, Repeat, Play, Square, Link2, StickyNote, SkipForward, CalendarClock } from 'lucide-react';
+import { Check, Clock, Trash2, Edit, Repeat, Link2, StickyNote, SkipForward, CalendarClock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import ConfirmModal from './ConfirmModal';
-import { useTimer, formatElapsedTime } from '@/contexts/TimerContext';
-import { toast } from 'sonner';
 
 interface TaskItemProps {
   task: Task;
@@ -17,7 +15,6 @@ interface TaskItemProps {
   isUpdating?: boolean;
   isSelected?: boolean;
   onToggleSelect?: (id: number) => void;
-  goals?: Goal[];
 }
 
 // Priority configuration - simplified with dots
@@ -84,18 +81,13 @@ const statusConfig = {
   }
 };
 
-export default function TaskItem({ task, onStatusChange, onClick, onDelete, onSnooze, isUpdating, isSelected, onToggleSelect, goals }: TaskItemProps) {
+export default function TaskItem({ task, onStatusChange, onClick, onDelete, onSnooze, isUpdating, isSelected, onToggleSelect }: TaskItemProps) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const { currentTimer, startTimer, stopTimer, elapsedSeconds } = useTimer();
   const isCompleted = task.status === TaskStatus.COMPLETED;
   const isSkipped = task.status === TaskStatus.SKIPPED;
   const isResolved = isCompleted || isSkipped;
   const priority = priorityConfig[task.priority];
   const status = statusConfig[task.status];
-  const isTimerRunningForThis = currentTimer?.task_id === task.id;
-
-  // Find linked goal
-  const linkedGoal = goals?.find(g => g.id === task.goal_id);
 
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -162,21 +154,6 @@ export default function TaskItem({ task, onStatusChange, onClick, onDelete, onSn
   const handleSnooze = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (onSnooze) onSnooze(task.id);
-  };
-
-  const handleTimerClick = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (isTimerRunningForThis) {
-      await stopTimer();
-      toast.success('Timer stopped');
-    } else {
-      await startTimer({
-        task_id: task.id,
-        description: task.title,
-        project_id: task.project_id || undefined,
-      });
-      toast.success('Timer started');
-    }
   };
 
   return (
@@ -282,14 +259,6 @@ export default function TaskItem({ task, onStatusChange, onClick, onDelete, onSn
               </span>
             )}
 
-            {/* Goal Badge */}
-            {linkedGoal && (
-              <span className="text-xs text-[--exec-accent] flex items-center gap-1">
-                <Target className="w-3 h-3" />
-                {linkedGoal.title}
-              </span>
-            )}
-
             {/* Recurring Badge */}
             {task.is_recurring && (
               <span className="text-xs text-[--exec-sage] flex items-center gap-1">
@@ -314,12 +283,6 @@ export default function TaskItem({ task, onStatusChange, onClick, onDelete, onSn
               </span>
             )}
 
-            {/* Timer indicator if running */}
-            {isTimerRunningForThis && (
-              <span className="text-xs font-mono font-semibold text-[--exec-sage] bg-[--exec-sage-bg] px-2 py-0.5 rounded animate-pulse">
-                {formatElapsedTime(elapsedSeconds)}
-              </span>
-            )}
           </div>
         </div>
 
@@ -368,33 +331,6 @@ export default function TaskItem({ task, onStatusChange, onClick, onDelete, onSn
               aria-label="Snooze task to tomorrow"
             >
               <CalendarClock className="w-4 h-4" />
-            </button>
-          )}
-
-          {/* Timer Button */}
-          {!isResolved && (
-            <button
-              onClick={handleTimerClick}
-              className={cn(
-                "p-1.5 rounded-md transition-all duration-200",
-                "hover:scale-110 active:scale-95",
-                isTimerRunningForThis
-                  ? "text-red-500 bg-red-500/10"
-                  : "text-stone-500"
-              )}
-              style={{ ['--hover-color' as string]: isTimerRunningForThis ? '#ef4444' : '#10b981' }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.color = isTimerRunningForThis ? '#ef4444' : '#10b981';
-                e.currentTarget.style.backgroundColor = isTimerRunningForThis ? 'rgba(239,68,68,0.2)' : 'rgba(16,185,129,0.2)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.color = isTimerRunningForThis ? '#ef4444' : '#78716c';
-                e.currentTarget.style.backgroundColor = isTimerRunningForThis ? 'rgba(239,68,68,0.1)' : 'transparent';
-              }}
-              title={isTimerRunningForThis ? "Stop timer" : "Start timer"}
-              aria-label={isTimerRunningForThis ? "Stop timer" : "Start timer"}
-            >
-              {isTimerRunningForThis ? <Square className="w-4 h-4" /> : <Play className="w-4 h-4" />}
             </button>
           )}
 

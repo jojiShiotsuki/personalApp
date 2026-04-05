@@ -19,12 +19,9 @@ export default function ShortcutsModal({ open, onClose }: ShortcutsModalProps) {
   const navShortcuts = [
     { keys: ['Alt', '1'], description: 'Dashboard' },
     { keys: ['Alt', '2'], description: 'Tasks' },
-    { keys: ['Alt', '3'], description: 'Sprint' },
-    { keys: ['Alt', '4'], description: 'Contacts' },
-    { keys: ['Alt', '5'], description: 'Deals' },
-    { keys: ['Alt', '6'], description: 'Projects' },
-    { keys: ['Alt', '7'], description: 'Goals' },
-    { keys: ['Alt', '8'], description: 'Time' },
+    { keys: ['Alt', '3'], description: 'Contacts' },
+    { keys: ['Alt', '4'], description: 'Deals' },
+    { keys: ['Alt', '5'], description: 'Projects' },
     { keys: ['Alt', '9'], description: 'Settings' },
   ];
 

@@ -8,7 +8,6 @@ from sqlalchemy import func
 from app.models.task import Task
 from app.models.crm import Deal, Contact
 from app.models.project import Project
-from app.models.goal import Goal
 from app.models.outreach import OutreachCampaign, OutreachProspect, ProspectStatus
 from app.models.autoresearch import Experiment
 from app.services.vault_search_service import VaultSearchService
@@ -45,9 +44,6 @@ class ToolExecutor:
             # Projects
             "get_projects": self._get_projects,
             "create_project": self._create_project,
-            # Goals
-            "get_goals": self._get_goals,
-            "create_goal": self._create_goal,
             # Vault
             "search_vault": self._search_vault,
             "write_vault_file": self._write_vault_file,
@@ -303,85 +299,6 @@ class ToolExecutor:
             "success": True,
             "project_id": project.id,
             "message": f"Created project: {project.name}"
-        }
-
-    # ------------------------------------------------------------------
-    # Goal tools
-    # ------------------------------------------------------------------
-
-    def _get_goals(self, params: Dict[str, Any]) -> Dict[str, Any]:
-        query = self.db.query(Goal)
-
-        if "year" in params:
-            query = query.filter(Goal.year == params["year"])
-
-        limit = params.get("limit", 10)
-        goals = query.limit(limit).all()
-
-        return {
-            "goals": [
-                {
-                    "id": g.id,
-                    "title": g.title,
-                    "description": g.description,
-                    "year": g.year,
-                    "quarter": g.quarter.value if g.quarter else None,
-                    "progress": g.progress,
-                    "priority": g.priority.value if g.priority else None
-                }
-                for g in goals
-            ]
-        }
-
-    def _create_goal(self, params: Dict[str, Any]) -> Dict[str, Any]:
-        # Derive quarter and month from target_date if provided, else use sensible defaults
-        now = datetime.utcnow()
-        year = now.year
-        quarter = "Q1"
-        month = "JANUARY"
-
-        if "target_date" in params:
-            try:
-                target = datetime.strptime(params["target_date"], "%Y-%m-%d")
-                year = target.year
-                month_num = target.month
-                month_names = [
-                    "JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE",
-                    "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER"
-                ]
-                month = month_names[month_num - 1]
-                if month_num <= 3:
-                    quarter = "Q1"
-                elif month_num <= 6:
-                    quarter = "Q2"
-                elif month_num <= 9:
-                    quarter = "Q3"
-                else:
-                    quarter = "Q4"
-            except ValueError:
-                return {"error": f"Invalid date format: {params['target_date']}. Use YYYY-MM-DD"}
-
-        goal = Goal(
-            title=params["title"],
-            description=params.get("description"),
-            year=year,
-            quarter=quarter,
-            month=month,
-            target_date=params.get("target_date"),
-        )
-
-        # Set category as priority if provided (map category string to priority)
-        if "category" in params:
-            goal.description = f"[{params['category']}] {goal.description or ''}"
-
-        self.db.add(goal)
-        self.db.commit()
-        self.db.refresh(goal)
-
-        return {
-            "success": True,
-            "goal_id": goal.id,
-            "message": f"Created goal: {goal.title}"
         }
 
     # ------------------------------------------------------------------

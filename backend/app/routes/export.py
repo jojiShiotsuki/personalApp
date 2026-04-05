@@ -12,8 +12,6 @@ from app.database import get_db
 from app.models.crm import Contact, Deal, Interaction
 from app.models.task import Task
 from app.models.project import Project
-from app.models.time_entry import TimeEntry
-from app.models.goal import Goal
 from app.services.export_service import ExportService
 
 router = APIRouter(prefix="/api/export", tags=["export"])
@@ -153,8 +151,6 @@ def export_full_backup(db: Session = Depends(get_db)):
         "interactions": [_serialize_row(r) for r in db.query(Interaction).all()],
         "tasks": [_serialize_row(r) for r in db.query(Task).all()],
         "projects": [_serialize_row(r) for r in db.query(Project).all()],
-        "time_entries": [_serialize_row(r) for r in db.query(TimeEntry).all()],
-        "goals": [_serialize_row(r) for r in db.query(Goal).all()],
     }
     content = json.dumps(backup, indent=2, default=str)
     return StreamingResponse(

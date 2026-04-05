@@ -5,13 +5,11 @@ import { cn } from '@/lib/utils';
 import DateRangePicker from '@/components/reports/DateRangePicker';
 import OverviewTab from '@/components/reports/OverviewTab';
 import RevenueTab from '@/components/reports/RevenueTab';
-import TimeTab from '@/components/reports/TimeTab';
 import PipelineTab from '@/components/reports/PipelineTab';
 
 const TABS = [
   { key: 'overview', label: 'Overview' },
   { key: 'revenue', label: 'Revenue' },
-  { key: 'time', label: 'Time' },
   { key: 'pipeline', label: 'Pipeline' },
 ] as const;
 
@@ -80,7 +78,6 @@ export default function Reports() {
       <div className="px-8 py-6 space-y-6">
         {activeTab === 'overview' && <OverviewTab startDate={startDate} endDate={endDate} />}
         {activeTab === 'revenue' && <RevenueTab startDate={startDate} endDate={endDate} />}
-        {activeTab === 'time' && <TimeTab startDate={startDate} endDate={endDate} />}
         {activeTab === 'pipeline' && <PipelineTab startDate={startDate} endDate={endDate} />}
       </div>
     </div>

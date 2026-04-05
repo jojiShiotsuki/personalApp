@@ -10,13 +10,12 @@ from datetime import date, timedelta
 from decimal import Decimal
 from typing import Any, Dict, List
 
-from sqlalchemy import and_, case, func
+from sqlalchemy import case, func
 from sqlalchemy.orm import Session
 
 from app.models.crm import Contact, Deal, DealStage
 from app.models.project import Project, ProjectStatus
 from app.models.task import Task
-from app.models.time_entry import TimeEntry
 
 logger = logging.getLogger(__name__)
 
@@ -100,27 +99,6 @@ class ReportsService:
             .scalar()
         )
 
-        # --- Hours logged (current & previous) ---
-        total_seconds = _dec(
-            db.query(func.coalesce(func.sum(TimeEntry.duration_seconds), 0))
-            .filter(
-                TimeEntry.start_time >= start_date,
-                TimeEntry.start_time <= end_date,
-            )
-            .scalar()
-        )
-        hours_logged = round(total_seconds / 3600, 1)
-
-        prev_seconds = _dec(
-            db.query(func.coalesce(func.sum(TimeEntry.duration_seconds), 0))
-            .filter(
-                TimeEntry.start_time >= prev_start,
-                TimeEntry.start_time <= prev_end,
-            )
-            .scalar()
-        )
-        prev_hours = round(prev_seconds / 3600, 1)
-
         # --- Deals closed & win rate ---
         closed_won_count = (
             db.query(func.count(Deal.id))
@@ -174,28 +152,10 @@ class ReportsService:
             .all()
         )
 
-        # Hours by the same buckets
-        time_bucket = _bucket_key(pg, TimeEntry.start_time, is_monthly)
-        hours_rows = (
-            db.query(
-                time_bucket.label("bucket"),
-                func.coalesce(func.sum(TimeEntry.duration_seconds), 0).label("secs"),
-            )
-            .filter(
-                TimeEntry.start_time >= start_date,
-                TimeEntry.start_time <= end_date,
-            )
-            .group_by(time_bucket)
-            .order_by(time_bucket)
-            .all()
-        )
-        hours_map = {r.bucket: round(_dec(r.secs) / 3600, 1) for r in hours_rows}
-
         revenue_by_day = [
             {
                 "date": r.bucket,
                 "revenue": _dec(r.revenue),
-                "hours": hours_map.get(r.bucket, 0.0),
             }
             for r in revenue_rows
         ]
@@ -221,8 +181,8 @@ class ReportsService:
         return {
             "total_revenue": total_revenue,
             "revenue_change_pct": _pct_change(total_revenue, prev_revenue),
-            "hours_logged": hours_logged,
-            "hours_change_pct": _pct_change(hours_logged, prev_hours),
+            "hours_logged": 0,
+            "hours_change_pct": 0,
             "deals_closed": closed_won_count,
             "win_rate": win_rate,
             "active_projects": active_projects,
@@ -367,112 +327,19 @@ class ReportsService:
             ],
         }
 
-    # ── Time Tab ──────────────────────────────────────────────────────────
+    # ── Time Tab (removed — feature deleted) ────────────────────────────
 
     @staticmethod
     def get_time(db: Session, start_date: date, end_date: date) -> Dict[str, Any]:
-        pg = _is_pg(db)
-        is_monthly = (end_date - start_date).days >= 90
-
-        base_filter = and_(
-            TimeEntry.start_time >= start_date,
-            TimeEntry.start_time <= end_date,
-        )
-
-        # Total hours
-        total_seconds = _dec(
-            db.query(func.coalesce(func.sum(TimeEntry.duration_seconds), 0))
-            .filter(base_filter)
-            .scalar()
-        )
-        total_hours = round(total_seconds / 3600, 2)
-
-        # Billable amount
-        billable_amount = _dec(
-            db.query(
-                func.coalesce(
-                    func.sum(TimeEntry.duration_seconds * TimeEntry.hourly_rate / 3600),
-                    0,
-                )
-            )
-            .filter(base_filter, TimeEntry.is_billable == True)  # noqa: E712
-            .scalar()
-        )
-
-        # Average hours per day
-        period_days = max((end_date - start_date).days, 1)
-        avg_hours_per_day = round(total_hours / period_days, 2)
-
-        # Hours over time
-        bucket = _bucket_key(pg, TimeEntry.start_time, is_monthly)
-        hours_over_time = (
-            db.query(
-                bucket.label("bucket"),
-                func.coalesce(func.sum(TimeEntry.duration_seconds), 0).label("secs"),
-            )
-            .filter(base_filter)
-            .group_by(bucket)
-            .order_by(bucket)
-            .all()
-        )
-
-        # Billable split
-        billable_secs = _dec(
-            db.query(func.coalesce(func.sum(TimeEntry.duration_seconds), 0))
-            .filter(base_filter, TimeEntry.is_billable == True)  # noqa: E712
-            .scalar()
-        )
-        non_billable_secs = total_seconds - billable_secs
-
-        # Time by project (top 10)
-        time_by_project = (
-            db.query(
-                Project.name.label("name"),
-                func.coalesce(func.sum(TimeEntry.duration_seconds), 0).label("secs"),
-            )
-            .join(Project, TimeEntry.project_id == Project.id)
-            .filter(base_filter, TimeEntry.project_id.isnot(None))
-            .group_by(Project.id, Project.name)
-            .order_by(func.sum(TimeEntry.duration_seconds).desc())
-            .limit(10)
-            .all()
-        )
-
-        # Time by category
-        time_by_category = (
-            db.query(
-                TimeEntry.category.label("category"),
-                func.coalesce(func.sum(TimeEntry.duration_seconds), 0).label("secs"),
-            )
-            .filter(base_filter, TimeEntry.category.isnot(None))
-            .group_by(TimeEntry.category)
-            .order_by(func.sum(TimeEntry.duration_seconds).desc())
-            .all()
-        )
-
+        """Stub — time tracking feature has been removed."""
         return {
-            "total_hours": total_hours,
-            "billable_amount": round(billable_amount, 2),
-            "avg_hours_per_day": avg_hours_per_day,
-            "hours_over_time": [
-                {"date": r.bucket, "hours": round(_dec(r.secs) / 3600, 2)}
-                for r in hours_over_time
-            ],
-            "billable_split": {
-                "billable": round(billable_secs / 3600, 2),
-                "non_billable": round(non_billable_secs / 3600, 2),
-            },
-            "time_by_project": [
-                {"name": r.name, "hours": round(_dec(r.secs) / 3600, 2)}
-                for r in time_by_project
-            ],
-            "time_by_category": [
-                {
-                    "category": r.category.value if r.category else "uncategorized",
-                    "hours": round(_dec(r.secs) / 3600, 2),
-                }
-                for r in time_by_category
-            ],
+            "total_hours": 0,
+            "billable_amount": 0,
+            "avg_hours_per_day": 0,
+            "hours_over_time": [],
+            "billable_split": {"billable": 0, "non_billable": 0},
+            "time_by_project": [],
+            "time_by_category": [],
         }
 
     # ── Pipeline Tab ──────────────────────────────────────────────────────
