@@ -480,12 +480,10 @@ class GmailService:
                 category = classification.get("category")
                 if category == "stop" or category == "not_interested":
                     prospect.status = ProspectStatus.NOT_INTERESTED
-                elif category in ("interested", "curious"):
+                else:
+                    # Any reply that isn't "stop" / "not interested" → warm lead
                     prospect.status = ProspectStatus.CONVERTED
-                    # Auto-route to nurture pipeline
                     self._auto_create_nurture_lead(db, prospect)
-                elif sentiment:
-                    prospect.status = ProspectStatus.REPLIED
 
                 result["new_replies"] += 1
 
