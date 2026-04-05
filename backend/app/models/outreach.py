@@ -1,6 +1,6 @@
 import enum
 from sqlalchemy import Column, Integer, String, Text, DateTime, Date, ForeignKey, UniqueConstraint, Enum, JSON, Boolean, Index
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, backref
 from datetime import datetime
 from app.database import Base
 
@@ -249,7 +249,7 @@ class ProspectStepLog(Base):
     channel_used = Column(String(50), nullable=True)  # StepChannelType value
     completed_at = Column(DateTime, default=datetime.utcnow)
 
-    prospect = relationship("OutreachProspect", backref="step_logs")
+    prospect = relationship("OutreachProspect", backref=backref("step_logs", cascade="all, delete-orphan", passive_deletes=True))
     campaign = relationship("OutreachCampaign")
 
     __table_args__ = (
