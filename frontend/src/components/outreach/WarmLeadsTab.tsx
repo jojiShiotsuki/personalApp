@@ -536,8 +536,19 @@ export default function WarmLeadsTab() {
                             </span>
                           )}
                           {lead.source_channel && (
-                            <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-stone-700/60 text-[--exec-text-muted]">
-                              {lead.source_channel}
+                            <span className={cn(
+                              'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium',
+                              lead.source_channel.toUpperCase().includes('LINKEDIN')
+                                ? 'bg-blue-500/15 text-blue-400'
+                                : lead.source_channel.toUpperCase().includes('EMAIL') || lead.source_channel.toUpperCase() === 'MULTI_TOUCH'
+                                  ? 'bg-purple-500/15 text-purple-400'
+                                  : 'bg-stone-700/60 text-[--exec-text-muted]'
+                            )}>
+                              {lead.source_channel.toUpperCase().includes('LINKEDIN')
+                                ? <Linkedin className="w-3 h-3" />
+                                : <Mail className="w-3 h-3" />
+                              }
+                              {lead.source_channel.toUpperCase().includes('LINKEDIN') ? 'LinkedIn' : 'Email'}
                             </span>
                           )}
                         </div>
