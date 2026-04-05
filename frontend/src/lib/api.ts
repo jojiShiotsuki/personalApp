@@ -600,7 +600,8 @@ export const coldOutreachApi = {
   },
 
   deleteCampaign: async (id: number): Promise<void> => {
-    await api.delete(`/api/outreach/campaigns/${id}`);
+    const res = await api.delete(`/api/outreach/campaigns/${id}`);
+    return res.data;
   },
 
   // Prospects

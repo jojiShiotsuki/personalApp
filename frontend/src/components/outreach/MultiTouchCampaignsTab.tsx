@@ -2019,7 +2019,10 @@ export default function MultiTouchCampaignsTab({ initialCampaignId, initialProsp
         setSelectedCampaignId(null);
       }
     },
-    onError: () => toast.error('Failed to delete campaign'),
+    onError: (err: unknown) => {
+      const msg = err instanceof Error ? err.message : 'Unknown error';
+      toast.error(`Failed to delete campaign: ${msg}`);
+    },
   });
 
   const updateProspectMutation = useMutation({
