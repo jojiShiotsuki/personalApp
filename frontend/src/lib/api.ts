@@ -1746,7 +1746,7 @@ export const nurtureApi = {
   },
 
   getLead: async (id: number): Promise<NurtureLead> => {
-    const res = await api.get(`/nurture/leads/${id}`);
+    const res = await api.get(`/api/nurture/leads/${id}`);
     return res.data;
   },
 
@@ -1754,7 +1754,7 @@ export const nurtureApi = {
     source_channel?: string;
     notes?: string;
   }): Promise<NurtureLead> => {
-    const res = await api.post(`/nurture/from-prospect/${prospectId}`, data);
+    const res = await api.post(`/api/nurture/from-prospect/${prospectId}`, data);
     return res.data;
   },
 
@@ -1762,17 +1762,17 @@ export const nurtureApi = {
     notes?: string;
     status?: string;
   }): Promise<NurtureLead> => {
-    const res = await api.put(`/nurture/leads/${id}`, data);
+    const res = await api.put(`/api/nurture/leads/${id}`, data);
     return res.data;
   },
 
   completeStep: async (id: number, data?: { notes?: string }): Promise<NurtureLead> => {
-    const res = await api.post(`/nurture/leads/${id}/complete-step`, data || {});
+    const res = await api.post(`/api/nurture/leads/${id}/complete-step`, data || {});
     return res.data;
   },
 
   logFollowup: async (id: number, data?: { notes?: string }): Promise<NurtureLead> => {
-    const res = await api.post(`/nurture/leads/${id}/log-followup`, data || {});
+    const res = await api.post(`/api/nurture/leads/${id}/log-followup`, data || {});
     return res.data;
   },
 
@@ -1781,12 +1781,12 @@ export const nurtureApi = {
     deal_value?: number;
     deal_stage?: string;
   }): Promise<NurtureLead> => {
-    const res = await api.post(`/nurture/leads/${id}/convert`, data || {});
+    const res = await api.post(`/api/nurture/leads/${id}/convert`, data || {});
     return res.data;
   },
 
   markLost: async (id: number, data?: { notes?: string }): Promise<NurtureLead> => {
-    const res = await api.post(`/nurture/leads/${id}/mark-lost`, data || {});
+    const res = await api.post(`/api/nurture/leads/${id}/mark-lost`, data || {});
     return res.data;
   },
 };
