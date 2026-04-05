@@ -23,6 +23,9 @@ import {
   UserCheck,
   X,
   Plus,
+  Instagram,
+  Facebook,
+  Music,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -58,6 +61,14 @@ const STEP_COUNT_BADGE_COLORS: Record<number, string> = {
   4: 'bg-green-500/20 text-green-400',
   5: 'bg-emerald-500/20 text-emerald-400',
 };
+
+const CHANNEL_OPTIONS = [
+  { value: 'EMAIL', label: 'Email', short: 'Em', icon: Mail, activeBg: 'bg-purple-500/30', activeText: 'text-purple-400' },
+  { value: 'LINKEDIN', label: 'LinkedIn', short: 'LI', icon: Linkedin, activeBg: 'bg-blue-500/30', activeText: 'text-blue-400' },
+  { value: 'TIKTOK', label: 'TikTok', short: 'TT', icon: Music, activeBg: 'bg-pink-500/30', activeText: 'text-pink-400' },
+  { value: 'INSTAGRAM', label: 'Instagram', short: 'IG', icon: Instagram, activeBg: 'bg-fuchsia-500/30', activeText: 'text-fuchsia-400' },
+  { value: 'FACEBOOK', label: 'Facebook', short: 'FB', icon: Facebook, activeBg: 'bg-sky-500/30', activeText: 'text-sky-400' },
+] as const;
 
 const FOLLOWUP_PRIORITY: Record<FollowupStage, number> = {
   [FollowupStage.DAY_10]: 0,
@@ -588,48 +599,34 @@ export default function WarmLeadsTab() {
                               {lead.campaign_name}
                             </span>
                           )}
-                          {/* Channel toggle — click to switch between Email and LinkedIn */}
+                          {/* Channel toggle */}
                           <div className="flex items-center bg-stone-700/40 rounded-full p-0.5">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                if (lead.source_channel?.toUpperCase().includes('LINKEDIN')) return;
-                                queryClient.setQueryData<NurtureLead[]>(['nurture-leads'], (old) =>
-                                  old?.map((l) => l.id === lead.id ? { ...l, source_channel: 'LINKEDIN' } : l)
-                                );
-                                nurtureApi.updateLead(lead.id, { source_channel: 'LINKEDIN' });
-                              }}
-                              className={cn(
-                                'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium transition-colors',
-                                lead.source_channel?.toUpperCase().includes('LINKEDIN')
-                                  ? 'bg-blue-500/30 text-blue-400'
-                                  : 'text-[--exec-text-muted] hover:text-blue-400'
-                              )}
-                              title="Communicating via LinkedIn"
-                            >
-                              <Linkedin className="w-3 h-3" />
-                              LI
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                if (lead.source_channel?.toUpperCase().includes('EMAIL') || lead.source_channel?.toUpperCase() === 'MULTI_TOUCH') return;
-                                queryClient.setQueryData<NurtureLead[]>(['nurture-leads'], (old) =>
-                                  old?.map((l) => l.id === lead.id ? { ...l, source_channel: 'EMAIL' } : l)
-                                );
-                                nurtureApi.updateLead(lead.id, { source_channel: 'EMAIL' });
-                              }}
-                              className={cn(
-                                'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium transition-colors',
-                                !lead.source_channel?.toUpperCase().includes('LINKEDIN')
-                                  ? 'bg-purple-500/30 text-purple-400'
-                                  : 'text-[--exec-text-muted] hover:text-purple-400'
-                              )}
-                              title="Communicating via Email"
-                            >
-                              <Mail className="w-3 h-3" />
-                              Email
-                            </button>
+                            {CHANNEL_OPTIONS.map((ch) => {
+                              const isActive = lead.source_channel?.toUpperCase() === ch.value;
+                              return (
+                                <button
+                                  key={ch.value}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (isActive) return;
+                                    queryClient.setQueryData<NurtureLead[]>(['nurture-leads'], (old) =>
+                                      old?.map((l) => l.id === lead.id ? { ...l, source_channel: ch.value } : l)
+                                    );
+                                    nurtureApi.updateLead(lead.id, { source_channel: ch.value });
+                                  }}
+                                  className={cn(
+                                    'inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-medium transition-colors',
+                                    isActive
+                                      ? `${ch.activeBg} ${ch.activeText}`
+                                      : `text-[--exec-text-muted] hover:${ch.activeText}`
+                                  )}
+                                  title={`Communicating via ${ch.label}`}
+                                >
+                                  <ch.icon className="w-2.5 h-2.5" />
+                                  {ch.short}
+                                </button>
+                              );
+                            })}
                           </div>
                         </div>
 
@@ -884,8 +881,9 @@ export default function WarmLeadsTab() {
                   <div>
                     <label className="block text-sm font-medium text-[--exec-text-secondary] mb-1.5">Channel</label>
                     <select className={inputClasses} value={addLeadForm.source_channel} onChange={(e) => setAddLeadForm({ ...addLeadForm, source_channel: e.target.value })}>
-                      <option value="EMAIL">Email</option>
-                      <option value="LINKEDIN">LinkedIn</option>
+                      {CHANNEL_OPTIONS.map((ch) => (
+                        <option key={ch.value} value={ch.value}>{ch.label}</option>
+                      ))}
                     </select>
                   </div>
                 </div>
