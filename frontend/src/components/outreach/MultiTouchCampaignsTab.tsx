@@ -2118,11 +2118,11 @@ export default function MultiTouchCampaignsTab({ initialCampaignId, initialProsp
     setBulkError(null);
   };
 
+  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
   const handleDeleteCampaign = (e: React.MouseEvent, campaignId: number) => {
     e.stopPropagation();
-    if (confirm('Delete this campaign and all its prospects?')) {
-      deleteCampaignMutation.mutate(campaignId);
-    }
+    e.preventDefault();
+    setConfirmDeleteId(campaignId);
   };
 
   const handleEditCampaign = (e: React.MouseEvent, campaign: OutreachCampaign) => {
@@ -2392,11 +2392,7 @@ export default function MultiTouchCampaignsTab({ initialCampaignId, initialProsp
                 setEditingCampaign(campaign);
               }
             }}
-            onDelete={() => {
-              if (confirm('Delete this campaign and all its prospects?')) {
-                deleteCampaignMutation.mutate(selectedCampaignId);
-              }
-            }}
+            onDelete={() => setConfirmDeleteId(selectedCampaignId)}
           />
         )}
 
@@ -2535,6 +2531,35 @@ export default function MultiTouchCampaignsTab({ initialCampaignId, initialProsp
         results={bulkResults}
         error={bulkError}
       />
+
+      {/* Delete Campaign Confirmation */}
+      {confirmDeleteId && createPortal(
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 animate-in fade-in duration-200" onClick={() => setConfirmDeleteId(null)}>
+          <div className="bg-[--exec-surface] rounded-2xl shadow-2xl w-full max-w-sm mx-4 border border-stone-600/40 p-6 animate-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-semibold text-[--exec-text] mb-2">Delete Campaign</h3>
+            <p className="text-sm text-[--exec-text-muted] mb-6">This will permanently delete the campaign and all its prospects. This cannot be undone.</p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setConfirmDeleteId(null)}
+                className="px-4 py-2 text-sm font-medium text-[--exec-text-secondary] bg-stone-700/50 rounded-lg hover:bg-stone-600/50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  deleteCampaignMutation.mutate(confirmDeleteId);
+                  setConfirmDeleteId(null);
+                  setIsCampaignDropdownOpen(false);
+                }}
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </>
   );
 }
