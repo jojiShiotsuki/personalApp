@@ -276,6 +276,7 @@ class ProspectUpdate(BaseModel):
     facebook_url: Optional[str] = Field(None, max_length=500)
     instagram_url: Optional[str] = Field(None, max_length=500)
     website_issues: Optional[List[str]] = None
+    linkedin_connected: Optional[bool] = None
 
 
 class ProspectResponse(ProspectBase):
