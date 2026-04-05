@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { nurtureApi, coldOutreachApi } from '@/lib/api';
 import type { NurtureLead, OutreachProspect } from '@/types';
@@ -20,6 +21,7 @@ import {
   Mail,
   Edit2,
   UserCheck,
+  X,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -106,11 +108,107 @@ function daysSince(dateStr: string): number {
   return Math.max(0, Math.floor((now.getTime() - then.getTime()) / (1000 * 60 * 60 * 24)));
 }
 
+function EditProspectInlineModal({
+  prospect,
+  onClose,
+  onSave,
+  isSaving,
+}: {
+  prospect: OutreachProspect;
+  onClose: () => void;
+  onSave: (data: Partial<OutreachProspect>) => void;
+  isSaving: boolean;
+}) {
+  const [form, setForm] = useState({
+    agency_name: prospect.agency_name,
+    contact_name: prospect.contact_name || '',
+    email: prospect.email || '',
+    website: prospect.website || '',
+    niche: prospect.niche || '',
+    notes: prospect.notes || '',
+    linkedin_url: prospect.linkedin_url || '',
+  });
+
+  const inputClasses = cn(
+    'w-full px-4 py-2.5 rounded-lg',
+    'bg-stone-800/50 border border-stone-600/40',
+    'text-[--exec-text] placeholder:text-[--exec-text-muted]',
+    'focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]/50',
+    'transition-all text-sm'
+  );
+
+  return createPortal(
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 animate-in fade-in duration-200" onClick={onClose}>
+      <div className="bg-[--exec-surface] rounded-2xl shadow-2xl w-full max-w-lg mx-4 border border-stone-600/40 transform transition-all animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+        <div className="p-6">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-xl font-semibold text-[--exec-text]">Edit Prospect</h2>
+            <button onClick={onClose} className="text-[--exec-text-muted] hover:text-[--exec-text] p-1.5 hover:bg-stone-700/50 rounded-lg transition-colors">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          <form onSubmit={(e) => { e.preventDefault(); onSave(form); }} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-[--exec-text-secondary] mb-1.5">Company Name</label>
+              <input className={inputClasses} value={form.agency_name} onChange={(e) => setForm({ ...form, agency_name: e.target.value })} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-[--exec-text-secondary] mb-1.5">Contact Name</label>
+              <input className={inputClasses} value={form.contact_name} onChange={(e) => setForm({ ...form, contact_name: e.target.value })} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-[--exec-text-secondary] mb-1.5">Email</label>
+              <input className={inputClasses} value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-[--exec-text-secondary] mb-1.5">Website</label>
+              <input className={inputClasses} value={form.website} onChange={(e) => setForm({ ...form, website: e.target.value })} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-[--exec-text-secondary] mb-1.5">LinkedIn URL</label>
+              <input className={inputClasses} value={form.linkedin_url} onChange={(e) => setForm({ ...form, linkedin_url: e.target.value })} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-[--exec-text-secondary] mb-1.5">Niche</label>
+              <input className={inputClasses} value={form.niche} onChange={(e) => setForm({ ...form, niche: e.target.value })} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-[--exec-text-secondary] mb-1.5">Notes</label>
+              <textarea className={cn(inputClasses, 'resize-none')} rows={3} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+            </div>
+
+            <div className="flex gap-3 justify-end pt-4 border-t border-stone-700/30 mt-6">
+              <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-medium text-[--exec-text-secondary] bg-stone-700/50 rounded-lg hover:bg-stone-600/50 transition-colors">
+                Cancel
+              </button>
+              <button type="submit" disabled={isSaving} className="px-4 py-2 text-sm font-medium text-white bg-[--exec-accent] rounded-lg hover:bg-[--exec-accent-dark] shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+                {isSaving ? 'Saving...' : 'Save Changes'}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
 export default function WarmLeadsTab() {
   const queryClient = useQueryClient();
   const [selectedLeadId, setSelectedLeadId] = useState<number | null>(null);
   const [followupOpen, setFollowupOpen] = useState(true);
   const [emailModalProspect, setEmailModalProspect] = useState<OutreachProspect | null>(null);
+  const [editingProspect, setEditingProspect] = useState<OutreachProspect | null>(null);
+
+  const fetchProspect = async (lead: NurtureLead): Promise<OutreachProspect | null> => {
+    try {
+      const prospects = await coldOutreachApi.getProspects(lead.campaign_id);
+      return prospects.find((p: OutreachProspect) => p.id === lead.prospect_id) ?? null;
+    } catch {
+      return null;
+    }
+  };
 
   const handleViewEmail = async (lead: NurtureLead) => {
     try {
@@ -155,6 +253,17 @@ export default function WarmLeadsTab() {
       queryClient.invalidateQueries({ queryKey: ['nurture-stats'] });
       toast.success('Follow-up logged');
     },
+  });
+
+  const updateProspectMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: Partial<OutreachProspect> }) =>
+      coldOutreachApi.updateProspect(id, data),
+    onSuccess: () => {
+      setEditingProspect(null);
+      queryClient.invalidateQueries({ queryKey: ['nurture-leads'] });
+      toast.success('Prospect updated');
+    },
+    onError: () => toast.error('Failed to update prospect'),
   });
 
   // Derived data
@@ -318,12 +427,17 @@ export default function WarmLeadsTab() {
                             <UserCheck className="w-3.5 h-3.5" />
                           </button>
                           <button
-                            onClick={(e) => {
+                            onClick={async (e) => {
                               e.stopPropagation();
-                              handleSelectLead(lead);
+                              const prospect = await fetchProspect(lead);
+                              if (prospect) {
+                                setEditingProspect(prospect);
+                              } else {
+                                handleSelectLead(lead);
+                              }
                             }}
                             className="p-1.5 text-[--exec-text-muted] hover:text-[--exec-text] hover:bg-[--exec-surface-alt] rounded-md transition-colors"
-                            title="View details"
+                            title="Edit prospect"
                           >
                             <Edit2 className="w-3.5 h-3.5" />
                           </button>
@@ -468,6 +582,16 @@ export default function WarmLeadsTab() {
           onClose={() => setEmailModalProspect(null)}
           prospect={emailModalProspect}
           campaignId={emailModalProspect.campaign_id}
+        />
+      )}
+
+      {/* Edit Prospect Modal */}
+      {editingProspect && (
+        <EditProspectInlineModal
+          prospect={editingProspect}
+          onClose={() => setEditingProspect(null)}
+          onSave={(data) => updateProspectMutation.mutate({ id: editingProspect.id, data })}
+          isSaving={updateProspectMutation.isPending}
         />
       )}
 
