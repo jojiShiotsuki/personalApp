@@ -49,7 +49,6 @@ import CsvImportModal from '@/components/CsvImportModal';
 import NewCampaignModal from '@/components/NewCampaignModal';
 import CopyEmailModal from '@/components/CopyEmailModal';
 import ProspectStatusBadge from '@/components/outreach/ProspectStatusBadge';
-import ResponseOutcomeModal from '@/components/ResponseOutcomeModal';
 import CampaignKeywordTracker from './CampaignKeywordTracker';
 import { BulkGenerateBar } from './BulkGenerateBar';
 import { BulkGenerateModal } from './BulkGenerateModal';
@@ -509,7 +508,6 @@ function PipelineProspectCard({
   prospect,
   onEdit,
   onViewMessage,
-  onMarkResponse,
   onMarkConnected,
   isMuted,
   isHighlighted,
@@ -523,7 +521,6 @@ function PipelineProspectCard({
   prospect: OutreachProspect;
   onEdit: (prospect: OutreachProspect) => void;
   onViewMessage: (prospect: OutreachProspect) => void;
-  onMarkResponse: (prospect: OutreachProspect) => void;
   onMarkConnected?: (prospect: OutreachProspect) => void;
   isMuted?: boolean;
   isHighlighted?: boolean;
@@ -539,16 +536,11 @@ function PipelineProspectCard({
 
   const dueToday = isDueToday(prospect.next_action_date);
   const hasCustomMessage = !!(prospect.custom_email_subject || prospect.custom_email_body);
-  const [linkedinReplyProspect, setLinkedinReplyProspect] = useState<OutreachProspect | null>(null);
-  const [linkedinConvoText, setLinkedinConvoText] = useState('');
-  const [linkedinSaving, setLinkedinSaving] = useState(false);
   const [loomWatched, setLoomWatched] = useState(experiment?.loom_watched === true);
-  const [linkedinReplied, setLinkedinReplied] = useState(experiment?.replied === true);
 
   // Update when experiment prop changes
   useEffect(() => {
     setLoomWatched(experiment?.loom_watched === true);
-    setLinkedinReplied(experiment?.replied === true);
   }, [experiment]);
 
   const latestExp = experiment;
@@ -628,15 +620,6 @@ function PipelineProspectCard({
               <UserCheck className="w-3.5 h-3.5" />
             </button>
           )}
-          {!isMuted && (
-            <button
-              onClick={() => onMarkResponse(prospect)}
-              className="p-1.5 text-[--exec-text-muted] hover:text-green-400 hover:bg-green-500/15 rounded-md transition-colors"
-              title="Mark response"
-            >
-              <MessageSquare className="w-3.5 h-3.5" />
-            </button>
-          )}
           {!isMuted && prospect.status !== ProspectStatus.CONVERTED && (
             <button
               onClick={async (e) => {
@@ -707,20 +690,6 @@ function PipelineProspectCard({
               title={loomWatched ? 'Loom watched (click to undo)' : 'Mark Loom as watched'}
             >
               <Video className="w-3.5 h-3.5" />
-            </button>
-          )}
-          {!isMuted && (
-            <button
-              onClick={() => setLinkedinReplyProspect(prospect)}
-              className={cn(
-                'p-1.5 rounded-md transition-colors',
-                linkedinReplied
-                  ? 'text-sky-400 bg-sky-500/15'
-                  : 'text-[--exec-text-muted] hover:text-sky-400 hover:bg-sky-500/15'
-              )}
-              title={linkedinReplied ? 'LinkedIn replied (click to update)' : 'Log LinkedIn reply'}
-            >
-              <Linkedin className="w-3.5 h-3.5" />
             </button>
           )}
           <button
@@ -798,66 +767,6 @@ function PipelineProspectCard({
         <ProspectLinks prospect={prospect} />
       </div>
 
-      {/* LinkedIn Reply Modal */}
-      {linkedinReplyProspect && createPortal(
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50" onClick={() => setLinkedinReplyProspect(null)}>
-          <div className="bg-[--exec-surface] rounded-2xl shadow-2xl w-full max-w-md mx-4 border border-stone-600/40 p-6" onClick={e => e.stopPropagation()}>
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-sm font-semibold text-[--exec-text]">
-                Log LinkedIn Reply — {linkedinReplyProspect.agency_name}
-              </h3>
-              <button onClick={() => setLinkedinReplyProspect(null)} className="text-[--exec-text-muted] hover:text-[--exec-text] p-1 rounded-lg hover:bg-stone-700/50">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            <textarea
-              value={linkedinConvoText}
-              onChange={e => setLinkedinConvoText(e.target.value)}
-              placeholder="Paste the LinkedIn conversation here (optional)..."
-              rows={6}
-              className="w-full px-3 py-2 rounded-lg bg-stone-800/50 border border-stone-600/40 text-[--exec-text] placeholder:text-[--exec-text-muted] focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500/50 transition-all text-sm resize-none mb-4"
-            />
-            <div className="flex gap-2 justify-end">
-              <button
-                onClick={() => setLinkedinReplyProspect(null)}
-                className="px-3 py-2 text-xs font-medium text-[--exec-text-secondary] bg-stone-700/50 rounded-lg hover:bg-stone-600/50 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                disabled={linkedinSaving}
-                onClick={async () => {
-                  setLinkedinSaving(true);
-                  try {
-                    const exps = await autoresearchApi.listExperiments({ campaign_id: linkedinReplyProspect.campaign_id, prospect_id: linkedinReplyProspect.id, page: 1, page_size: 10 });
-                    const exp = exps.experiments?.[0];
-                    if (!exp) {
-                      toast.error('No experiment found for this prospect');
-                      return;
-                    }
-                    await autoresearchApi.updateLinkedInReply(exp.id, {
-                      replied: true,
-                      full_reply_text: linkedinConvoText || undefined,
-                    });
-                    toast.success('LinkedIn reply recorded');
-                    setLinkedinReplied(true);
-                    setLinkedinReplyProspect(null);
-                    setLinkedinConvoText('');
-                  } catch {
-                    toast.error('Failed to save LinkedIn reply');
-                  } finally {
-                    setLinkedinSaving(false);
-                  }
-                }}
-                className="px-3 py-2 text-xs font-medium text-white bg-sky-600 rounded-lg hover:bg-sky-700 transition-colors disabled:opacity-50"
-              >
-                {linkedinSaving ? 'Saving...' : 'Save Reply'}
-              </button>
-            </div>
-          </div>
-        </div>,
-        document.body
-      )}
     </div>
   );
 }
@@ -969,7 +878,6 @@ function SequencePipelineView({
   campaignSteps,
   onEdit,
   onViewMessage,
-  onMarkResponse,
   onMarkConnected,
   highlightProspectId,
   selectedProspectIds,
@@ -979,7 +887,6 @@ function SequencePipelineView({
   campaignSteps: MultiTouchStep[];
   onEdit: (prospect: OutreachProspect) => void;
   onViewMessage: (prospect: OutreachProspect) => void;
-  onMarkResponse: (prospect: OutreachProspect) => void;
   onMarkConnected: (prospect: OutreachProspect) => void;
   highlightProspectId?: number;
   selectedProspectIds?: Set<number>;
@@ -1438,7 +1345,7 @@ function SequencePipelineView({
                         prospect={prospect}
                         onEdit={onEdit}
                         onViewMessage={onViewMessage}
-                        onMarkResponse={onMarkResponse}
+
                         onMarkConnected={onMarkConnected}
                         isHighlighted={prospect.id === highlightProspectId}
                         experiment={experimentMap.get(prospect.id)}
@@ -1494,7 +1401,6 @@ function SequencePipelineView({
                     prospect={prospect}
                     onEdit={onEdit}
                     onViewMessage={onViewMessage}
-                    onMarkResponse={onMarkResponse}
                     onMarkConnected={onMarkConnected}
                     isHighlighted={prospect.id === highlightProspectId}
                     experiment={experimentMap.get(prospect.id)}
@@ -1555,7 +1461,7 @@ function SequencePipelineView({
                         prospect={prospect}
                         onEdit={onEdit}
                         onViewMessage={onViewMessage}
-                        onMarkResponse={onMarkResponse}
+
                         onMarkConnected={onMarkConnected}
                         isHighlighted={prospect.id === highlightProspectId}
                         experiment={experimentMap.get(prospect.id)}
@@ -1606,7 +1512,6 @@ function SequencePipelineView({
                     prospect={prospect}
                     onEdit={onEdit}
                     onViewMessage={onViewMessage}
-                    onMarkResponse={onMarkResponse}
                     isMuted
                     isHighlighted={prospect.id === highlightProspectId}
                     experiment={experimentMap.get(prospect.id)}
@@ -1963,7 +1868,6 @@ export default function MultiTouchCampaignsTab({ initialCampaignId, initialProsp
   const [editingProspect, setEditingProspect] = useState<OutreachProspect | null>(null);
   const [isAddProspectOpen, setIsAddProspectOpen] = useState(false);
   const [emailModalProspect, setEmailModalProspect] = useState<OutreachProspect | null>(null);
-  const [responseModalProspect, setResponseModalProspect] = useState<OutreachProspect | null>(null);
   const [selectedProspectIds, setSelectedProspectIds] = useState<Set<number>>(new Set());
   const [isBulkGenerating, setIsBulkGenerating] = useState(false);
   const [bulkResults, setBulkResults] = useState<Awaited<ReturnType<typeof autoresearchApi.bulkGenerateFollowups>> | null>(null);
@@ -2437,7 +2341,6 @@ export default function MultiTouchCampaignsTab({ initialCampaignId, initialProsp
             campaignSteps={campaignSteps}
             onEdit={setEditingProspect}
             onViewMessage={setEmailModalProspect}
-            onMarkResponse={setResponseModalProspect}
             onMarkConnected={(prospect) => markConnectedMutation.mutate(prospect.id)}
             highlightProspectId={highlightProspectId}
             selectedProspectIds={selectedProspectIds}
@@ -2510,14 +2413,6 @@ export default function MultiTouchCampaignsTab({ initialCampaignId, initialProsp
           prospect={emailModalProspect}
           campaignId={selectedCampaignId ?? undefined}
           multiTouchSteps={campaignSteps}
-        />
-      )}
-
-      {responseModalProspect && (
-        <ResponseOutcomeModal
-          isOpen={!!responseModalProspect}
-          onClose={() => setResponseModalProspect(null)}
-          prospect={responseModalProspect}
         />
       )}
 
