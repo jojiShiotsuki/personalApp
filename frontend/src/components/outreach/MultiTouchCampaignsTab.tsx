@@ -1005,7 +1005,7 @@ function SequencePipelineView({
       await queryClient.cancelQueries({ queryKey: ['mt-prospects'] });
 
       // Snapshot previous data
-      const previousProspects = queryClient.getQueryData(['mt-prospects', selectedCampaign?.id]);
+      const previousProspects = queryClient.getQueryData(['mt-prospects']);
 
       // Optimistically update the cache
       queryClient.setQueriesData<OutreachProspect[]>(
