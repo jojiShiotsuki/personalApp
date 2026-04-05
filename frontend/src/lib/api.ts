@@ -1731,7 +1731,7 @@ export const tiktokApi = {
 
 export const nurtureApi = {
   getStats: async (): Promise<NurtureStats> => {
-    const res = await api.get('/nurture/stats');
+    const res = await api.get('/api/nurture/stats');
     return res.data;
   },
 
@@ -1741,7 +1741,7 @@ export const nurtureApi = {
     needs_followup?: boolean;
     search?: string;
   }): Promise<NurtureLead[]> => {
-    const res = await api.get('/nurture/leads', { params });
+    const res = await api.get('/api/nurture/leads', { params });
     return res.data;
   },
 
