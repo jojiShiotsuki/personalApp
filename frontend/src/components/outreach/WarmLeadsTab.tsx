@@ -486,9 +486,18 @@ export default function WarmLeadsTab() {
                             </button>
                           )}
                           <button
-                            onClick={(e) => e.stopPropagation()}
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              try {
+                                await coldOutreachApi.markConnected(lead.prospect_id);
+                                queryClient.invalidateQueries({ queryKey: ['nurture-leads'] });
+                                toast.success('LinkedIn connection toggled');
+                              } catch {
+                                toast.error('Failed to update LinkedIn status');
+                              }
+                            }}
                             className="p-1.5 text-[--exec-text-muted] hover:text-emerald-400 hover:bg-emerald-500/15 rounded-md transition-colors"
-                            title="LinkedIn connected"
+                            title="Mark LinkedIn connected"
                           >
                             <UserCheck className="w-3.5 h-3.5" />
                           </button>
