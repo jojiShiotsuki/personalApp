@@ -876,21 +876,8 @@ def mark_replied(prospect_id: int, data: MarkRepliedRequest, db: Session = Depen
 
         contact_id = contact.id
 
-        # Create Deal
-        deal = Deal(
-            contact_id=contact.id,
-            title=f"{prospect.agency_name} - Cold Outreach",
-            stage=DealStage.LEAD,
-            probability=10,
-        )
-        db.add(deal)
-        db.flush()
-
-        deal_id = deal.id
-
         # Store conversion references on prospect
         prospect.converted_contact_id = contact.id
-        prospect.converted_deal_id = deal.id
 
         # Create Interaction - use appropriate type based on campaign
         is_linkedin = prospect.campaign.campaign_type == CampaignType.LINKEDIN
@@ -903,7 +890,7 @@ def mark_replied(prospect_id: int, data: MarkRepliedRequest, db: Session = Depen
         )
         db.add(interaction)
 
-        message = f"Prospect converted to CRM. Contact #{contact_id} and Deal #{deal_id} created."
+        message = "Prospect marked as interested. Move to Warm Leads to start nurturing."
 
     elif data.response_type == ResponseType.NOT_INTERESTED:
         prospect.status = ProspectStatus.NOT_INTERESTED
@@ -932,7 +919,6 @@ def mark_replied(prospect_id: int, data: MarkRepliedRequest, db: Session = Depen
                 latest_experiment.response_time_minutes = int(diff.total_seconds() / 60)
             if data.response_type == ResponseType.INTERESTED:
                 latest_experiment.converted_to_call = True
-                latest_experiment.deal_id = deal_id
             logger.info("Updated experiment #%d with reply data for prospect %d", latest_experiment.id, prospect.id)
     except Exception as e:
         logger.warning("Failed to update experiment with reply data for prospect %d: %s", prospect.id, e)
