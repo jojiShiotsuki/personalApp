@@ -56,6 +56,17 @@ class NurtureLeadCreate(BaseModel):
     notes: Optional[str] = None
 
 
+class NurtureLeadManualCreate(BaseModel):
+    company_name: str
+    contact_name: Optional[str] = None
+    email: Optional[str] = None
+    website: Optional[str] = None
+    linkedin_url: Optional[str] = None
+    niche: Optional[str] = None
+    source_channel: Optional[str] = "EMAIL"
+    notes: Optional[str] = None
+
+
 class NurtureLeadUpdate(BaseModel):
     notes: Optional[str] = None
     status: Optional[NurtureStatus] = None

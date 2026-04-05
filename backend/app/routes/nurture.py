@@ -14,7 +14,7 @@ from app.models.nurture import (
 from app.models.outreach import OutreachProspect, ProspectStatus
 from app.models.crm import Contact, ContactStatus, Deal, DealStage, Interaction, InteractionType
 from app.schemas.nurture import (
-    NurtureLeadResponse, NurtureLeadCreate, NurtureLeadUpdate,
+    NurtureLeadResponse, NurtureLeadCreate, NurtureLeadManualCreate, NurtureLeadUpdate,
     NurtureStepLogResponse, NurtureStatsResponse,
     CompleteStepRequest, LogFollowupRequest, ConvertRequest, MarkLostRequest,
 )
@@ -57,9 +57,9 @@ def _build_lead_response(lead: NurtureLead) -> NurtureLeadResponse:
         notes=lead.notes,
         created_at=lead.created_at,
         updated_at=lead.updated_at,
-        prospect_name=prospect.agency_name if prospect else None,
-        prospect_contact_name=prospect.contact_name if prospect else None,
-        prospect_email=prospect.email if prospect else None,
+        prospect_name=prospect.agency_name if prospect else (contact.company or contact.name if contact else None),
+        prospect_contact_name=prospect.contact_name if prospect else (contact.name if contact else None),
+        prospect_email=prospect.email if prospect else (contact.email if contact else None),
         prospect_website=prospect.website if prospect else None,
         prospect_niche=prospect.niche if prospect else None,
         prospect_linkedin_url=prospect.linkedin_url if prospect else None,
@@ -271,6 +271,47 @@ def create_from_prospect(
     db.commit()
 
     # Re-load with relationships
+    lead = _load_lead(db, nurture_lead.id)
+    return _build_lead_response(lead)
+
+
+# ──────────────────────────────────────────
+# POST /nurture/leads (manual create)
+# ──────────────────────────────────────────
+@router.post("/leads", response_model=NurtureLeadResponse)
+def create_manual_lead(data: NurtureLeadManualCreate, db: Session = Depends(get_db)):
+    """Manually create a warm lead with a new CRM Contact (no existing prospect required)."""
+    # Create CRM Contact
+    contact = Contact(
+        name=data.company_name,
+        email=data.email,
+        company=data.company_name,
+        source="Manual Warm Lead",
+        status=ContactStatus.LEAD,
+        notes=data.notes,
+    )
+    db.add(contact)
+    db.flush()
+
+    # Create NurtureLead (no prospect_id or campaign_id)
+    now = datetime.utcnow()
+    nurture_lead = NurtureLead(
+        prospect_id=None,
+        contact_id=contact.id,
+        campaign_id=None,
+        source_channel=data.source_channel or "EMAIL",
+        current_step=1,
+        status=NurtureStatus.ACTIVE,
+        last_action_at=now,
+        notes=data.notes,
+    )
+    db.add(nurture_lead)
+    db.flush()
+
+    # Create initial step log
+    db.add(NurtureStepLog(nurture_lead_id=nurture_lead.id, step_number=1))
+
+    db.commit()
     lead = _load_lead(db, nurture_lead.id)
     return _build_lead_response(lead)
 

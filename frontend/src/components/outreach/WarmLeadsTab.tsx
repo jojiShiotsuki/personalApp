@@ -22,6 +22,7 @@ import {
   Edit2,
   UserCheck,
   X,
+  Plus,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -108,6 +109,14 @@ function daysSince(dateStr: string): number {
   return Math.max(0, Math.floor((now.getTime() - then.getTime()) / (1000 * 60 * 60 * 24)));
 }
 
+const inputClasses = cn(
+  'w-full px-4 py-2.5 rounded-lg',
+  'bg-stone-800/50 border border-stone-600/40',
+  'text-[--exec-text] placeholder:text-[--exec-text-muted]',
+  'focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]/50',
+  'transition-all text-sm'
+);
+
 function EditProspectInlineModal({
   prospect,
   onClose,
@@ -128,14 +137,6 @@ function EditProspectInlineModal({
     notes: prospect.notes || '',
     linkedin_url: prospect.linkedin_url || '',
   });
-
-  const inputClasses = cn(
-    'w-full px-4 py-2.5 rounded-lg',
-    'bg-stone-800/50 border border-stone-600/40',
-    'text-[--exec-text] placeholder:text-[--exec-text-muted]',
-    'focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]/50',
-    'transition-all text-sm'
-  );
 
   return createPortal(
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 animate-in fade-in duration-200" onClick={onClose}>
@@ -200,6 +201,29 @@ export default function WarmLeadsTab() {
   const [followupOpen, setFollowupOpen] = useState(true);
   const [emailModalProspect, setEmailModalProspect] = useState<OutreachProspect | null>(null);
   const [editingProspect, setEditingProspect] = useState<OutreachProspect | null>(null);
+  const [isAddLeadOpen, setIsAddLeadOpen] = useState(false);
+  const [addLeadForm, setAddLeadForm] = useState({
+    company_name: '',
+    contact_name: '',
+    email: '',
+    website: '',
+    linkedin_url: '',
+    niche: '',
+    source_channel: 'EMAIL',
+    notes: '',
+  });
+
+  const createManualMutation = useMutation({
+    mutationFn: (data: typeof addLeadForm) => nurtureApi.createManual(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['nurture-leads'] });
+      queryClient.invalidateQueries({ queryKey: ['nurture-stats'] });
+      toast.success('Warm lead added');
+      setIsAddLeadOpen(false);
+      setAddLeadForm({ company_name: '', contact_name: '', email: '', website: '', linkedin_url: '', niche: '', source_channel: 'EMAIL', notes: '' });
+    },
+    onError: () => toast.error('Failed to add warm lead'),
+  });
 
   const fetchProspect = async (lead: NurtureLead): Promise<OutreachProspect | null> => {
     try {
@@ -418,7 +442,20 @@ export default function WarmLeadsTab() {
 
       {/* Kanban Pipeline */}
       <div>
-        <h3 className="text-sm font-semibold text-[--exec-text] mb-3">Nurture Pipeline</h3>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-semibold text-[--exec-text]">Nurture Pipeline</h3>
+          <button
+            onClick={() => setIsAddLeadOpen(true)}
+            className={cn(
+              'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium',
+              'text-white transition-all duration-200 shadow-sm hover:shadow-md hover:brightness-110'
+            )}
+            style={{ backgroundColor: 'var(--exec-accent)' }}
+          >
+            <Plus className="w-3.5 h-3.5" />
+            Add Warm Lead
+          </button>
+        </div>
         <div className="flex gap-3 overflow-x-auto pb-2">
           {NURTURE_STEPS.map((step) => {
             const columnLeads = leadsByStep[step.step] ?? [];
@@ -813,6 +850,71 @@ export default function WarmLeadsTab() {
             </div>
           )}
         </div>
+      )}
+
+      {/* Add Warm Lead Modal */}
+      {isAddLeadOpen && createPortal(
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 animate-in fade-in duration-200" onClick={() => setIsAddLeadOpen(false)}>
+          <div className="bg-[--exec-surface] rounded-2xl shadow-2xl w-full max-w-lg mx-4 border border-stone-600/40 animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <div>
+                  <h2 className="text-xl font-semibold text-[--exec-text]">Add Warm Lead</h2>
+                  <p className="text-sm text-[--exec-text-muted] mt-1">Add a lead directly to the nurture pipeline</p>
+                </div>
+                <button onClick={() => setIsAddLeadOpen(false)} className="text-[--exec-text-muted] hover:text-[--exec-text] p-1.5 hover:bg-stone-700/50 rounded-lg transition-colors">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <form onSubmit={(e) => { e.preventDefault(); if (addLeadForm.company_name.trim()) createManualMutation.mutate(addLeadForm); }} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-[--exec-text-secondary] mb-1.5">Company Name <span className="text-red-400">*</span></label>
+                  <input className={inputClasses} value={addLeadForm.company_name} onChange={(e) => setAddLeadForm({ ...addLeadForm, company_name: e.target.value })} placeholder="Company name" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-[--exec-text-secondary] mb-1.5">Contact Name</label>
+                  <input className={inputClasses} value={addLeadForm.contact_name} onChange={(e) => setAddLeadForm({ ...addLeadForm, contact_name: e.target.value })} placeholder="Contact person" />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-[--exec-text-secondary] mb-1.5">Email</label>
+                    <input className={inputClasses} value={addLeadForm.email} onChange={(e) => setAddLeadForm({ ...addLeadForm, email: e.target.value })} placeholder="email@company.com" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-[--exec-text-secondary] mb-1.5">Channel</label>
+                    <select className={inputClasses} value={addLeadForm.source_channel} onChange={(e) => setAddLeadForm({ ...addLeadForm, source_channel: e.target.value })}>
+                      <option value="EMAIL">Email</option>
+                      <option value="LINKEDIN">LinkedIn</option>
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-[--exec-text-secondary] mb-1.5">Website</label>
+                  <input className={inputClasses} value={addLeadForm.website} onChange={(e) => setAddLeadForm({ ...addLeadForm, website: e.target.value })} placeholder="https://company.com" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-[--exec-text-secondary] mb-1.5">LinkedIn URL</label>
+                  <input className={inputClasses} value={addLeadForm.linkedin_url} onChange={(e) => setAddLeadForm({ ...addLeadForm, linkedin_url: e.target.value })} placeholder="https://linkedin.com/in/..." />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-[--exec-text-secondary] mb-1.5">Notes</label>
+                  <textarea className={cn(inputClasses, 'resize-none')} rows={3} value={addLeadForm.notes} onChange={(e) => setAddLeadForm({ ...addLeadForm, notes: e.target.value })} placeholder="Context about this lead..." />
+                </div>
+
+                <div className="flex gap-3 justify-end pt-4 border-t border-stone-700/30 mt-6">
+                  <button type="button" onClick={() => setIsAddLeadOpen(false)} className="px-4 py-2 text-sm font-medium text-[--exec-text-secondary] bg-stone-700/50 rounded-lg hover:bg-stone-600/50 transition-colors">
+                    Cancel
+                  </button>
+                  <button type="submit" disabled={!addLeadForm.company_name.trim() || createManualMutation.isPending} className="px-4 py-2 text-sm font-medium text-white bg-[--exec-accent] rounded-lg hover:bg-[--exec-accent-dark] shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+                    {createManualMutation.isPending ? 'Adding...' : 'Add to Pipeline'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
     </div>
   );

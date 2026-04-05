@@ -1501,6 +1501,20 @@ export const nurtureApi = {
     return res.data;
   },
 
+  createManual: async (data: {
+    company_name: string;
+    contact_name?: string;
+    email?: string;
+    website?: string;
+    linkedin_url?: string;
+    niche?: string;
+    source_channel?: string;
+    notes?: string;
+  }): Promise<NurtureLead> => {
+    const res = await api.post('/api/nurture/leads', data);
+    return res.data;
+  },
+
   createFromProspect: async (prospectId: number, data: {
     source_channel?: string;
     notes?: string;

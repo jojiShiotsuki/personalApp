@@ -34,10 +34,10 @@ class NurtureLead(Base):
     __tablename__ = "nurture_leads"
 
     id = Column(Integer, primary_key=True, index=True)
-    prospect_id = Column(Integer, ForeignKey("outreach_prospects.id", ondelete="CASCADE"), nullable=False, unique=True, index=True)
+    prospect_id = Column(Integer, ForeignKey("outreach_prospects.id", ondelete="CASCADE"), nullable=True, unique=True, index=True)
     contact_id = Column(Integer, ForeignKey("crm_contacts.id", ondelete="SET NULL"), nullable=True, index=True)
     deal_id = Column(Integer, ForeignKey("crm_deals.id", ondelete="SET NULL"), nullable=True, index=True)
-    campaign_id = Column(Integer, ForeignKey("outreach_campaigns.id", ondelete="CASCADE"), nullable=False, index=True)
+    campaign_id = Column(Integer, ForeignKey("outreach_campaigns.id", ondelete="CASCADE"), nullable=True, index=True)
     source_channel = Column(String(50), nullable=True)
     current_step = Column(Integer, default=1, nullable=False)
     status = Column(Enum(NurtureStatus), default=NurtureStatus.ACTIVE, nullable=False)
