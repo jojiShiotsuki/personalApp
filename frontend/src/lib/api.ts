@@ -103,6 +103,8 @@ import type {
   TikTokImportResult,
   TikTokSummary,
   TikTokPatterns,
+  NurtureLead,
+  NurtureStats,
 } from '../types/index';
 import {
   TaskStatus,
@@ -1724,6 +1726,68 @@ export const tiktokApi = {
       params: { sort_by: sortBy, limit },
     });
     return response.data;
+  },
+};
+
+export const nurtureApi = {
+  getStats: async (): Promise<NurtureStats> => {
+    const res = await api.get('/nurture/stats');
+    return res.data;
+  },
+
+  getLeads: async (params?: {
+    status?: string;
+    current_step?: number;
+    needs_followup?: boolean;
+    search?: string;
+  }): Promise<NurtureLead[]> => {
+    const res = await api.get('/nurture/leads', { params });
+    return res.data;
+  },
+
+  getLead: async (id: number): Promise<NurtureLead> => {
+    const res = await api.get(`/nurture/leads/${id}`);
+    return res.data;
+  },
+
+  createFromProspect: async (prospectId: number, data: {
+    source_channel?: string;
+    notes?: string;
+  }): Promise<NurtureLead> => {
+    const res = await api.post(`/nurture/from-prospect/${prospectId}`, data);
+    return res.data;
+  },
+
+  updateLead: async (id: number, data: {
+    notes?: string;
+    status?: string;
+  }): Promise<NurtureLead> => {
+    const res = await api.put(`/nurture/leads/${id}`, data);
+    return res.data;
+  },
+
+  completeStep: async (id: number, data?: { notes?: string }): Promise<NurtureLead> => {
+    const res = await api.post(`/nurture/leads/${id}/complete-step`, data || {});
+    return res.data;
+  },
+
+  logFollowup: async (id: number, data?: { notes?: string }): Promise<NurtureLead> => {
+    const res = await api.post(`/nurture/leads/${id}/log-followup`, data || {});
+    return res.data;
+  },
+
+  convert: async (id: number, data?: {
+    deal_title?: string;
+    deal_value?: number;
+    deal_stage?: string;
+  }): Promise<NurtureLead> => {
+    const res = await api.post(`/nurture/leads/${id}/convert`, data || {});
+    return res.data;
+  },
+
+  markLost: async (id: number, data?: { notes?: string }): Promise<NurtureLead> => {
+    const res = await api.post(`/nurture/leads/${id}/mark-lost`, data || {});
+    return res.data;
   },
 };
 

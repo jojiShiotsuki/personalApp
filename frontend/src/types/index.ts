@@ -1841,3 +1841,61 @@ export interface TikTokPatterns {
   engagement_by_duration: { range: string; avg_engagement: number; count: number }[];
   caption_length_correlation: Record<string, { max_chars: number; avg_views: number; count: number }>;
 }
+
+// Nurture Pipeline
+export enum NurtureStatus {
+  ACTIVE = "ACTIVE",
+  QUIET = "QUIET",
+  LONG_TERM = "LONG_TERM",
+  CONVERTED = "CONVERTED",
+  LOST = "LOST",
+}
+
+export enum FollowupStage {
+  DAY_2 = "DAY_2",
+  DAY_5 = "DAY_5",
+  DAY_10 = "DAY_10",
+  LONG_TERM = "LONG_TERM",
+}
+
+export interface NurtureStepLog {
+  id: number;
+  step_number: number;
+  step_name: string;
+  completed_at: string | null;
+  notes: string | null;
+  created_at: string;
+}
+
+export interface NurtureLead {
+  id: number;
+  prospect_id: number;
+  contact_id: number | null;
+  deal_id: number | null;
+  campaign_id: number;
+  source_channel: string | null;
+  current_step: number;
+  current_step_name: string;
+  status: NurtureStatus;
+  quiet_since: string | null;
+  last_action_at: string;
+  next_followup_at: string | null;
+  followup_stage: FollowupStage | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+  prospect_name: string | null;
+  prospect_email: string | null;
+  prospect_website: string | null;
+  prospect_niche: string | null;
+  campaign_name: string | null;
+  contact_name: string | null;
+  step_logs: NurtureStepLog[];
+}
+
+export interface NurtureStats {
+  active: number;
+  needs_followup: number;
+  long_term: number;
+  converted: number;
+}
