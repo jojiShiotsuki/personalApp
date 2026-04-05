@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Draggable } from '@hello-pangea/dnd';
-import { Edit, Trash2, Plus } from 'lucide-react';
+import { Edit, Trash2, Plus, Timer } from 'lucide-react';
 import { Deal, Contact } from '@/types';
 import { formatCurrency } from '@/lib/currency';
 import { cn } from '@/lib/utils';

@@ -8,7 +8,6 @@ import {
   Send,
   Mail,
   Search,
-  MessageCircle,
   Linkedin,
   Layers,
   X,

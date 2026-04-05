@@ -38,7 +38,6 @@ import TodayScorecard from '@/components/dashboard/TodayScorecard';
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const currentYear = new Date().getFullYear();
   const currentHour = new Date().getHours();
 
   // Personal, friendly greeting with emoji hints
