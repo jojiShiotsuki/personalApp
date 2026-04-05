@@ -544,29 +544,56 @@ export default function WarmLeadsTab() {
                           <p className="text-xs text-[--exec-text-muted] truncate mb-2">{lead.prospect_contact_name}</p>
                         )}
 
-                        {/* Badges */}
-                        <div className="flex flex-wrap gap-1 mb-2">
+                        {/* Campaign + Channel toggle */}
+                        <div className="flex flex-wrap items-center gap-1 mb-2">
                           {lead.campaign_name && (
                             <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-stone-700/60 text-[--exec-text-muted] truncate max-w-[140px]">
                               {lead.campaign_name}
                             </span>
                           )}
-                          {lead.source_channel && (
-                            <span className={cn(
-                              'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium',
-                              lead.source_channel.toUpperCase().includes('LINKEDIN')
-                                ? 'bg-blue-500/15 text-blue-400'
-                                : lead.source_channel.toUpperCase().includes('EMAIL') || lead.source_channel.toUpperCase() === 'MULTI_TOUCH'
-                                  ? 'bg-purple-500/15 text-purple-400'
-                                  : 'bg-stone-700/60 text-[--exec-text-muted]'
-                            )}>
-                              {lead.source_channel.toUpperCase().includes('LINKEDIN')
-                                ? <Linkedin className="w-3 h-3" />
-                                : <Mail className="w-3 h-3" />
-                              }
-                              {lead.source_channel.toUpperCase().includes('LINKEDIN') ? 'LinkedIn' : 'Email'}
-                            </span>
-                          )}
+                          {/* Channel toggle — click to switch between Email and LinkedIn */}
+                          <div className="flex items-center bg-stone-700/40 rounded-full p-0.5">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (lead.source_channel?.toUpperCase().includes('LINKEDIN')) return;
+                                queryClient.setQueryData<NurtureLead[]>(['nurture-leads'], (old) =>
+                                  old?.map((l) => l.id === lead.id ? { ...l, source_channel: 'LINKEDIN' } : l)
+                                );
+                                nurtureApi.updateLead(lead.id, { source_channel: 'LINKEDIN' });
+                              }}
+                              className={cn(
+                                'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium transition-colors',
+                                lead.source_channel?.toUpperCase().includes('LINKEDIN')
+                                  ? 'bg-blue-500/30 text-blue-400'
+                                  : 'text-[--exec-text-muted] hover:text-blue-400'
+                              )}
+                              title="Communicating via LinkedIn"
+                            >
+                              <Linkedin className="w-3 h-3" />
+                              LI
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (lead.source_channel?.toUpperCase().includes('EMAIL') || lead.source_channel?.toUpperCase() === 'MULTI_TOUCH') return;
+                                queryClient.setQueryData<NurtureLead[]>(['nurture-leads'], (old) =>
+                                  old?.map((l) => l.id === lead.id ? { ...l, source_channel: 'EMAIL' } : l)
+                                );
+                                nurtureApi.updateLead(lead.id, { source_channel: 'EMAIL' });
+                              }}
+                              className={cn(
+                                'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium transition-colors',
+                                !lead.source_channel?.toUpperCase().includes('LINKEDIN')
+                                  ? 'bg-purple-500/30 text-purple-400'
+                                  : 'text-[--exec-text-muted] hover:text-purple-400'
+                              )}
+                              title="Communicating via Email"
+                            >
+                              <Mail className="w-3 h-3" />
+                              Email
+                            </button>
+                          </div>
                         </div>
 
                         {/* Days in step + urgency */}

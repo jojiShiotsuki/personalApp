@@ -46,7 +46,7 @@ def _build_lead_response(lead: NurtureLead) -> NurtureLeadResponse:
         contact_id=lead.contact_id,
         deal_id=lead.deal_id,
         campaign_id=lead.campaign_id,
-        source_channel=lead.source_channel,
+        source_channel=lead.source_channel or (campaign.campaign_type.value if campaign and hasattr(campaign, 'campaign_type') else None),
         current_step=lead.current_step,
         current_step_name=NURTURE_STEPS.get(lead.current_step, f"Step {lead.current_step}"),
         status=lead.status,
@@ -240,13 +240,18 @@ def create_from_prospect(
     # Set prospect status to CONVERTED
     prospect.status = ProspectStatus.CONVERTED
 
+    # Determine source channel — use provided value or derive from campaign type
+    source_channel = data.source_channel
+    if not source_channel and prospect.campaign:
+        source_channel = prospect.campaign.campaign_type.value
+
     # Create NurtureLead at step 1
     now = datetime.utcnow()
     nurture_lead = NurtureLead(
         prospect_id=prospect.id,
         contact_id=prospect.converted_contact_id,
         campaign_id=prospect.campaign_id,
-        source_channel=data.source_channel,
+        source_channel=source_channel,
         current_step=1,
         status=NurtureStatus.ACTIVE,
         last_action_at=now,
@@ -282,6 +287,8 @@ def update_lead(lead_id: int, data: NurtureLeadUpdate, db: Session = Depends(get
         lead.notes = data.notes
     if data.status is not None:
         lead.status = data.status
+    if data.source_channel is not None:
+        lead.source_channel = data.source_channel
     if data.current_step is not None and 1 <= data.current_step <= 5:
         # Create step log if moving to a new step that doesn't have one
         existing_log = (

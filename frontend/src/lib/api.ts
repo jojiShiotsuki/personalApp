@@ -1512,6 +1512,7 @@ export const nurtureApi = {
     notes?: string;
     status?: string;
     current_step?: number;
+    source_channel?: string;
   }): Promise<NurtureLead> => {
     const res = await api.put(`/api/nurture/leads/${id}`, data);
     return res.data;

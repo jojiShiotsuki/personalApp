@@ -60,6 +60,7 @@ class NurtureLeadUpdate(BaseModel):
     notes: Optional[str] = None
     status: Optional[NurtureStatus] = None
     current_step: Optional[int] = None
+    source_channel: Optional[str] = None
 
 
 class CompleteStepRequest(BaseModel):
