@@ -13,6 +13,7 @@ import {
   Layers,
   X,
   ExternalLink,
+  Heart,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import ProspectStatusBadge from '@/components/outreach/ProspectStatusBadge';
@@ -21,8 +22,9 @@ import ProspectStatusBadge from '@/components/outreach/ProspectStatusBadge';
 import DMScriptsTab from '@/components/outreach/DMScriptsTab';
 import LinkedInCampaignsTab from '@/components/outreach/LinkedInCampaignsTab';
 import MultiTouchCampaignsTab from '@/components/outreach/MultiTouchCampaignsTab';
+import WarmLeadsTab from '@/components/outreach/WarmLeadsTab';
 
-type TabType = 'dm-scripts' | 'linkedin-campaigns' | 'multi-touch';
+type TabType = 'dm-scripts' | 'linkedin-campaigns' | 'multi-touch' | 'warm-leads';
 
 const tabs = [
   {
@@ -42,6 +44,12 @@ const tabs = [
     name: 'Multi-Touch',
     icon: Layers,
     description: 'Cross-channel sequences',
+  },
+  {
+    id: 'warm-leads' as TabType,
+    name: 'Warm Leads',
+    icon: Heart,
+    description: 'Nurture replied prospects',
   },
 ];
 
@@ -295,6 +303,7 @@ export default function OutreachHub() {
         {activeTab === 'dm-scripts' && <DMScriptsTab />}
         {activeTab === 'linkedin-campaigns' && <LinkedInCampaignsTab initialCampaignId={jumpToCampaign?.id} initialProspectId={jumpToCampaign?.prospectId} key={`linkedin-${jumpToCampaign?.ts ?? 0}`} />}
         {activeTab === 'multi-touch' && <MultiTouchCampaignsTab initialCampaignId={jumpToCampaign?.id} initialProspectId={jumpToCampaign?.prospectId} key={`mt-${jumpToCampaign?.ts ?? 0}`} />}
+        {activeTab === 'warm-leads' && <WarmLeadsTab />}
       </div>
     </div>
   );

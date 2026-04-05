@@ -1,13 +1,12 @@
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { coldOutreachApi } from '@/lib/api';
-import type { OutreachProspect, MarkRepliedResponse } from '@/types';
+import { coldOutreachApi, nurtureApi } from '@/lib/api';
+import type { OutreachProspect } from '@/types';
 import { ResponseType } from '@/types';
-import { X, MessageSquare, ThumbsUp, ThumbsDown, MessageCircle, Loader2, CheckCircle, ExternalLink } from 'lucide-react';
+import { X, MessageSquare, ThumbsUp, ThumbsDown, MessageCircle, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import { Link } from 'react-router-dom';
 
 interface ResponseOutcomeModalProps {
   isOpen: boolean;
@@ -58,31 +57,49 @@ export default function ResponseOutcomeModal({
 }: ResponseOutcomeModalProps) {
   const [selectedOutcome, setSelectedOutcome] = useState<OutcomeType | null>(null);
   const [notes, setNotes] = useState('');
-  const [successResult, setSuccessResult] = useState<MarkRepliedResponse | null>(null);
   const queryClient = useQueryClient();
 
   // Mark replied mutation
   const markRepliedMutation = useMutation({
-    mutationFn: () =>
-      coldOutreachApi.markReplied(prospect.id, {
+    mutationFn: async () => {
+      // Step 1: Call markReplied (updates prospect status + experiment data)
+      const result = await coldOutreachApi.markReplied(prospect.id, {
         response_type: selectedOutcome!,
         notes: notes.trim() || undefined,
-      }),
+      });
+
+      // Step 2: If INTERESTED, also create nurture lead
+      if (selectedOutcome === ResponseType.INTERESTED) {
+        try {
+          await nurtureApi.createFromProspect(prospect.id, {
+            notes: notes.trim() || undefined,
+          });
+        } catch (err: unknown) {
+          // 409 = already exists, not an error
+          if (err && typeof err === 'object' && 'response' in err) {
+            const axiosErr = err as { response?: { status?: number } };
+            if (axiosErr.response?.status !== 409) throw err;
+          }
+        }
+      }
+
+      return result;
+    },
     onSuccess: (data) => {
-      toast.success(data.message);
+      if (selectedOutcome === ResponseType.INTERESTED) {
+        toast.success('Moved to Warm Leads \u2192 Reply with value');
+        queryClient.invalidateQueries({ queryKey: ['nurture-leads'] });
+        queryClient.invalidateQueries({ queryKey: ['nurture-stats'] });
+      } else {
+        toast.success(data.message);
+      }
       queryClient.invalidateQueries({ queryKey: ['outreach-today-queue'] });
       queryClient.invalidateQueries({ queryKey: ['outreach-prospects'] });
       queryClient.invalidateQueries({ queryKey: ['outreach-campaign'] });
       queryClient.invalidateQueries({ queryKey: ['mt-prospects'] });
       queryClient.invalidateQueries({ queryKey: ['mt-campaign'] });
       queryClient.invalidateQueries({ queryKey: ['multi-touch-campaigns'] });
-
-      // If interested and contact was created, show success state
-      if (selectedOutcome === ResponseType.INTERESTED && data.contact_id) {
-        setSuccessResult(data);
-      } else {
-        onClose();
-      }
+      onClose();
     },
     onError: () => {
       toast.error('Failed to record response');
@@ -100,60 +117,10 @@ export default function ResponseOutcomeModal({
   const handleClose = () => {
     setSelectedOutcome(null);
     setNotes('');
-    setSuccessResult(null);
     onClose();
   };
 
   if (!isOpen) return null;
-
-  // Success state - show link to deal
-  if (successResult && successResult.contact_id) {
-    return createPortal(
-      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 animate-in fade-in duration-200">
-        <div className="bg-[--exec-surface] rounded-2xl shadow-2xl w-full max-w-md mx-4 border border-stone-600/40 transition-all animate-in zoom-in-95 duration-200">
-          <div className="p-6 text-center">
-            {/* Success Icon */}
-            <div className="w-16 h-16 rounded-full bg-green-500/20 flex items-center justify-center mx-auto mb-4">
-              <CheckCircle className="w-8 h-8 text-green-400" />
-            </div>
-
-            <h2 className="text-xl font-semibold text-[--exec-text] mb-2">
-              Prospect Converted!
-            </h2>
-            <p className="text-[--exec-text-secondary] mb-6">
-              {prospect.agency_name} has been added to your CRM as a contact
-              {successResult.deal_id && ' and a deal has been created'}.
-            </p>
-
-            {/* Action Buttons */}
-            <div className="flex gap-3 justify-center">
-              <button
-                onClick={handleClose}
-                className="px-4 py-2 text-sm font-medium text-[--exec-text-secondary] bg-stone-700/50 rounded-lg hover:bg-stone-600/50 transition-colors"
-              >
-                Close
-              </button>
-              {successResult.deal_id && (
-                <Link
-                  to={`/crm?dealId=${successResult.deal_id}`}
-                  onClick={handleClose}
-                  className={cn(
-                    'flex items-center gap-2 px-4 py-2 text-sm font-medium text-white rounded-lg',
-                    'bg-[--exec-accent] hover:bg-[--exec-accent-dark]',
-                    'shadow-sm hover:shadow-md transition-all'
-                  )}
-                >
-                  <ExternalLink className="w-4 h-4" />
-                  View Deal
-                </Link>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>,
-      document.body
-    );
-  }
 
   return createPortal(
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 animate-in fade-in duration-200">
