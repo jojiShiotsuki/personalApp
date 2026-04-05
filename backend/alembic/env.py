@@ -38,6 +38,7 @@ from app.models.project import Project
 from app.models.outreach import SearchPlannerCombination
 from app.models.social_content import SocialContent
 from app.models.tiktok_video import TikTokVideo
+from app.models.nurture import NurtureLead, NurtureStepLog
 
 target_metadata = Base.metadata
 
