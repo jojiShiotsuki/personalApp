@@ -1000,7 +1000,22 @@ function SequencePipelineView({
   const moveProspectMutation = useMutation({
     mutationFn: ({ id, data }: { id: number; data: Partial<OutreachProspect> }) =>
       coldOutreachApi.updateProspect(id, data),
-    onSuccess: (_result, variables) => {
+    onMutate: async (variables) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['mt-prospects'] });
+
+      // Snapshot previous data
+      const previousProspects = queryClient.getQueryData(['mt-prospects', selectedCampaign?.id]);
+
+      // Optimistically update the cache
+      queryClient.setQueriesData<OutreachProspect[]>(
+        { queryKey: ['mt-prospects'] },
+        (old) => old?.map((p) =>
+          p.id === variables.id ? { ...p, ...variables.data } : p
+        ),
+      );
+
+      // Build destination label for toast
       const prospect = prospects.find((p) => p.id === variables.id);
       const name = prospect?.agency_name || 'Prospect';
       const status = variables.data.status;
@@ -1018,11 +1033,24 @@ function SequencePipelineView({
         destination = 'LinkedIn Follow-up';
       }
       toast.success(`Moved ${name} to ${destination}`);
+
+      return { previousProspects };
+    },
+    onError: (_err, _variables, context) => {
+      // Rollback on error
+      if (context?.previousProspects) {
+        queryClient.setQueriesData(
+          { queryKey: ['mt-prospects'] },
+          context.previousProspects,
+        );
+      }
+      toast.error('Failed to move prospect');
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['mt-prospects'] });
       queryClient.invalidateQueries({ queryKey: ['mt-campaign'] });
       queryClient.invalidateQueries({ queryKey: ['multi-touch-campaigns'] });
     },
-    onError: () => toast.error('Failed to move prospect'),
   });
 
   const handleDragStart = (e: React.DragEvent, prospect: OutreachProspect) => {
