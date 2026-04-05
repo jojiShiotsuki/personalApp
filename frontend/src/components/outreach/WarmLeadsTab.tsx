@@ -13,6 +13,12 @@ import {
   ChevronRight,
   CheckCircle,
   ArrowRight,
+  Linkedin,
+  Globe,
+  MapPin,
+  Mail,
+  Edit2,
+  UserCheck,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -267,16 +273,52 @@ export default function WarmLeadsTab() {
                         key={lead.id}
                         onClick={() => handleSelectLead(lead)}
                         className={cn(
-                          'bg-stone-800/50 border rounded-lg p-3 cursor-pointer transition-all',
+                          'bg-stone-800/50 border rounded-lg p-4 cursor-pointer transition-all group',
                           selectedLeadId === lead.id
                             ? 'border-[--exec-accent] shadow-md'
-                            : 'border-stone-600/40 hover:border-stone-500/60'
+                            : 'border-stone-600/40 hover:border-stone-500/60 hover:shadow-lg hover:-translate-y-0.5'
                         )}
                       >
-                        {/* Name */}
-                        <p className="text-sm font-semibold text-[--exec-text] truncate mb-1">
+                        {/* Action buttons row */}
+                        <div className="flex items-center justify-center gap-0.5 mb-2 flex-wrap">
+                          {lead.prospect_email && (
+                            <a
+                              href={`mailto:${lead.prospect_email}`}
+                              onClick={(e) => e.stopPropagation()}
+                              className="p-1.5 text-[--exec-text-muted] hover:text-blue-400 hover:bg-blue-500/15 rounded-md transition-colors"
+                              title="Send email"
+                            >
+                              <Mail className="w-3.5 h-3.5" />
+                            </a>
+                          )}
+                          <button
+                            onClick={(e) => e.stopPropagation()}
+                            className="p-1.5 text-[--exec-text-muted] hover:text-emerald-400 hover:bg-emerald-500/15 rounded-md transition-colors"
+                            title="LinkedIn connected"
+                          >
+                            <UserCheck className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleSelectLead(lead);
+                            }}
+                            className="p-1.5 text-[--exec-text-muted] hover:text-[--exec-text] hover:bg-[--exec-surface-alt] rounded-md transition-colors"
+                            title="View details"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+
+                        {/* Company name */}
+                        <h4 className="text-sm font-semibold text-[--exec-text] line-clamp-2 leading-tight mb-1">
                           {lead.prospect_name ?? 'Unknown'}
-                        </p>
+                        </h4>
+
+                        {/* Contact name */}
+                        {lead.prospect_contact_name && (
+                          <p className="text-xs text-[--exec-text-muted] truncate mb-2">{lead.prospect_contact_name}</p>
+                        )}
 
                         {/* Badges */}
                         <div className="flex flex-wrap gap-1 mb-2">
@@ -293,7 +335,7 @@ export default function WarmLeadsTab() {
                         </div>
 
                         {/* Days in step + urgency */}
-                        <div className="flex items-center justify-between">
+                        <div className="flex items-center justify-between mb-2">
                           <span className="text-xs text-[--exec-text-muted]">
                             {daysInStep}d in step
                           </span>
@@ -302,6 +344,46 @@ export default function WarmLeadsTab() {
                             <span className="text-xs text-[--exec-text-muted]">
                               {urgency.label}
                             </span>
+                          </div>
+                        </div>
+
+                        {/* Links row */}
+                        <div className="pt-2 border-t border-stone-700/30">
+                          <div className="flex items-center gap-1">
+                            {lead.prospect_linkedin_url && (
+                              <a
+                                href={lead.prospect_linkedin_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={(e) => e.stopPropagation()}
+                                className="inline-flex items-center justify-center w-7 h-7 rounded-md text-[--exec-text-muted] hover:text-blue-400 hover:bg-[--exec-surface-alt] transition-colors"
+                                title="LinkedIn"
+                              >
+                                <Linkedin className="w-3.5 h-3.5" />
+                              </a>
+                            )}
+                            {lead.prospect_website && (
+                              <a
+                                href={lead.prospect_website.startsWith('http') ? lead.prospect_website : `https://${lead.prospect_website}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={(e) => e.stopPropagation()}
+                                className="inline-flex items-center justify-center w-7 h-7 rounded-md text-[--exec-text-muted] hover:text-[--exec-text] hover:bg-[--exec-surface-alt] transition-colors"
+                                title="Website"
+                              >
+                                <Globe className="w-3.5 h-3.5" />
+                              </a>
+                            )}
+                            <a
+                              href={`https://www.google.com/maps/search/${encodeURIComponent(lead.prospect_name ?? '')}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              className="inline-flex items-center justify-center w-7 h-7 rounded-md text-[--exec-text-muted] hover:text-[--exec-text] hover:bg-[--exec-surface-alt] transition-colors"
+                              title="Google Maps"
+                            >
+                              <MapPin className="w-3.5 h-3.5" />
+                            </a>
                           </div>
                         </div>
 

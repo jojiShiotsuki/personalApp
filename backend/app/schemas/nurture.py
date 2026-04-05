@@ -35,9 +35,13 @@ class NurtureLeadResponse(BaseModel):
     updated_at: datetime
     # Joined fields
     prospect_name: Optional[str] = None
+    prospect_contact_name: Optional[str] = None
     prospect_email: Optional[str] = None
     prospect_website: Optional[str] = None
     prospect_niche: Optional[str] = None
+    prospect_linkedin_url: Optional[str] = None
+    prospect_facebook_url: Optional[str] = None
+    prospect_instagram_url: Optional[str] = None
     campaign_name: Optional[str] = None
     contact_name: Optional[str] = None
     step_logs: List[NurtureStepLogResponse] = []

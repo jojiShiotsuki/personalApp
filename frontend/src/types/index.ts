@@ -1885,9 +1885,13 @@ export interface NurtureLead {
   created_at: string;
   updated_at: string;
   prospect_name: string | null;
+  prospect_contact_name: string | null;
   prospect_email: string | null;
   prospect_website: string | null;
   prospect_niche: string | null;
+  prospect_linkedin_url: string | null;
+  prospect_facebook_url: string | null;
+  prospect_instagram_url: string | null;
   campaign_name: string | null;
   contact_name: string | null;
   step_logs: NurtureStepLog[];
