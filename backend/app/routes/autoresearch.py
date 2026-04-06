@@ -86,7 +86,7 @@ def _vault_sync_insights():
 # ──────────────────────────────────────────────
 
 try:
-    from app.services.audit_service import AuditService, DEFAULT_AUDIT_PROMPT, validate_url
+    from app.services.audit_service import AuditService, DEFAULT_AUDIT_PROMPT, validate_url, build_variation_injection
     audit_service = AuditService()
 except Exception:
     logger.warning(
@@ -94,7 +94,7 @@ except Exception:
         "Audit endpoints will return 503."
     )
     audit_service = None  # type: ignore[assignment]
-    from app.services.audit_service import DEFAULT_AUDIT_PROMPT, validate_url
+    from app.services.audit_service import DEFAULT_AUDIT_PROMPT, validate_url, build_variation_injection
 
 # ──────────────────────────────────────────────
 # Gmail service (module-level, lazy init)
@@ -200,6 +200,11 @@ async def audit_single_prospect(
     audit_prompt = (settings.audit_prompt if settings and settings.audit_prompt else DEFAULT_AUDIT_PROMPT)
     min_wait = (settings.min_page_load_wait if settings else 3)
 
+    # Select variation pool picks and inject them into the prompt
+    selected_proof = _select_proof_variation(db, niche=prospect.niche)
+    selected_cta = _select_cta_variation(db, niche=prospect.niche)
+    audit_prompt = build_variation_injection(selected_proof, selected_cta) + audit_prompt
+
     # Inject learning context into audit prompt
     learning_context = None
     try:
@@ -301,6 +306,8 @@ async def audit_single_prospect(
             pagespeed_perf_score=pagespeed.get("performance", {}).get("score") if pagespeed else None,
             pagespeed_seo_score=pagespeed.get("seo", {}).get("score") if pagespeed else None,
             pagespeed_a11y_score=pagespeed.get("accessibility", {}).get("score") if pagespeed else None,
+            proof_angle=selected_proof["id"],
+            cta_angle=selected_cta["id"],
         )
         db.add(audit_result)
         db.commit()
@@ -654,7 +661,7 @@ def approve_audit(
         elif subject_changed or body_changed:
             edit_type = "minor"
 
-    # Create Experiment record
+    # Create Experiment record (carries proof_angle/cta_angle from AuditResult for learning)
     experiment = Experiment(
         prospect_id=audit.prospect_id,
         campaign_id=audit.campaign_id,
@@ -676,6 +683,8 @@ def approve_audit(
         niche=audit.detected_trade or (prospect.niche if prospect else None),
         city=audit.detected_city,
         company=prospect.agency_name if prospect else None,
+        proof_angle=audit.proof_angle,
+        cta_angle=audit.cta_angle,
     )
     db.add(experiment)
     db.commit()
@@ -735,6 +744,11 @@ async def regenerate_audit(
     )
 
     service = _require_audit_service()
+
+    # Select fresh variation pool picks for this regeneration
+    selected_proof = _select_proof_variation(db, niche=(prospect.niche if prospect else None))
+    selected_cta = _select_cta_variation(db, niche=(prospect.niche if prospect else None))
+
     result = await service.regenerate_email(
         instruction=body.instruction,
         issue_type=audit.issue_type,
@@ -747,16 +761,20 @@ async def regenerate_audit(
         prospect_name=(prospect.contact_name or prospect.agency_name or "") if prospect else "",
         prospect_company=(prospect.agency_name or "") if prospect else "",
         prospect_niche=(prospect.niche or "") if prospect else "",
+        selected_proof=selected_proof,
+        selected_cta=selected_cta,
     )
 
     if "error" in result and "subject" not in result:
         raise HTTPException(status_code=502, detail=result["error"])
 
-    # Update audit with regenerated email
+    # Update audit with regenerated email (including new variation IDs)
     audit.generated_subject = result.get("subject")
     audit.generated_subject_variant = result.get("subject_variant")
     audit.generated_body = result.get("body")
     audit.word_count = result.get("word_count")
+    audit.proof_angle = selected_proof["id"]
+    audit.cta_angle = selected_cta["id"]
 
     # Clear any previous user edits (fresh generation)
     audit.edited_subject = None
@@ -1485,6 +1503,11 @@ async def reaudit_prospect(
     audit_prompt = (settings.audit_prompt if settings and settings.audit_prompt else DEFAULT_AUDIT_PROMPT)
     min_wait = (settings.min_page_load_wait if settings else 3)
 
+    # Select variation pool picks and inject them into the prompt
+    selected_proof = _select_proof_variation(db, niche=prospect.niche)
+    selected_cta = _select_cta_variation(db, niche=prospect.niche)
+    audit_prompt = build_variation_injection(selected_proof, selected_cta) + audit_prompt
+
     # Build context with previous rejection reason
     rejection_context = ""
     if old_audit.rejection_reason:
@@ -1549,6 +1572,8 @@ async def reaudit_prospect(
             model_used=meta.get("model"),
             tokens_used=(meta.get("input_tokens", 0) + meta.get("output_tokens", 0)),
             ai_cost_estimate=meta.get("cost_usd"),
+            proof_angle=selected_proof["id"],
+            cta_angle=selected_cta["id"],
         )
         db.add(new_audit)
         db.commit()
@@ -2105,171 +2130,13 @@ _FOLLOWUP_INPUT_PRICE_PER_M = 3.0
 _FOLLOWUP_OUTPUT_PRICE_PER_M = 15.0
 
 
-# ──────────────────────────────────────────────
-# CTA + Proof Variation Pools
-# ──────────────────────────────────────────────
-# Every variation MUST reference a barbershop and include a concrete outcome + timeframe.
-# Python randomly selects one from each pool per generation for guaranteed rotation.
-# Once 100+ sends per variation exist, selection weights toward winners (70/20/10 rule).
-
-PROOF_POOL = [
-    {
-        "id": "barbershop-ranking-1",
-        "text": "I got a barbershop ranking #1 on Google and showing up in AI search within 3 months. Their phone went from quiet to fully booked.",
-    },
-    {
-        "id": "barbershop-zero-to-booked",
-        "text": "I took a barbershop from zero Google presence to fully booked in 3 months.",
-    },
-    {
-        "id": "barbershop-tripled-bookings",
-        "text": "I got a barbershop to the top of Google in 90 days and their bookings tripled.",
-    },
-    {
-        "id": "barbershop-phone-ringing",
-        "text": "I help businesses get found on Google so their phone rings. Got a barbershop to #1 in 3 months.",
-    },
-    {
-        "id": "barbershop-invisible-to-1",
-        "text": "A barbershop I worked with went from invisible on Google to ranked #1 in 3 months. Now they're fully booked.",
-    },
-]
-
-CTA_POOL = [
-    {
-        "id": "walkthrough-video",
-        "text": "Want me to send through a quick 3-minute walkthrough of what I found? Free, no pitch.",
-    },
-    {
-        "id": "written-fix-list",
-        "text": "Want me to shoot you the 3 things I'd fix first? Free.",
-    },
-    {
-        "id": "mockup-preview",
-        "text": "Want me to mock up a quick before-and-after? No cost.",
-    },
-    {
-        "id": "keyword-ranking-preview",
-        "text": "Want me to show you what searches you're missing in your area? Free.",
-    },
-    {
-        "id": "competitor-comparison",
-        "text": "Want me to send through what your top 2 competitors are doing that you're not?",
-    },
-    {
-        "id": "audit-screenshot",
-        "text": "Want me to send a screenshot of what I found?",
-    },
-    {
-        "id": "free-sample-fix",
-        "text": "Want me to fix the top one for free as a sample?",
-    },
-    {
-        "id": "curiosity-hook",
-        "text": "Want me to show you the one thing that'd move the needle most?",
-    },
-    {
-        "id": "soft-question",
-        "text": "Worth a look if you're open to it?",
-    },
-    {
-        "id": "value-drop",
-        "text": "Happy to send through the list either way if you're curious.",
-    },
-]
-
-
-def _select_proof_variation(db: Session, niche: str | None = None) -> dict:
-    """Select a proof variation from the pool.
-
-    Uses 70/20/10 weighted selection once 100+ sends per variation exist per niche:
-    - 70% winners (top performers by reply rate)
-    - 20% runners-up
-    - 10% experiments (any variation, including new ones)
-
-    Before that threshold: uniform random selection for even data collection.
-    """
-    import random
-    from sqlalchemy import func as sqlfunc, Integer as SAInteger
-    from app.models.autoresearch import Experiment
-
-    try:
-        query = db.query(
-            Experiment.proof_angle.label("angle_id"),
-            sqlfunc.count(Experiment.id).label("total"),
-            sqlfunc.sum(sqlfunc.cast(Experiment.replied, SAInteger)).label("replies"),
-        ).filter(
-            Experiment.proof_angle.isnot(None),
-            Experiment.sent_at.isnot(None),
-        )
-        if niche:
-            query = query.filter(Experiment.niche == niche)
-        stats = query.group_by(Experiment.proof_angle).all()
-
-        max_sends = max((s.total for s in stats), default=0)
-        if max_sends < 100 or len(stats) < 2:
-            return random.choice(PROOF_POOL)
-
-        return _weighted_pick(PROOF_POOL, stats)
-    except Exception:
-        # Fallback to uniform random on any DB error
-        return random.choice(PROOF_POOL)
-
-
-def _select_cta_variation(db: Session, niche: str | None = None) -> dict:
-    """Select a CTA variation from the pool with 70/20/10 weighting once data exists."""
-    import random
-    from sqlalchemy import func as sqlfunc, Integer as SAInteger
-    from app.models.autoresearch import Experiment
-
-    try:
-        query = db.query(
-            Experiment.cta_angle.label("angle_id"),
-            sqlfunc.count(Experiment.id).label("total"),
-            sqlfunc.sum(sqlfunc.cast(Experiment.replied, SAInteger)).label("replies"),
-        ).filter(
-            Experiment.cta_angle.isnot(None),
-            Experiment.sent_at.isnot(None),
-        )
-        if niche:
-            query = query.filter(Experiment.niche == niche)
-        stats = query.group_by(Experiment.cta_angle).all()
-
-        max_sends = max((s.total for s in stats), default=0)
-        if max_sends < 100 or len(stats) < 2:
-            return random.choice(CTA_POOL)
-
-        return _weighted_pick(CTA_POOL, stats)
-    except Exception:
-        return random.choice(CTA_POOL)
-
-
-def _weighted_pick(pool: list[dict], stats: list) -> dict:
-    """70/20/10 weighted selection: 70% winners, 20% runners-up, 10% experiments."""
-    import random
-
-    # Build reply rate lookup using the labelled column "angle_id"
-    rates: dict[str, float] = {}
-    for s in stats:
-        total = getattr(s, "total", 0) or 0
-        if total > 0:
-            angle_id = getattr(s, "angle_id", None)
-            if angle_id:
-                rates[angle_id] = (getattr(s, "replies", 0) or 0) / total
-
-    # Sort pool by reply rate descending (unranked at bottom)
-    sorted_pool = sorted(pool, key=lambda v: rates.get(v["id"], -1.0), reverse=True)
-    n = len(sorted_pool)
-    winners = sorted_pool[: max(1, n // 3)]
-    runners = sorted_pool[max(1, n // 3) : max(2, 2 * n // 3)]
-
-    roll = random.random()
-    if roll < 0.70:
-        return random.choice(winners)
-    elif roll < 0.90:
-        return random.choice(runners) if runners else random.choice(winners)
-    else:
-        return random.choice(sorted_pool)
+# Variation pools + selection live in app.services.email_variations (shared with audit_service)
+from app.services.email_variations import (
+    PROOF_POOL,
+    CTA_POOL,
+    select_proof_variation as _select_proof_variation,
+    select_cta_variation as _select_cta_variation,
+)
 
 
 def _learn_from_edit(db: Session, original_subject: str, original_body: str, edited_subject: str, edited_body: str) -> None:
@@ -4340,13 +4207,18 @@ async def _run_batch_audit(
                 except Exception as ps_err:
                     logger.warning("Batch %s: PageSpeed failed for prospect %d: %s", batch_id, prospect.id, ps_err)
 
-                # Inject learning context per-prospect niche
-                prospect_audit_prompt = audit_prompt
+                # Per-prospect: select proof/CTA variation + inject learning context
+                batch_selected_proof = _select_proof_variation(db, niche=prospect.niche)
+                batch_selected_cta = _select_cta_variation(db, niche=prospect.niche)
+                prospect_audit_prompt = (
+                    build_variation_injection(batch_selected_proof, batch_selected_cta)
+                    + audit_prompt
+                )
                 if _learning_svc:
                     try:
                         lc = _learning_svc.build_learning_context(db, prospect.niche)
                         if lc:
-                            prospect_audit_prompt = audit_prompt + "\n\n" + lc
+                            prospect_audit_prompt = prospect_audit_prompt + "\n\n" + lc
                     except Exception as lc_err:
                         logger.warning(
                             "Batch %s: learning context failed for prospect %d: %s",
@@ -4429,6 +4301,8 @@ async def _run_batch_audit(
                     pagespeed_perf_score=batch_pagespeed.get("performance", {}).get("score") if batch_pagespeed else None,
                     pagespeed_seo_score=batch_pagespeed.get("seo", {}).get("score") if batch_pagespeed else None,
                     pagespeed_a11y_score=batch_pagespeed.get("accessibility", {}).get("score") if batch_pagespeed else None,
+                    proof_angle=batch_selected_proof["id"],
+                    cta_angle=batch_selected_cta["id"],
                 )
                 db.add(audit_result)
                 db.commit()

@@ -33,6 +33,9 @@ class AuditResult(Base):
     word_count = Column(Integer, nullable=True)
     detected_city = Column(String(200), nullable=True)  # City/suburb extracted from website
     detected_trade = Column(String(100), nullable=True)  # Specific trade extracted from website
+    # Variation tracking (feeds into Experiment on approval)
+    proof_angle = Column(String(50), nullable=True, index=True)
+    cta_angle = Column(String(50), nullable=True, index=True)
 
     # Screenshots
     desktop_screenshot = Column(Text, nullable=True)

@@ -84,6 +84,34 @@ def validate_url(url: str) -> str:
 # Default Audit Prompt
 # ──────────────────────────────────────────────
 
+def build_variation_injection(proof: dict, cta: dict) -> str:
+    """Build the mandatory proof/CTA injection block to prepend to any audit prompt.
+
+    The proof and CTA are pre-selected by Python from the shared pools in
+    app.services.email_variations. The AI must copy them verbatim into the
+    generated email — its only creative work is the bridge paragraph.
+    """
+    return f"""MANDATORY PROOF SENTENCE (copy this VERBATIM into paragraph 1 of the email body — do not rewrite, do not rephrase, do not soften):
+"{proof['text']}"
+
+MANDATORY CTA SENTENCE (copy this VERBATIM into the final paragraph of the email body — do not rewrite):
+"{cta['text']}"
+
+The proof and CTA above are pre-selected by the system from a variation pool. You MUST copy them verbatim. Your only creative work is writing the BRIDGE paragraph (paragraph 2) based on the specific audit finding for this prospect.
+
+CASE STUDY LOCK: The case study is ALWAYS a barbershop. Do NOT change it to match the prospect's industry (not "an air con business", not "a plumber", not "a roofer"). The barbershop is the only case study you are permitted to reference.
+
+EMAIL STRUCTURE:
+1. "G'day [first_name]," opening
+2. Proof sentence (verbatim from above)
+3. Bridge paragraph (your creative work — reference the specific audit finding as an opportunity, not a problem, with a concrete fix timeframe + outcome)
+4. CTA sentence (verbatim from above)
+
+---
+
+"""
+
+
 DEFAULT_AUDIT_PROMPT = """You are a cold-email copywriter for Joji Shiotsuki, an Australian WordPress developer who helps tradies (tradespeople) get found online and booked out. You write short, proof-first emails that start with a credibility result and then bridge to an OPPORTUNITY on the prospect's own site.
 
 TARGET AUDIENCE CHECK (do this FIRST):
@@ -797,35 +825,37 @@ class AuditService:
         prospect_name: str,
         prospect_company: str,
         prospect_niche: str,
+        selected_proof: dict,
+        selected_cta: dict,
     ) -> dict[str, Any]:
         """
         Regenerate just the cold email using existing audit data + a user instruction.
         No screenshots — text-only Claude call.
+
+        Caller must select proof/CTA variations via
+        app.services.email_variations.select_proof_variation / select_cta_variation.
         """
         _start = time.monotonic()
 
-        system_prompt = """You are a cold-email copywriter for Joji Shiotsuki, an Australian WordPress developer who helps tradies (tradespeople) get found online and booked out. You write short, proof-first emails that start with a credibility result and then bridge to an OPPORTUNITY on the prospect's own site.
-
-EMAIL STRUCTURE (this exact flow):
-1. "G'day [first_name]," opening
-2. PROOF FIRST (paragraph 1): "I got a barbershop ranking #1 on Google and showing up in AI search within 3 months. Their phone went from quiet to booked out."
-3. BRIDGE (paragraph 2): Connect the proof to their site using opportunity language. Example: "Ran [company] through the same tools — spotted a few quick wins on [niche/area] searches. Nothing broken, just stuff most [trade] businesses don't know about."
-4. CTA (paragraph 3): Low-effort offer. 3-minute walkthrough, free, no pitch, no call ask.
+        injection = build_variation_injection(selected_proof, selected_cta)
+        system_prompt = injection + """You are a cold-email copywriter for Joji Shiotsuki, an Australian WordPress developer who helps tradies (tradespeople) get found online and booked out. You write short, proof-first emails that start with a credibility result and then bridge to an OPPORTUNITY on the prospect's own site.
 
 REFRAME AUDIT FINDINGS AS OPPORTUNITIES, NOT PROBLEMS:
 Use language like "spotted a few quick wins", "noticed an opportunity to", "room to improve on", "a simple tweak could", "stuff most [trade] businesses don't know about".
 
 Never describe their site as broken, dead, failing, wrong, missing, outdated, or use words like "typo", "slip", "mistake", "error".
 
-LOCATION RULES: Case study reference is "a barbershop" with NO location. NEVER mention Cebu, Philippines, Manila, or any non-Australian location.
+LOCATION RULES: NEVER mention Cebu, Philippines, Manila, or any non-Australian location.
 
 VALUE EQUATION CHECK: Before finalising, verify all 4 elements are present:
 1. Dream outcome (ranking #1, phone booked out)
-2. Proof (barbershop case study)
-3. Timeframe (within 3 months)
-4. Low-effort CTA (free, short, no meeting ask)
+2. Proof (barbershop case study — already in the MANDATORY proof sentence above)
+3. Timeframe (within 3 months — already in the MANDATORY proof sentence above)
+4. Low-effort CTA (already in the MANDATORY CTA sentence above)
 
 CRITICAL RULES:
+- Copy the MANDATORY proof sentence verbatim into paragraph 1
+- Copy the MANDATORY CTA sentence verbatim into the final paragraph
 - NEVER lead with alt text, meta descriptions, schema markup, image formats, or any invisible code issues
 - NEVER mention SEO jargon like "meta tags", "schema", "alt attributes"
 - Use Australian English (favour, colour, organisation, etc.)
@@ -851,7 +881,7 @@ RESPONSE FORMAT — Return ONLY valid JSON, no markdown fences:
 {
   "subject": "<email subject, under 8 words>",
   "subject_variant": "<alternative subject line, different angle/framing, under 8 words>",
-  "body": "<full email body, under 80 words, Australian English>",
+  "body": "<full email body, 65-90 words, includes proof sentence + bridge + CTA + sign-off>",
   "word_count": <integer word count of body>
 }"""
 
