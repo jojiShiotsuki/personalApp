@@ -27,7 +27,9 @@ load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
 # Add backend to path so we can import the audit service
 sys.path.insert(0, os.path.dirname(__file__))
 
-from app.services.audit_service import AuditService, DEFAULT_AUDIT_PROMPT, validate_url
+from app.services.audit_service import AuditService, DEFAULT_AUDIT_PROMPT, validate_url, build_variation_injection
+from app.services.email_variations import PROOF_POOL, CTA_POOL
+import random as _pool_random
 
 logging.basicConfig(
     level=logging.INFO,
@@ -138,6 +140,8 @@ async def post_audit_result(
     audit_data: dict,
     screenshots: dict,
     pagespeed: dict | None,
+    selected_proof: dict | None = None,
+    selected_cta: dict | None = None,
 ) -> dict | None:
     """POST the completed audit result to the live API."""
     meta = audit_data.get("_meta", {})
@@ -165,6 +169,8 @@ async def post_audit_result(
         "detected_city": audit_data.get("detected_city"),
         "detected_trade": audit_data.get("detected_trade"),
         "generated_subject_variant": audit_data.get("subject_variant"),
+        "proof_angle": selected_proof["id"] if selected_proof else None,
+        "cta_angle": selected_cta["id"] if selected_cta else None,
     }
 
     resp = await client.post(
@@ -193,12 +199,22 @@ async def audit_single_prospect(
     svc: AuditService,
     prospect: dict,
     audit_prompt: str,
-) -> tuple[dict, dict, dict | None]:
-    """Run the full audit pipeline on one prospect."""
+) -> tuple[dict, dict, dict | None, dict, dict]:
+    """Run the full audit pipeline on one prospect.
+
+    Returns (audit_data, screenshots, pagespeed, selected_proof, selected_cta).
+    Variations are selected uniformly from the pool per prospect, then injected
+    into the audit prompt so Claude copies them verbatim into the generated email.
+    """
     url = validate_url(prospect["website"])
     name = prospect.get("contact_name") or prospect.get("agency_name") or "there"
     company = prospect.get("agency_name") or ""
     niche = prospect.get("niche") or "general"
+
+    # Select proof + CTA variations from pool (uniform random — local auditor has no DB for weighting)
+    selected_proof = _pool_random.choice(PROOF_POOL)
+    selected_cta = _pool_random.choice(CTA_POOL)
+    injected_prompt = build_variation_injection(selected_proof, selected_cta) + audit_prompt
 
     # Run screenshots + PageSpeed in parallel
     screenshots_task = asyncio.create_task(svc.capture_screenshots(url, min_wait=3))
@@ -208,20 +224,20 @@ async def audit_single_prospect(
     pagespeed = await pagespeed_task
 
     if screenshots.get("error") and not screenshots.get("desktop_screenshot"):
-        return {"error": screenshots["error"], "site_quality": "unknown"}, screenshots, pagespeed
+        return {"error": screenshots["error"], "site_quality": "unknown"}, screenshots, pagespeed, selected_proof, selected_cta
 
-    # Analyze with Claude
+    # Analyze with Claude using the injected prompt
     audit_data = await svc.analyze_with_claude(
         screenshots=screenshots,
         prospect_name=name,
         prospect_company=company,
         prospect_niche=niche,
         prospect_city="",
-        audit_prompt=audit_prompt,
+        audit_prompt=injected_prompt,
         pagespeed=pagespeed,
     )
 
-    return audit_data, screenshots, pagespeed
+    return audit_data, screenshots, pagespeed, selected_proof, selected_cta
 
 
 async def main():
@@ -275,7 +291,7 @@ async def main():
             )
 
             try:
-                audit_data, screenshots, pagespeed = await audit_single_prospect(
+                audit_data, screenshots, pagespeed, selected_proof, selected_cta = await audit_single_prospect(
                     svc, prospect, audit_prompt,
                 )
 
@@ -382,6 +398,7 @@ async def main():
                             total_cost += cost
                             result = await post_audit_result(
                                 client, token, prospect, audit_data, screenshots, pagespeed,
+                                selected_proof=selected_proof, selected_cta=selected_cta,
                             )
                             if result:
                                 success_count += 1
@@ -422,6 +439,7 @@ async def main():
 
                 result = await post_audit_result(
                     client, token, prospect, audit_data, screenshots, pagespeed,
+                    selected_proof=selected_proof, selected_cta=selected_cta,
                 )
                 if result:
                     success_count += 1

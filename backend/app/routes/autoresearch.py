@@ -523,6 +523,8 @@ async def ingest_audit(
         ai_cost_estimate=payload.get("ai_cost_estimate"),
         detected_city=payload.get("detected_city"),
         detected_trade=payload.get("detected_trade"),
+        proof_angle=payload.get("proof_angle"),
+        cta_angle=payload.get("cta_angle"),
     )
     db.add(audit_result)
     db.commit()
