@@ -1316,10 +1316,26 @@ export const autoresearchApi = {
     failed: number;
     total_cost_usd: number;
   }> => {
-    const { data } = await api.post('/api/autoresearch/bulk-generate-followup', {
+    // Start background job
+    const { data: startData } = await api.post('/api/autoresearch/bulk-generate-followup', {
       prospect_ids: prospectIds,
-    }, { timeout: 180000 }); // 180s timeout for bulk generation
-    return data;
+    });
+    const jobId = startData.job_id;
+
+    // Poll for completion
+    while (true) {
+      await new Promise((r) => setTimeout(r, 2000)); // poll every 2s
+      const { data: job } = await api.get(`/api/autoresearch/bulk-generate-followup/${jobId}`);
+      if (job.status === 'done' || job.status === 'error') {
+        return {
+          results: job.results || [],
+          total: job.total,
+          succeeded: job.succeeded,
+          failed: job.failed,
+          total_cost_usd: job.total_cost_usd,
+        };
+      }
+    }
   },
 };
 

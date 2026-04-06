@@ -3707,73 +3707,101 @@ async def generate_followup_email(
     )
 
 
-@router.post("/bulk-generate-followup", response_model=BulkGenerateResponse)
+# In-memory store for bulk generation jobs
+_bulk_jobs: dict[str, dict] = {}
+
+
+@router.post("/bulk-generate-followup")
 async def bulk_generate_followup(
     request: BulkGenerateRequest,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Generate AI follow-up messages for multiple prospects sequentially."""
-    # Deduplicate
+    """Start bulk generation in background. Returns a job_id to poll for results."""
+    import uuid
     unique_ids = list(dict.fromkeys(request.prospect_ids))
+    job_id = str(uuid.uuid4())[:8]
 
-    results = []
-    total_cost = 0.0
-    succeeded = 0
-    failed = 0
+    _bulk_jobs[job_id] = {
+        "status": "running",
+        "total": len(unique_ids),
+        "succeeded": 0,
+        "failed": 0,
+        "completed": 0,
+        "results": [],
+        "total_cost_usd": 0.0,
+    }
 
-    for prospect_id in unique_ids:
+    # Capture user_id for background thread
+    user_id = current_user.id if current_user else None
+
+    async def _run_bulk(prospect_ids: list[int], jid: str, uid: int | None):
+        from app.database.connection import SessionLocal
+        bg_db = SessionLocal()
         try:
-            result = await _generate_followup_for_prospect(
-                prospect_id=prospect_id,
-                db=db,
-                current_user=current_user,
-            )
-            # Save to prospect record server-side
-            prospect = db.query(OutreachProspect).filter(
-                OutreachProspect.id == prospect_id
-            ).first()
-            if prospect:
-                prospect.custom_email_subject = result.get("subject", "")
-                prospect.custom_email_body = result.get("body", "")
-                db.commit()
+            # Load user for generation context
+            bg_user = None
+            if uid:
+                bg_user = bg_db.query(User).filter(User.id == uid).first()
 
-            cost = result.get("cost_usd", 0.0)
-            total_cost += cost
-            succeeded += 1
-            results.append(BulkGenerateResultItem(
-                prospect_id=prospect_id,
-                status="success",
-                subject=result.get("subject"),
-                word_count=result.get("word_count"),
-                angle_used=result.get("angle_used"),
-                cost_usd=cost,
-            ))
-        except HTTPException as he:
-            db.rollback()
-            failed += 1
-            results.append(BulkGenerateResultItem(
-                prospect_id=prospect_id,
-                status="error",
-                error=he.detail,
-            ))
+            for prospect_id in prospect_ids:
+                try:
+                    result = await _generate_followup_for_prospect(
+                        prospect_id=prospect_id,
+                        db=bg_db,
+                        current_user=bg_user,
+                    )
+                    prospect = bg_db.query(OutreachProspect).filter(
+                        OutreachProspect.id == prospect_id
+                    ).first()
+                    if prospect:
+                        prospect.custom_email_subject = result.get("subject", "")
+                        prospect.custom_email_body = result.get("body", "")
+                        bg_db.commit()
+
+                    cost = result.get("cost_usd", 0.0)
+                    _bulk_jobs[jid]["succeeded"] += 1
+                    _bulk_jobs[jid]["total_cost_usd"] += cost
+                    _bulk_jobs[jid]["results"].append({
+                        "prospect_id": prospect_id,
+                        "status": "success",
+                        "subject": result.get("subject"),
+                        "word_count": result.get("word_count"),
+                        "angle_used": result.get("angle_used"),
+                        "cost_usd": cost,
+                    })
+                except Exception as e:
+                    bg_db.rollback()
+                    _bulk_jobs[jid]["failed"] += 1
+                    _bulk_jobs[jid]["results"].append({
+                        "prospect_id": prospect_id,
+                        "status": "error",
+                        "error": str(e)[:200],
+                    })
+                _bulk_jobs[jid]["completed"] += 1
+
+            _bulk_jobs[jid]["status"] = "done"
+            _bulk_jobs[jid]["total_cost_usd"] = round(_bulk_jobs[jid]["total_cost_usd"], 6)
         except Exception as e:
-            logger.error("Bulk generation failed for prospect %d: %s", prospect_id, e, exc_info=True)
-            db.rollback()
-            failed += 1
-            results.append(BulkGenerateResultItem(
-                prospect_id=prospect_id,
-                status="error",
-                error="Generation failed unexpectedly",
-            ))
+            logger.error("Bulk generation job %s failed: %s", jid, e, exc_info=True)
+            _bulk_jobs[jid]["status"] = "error"
+        finally:
+            bg_db.close()
 
-    return BulkGenerateResponse(
-        results=results,
-        total=len(unique_ids),
-        succeeded=succeeded,
-        failed=failed,
-        total_cost_usd=round(total_cost, 6),
-    )
+    import asyncio
+    asyncio.ensure_future(_run_bulk(unique_ids, job_id, user_id))
+
+    return {"job_id": job_id, "total": len(unique_ids), "message": "Bulk generation started in background"}
+
+
+@router.get("/bulk-generate-followup/{job_id}")
+def get_bulk_job_status(job_id: str):
+    """Poll for bulk generation job status."""
+    job = _bulk_jobs.get(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    return job
 
 
 # ──────────────────────────────────────────────
