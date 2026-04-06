@@ -2401,36 +2401,69 @@ PROSPECT:
 - Name: {first_name}
 - Company: {prospect.agency_name}
 - Industry: {prospect.niche or 'trades'}
-- Location: {prospect.situation or 'Australia'}
+- Location: Australia
 - Website: {prospect.website or 'unknown'}
 - Detected issues: {issues_text}
 {audit_context}
 
 {custom_instruction if custom_instruction else ''}
 
-ISSUE PRIORITY (CRITICAL — pick the BEST issue to lead with):
-The auditor finds multiple issues. You MUST reprioritize them for the email. Use this ranking:
-1. BROKEN FUNCTIONALITY (highest priority) — buttons linking to wrong pages, broken links, forms that don't submit, 404 pages, dead clicks. These are undeniable and verifiable in 10 seconds.
-2. WRONG INFORMATION — wrong phone number, wrong address, wrong business hours, outdated pricing. Costs them customers right now.
-3. MISSING CRITICAL ELEMENTS — no phone number visible, no contact form, no way to request a quote. Visitors leave without converting.
-4. PERFORMANCE ISSUES — mobile site so slow it bounces paid traffic, site not loading on phones. Only use if it clearly costs them money.
-5. COSMETIC ISSUES (LOWEST PRIORITY) — outdated copyright dates, text-heavy pages, ugly design, old photos. NEVER lead with these. They trigger "stop" replies because the prospect doesn't see them as real problems.
+ISSUE PRIORITY (use the top-priority finding for the BRIDGE in paragraph 2):
+The auditor surfaces multiple findings. Rank them using this order, then use the TOP-priority finding as the basis for the opportunity framing in paragraph 2:
+1. BROKEN FUNCTIONALITY (highest priority) — buttons linking to wrong pages, forms not submitting, 404 pages, dead clicks. Undeniable and verifiable in 10 seconds.
+2. WRONG INFORMATION — incorrect phone number, address, business hours, pricing.
+3. MISSING CRITICAL ELEMENTS — no phone number visible, no contact form, no quote path.
+4. PERFORMANCE ISSUES — mobile site slowness, load issues on phones.
+5. COSMETIC (LOWEST PRIORITY) — outdated copyright dates, text-heavy pages, old photos. Reframe as "room to improve" not as criticism.
 
-If the only issues found are cosmetic (copyright dates, walls of text), reframe them as a business impact: "visitors are bouncing because they can't find your number" rather than "your site has walls of text."
+IMPORTANT: The proof (paragraph 1) always leads, regardless of which finding ranks highest. The audit finding only shapes paragraph 2 (the bridge).
+
+REFRAME AUDIT FINDINGS AS OPPORTUNITIES, NOT PROBLEMS:
+Tradies get defensive when criticised. Flip the frame so findings sound like opportunities and quick wins. Describe what you found using language like:
+- "spotted a few quick wins"
+- "noticed an opportunity to"
+- "room to improve on"
+- "a simple tweak could"
+- "stuff most {prospect.niche or 'trade'} businesses don't know about"
+
+Never describe their site as broken, dead, failing, wrong, missing, or outdated — even if the audit flagged those exact words. Translate the finding into opportunity language.
 
 EMAIL STRUCTURE (this exact flow):
-1. "G'day [first name]," opening
-2. Lead with THE ONE specific broken/wrong thing you found. Be concrete: "I noticed the 'Get a Quote' button on your homepage links to a 404 page" or "Your contact form isn't submitting." Something they can check in 10 seconds and can't argue with.
-3. Frame it as costing them money: "that means anyone clicking it to hire you hits a dead end"
-4. Credibility line: "I do this for tradies full-time, recently got a business ranking #1 on Google within 3 months."
-5. CTA framed as showing the opportunity (not delivering the full fix): "Want me to show you what I found?" or "Recorded a quick walkthrough if you want to see it."
+1. "G'day {first_name}," opening
+2. PROOF FIRST (paragraph 1, one sentence): Lead with the barbershop case study result. Concrete outcome + timeframe. Example: "I got a barbershop ranking #1 on Google and showing up in AI search within 3 months. Their phone went from quiet to booked out."
+3. BRIDGE (paragraph 2): Connect the proof to THEIR specific site. Reference running their business through the same tools and describe the top-priority audit finding as an OPPORTUNITY using the preferred language above. Example: "Ran {prospect.agency_name} through the same tools — spotted a few quick wins on [niche]-related searches in [their area]. Nothing broken, just stuff most [trade] businesses don't know about."
+4. CTA (paragraph 3): Low-effort offer. 3-minute walkthrough, free, no pitch, no call ask. Must be DIFFERENT from CTAs in the blacklist below. Example: "Want me to send through a quick 3-minute walkthrough of what I found? No cost, no pitch."
+5. Sign-off will be appended automatically — DO NOT write "Cheers" or a sign-off in your body.
+
+GOLD-STANDARD EXAMPLE (model your output on this structure):
+
+G'day Mike,
+
+I got a barbershop ranking #1 on Google and showing up in AI search within 3 months. Their phone went from quiet to booked out.
+
+Ran Smith Plumbing through the same tools — spotted a few quick wins on plumber-related searches in Brisbane. Nothing broken, just stuff most plumbers don't know about.
+
+Want me to send through a quick 3-minute walkthrough of what I found? No cost, no pitch.
+
+LOCATION RULES (CRITICAL):
+- The case study reference says "a barbershop" with NO location mentioned
+- NEVER mention Cebu, Philippines, Manila, or any non-Australian location anywhere
+- Joji Web Solutions is AU-based. This must be consistent across every email.
+
+VALUE EQUATION CHECK (before finalising, verify all 4 elements are present):
+1. Dream outcome — concrete positive result mentioned? (e.g., "ranking #1", "phone booked out")
+2. Perceived likelihood — proof shown? (case study reference)
+3. Time delay — timeframe stated? (e.g., "within 3 months")
+4. Effort — low-effort CTA? (free, short, no meeting ask)
+If any element is missing, rewrite until all 4 are present.
 
 WHAT NOT TO DO:
-- DO NOT lead with the case study. It's the credibility line, not the opener.
-- DO NOT lead with cosmetic complaints (copyright dates, "walls of text", "your site looks outdated").
-- DO NOT list multiple issues. Pick THE ONE most undeniable broken thing.
-- DO NOT give away the full diagnosis. Tease that there's more. The full audit is gated behind a conversation.
-- DO NOT be vague. "I found some issues with your site" is worthless. Be specific.
+- DO NOT lead with the audit finding. Proof comes FIRST.
+- DO NOT describe their site in negative terms. Use opportunity language.
+- DO NOT list multiple findings. One bridge reference, framed positively.
+- DO NOT ask for a meeting, call, or chat in the CTA.
+- DO NOT be vague in the bridge. Tie it to their specific niche/area.
+- DO NOT mention any location other than Australia for yourself or the case study.
 
 A/B TESTING — study the data below:
 {global_perf if global_perf else "No performance data yet — test DIFFERENT approaches for each prospect."}
@@ -2440,18 +2473,29 @@ YOUR STRATEGY:
 1. Study which subject lines got replies vs didn't. Use patterns that WORK.
 2. Study which email bodies got replies. Replicate the structure, tone, and hooks.
 3. Use a DIFFERENT CTA from previous emails. Not a rewording, a genuinely different ask.
-4. Test something NEW with each email. Vary one thing (subject style, CTA type, opening hook).
+4. Vary one thing per email (subject style, CTA wording, bridge angle).
 
 RULES:
 - Start with "G'day {first_name},"
 - Australian English, conversational, casual tone
 - NEVER use em dashes (—). Use commas, full stops, or rewrite the sentence instead
 - 65-90 words total (excluding sign-off)
-- BANNED CTA PHRASES: "10 minutes", "15 minutes", "worth X minutes", "got X minutes", "quick chat", "jump on a call". Use creative alternatives attached to results.
-- End with a CTA, then: Cheers,\\nJoji Shiotsuki | Joji Web Solutions | jojishiotsuki.com\\n\\nNot interested? Just reply "stop" and I won't email again.
+- BANNED PHRASES (never use any of these — they are banned in the BODY and SUBJECT):
+  * CTA bans: "10 minutes", "15 minutes", "worth X minutes", "got X minutes", "quick chat", "jump on a call"
+  * Negative framing bans: "broken", "dead end", "costing you", "walls of text", "outdated", "your site is", "wrong", "missing", "failing"
+  * Location bans: "Cebu", "Philippines", "Manila", or any non-Australian location reference
+- DO NOT write a sign-off in the body. The system appends the sign-off automatically.
 {step1_learning}
+SUBJECT LINE RULES (strict):
+- Max 6 words
+- NEVER use negative framing in the subject ("your website is", "broken", "blank", "wrong", "missing", "outdated", "failing", "problem", "issue", "bad", "not working")
+- NEVER include the words in the banned phrase list above
+- Frame as curiosity, opportunity, or a specific finding tied to their niche/area
+- Good examples: "quick find for {first_name}", "barbershop → booked out in 3mo", "3-minute walkthrough for {prospect.agency_name}", "spotted something on your site"
+- Bad examples: "Your website is blank", "Broken links on your homepage", "Missing phone number"
+
 Return ONLY valid JSON (no markdown fences):
-{{"subject": "short punchy subject about the specific issue found (not generic)", "body": "email body here", "word_count": N, "cta_used": "the exact CTA line you used", "angle_used": "short label for the approach you took"}}"""
+{{"subject": "short punchy subject tied to the opportunity angle — MUST NOT be negative or mention broken/missing/wrong", "body": "email body here (no sign-off)", "word_count": N, "cta_used": "the exact CTA line you used", "angle_used": "short label for the approach you took"}}"""
 
         model = os.getenv("AUTORESEARCH_FOLLOWUP_MODEL", "claude-sonnet-4-6")
         try:
