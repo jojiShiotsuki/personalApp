@@ -1311,6 +1311,36 @@ function SequencePipelineView({
                   </div>
                 )}
 
+                {/* Select all due today in this step */}
+                {(() => {
+                  const dueTodayInStep = bucket.filter((p) => isDueToday(p.next_action_date));
+                  if (dueTodayInStep.length === 0) return null;
+                  const allSelected = dueTodayInStep.every((p) => selectedProspectIds?.has(p.id));
+                  return (
+                    <button
+                      onClick={() => {
+                        if (!onToggleProspectSelection) return;
+                        const ids = dueTodayInStep.map((p) => p.id);
+                        if (allSelected) {
+                          ids.forEach((id) => onToggleProspectSelection(id));
+                        } else {
+                          ids.forEach((id) => {
+                            if (!selectedProspectIds?.has(id)) onToggleProspectSelection(id);
+                          });
+                        }
+                      }}
+                      className={cn(
+                        'w-full mb-2 px-2 py-1.5 rounded-lg text-[10px] font-medium transition-colors',
+                        allSelected
+                          ? 'bg-[#E07A5F]/20 text-[#E07A5F]'
+                          : 'bg-stone-700/40 text-stone-400 hover:text-stone-200 hover:bg-stone-700/60'
+                      )}
+                    >
+                      {allSelected ? `Deselect ${dueTodayInStep.length} due today` : `Select ${dueTodayInStep.length} due today`}
+                    </button>
+                  );
+                })()}
+
                 {/* Cards — drop target */}
                 <div
                   onDragOver={(e) => handleDragOver(e, `step-${col.stepNumber}`)}
