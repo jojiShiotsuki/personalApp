@@ -896,6 +896,8 @@ def track_email_content(
     loom_script = payload.get("loom_script")
     cta_used = payload.get("cta_used")
     angle_used = payload.get("angle_used")
+    proof_angle = payload.get("proof_angle")
+    cta_angle = payload.get("cta_angle")
 
     if not prospect_id:
         raise HTTPException(status_code=400, detail="prospect_id is required")
@@ -907,6 +909,14 @@ def track_email_content(
     # Also pull loom_script from prospect custom_fields if not in payload
     if not loom_script and prospect.custom_fields:
         loom_script = (prospect.custom_fields or {}).get("loom_script")
+
+    # Pull proof_angle / cta_angle from custom_fields if not passed in payload
+    # (stashed there by bulk generation flow)
+    if prospect.custom_fields:
+        if not proof_angle:
+            proof_angle = prospect.custom_fields.get("last_proof_angle")
+        if not cta_angle:
+            cta_angle = prospect.custom_fields.get("last_cta_angle")
 
     # Find existing experiment for this prospect + step
     experiment = (
@@ -932,6 +942,10 @@ def track_email_content(
             experiment.cta_used = cta_used
         if angle_used:
             experiment.angle_used = angle_used
+        if proof_angle:
+            experiment.proof_angle = proof_angle
+        if cta_angle:
+            experiment.cta_angle = cta_angle
     else:
         # Create new experiment for this step
         audit = (
@@ -959,6 +973,8 @@ def track_email_content(
             loom_script=loom_script,
             cta_used=cta_used,
             angle_used=angle_used,
+            proof_angle=proof_angle,
+            cta_angle=cta_angle,
         )
         db.add(experiment)
 
@@ -2089,6 +2105,173 @@ _FOLLOWUP_INPUT_PRICE_PER_M = 3.0
 _FOLLOWUP_OUTPUT_PRICE_PER_M = 15.0
 
 
+# ──────────────────────────────────────────────
+# CTA + Proof Variation Pools
+# ──────────────────────────────────────────────
+# Every variation MUST reference a barbershop and include a concrete outcome + timeframe.
+# Python randomly selects one from each pool per generation for guaranteed rotation.
+# Once 100+ sends per variation exist, selection weights toward winners (70/20/10 rule).
+
+PROOF_POOL = [
+    {
+        "id": "barbershop-ranking-1",
+        "text": "I got a barbershop ranking #1 on Google and showing up in AI search within 3 months. Their phone went from quiet to fully booked.",
+    },
+    {
+        "id": "barbershop-zero-to-booked",
+        "text": "I took a barbershop from zero Google presence to fully booked in 3 months.",
+    },
+    {
+        "id": "barbershop-tripled-bookings",
+        "text": "I got a barbershop to the top of Google in 90 days and their bookings tripled.",
+    },
+    {
+        "id": "barbershop-phone-ringing",
+        "text": "I help businesses get found on Google so their phone rings. Got a barbershop to #1 in 3 months.",
+    },
+    {
+        "id": "barbershop-invisible-to-1",
+        "text": "A barbershop I worked with went from invisible on Google to ranked #1 in 3 months. Now they're fully booked.",
+    },
+]
+
+CTA_POOL = [
+    {
+        "id": "walkthrough-video",
+        "text": "Want me to send through a quick 3-minute walkthrough of what I found? Free, no pitch.",
+    },
+    {
+        "id": "written-fix-list",
+        "text": "Want me to shoot you the 3 things I'd fix first? Free.",
+    },
+    {
+        "id": "mockup-preview",
+        "text": "Want me to mock up a quick before-and-after? No cost.",
+    },
+    {
+        "id": "keyword-ranking-preview",
+        "text": "Want me to show you what searches you're missing in your area? Free.",
+    },
+    {
+        "id": "competitor-comparison",
+        "text": "Want me to send through what your top 2 competitors are doing that you're not?",
+    },
+    {
+        "id": "audit-screenshot",
+        "text": "Want me to send a screenshot of what I found?",
+    },
+    {
+        "id": "free-sample-fix",
+        "text": "Want me to fix the top one for free as a sample?",
+    },
+    {
+        "id": "curiosity-hook",
+        "text": "Want me to show you the one thing that'd move the needle most?",
+    },
+    {
+        "id": "soft-question",
+        "text": "Worth a look if you're open to it?",
+    },
+    {
+        "id": "value-drop",
+        "text": "Happy to send through the list either way if you're curious.",
+    },
+]
+
+
+def _select_proof_variation(db: Session, niche: str | None = None) -> dict:
+    """Select a proof variation from the pool.
+
+    Uses 70/20/10 weighted selection once 100+ sends per variation exist per niche:
+    - 70% winners (top performers by reply rate)
+    - 20% runners-up
+    - 10% experiments (any variation, including new ones)
+
+    Before that threshold: uniform random selection for even data collection.
+    """
+    import random
+    from sqlalchemy import func as sqlfunc, Integer as SAInteger
+    from app.models.autoresearch import Experiment
+
+    try:
+        query = db.query(
+            Experiment.proof_angle.label("angle_id"),
+            sqlfunc.count(Experiment.id).label("total"),
+            sqlfunc.sum(sqlfunc.cast(Experiment.replied, SAInteger)).label("replies"),
+        ).filter(
+            Experiment.proof_angle.isnot(None),
+            Experiment.sent_at.isnot(None),
+        )
+        if niche:
+            query = query.filter(Experiment.niche == niche)
+        stats = query.group_by(Experiment.proof_angle).all()
+
+        max_sends = max((s.total for s in stats), default=0)
+        if max_sends < 100 or len(stats) < 2:
+            return random.choice(PROOF_POOL)
+
+        return _weighted_pick(PROOF_POOL, stats)
+    except Exception:
+        # Fallback to uniform random on any DB error
+        return random.choice(PROOF_POOL)
+
+
+def _select_cta_variation(db: Session, niche: str | None = None) -> dict:
+    """Select a CTA variation from the pool with 70/20/10 weighting once data exists."""
+    import random
+    from sqlalchemy import func as sqlfunc, Integer as SAInteger
+    from app.models.autoresearch import Experiment
+
+    try:
+        query = db.query(
+            Experiment.cta_angle.label("angle_id"),
+            sqlfunc.count(Experiment.id).label("total"),
+            sqlfunc.sum(sqlfunc.cast(Experiment.replied, SAInteger)).label("replies"),
+        ).filter(
+            Experiment.cta_angle.isnot(None),
+            Experiment.sent_at.isnot(None),
+        )
+        if niche:
+            query = query.filter(Experiment.niche == niche)
+        stats = query.group_by(Experiment.cta_angle).all()
+
+        max_sends = max((s.total for s in stats), default=0)
+        if max_sends < 100 or len(stats) < 2:
+            return random.choice(CTA_POOL)
+
+        return _weighted_pick(CTA_POOL, stats)
+    except Exception:
+        return random.choice(CTA_POOL)
+
+
+def _weighted_pick(pool: list[dict], stats: list) -> dict:
+    """70/20/10 weighted selection: 70% winners, 20% runners-up, 10% experiments."""
+    import random
+
+    # Build reply rate lookup using the labelled column "angle_id"
+    rates: dict[str, float] = {}
+    for s in stats:
+        total = getattr(s, "total", 0) or 0
+        if total > 0:
+            angle_id = getattr(s, "angle_id", None)
+            if angle_id:
+                rates[angle_id] = (getattr(s, "replies", 0) or 0) / total
+
+    # Sort pool by reply rate descending (unranked at bottom)
+    sorted_pool = sorted(pool, key=lambda v: rates.get(v["id"], -1.0), reverse=True)
+    n = len(sorted_pool)
+    winners = sorted_pool[: max(1, n // 3)]
+    runners = sorted_pool[max(1, n // 3) : max(2, 2 * n // 3)]
+
+    roll = random.random()
+    if roll < 0.70:
+        return random.choice(winners)
+    elif roll < 0.90:
+        return random.choice(runners) if runners else random.choice(winners)
+    else:
+        return random.choice(sorted_pool)
+
+
 def _learn_from_edit(db: Session, original_subject: str, original_body: str, edited_subject: str, edited_body: str) -> None:
     """Detect edit patterns and store as insights so future emails avoid the same issues."""
     from app.models.autoresearch import Insight
@@ -2362,6 +2545,10 @@ async def _generate_followup_for_prospect(
     if step_number == 1:
         first_name = (prospect.contact_name or prospect.agency_name or "there").split()[0]
 
+        # Select proof + CTA variation from pools (random now, weighted once data exists)
+        selected_proof = _select_proof_variation(db, niche=prospect.niche)
+        selected_cta = _select_cta_variation(db, niche=prospect.niche)
+
         # Get audit result if available
         audit = (
             db.query(AuditResult)
@@ -2428,22 +2615,35 @@ Tradies get defensive when criticised. Flip the frame so findings sound like opp
 
 Never describe their site as broken, dead, failing, wrong, missing, or outdated — even if the audit flagged those exact words. Translate the finding into opportunity language.
 
+CASE STUDY LOCK (CRITICAL — DO NOT DEVIATE):
+The case study is ALWAYS a barbershop. Do not change it to match the prospect's industry. Do not say "an air con business", "a plumber", "a roofer", "an electrical company", "a landscaper", or any other trade. It is a barbershop. This is a real client and the only case study you are permitted to reference.
+
+PROOF SENTENCE — USE THIS EXACT TEXT (do not rewrite, do not rephrase, do not soften):
+"{selected_proof["text"]}"
+
+CTA SENTENCE — USE THIS EXACT TEXT (do not rewrite, do not rephrase):
+"{selected_cta["text"]}"
+
+Both the proof and CTA are pre-selected from a pool by the system. You MUST copy them verbatim into the email. Your only creative work is writing the BRIDGE (paragraph 2) based on the specific audit finding for this prospect.
+
 EMAIL STRUCTURE (this exact flow):
 1. "G'day {first_name}," opening
-2. PROOF FIRST (paragraph 1, one sentence): Lead with the barbershop case study result. Concrete outcome + timeframe. Example: "I got a barbershop ranking #1 on Google and showing up in AI search within 3 months. Their phone went from quiet to booked out."
-3. BRIDGE (paragraph 2): Connect the proof to THEIR specific site. Reference running their business through the same tools and describe the top-priority audit finding as an OPPORTUNITY using the preferred language above. Example: "Ran {prospect.agency_name} through the same tools — spotted a few quick wins on [niche]-related searches in [their area]. Nothing broken, just stuff most [trade] businesses don't know about."
-4. CTA (paragraph 3): Low-effort offer. 3-minute walkthrough, free, no pitch, no call ask. Must be DIFFERENT from CTAs in the blacklist below. Example: "Want me to send through a quick 3-minute walkthrough of what I found? No cost, no pitch."
+2. PROOF FIRST (paragraph 1): Copy the proof sentence above VERBATIM.
+3. BRIDGE (paragraph 2): Must reference a SPECIFIC finding from the AUDIT FINDINGS section above. Do NOT write generic statements like "room to get ahead of competitors", "opportunity in your area", or "quick wins on searches". Pull the TOP-priority finding from the AUDIT FINDINGS and frame it as an opportunity with a concrete fix timeframe + concrete outcome. Format: "Ran {prospect.agency_name} through the same tools and noticed [SPECIFIC FINDING FROM AUDIT]. That's usually a [TIMEFRAME] fix that [CONCRETE OUTCOME], especially for [niche] searches in your area."
+4. CTA (paragraph 3): Copy the CTA sentence above VERBATIM.
 5. Sign-off will be appended automatically — DO NOT write "Cheers" or a sign-off in your body.
 
-GOLD-STANDARD EXAMPLE (model your output on this structure):
+GOLD-STANDARD EXAMPLE showing the structure (note: your proof/CTA will be whatever the system pre-selected above, not necessarily these exact sentences):
 
-G'day Mike,
+G'day Brandon-Lee,
 
-I got a barbershop ranking #1 on Google and showing up in AI search within 3 months. Their phone went from quiet to booked out.
+I got a barbershop ranking #1 on Google and showing up in AI search within 3 months. Their phone went from quiet to fully booked.
 
-Ran Smith Plumbing through the same tools — spotted a few quick wins on plumber-related searches in Brisbane. Nothing broken, just stuff most plumbers don't know about.
+Ran BL Air through the same tools and noticed your homepage doesn't show your services upfront. That's usually a 1-hour fix that gets a lot more visitors picking up the phone, especially for air con searches in your area.
 
-Want me to send through a quick 3-minute walkthrough of what I found? No cost, no pitch.
+Want me to send through a quick 3-minute walkthrough of what I found? Free, no pitch.
+
+Notice: the bridge references a SPECIFIC audit finding ("homepage doesn't show your services upfront") with a concrete timeframe ("1-hour fix") and concrete outcome ("more visitors picking up the phone"). Your bridge must do the same using the audit data above.
 
 LOCATION RULES (CRITICAL):
 - The case study reference says "a barbershop" with NO location mentioned
@@ -2458,11 +2658,16 @@ VALUE EQUATION CHECK (before finalising, verify all 4 elements are present):
 If any element is missing, rewrite until all 4 are present.
 
 WHAT NOT TO DO:
+- DO NOT substitute the barbershop for any other business type in the proof sentence. ALWAYS barbershop.
+- DO NOT soften "#1 on Google" to "top of Google", "ranking on Google", or "visible on Google".
+- DO NOT drop "AI search" from the proof sentence — both Google AND AI search must be mentioned.
+- DO NOT drop "within 3 months" — the timeframe is mandatory.
+- DO NOT write a generic bridge. Pull a SPECIFIC finding from the audit data.
+- DO NOT use vague CTAs like "before-and-after", "what I found", "a quick look". Use concrete CTAs: 3-minute walkthrough, written fix list, 3-minute audit video.
 - DO NOT lead with the audit finding. Proof comes FIRST.
 - DO NOT describe their site in negative terms. Use opportunity language.
 - DO NOT list multiple findings. One bridge reference, framed positively.
 - DO NOT ask for a meeting, call, or chat in the CTA.
-- DO NOT be vague in the bridge. Tie it to their specific niche/area.
 - DO NOT mention any location other than Australia for yourself or the case study.
 
 A/B TESTING — study the data below:
@@ -2495,7 +2700,7 @@ SUBJECT LINE RULES (strict):
 - Bad examples: "Your website is blank", "Broken links on your homepage", "Missing phone number"
 
 Return ONLY valid JSON (no markdown fences):
-{{"subject": "short punchy subject tied to the opportunity angle — MUST NOT be negative or mention broken/missing/wrong", "body": "email body here (no sign-off)", "word_count": N, "cta_used": "the exact CTA line you used", "angle_used": "short label for the approach you took"}}"""
+{{"subject": "short punchy subject tied to the opportunity angle — MUST NOT be negative or mention broken/missing/wrong", "body": "email body here (no sign-off, include proof sentence + bridge + CTA verbatim)", "word_count": N, "angle_used": "short label for the bridge approach you took (e.g. mobile-speed-opportunity, tap-to-call-fix)"}}"""
 
         model = os.getenv("AUTORESEARCH_FOLLOWUP_MODEL", "claude-sonnet-4-6")
         try:
@@ -2533,8 +2738,10 @@ Return ONLY valid JSON (no markdown fences):
             "follow_up_number": 0,
             "model": model,
             "cost_usd": round(cost_usd, 6),
-            "cta_used": result.get("cta_used"),
+            "cta_used": selected_cta["text"],  # Pre-selected CTA, always matches
             "angle_used": result.get("angle_used"),
+            "proof_angle": selected_proof["id"],
+            "cta_angle": selected_cta["id"],
         }
 
     # --- STEP 2+: Find the step 1 context (experiment OR custom email fields) ---
@@ -3802,6 +4009,13 @@ async def bulk_generate_followup(
                     if prospect:
                         prospect.custom_email_subject = result.get("subject", "")
                         prospect.custom_email_body = result.get("body", "")
+                        # Stash proof/cta angles in custom_fields so track-email can save them later
+                        cf = dict(prospect.custom_fields or {})
+                        if result.get("proof_angle"):
+                            cf["last_proof_angle"] = result.get("proof_angle")
+                        if result.get("cta_angle"):
+                            cf["last_cta_angle"] = result.get("cta_angle")
+                        prospect.custom_fields = cf
                         bg_db.commit()
 
                     cost = result.get("cost_usd", 0.0)
@@ -3813,6 +4027,8 @@ async def bulk_generate_followup(
                         "subject": result.get("subject"),
                         "word_count": result.get("word_count"),
                         "angle_used": result.get("angle_used"),
+                        "proof_angle": result.get("proof_angle"),
+                        "cta_angle": result.get("cta_angle"),
                         "cost_usd": cost,
                     })
                 except Exception as e:
