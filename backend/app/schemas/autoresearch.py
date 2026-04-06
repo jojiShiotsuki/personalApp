@@ -365,7 +365,7 @@ class LinkedInReplyUpdate(BaseModel):
 # ──────────────────────────────────────────────
 
 class BulkGenerateRequest(BaseModel):
-    prospect_ids: list[int] = Field(..., min_length=1, max_length=30)
+    prospect_ids: list[int] = Field(..., min_length=1, max_length=100)
 
 
 class BulkGenerateResultItem(BaseModel):
