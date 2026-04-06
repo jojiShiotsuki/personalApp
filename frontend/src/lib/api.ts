@@ -528,6 +528,14 @@ export const dashboardApi = {
     const response = await api.post(`/api/dashboard/actions/deal/${dealId}/log-followup`);
     return response.data;
   },
+
+  getAiSpend: async (): Promise<{
+    total_spend_usd: number;
+    breakdown: { audits: number; classification: number; chat: number };
+  }> => {
+    const response = await api.get('/api/dashboard/ai-spend');
+    return response.data;
+  },
 };
 
 // Outreach API

@@ -86,3 +86,31 @@ def log_deal_followup(deal_id: int, db: Session = Depends(get_db)):
     db.commit()
 
     return {"success": True, "message": "Follow-up logged, next follow-up in 7 days"}
+
+
+@router.get("/ai-spend")
+def get_ai_spend(db: Session = Depends(get_db)):
+    """Get total AI spend across all features."""
+    from sqlalchemy import func
+    from app.models.autoresearch import AuditResult, EmailMatch
+    from app.models.joji_ai import ConversationMessage
+
+    # Audit costs (website audits)
+    audit_cost = db.query(func.coalesce(func.sum(AuditResult.ai_cost_estimate), 0)).scalar() or 0
+
+    # Classification costs (reply classification)
+    classification_cost = db.query(func.coalesce(func.sum(EmailMatch.classification_cost), 0)).scalar() or 0
+
+    # Joji AI chat costs
+    chat_cost = db.query(func.coalesce(func.sum(ConversationMessage.cost_usd), 0)).scalar() or 0
+
+    total = float(audit_cost) + float(classification_cost) + float(chat_cost)
+
+    return {
+        "total_spend_usd": round(total, 4),
+        "breakdown": {
+            "audits": round(float(audit_cost), 4),
+            "classification": round(float(classification_cost), 4),
+            "chat": round(float(chat_cost), 4),
+        },
+    }

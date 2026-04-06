@@ -1,5 +1,7 @@
 import { ReactNode, useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { dashboardApi } from '@/lib/api';
 import {
   LayoutDashboard,
   CheckSquare,
@@ -24,6 +26,24 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
+
+function AiSpendBadge() {
+  const { data } = useQuery({
+    queryKey: ['ai-spend'],
+    queryFn: dashboardApi.getAiSpend,
+    refetchInterval: 60000, // refresh every minute
+    staleTime: 30000,
+  });
+
+  if (!data) return null;
+
+  return (
+    <div className="fixed top-3 right-4 z-30 hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-stone-800/80 border border-stone-700/40 backdrop-blur-sm">
+      <span className="text-[10px] font-medium text-stone-400 uppercase tracking-wider">AI Spend</span>
+      <span className="text-xs font-bold text-[#E07A5F]">${data.total_spend_usd.toFixed(2)}</span>
+    </div>
+  );
+}
 
 interface LayoutProps {
   children: ReactNode;
@@ -316,7 +336,8 @@ export default function Layout({ children }: LayoutProps) {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto bg-[--exec-bg] pt-14 sm:pt-0">
+      <main className="flex-1 overflow-y-auto bg-[--exec-bg] pt-14 sm:pt-0 relative">
+        <AiSpendBadge />
         {children}
       </main>
 
