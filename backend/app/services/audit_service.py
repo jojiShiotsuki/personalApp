@@ -114,13 +114,22 @@ EMAIL STRUCTURE:
 
 DEFAULT_AUDIT_PROMPT = """You are a cold-email copywriter for Joji Shiotsuki, an Australian WordPress developer who helps tradies (tradespeople) get found online and booked out. You write short, proof-first emails that start with a credibility result and then bridge to an OPPORTUNITY on the prospect's own site.
 
-TARGET AUDIENCE CHECK (do this FIRST):
-Before auditing, confirm this is a small-to-medium tradie business that Joji can help. SKIP and return site_quality="not_target" if:
-- Large corporation with a professional web team or enterprise site
-- Government, institutional, or non-profit organisation
-- Not a tradie business (must be HVAC, plumbing, electrical, roofing, landscaping, building, or similar trade)
-- Franchise with centrally managed website (individual franchisee can't change it)
-- Business is clearly not in Australia
+TARGET AUDIENCE CHECK (be lenient — ONLY skip if the business is clearly unreachable):
+Return site_quality="not_target" ONLY if one of these is clearly true:
+- Truly massive enterprise (5+ offices, hundreds of staff, clearly has an in-house marketing team)
+- Government department or statutory body
+- Franchise where the homepage is centrally managed and the individual franchisee cannot edit it
+- Not a tradie business at all (e.g. a SaaS product, news site, affiliate blog)
+- Clearly not in Australia
+
+DO NOT skip:
+- Single-location tradies with polished-looking sites — they can still benefit from SEO/conversion tweaks
+- Medium-size tradie firms (10-100 staff) — owner is often still the decision-maker
+- Tradies with modern sites — they still have opportunities to improve
+- Wholesalers/distributors that also do end-customer sales
+- Any tradie niche (HVAC, plumbing, electrical, roofing, landscaping, building, painting, concreting, fencing, decking, pest, cleaning, etc.)
+
+If in doubt, DO the audit — don't skip. The cost of auditing a borderline prospect is worth it if there's any chance they're reachable.
 
 ANALYSIS INSTRUCTIONS:
 1. Study the desktop and mobile screenshots carefully.
@@ -492,10 +501,154 @@ class AuditService:
     # PageSpeed Insights
     # ──────────────────────────────────────────
 
+    async def cheap_target_check(self, url: str, niche: str = "") -> dict[str, Any]:
+        """Fast pre-filter: fetch the homepage HTML (no Playwright) and ask Haiku
+        if this is a target tradie business worth auditing.
+
+        Costs ~$0.0001 per check vs ~$0.02 for a full audit.
+        Skips prospects that are:
+        - Large corporations / enterprises
+        - Government / institutional
+        - Wholesalers / distributors
+        - Franchises with centrally managed sites
+
+        Returns:
+            {
+                "is_target": bool,
+                "reason": str,  # short explanation
+                "cost_usd": float,
+                "title": str | None,
+                "description": str | None,
+            }
+        """
+        import re
+
+        title = None
+        description = None
+        body_snippet = ""
+
+        # Fetch homepage HTML (fast, no JS rendering)
+        try:
+            async with httpx.AsyncClient(
+                timeout=10,
+                follow_redirects=True,
+                headers={"User-Agent": "Mozilla/5.0 (compatible; JojiWebAudit/1.0)"},
+            ) as client:
+                response = await client.get(url)
+                if response.status_code >= 400:
+                    return {
+                        "is_target": True,  # can't tell, let full audit decide
+                        "reason": f"HTTP {response.status_code} on prefetch",
+                        "cost_usd": 0.0,
+                        "title": None,
+                        "description": None,
+                    }
+                html = response.text[:15000]  # first 15KB is plenty
+
+                # Extract title
+                title_match = re.search(r"<title[^>]*>([^<]+)</title>", html, re.IGNORECASE)
+                if title_match:
+                    title = title_match.group(1).strip()[:200]
+
+                # Extract meta description
+                desc_match = re.search(
+                    r'<meta\s+name=["\']description["\']\s+content=["\']([^"\']+)["\']',
+                    html, re.IGNORECASE,
+                )
+                if desc_match:
+                    description = desc_match.group(1).strip()[:300]
+
+                # Extract visible-ish text (strip tags crudely)
+                text = re.sub(r"<script[^>]*>.*?</script>", "", html, flags=re.DOTALL | re.IGNORECASE)
+                text = re.sub(r"<style[^>]*>.*?</style>", "", text, flags=re.DOTALL | re.IGNORECASE)
+                text = re.sub(r"<[^>]+>", " ", text)
+                text = re.sub(r"\s+", " ", text).strip()
+                body_snippet = text[:800]
+        except Exception as e:
+            return {
+                "is_target": True,  # let the full audit try
+                "reason": f"prefetch error: {str(e)[:80]}",
+                "cost_usd": 0.0,
+                "title": None,
+                "description": None,
+            }
+
+        # Build the Haiku prompt (tiny)
+        prompt = f"""Is this a small-to-medium Australian tradie business worth a cold email audit?
+
+URL: {url}
+Niche: {niche or 'unknown'}
+Title: {title or 'unknown'}
+Description: {description or 'unknown'}
+Body excerpt: {body_snippet}
+
+SKIP these (return is_target=false):
+- Large corporation, enterprise, or franchise with centrally-managed website
+- Government, institutional, non-profit, or membership organisation
+- Wholesaler, distributor, or manufacturer (B2B supplier, not end-service)
+- Clearly not a tradie (not HVAC/plumbing/electrical/roofing/landscaping/building/etc)
+- Business clearly not in Australia
+
+TARGET these (return is_target=true):
+- Single-location or small-chain tradie business
+- Owner-operator tradie with a simple/modest website
+- Any tradie niche — even if site looks decent, they can still benefit
+
+Return ONLY JSON, no markdown fences:
+{{"is_target": true/false, "reason": "short phrase"}}"""
+
+        try:
+            response = await self.client.messages.create(
+                model=os.getenv("AUDIT_PREFILTER_MODEL", "claude-haiku-4-5-20251001"),
+                max_tokens=100,
+                messages=[{"role": "user", "content": prompt}],
+            )
+        except Exception as e:
+            logger.warning("Prefilter Haiku call failed for %s: %s", url, e)
+            return {
+                "is_target": True,  # let full audit decide
+                "reason": f"haiku error: {str(e)[:80]}",
+                "cost_usd": 0.0,
+                "title": title,
+                "description": description,
+            }
+
+        raw_text = response.content[0].text if response.content else ""
+        # Strip code fences if present
+        raw = raw_text.strip()
+        if raw.startswith("```"):
+            raw = re.sub(r"^```(?:json)?\s*", "", raw)
+            raw = re.sub(r"\s*```$", "", raw)
+
+        try:
+            parsed = json.loads(raw)
+        except Exception:
+            # Couldn't parse — assume target to be safe
+            return {
+                "is_target": True,
+                "reason": "parse error, defaulting to target",
+                "cost_usd": 0.0,
+                "title": title,
+                "description": description,
+            }
+
+        # Calculate cost (Haiku 4.5 pricing)
+        input_tokens = getattr(response.usage, "input_tokens", 0)
+        output_tokens = getattr(response.usage, "output_tokens", 0)
+        cost = (input_tokens * 1.0 / 1_000_000) + (output_tokens * 5.0 / 1_000_000)
+
+        return {
+            "is_target": bool(parsed.get("is_target", True)),
+            "reason": str(parsed.get("reason", ""))[:200],
+            "cost_usd": round(cost, 6),
+            "title": title,
+            "description": description,
+        }
+
     async def run_pagespeed_test(self, url: str) -> dict[str, Any]:
         """
-        Run Google PageSpeed Insights on a URL for three categories:
-        performance, seo, and accessibility.
+        Run Google PageSpeed Insights on a URL for three categories in parallel:
+        performance, seo, and accessibility. Roughly 3x faster than sequential.
 
         Returns a dict keyed by category, e.g.:
             {
@@ -506,86 +659,91 @@ class AuditService:
         """
         api_url = "https://www.googleapis.com/pagespeedonline/v5/runPagespeed"
         google_api_key = os.getenv("GOOGLE_API_KEY")
-
-        results: dict[str, Any] = {}
         categories_to_test = ["performance", "seo", "accessibility"]
 
+        async def _fetch_category(client: httpx.AsyncClient, category: str) -> tuple[str, dict[str, Any]]:
+            params: dict[str, str] = {
+                "url": url,
+                "category": category,
+                "strategy": "mobile",
+            }
+            if google_api_key:
+                params["key"] = google_api_key
+
+            try:
+                response = await client.get(api_url, params=params)
+                response.raise_for_status()
+                data = response.json()
+
+                lighthouse = data.get("lighthouseResult", {})
+                lh_categories = lighthouse.get("categories", {})
+                lh_audits = lighthouse.get("audits", {})
+
+                cat_score = lh_categories.get(category, {}).get("score")
+                score_100 = round(cat_score * 100) if cat_score is not None else None
+
+                if category == "performance":
+                    fcp = lh_audits.get("first-contentful-paint", {}).get("displayValue")
+                    lcp = lh_audits.get("largest-contentful-paint", {}).get("displayValue")
+                    speed_index = lh_audits.get("speed-index", {}).get("displayValue")
+                    tti = lh_audits.get("interactive", {}).get("displayValue")
+                    cls_val = lh_audits.get("cumulative-layout-shift", {}).get("displayValue")
+                    speed_index_seconds = lh_audits.get("speed-index", {}).get("numericValue")
+                    load_seconds = round(speed_index_seconds / 1000, 1) if speed_index_seconds else None
+
+                    return category, {
+                        "score": score_100,
+                        "first_contentful_paint": fcp,
+                        "largest_contentful_paint": lcp,
+                        "speed_index": speed_index,
+                        "time_to_interactive": tti,
+                        "cumulative_layout_shift": cls_val,
+                        "load_seconds": load_seconds,
+                        "is_slow": score_100 is not None and score_100 < 50,
+                        "error": None,
+                    }
+                else:
+                    # SEO and Accessibility: extract score + failed audit titles
+                    failed_audits = []
+                    cat_ref = lh_categories.get(category, {})
+                    for audit_ref in cat_ref.get("auditRefs", []):
+                        audit_id = audit_ref.get("id", "")
+                        audit_detail = lh_audits.get(audit_id, {})
+                        if audit_detail.get("score") == 0:
+                            title = audit_detail.get("title", audit_id)
+                            failed_audits.append(title)
+
+                    return category, {
+                        "score": score_100,
+                        "failed_audits": failed_audits,
+                        "error": None,
+                    }
+            except httpx.TimeoutException:
+                logger.warning("PageSpeed %s test timed out for %s", category, url)
+                return category, {"score": None, "error": f"PageSpeed {category} test timed out"}
+            except Exception as e:
+                logger.warning("PageSpeed %s test failed for %s: %s", category, url, e)
+                return category, {"score": None, "error": str(e)}
+
+        results: dict[str, Any] = {}
         try:
             async with httpx.AsyncClient(timeout=60) as client:
-                for idx, category in enumerate(categories_to_test):
-                    # 300ms delay between calls to avoid rate limiting
-                    if idx > 0:
-                        await asyncio.sleep(0.3)
-
-                    params: dict[str, str] = {
-                        "url": url,
-                        "category": category,
-                        "strategy": "mobile",
-                    }
-                    if google_api_key:
-                        params["key"] = google_api_key
-
-                    try:
-                        response = await client.get(api_url, params=params)
-                        response.raise_for_status()
-                        data = response.json()
-
-                        lighthouse = data.get("lighthouseResult", {})
-                        lh_categories = lighthouse.get("categories", {})
-                        lh_audits = lighthouse.get("audits", {})
-
-                        cat_score = lh_categories.get(category, {}).get("score")
-                        score_100 = round(cat_score * 100) if cat_score is not None else None
-
-                        if category == "performance":
-                            fcp = lh_audits.get("first-contentful-paint", {}).get("displayValue")
-                            lcp = lh_audits.get("largest-contentful-paint", {}).get("displayValue")
-                            speed_index = lh_audits.get("speed-index", {}).get("displayValue")
-                            tti = lh_audits.get("interactive", {}).get("displayValue")
-                            cls_val = lh_audits.get("cumulative-layout-shift", {}).get("displayValue")
-                            speed_index_seconds = lh_audits.get("speed-index", {}).get("numericValue")
-                            load_seconds = round(speed_index_seconds / 1000, 1) if speed_index_seconds else None
-
-                            results["performance"] = {
-                                "score": score_100,
-                                "first_contentful_paint": fcp,
-                                "largest_contentful_paint": lcp,
-                                "speed_index": speed_index,
-                                "time_to_interactive": tti,
-                                "cumulative_layout_shift": cls_val,
-                                "load_seconds": load_seconds,
-                                "is_slow": score_100 is not None and score_100 < 50,
-                                "error": None,
-                            }
-                        else:
-                            # SEO and Accessibility: extract score + failed audit titles
-                            failed_audits = []
-                            cat_ref = lh_categories.get(category, {})
-                            for audit_ref in cat_ref.get("auditRefs", []):
-                                audit_id = audit_ref.get("id", "")
-                                audit_detail = lh_audits.get(audit_id, {})
-                                if audit_detail.get("score") == 0:
-                                    title = audit_detail.get("title", audit_id)
-                                    failed_audits.append(title)
-
-                            results[category] = {
-                                "score": score_100,
-                                "failed_audits": failed_audits,
-                                "error": None,
-                            }
-
-                    except httpx.TimeoutException:
-                        logger.warning("PageSpeed %s test timed out for %s", category, url)
-                        results[category] = {"score": None, "error": f"PageSpeed {category} test timed out"}
-                    except Exception as e:
-                        logger.warning("PageSpeed %s test failed for %s: %s", category, url, e)
-                        results[category] = {"score": None, "error": str(e)}
-
+                # Run all 3 categories in parallel instead of sequentially
+                tasks = [_fetch_category(client, cat) for cat in categories_to_test]
+                completed = await asyncio.gather(*tasks, return_exceptions=True)
+                for item in completed:
+                    if isinstance(item, Exception):
+                        logger.warning("PageSpeed gather exception for %s: %s", url, item)
+                        continue
+                    category, data = item
+                    results[category] = data
         except Exception as e:
             logger.warning("PageSpeed test failed entirely for %s: %s", url, e)
-            for cat in categories_to_test:
-                if cat not in results:
-                    results[cat] = {"score": None, "error": str(e)}
+
+        # Ensure all categories have an entry
+        for cat in categories_to_test:
+            if cat not in results:
+                results[cat] = {"score": None, "error": "PageSpeed test did not complete"}
 
         return results
 
@@ -740,7 +898,7 @@ class AuditService:
         try:
             response = await self.client.messages.create(
                 model=model,
-                max_tokens=1000,
+                max_tokens=1500,  # bumped from 1000 — large prompts were truncating JSON responses
                 system=audit_prompt,
                 messages=[{"role": "user", "content": content}],
             )
@@ -791,10 +949,16 @@ class AuditService:
     @staticmethod
     def _parse_json_response(raw_text: str) -> dict[str, Any]:
         """
-        Parse a JSON response from Claude, handling optional ```json fences
-        and common formatting quirks.
+        Parse a JSON response from Claude, handling optional ```json fences,
+        leading/trailing prose, and common formatting quirks.
         """
         text = raw_text.strip()
+
+        if not text:
+            return {
+                "error": "JSON parse error: empty response",
+                "raw_response": "",
+            }
 
         # Strip markdown code fences
         fence_pattern = re.compile(r"```(?:json)?\s*\n?(.*?)\n?\s*```", re.DOTALL)
@@ -802,15 +966,40 @@ class AuditService:
         if match:
             text = match.group(1).strip()
 
+        # Try direct parse first
         try:
             return json.loads(text)
-        except json.JSONDecodeError as exc:
-            logger.warning("Failed to parse Claude JSON response: %s", exc)
-            logger.debug("Raw response text: %s", raw_text[:500])
-            return {
-                "error": f"JSON parse error: {exc}",
-                "raw_response": raw_text[:1000],
-            }
+        except json.JSONDecodeError:
+            pass
+
+        # Fallback 1: extract the first {...} block (handles prose before JSON)
+        brace_match = re.search(r"\{.*\}", text, re.DOTALL)
+        if brace_match:
+            try:
+                return json.loads(brace_match.group(0))
+            except json.JSONDecodeError:
+                pass
+
+        # Fallback 2: handle trailing commas (Claude occasionally generates them)
+        cleaned = re.sub(r",(\s*[}\]])", r"\1", text)
+        try:
+            return json.loads(cleaned)
+        except json.JSONDecodeError:
+            pass
+
+        # Fallback 3: if the response starts with a truncated object, try to close it
+        if text.startswith("{") and not text.rstrip().endswith("}"):
+            try:
+                return json.loads(text + '"}')
+            except json.JSONDecodeError:
+                pass
+
+        logger.warning("Failed to parse Claude JSON response after all fallbacks")
+        logger.debug("Raw response text: %s", raw_text[:500])
+        return {
+            "error": "JSON parse error: response not parseable as JSON after fallbacks",
+            "raw_response": raw_text[:1000],
+        }
 
     async def regenerate_email(
         self,

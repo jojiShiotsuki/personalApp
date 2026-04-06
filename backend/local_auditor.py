@@ -280,6 +280,9 @@ async def main():
         audited_ids: set[int] = set()
         start_time = time.time()
 
+        prefilter_skipped = 0
+        prefilter_cost = 0.0
+
         for i, prospect in enumerate(prospects):
             if prospect["id"] in audited_ids:
                 continue
@@ -289,6 +292,42 @@ async def main():
                 "[%d/%d] Auditing %s (%s)...",
                 i + 1, len(prospects), name, prospect.get("website", "no url"),
             )
+
+            # STEP 0: Cheap Haiku pre-filter (costs ~$0.0001 vs $0.02 for a full audit)
+            try:
+                prefilter_url = validate_url(prospect["website"])
+                prefilter = await svc.cheap_target_check(
+                    prefilter_url, niche=prospect.get("niche") or ""
+                )
+                prefilter_cost += prefilter.get("cost_usd", 0.0)
+                if not prefilter.get("is_target", True):
+                    logger.info(
+                        "  -> Pre-filter skip: %s (saved ~$0.02)",
+                        prefilter.get("reason", "not target"),
+                    )
+                    # Upload a skip record so we don't re-audit this prospect
+                    skip_payload = {
+                        "prospect_id": prospect["id"],
+                        "campaign_id": prospect.get("campaign_id", args.campaign),
+                        "issue_type": "not_target",
+                        "issue_detail": f"Pre-filter skip: {prefilter.get('reason', '')}",
+                        "status": "skipped",
+                        "site_quality": "not_target",
+                        "confidence": "high",
+                    }
+                    try:
+                        await client.post(
+                            f"{API_URL}/api/autoresearch/audits/ingest",
+                            json=skip_payload,
+                            headers={"Authorization": f"Bearer {token}"},
+                        )
+                    except Exception:
+                        pass
+                    prefilter_skipped += 1
+                    continue
+            except Exception as pf_err:
+                # Pre-filter is best-effort — if it fails, do the full audit
+                logger.warning("  -> Pre-filter failed: %s (running full audit)", pf_err)
 
             try:
                 audit_data, screenshots, pagespeed, selected_proof, selected_cta = await audit_single_prospect(
@@ -448,9 +487,15 @@ async def main():
                 logger.error("  -> Error: %s", e)
 
         elapsed = round(time.time() - start_time, 1)
+        total_with_prefilter = total_cost + prefilter_cost
+        est_savings = prefilter_skipped * 0.02  # rough estimate — each full audit is ~$0.02
         logger.info(
-            "\nDone! %d/%d audits uploaded. Cost: $%.4f. Time: %ds.",
-            success_count, len(prospects), total_cost, elapsed,
+            "\nDone! %d/%d audits uploaded. %d pre-filter skips. "
+            "Cost: $%.4f audits + $%.4f pre-filter = $%.4f total. "
+            "Estimated savings from pre-filter: ~$%.2f. Time: %ds.",
+            success_count, len(prospects), prefilter_skipped,
+            total_cost, prefilter_cost, total_with_prefilter,
+            est_savings, elapsed,
         )
 
 
