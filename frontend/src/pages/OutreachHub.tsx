@@ -2,8 +2,9 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { coldOutreachApi } from '@/lib/api';
+import { coldOutreachApi, exportApi } from '@/lib/api';
 import type { OutreachProspect } from '@/types';
+import { toast } from 'sonner';
 import {
   Send,
   Mail,
@@ -13,6 +14,7 @@ import {
   X,
   ExternalLink,
   Heart,
+  Download,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import ProspectStatusBadge from '@/components/outreach/ProspectStatusBadge';
@@ -51,6 +53,7 @@ export default function OutreachHub() {
   const [activeTab, setActiveTab] = useState<TabType>(initialTab);
   const [globalSearch, setGlobalSearch] = useState('');
   const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   const [jumpToCampaign, setJumpToCampaign] = useState<{ id: number; prospectId?: number; ts: number } | null>(null);
   const searchRef = useRef<HTMLDivElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -153,6 +156,31 @@ export default function OutreachHub() {
                   {totalCampaigns} campaigns
                 </span>
               </div>
+              <button
+                onClick={async () => {
+                  if (isExporting) return;
+                  setIsExporting(true);
+                  try {
+                    await exportApi.downloadProspectsCsv();
+                    toast.success('Prospects exported');
+                  } catch {
+                    toast.error('Export failed');
+                  } finally {
+                    setIsExporting(false);
+                  }
+                }}
+                disabled={isExporting}
+                className={cn(
+                  'flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-white',
+                  'transition-all duration-200 shadow-sm hover:shadow-md hover:brightness-110',
+                  'disabled:opacity-60 disabled:cursor-not-allowed'
+                )}
+                style={{ backgroundColor: 'var(--exec-accent)' }}
+                title="Export all prospects as CSV"
+              >
+                <Download className="w-4 h-4" />
+                {isExporting ? 'Exporting...' : 'Export CSV'}
+              </button>
             </div>
           </div>
 

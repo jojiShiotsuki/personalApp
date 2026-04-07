@@ -12,6 +12,7 @@ from app.database import get_db
 from app.models.crm import Contact, Deal, Interaction
 from app.models.task import Task
 from app.models.project import Project
+from app.models.outreach import OutreachProspect, OutreachCampaign
 from app.services.export_service import ExportService
 
 router = APIRouter(prefix="/api/export", tags=["export"])
@@ -139,6 +140,55 @@ def _serialize_row(obj) -> dict:
             val = val.value
         row[attr.key] = val
     return row
+
+
+@router.get("/prospects.csv")
+def export_prospects_csv(
+    campaign_id: Optional[int] = Query(None, description="Filter by campaign ID (optional — exports all if not set)"),
+    db: Session = Depends(get_db),
+):
+    """Export outreach prospects as CSV with ALL fields.
+
+    If campaign_id is provided, exports only prospects for that campaign.
+    Otherwise, exports every prospect across every campaign.
+    """
+    query = db.query(OutreachProspect).order_by(
+        OutreachProspect.campaign_id,
+        OutreachProspect.id,
+    )
+    if campaign_id is not None:
+        query = query.filter(OutreachProspect.campaign_id == campaign_id)
+    prospects = query.all()
+
+    # Build a campaign_id -> campaign_name lookup so the CSV is human-readable
+    campaign_ids = {p.campaign_id for p in prospects if p.campaign_id is not None}
+    campaigns = (
+        db.query(OutreachCampaign)
+        .filter(OutreachCampaign.id.in_(campaign_ids))
+        .all()
+        if campaign_ids else []
+    )
+    campaign_name_by_id = {c.id: c.name for c in campaigns}
+
+    rows = []
+    for p in prospects:
+        row = _serialize_row(p)
+        # Add derived/joined fields
+        row["campaign_name"] = campaign_name_by_id.get(p.campaign_id, "")
+        # Flatten website_issues list into a comma-separated string for CSV friendliness
+        if isinstance(row.get("website_issues"), list):
+            row["website_issues"] = ", ".join(str(x) for x in row["website_issues"])
+        # Flatten custom_fields dict into a JSON string
+        if isinstance(row.get("custom_fields"), dict):
+            row["custom_fields"] = json.dumps(row["custom_fields"])
+        rows.append(row)
+
+    filename = (
+        f"prospects-campaign-{campaign_id}.csv"
+        if campaign_id is not None
+        else "prospects-all.csv"
+    )
+    return _csv_response(rows, filename)
 
 
 @router.get("/backup.json")

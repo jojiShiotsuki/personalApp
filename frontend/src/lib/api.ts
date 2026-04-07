@@ -378,6 +378,21 @@ export const exportApi = {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   },
+  downloadProspectsCsv: async (campaignId?: number) => {
+    const params = campaignId ? { campaign_id: campaignId } : undefined;
+    const response = await api.get('/api/export/prospects.csv', {
+      responseType: 'blob',
+      params,
+    });
+    const url = URL.createObjectURL(response.data);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = campaignId ? `prospects-campaign-${campaignId}.csv` : 'prospects-all.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  },
   downloadBackup: async () => {
     const response = await api.get('/api/export/backup.json', { responseType: 'blob' });
     const url = URL.createObjectURL(response.data);
