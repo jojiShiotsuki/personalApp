@@ -5,6 +5,7 @@ import { nurtureApi, coldOutreachApi } from '@/lib/api';
 import type { NurtureLead, OutreachProspect } from '@/types';
 import { NurtureStatus, FollowupStage } from '@/types';
 import CopyEmailModal from '@/components/CopyEmailModal';
+import NurtureLeadDetail from '@/components/NurtureLeadDetail';
 import {
   Heart,
   Users,
@@ -757,6 +758,19 @@ export default function WarmLeadsTab() {
           isSaving={updateProspectMutation.isPending}
         />
       )}
+
+      {/* Nurture Lead Detail Panel (contains Not Interested action) */}
+      {selectedLeadId !== null && (() => {
+        const selectedLead = leads.find((l) => l.id === selectedLeadId);
+        if (!selectedLead) return null;
+        return (
+          <NurtureLeadDetail
+            lead={selectedLead}
+            isOpen={true}
+            onClose={() => setSelectedLeadId(null)}
+          />
+        );
+      })()}
 
       {/* Follow-up Section */}
       {followupLeads.length > 0 && (

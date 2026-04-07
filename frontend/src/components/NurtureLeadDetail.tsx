@@ -514,7 +514,7 @@ export default function NurtureLeadDetail({ lead, isOpen, onClose }: NurtureLead
               )}
             </div>
 
-            {/* Mark Lost */}
+            {/* Mark Not Interested */}
             <div>
               {!showLostConfirm ? (
                 <button
@@ -525,17 +525,17 @@ export default function NurtureLeadDetail({ lead, isOpen, onClose }: NurtureLead
                   )}
                 >
                   <XCircle className="w-4 h-4" />
-                  Mark Lost
+                  Not Interested
                 </button>
               ) : (
                 <div className="space-y-3 p-3 bg-red-500/10 rounded-lg border border-red-500/20">
                   <p className="text-sm text-red-400 font-medium">
-                    Are you sure? This cannot be undone.
+                    Mark as not interested? They'll be removed from the active nurture pipeline.
                   </p>
                   <textarea
                     className={cn(inputClasses, 'resize-none')}
                     rows={2}
-                    placeholder="Reason for losing this lead (optional)..."
+                    placeholder="Reason (optional) — e.g. 'said no after call, budget'"
                     value={lostNotes}
                     onChange={(e) => setLostNotes(e.target.value)}
                   />
@@ -558,7 +558,7 @@ export default function NurtureLeadDetail({ lead, isOpen, onClose }: NurtureLead
                         'disabled:opacity-50 disabled:cursor-not-allowed'
                       )}
                     >
-                      {markLostMutation.isPending ? 'Marking...' : 'Confirm Lost'}
+                      {markLostMutation.isPending ? 'Marking...' : 'Confirm'}
                     </button>
                   </div>
                 </div>
