@@ -205,19 +205,20 @@ export default function NurtureLeadDetail({ lead, isOpen, onClose }: NurtureLead
   const statusBadge = STATUS_BADGES[lead.status] || STATUS_BADGES[NurtureStatus.ACTIVE];
 
   const panel = (
-    <div className="fixed inset-0 z-50" onClick={onClose}>
-      {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/50 animate-in fade-in duration-200" />
+    <div className="fixed inset-0 z-[100]" onClick={onClose}>
+      {/* Backdrop — opaque enough to hide everything behind + blur for depth */}
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200" />
 
       {/* Panel */}
       <div
         className={cn(
           'fixed inset-y-0 right-0 w-full max-w-lg',
-          'bg-[--exec-surface] border-l border-stone-600/40 shadow-2xl',
+          'border-l border-stone-600/40 shadow-2xl',
           'overflow-y-auto',
           'animate-in slide-in-from-right duration-200',
-          'z-50'
+          'z-[101]'
         )}
+        style={{ backgroundColor: '#1C1917' }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* 1. Header */}
