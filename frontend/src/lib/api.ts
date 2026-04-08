@@ -89,10 +89,16 @@ import type {
   TikTokPatterns,
   NurtureLead,
   NurtureStats,
+  CallProspect,
+  CallProspectCreate,
+  CallProspectUpdate,
+  CallProspectCsvImportRequest,
+  CallProspectCsvImportResponse,
 } from '../types/index';
 import {
   TaskStatus,
   DealStage,
+  CallStatus,
 } from '../types/index';
 
 // Production API URL - hardcoded for reliability
@@ -1594,6 +1600,34 @@ export const nurtureApi = {
   markLost: async (id: number, data?: { notes?: string }): Promise<NurtureLead> => {
     const res = await api.post(`/api/nurture/leads/${id}/mark-lost`, data || {});
     return res.data;
+  },
+};
+
+// Cold Calls Pipeline API
+export const coldCallsApi = {
+  list: async (status?: CallStatus): Promise<CallProspect[]> => {
+    const params = status ? { status } : undefined;
+    const response = await api.get('/api/cold-calls', { params });
+    return response.data;
+  },
+
+  create: async (data: CallProspectCreate): Promise<CallProspect> => {
+    const response = await api.post('/api/cold-calls', data);
+    return response.data;
+  },
+
+  update: async (id: number, data: CallProspectUpdate): Promise<CallProspect> => {
+    const response = await api.put(`/api/cold-calls/${id}`, data);
+    return response.data;
+  },
+
+  delete: async (id: number): Promise<void> => {
+    await api.delete(`/api/cold-calls/${id}`);
+  },
+
+  import: async (data: CallProspectCsvImportRequest): Promise<CallProspectCsvImportResponse> => {
+    const response = await api.post('/api/cold-calls/import', data);
+    return response.data;
   },
 };
 

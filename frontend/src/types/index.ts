@@ -1640,3 +1640,60 @@ export interface NurtureStats {
   long_term: number;
   converted: number;
 }
+
+// ============== Cold Calls Pipeline ==============
+
+export enum CallStatus {
+  NEW = 'NEW',
+  ATTEMPTED = 'ATTEMPTED',
+  CONNECTED = 'CONNECTED',
+  DEAD = 'DEAD',
+}
+
+export interface CallProspect {
+  id: number;
+  business_name: string;
+  phone: string | null;
+  vertical: string | null;
+  address: string | null;
+  notes: string | null;
+  status: CallStatus;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CallProspectCreate {
+  business_name: string;
+  phone?: string;
+  vertical?: string;
+  address?: string;
+  notes?: string;
+  status?: CallStatus;
+}
+
+export interface CallProspectUpdate {
+  business_name?: string;
+  phone?: string | null;
+  vertical?: string | null;
+  address?: string | null;
+  notes?: string | null;
+  status?: CallStatus;
+}
+
+export interface CallProspectCsvColumnMapping {
+  business_name: string;
+  phone?: string;
+  vertical?: string;
+  address?: string;
+}
+
+export interface CallProspectCsvImportRequest {
+  column_mapping: CallProspectCsvColumnMapping;
+  data: Record<string, string>[];
+}
+
+export interface CallProspectCsvImportResponse {
+  imported_count: number;
+  skipped_count: number;
+  errors: string[];
+}
