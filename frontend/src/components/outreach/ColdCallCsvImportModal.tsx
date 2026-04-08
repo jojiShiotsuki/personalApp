@@ -39,6 +39,11 @@ type TargetField =
   | 'website'
   | 'facebook_url'
   | 'source'
+  | 'rating'
+  | 'reviews_count'
+  | 'google_maps_url'
+  | 'working_hours'
+  | 'description'
   | 'notes'
   | 'append_notes';
 
@@ -58,6 +63,11 @@ const TARGET_OPTIONS: TargetOption[] = [
   { value: 'website', label: 'Website', singleton: true },
   { value: 'facebook_url', label: 'Facebook URL', singleton: true },
   { value: 'source', label: 'Source', singleton: true },
+  { value: 'rating', label: 'Rating', singleton: true },
+  { value: 'reviews_count', label: 'Reviews count', singleton: true },
+  { value: 'google_maps_url', label: 'Google Maps URL', singleton: true },
+  { value: 'working_hours', label: 'Working hours', singleton: true },
+  { value: 'description', label: 'Description', singleton: true },
   { value: 'notes', label: 'Notes (replace)', singleton: true },
   { value: 'append_notes', label: 'Append to notes' },
 ];
@@ -166,9 +176,33 @@ const HEADER_ALIASES: Record<string, TargetField> = {
   // source
   source: 'source',
   lead_source: 'source',
+  // rating
+  rating: 'rating',
+  stars: 'rating',
+  review_score: 'rating',
+  avg_rating: 'rating',
+  // reviews_count
+  reviews: 'reviews_count',
+  reviews_count: 'reviews_count',
+  review_count: 'reviews_count',
+  num_reviews: 'reviews_count',
+  // google_maps_url
+  google_maps_url: 'google_maps_url',
+  location_link: 'google_maps_url',
+  maps_link: 'google_maps_url',
+  gmaps_url: 'google_maps_url',
+  // working_hours
+  working_hours: 'working_hours',
+  working_hours_csv_compatible: 'working_hours',
+  hours: 'working_hours',
+  business_hours: 'working_hours',
+  // description
+  description: 'description',
+  about: 'description',
+  business_description: 'description',
+  summary: 'description',
   // notes
   notes: 'notes',
-  description: 'notes',
   remarks: 'notes',
 };
 
@@ -271,6 +305,11 @@ function buildColumnMapping(
     facebook_url: payload.facebook_url,
     website: payload.website,
     source: payload.source,
+    rating: payload.rating,
+    reviews_count: payload.reviews_count,
+    google_maps_url: payload.google_maps_url,
+    working_hours: payload.working_hours,
+    description: payload.description,
     notes: payload.notes,
     notes_append_columns: payload.notes_append_columns ?? [],
   };

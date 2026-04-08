@@ -9,6 +9,7 @@ Endpoints:
   POST   /api/cold-calls/import       bulk CSV import (Outscraper)
 """
 import logging
+import re
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -31,6 +32,32 @@ router = APIRouter(prefix="/api/cold-calls", tags=["cold-calls"])
 
 
 VALID_STATUSES = {s.value for s in CallStatus}
+
+
+def _parse_float(s: str) -> Optional[float]:
+    """Extract the first float from a raw string. "4.9 stars" → 4.9, "" → None."""
+    if not s:
+        return None
+    match = re.search(r"\d+(?:\.\d+)?", s)
+    if not match:
+        return None
+    try:
+        return float(match.group(0))
+    except ValueError:
+        return None
+
+
+def _parse_int(s: str) -> Optional[int]:
+    """Extract the first integer from a raw string. "(107)" → 107, "" → None."""
+    if not s:
+        return None
+    match = re.search(r"\d+", s)
+    if not match:
+        return None
+    try:
+        return int(match.group(0))
+    except ValueError:
+        return None
 
 
 @router.get("", response_model=List[CallProspectResponse])
@@ -80,6 +107,11 @@ def create_call_prospect(data: CallProspectCreate, db: Session = Depends(get_db)
         facebook_url=data.facebook_url.strip() if data.facebook_url else None,
         website=data.website.strip() if data.website else None,
         source=data.source.strip() if data.source else None,
+        rating=data.rating,
+        reviews_count=data.reviews_count,
+        google_maps_url=data.google_maps_url.strip() if data.google_maps_url else None,
+        working_hours=data.working_hours.strip() if data.working_hours else None,
+        description=data.description,
         notes=data.notes,
         status=data.status.value,
     )
@@ -190,6 +222,11 @@ def import_call_prospects(
             facebook_url = _get(row, mapping.facebook_url)
             website = _get(row, mapping.website)
             source = _get(row, mapping.source)
+            rating = _parse_float(_get(row, mapping.rating))
+            reviews_count = _parse_int(_get(row, mapping.reviews_count))
+            google_maps_url = _get(row, mapping.google_maps_url)
+            working_hours = _get(row, mapping.working_hours)
+            description = _get(row, mapping.description)
             notes = _build_notes(row)
 
             if phone:
@@ -208,6 +245,11 @@ def import_call_prospects(
                     facebook_url=facebook_url or None,
                     website=website or None,
                     source=source or None,
+                    rating=rating,
+                    reviews_count=reviews_count,
+                    google_maps_url=google_maps_url or None,
+                    working_hours=working_hours or None,
+                    description=description or None,
                     notes=notes,
                     status=CallStatus.NEW.value,
                 )

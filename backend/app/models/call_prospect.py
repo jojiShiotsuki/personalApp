@@ -10,7 +10,7 @@ workflow differ from email/LinkedIn outreach.
 import enum
 from datetime import datetime
 
-from sqlalchemy import Column, DateTime, Index, Integer, String, Text
+from sqlalchemy import Column, DateTime, Float, Index, Integer, String, Text
 
 from app.database import Base
 
@@ -33,6 +33,12 @@ class CallProspect(Base):
     facebook_url = Column(String(500), nullable=True)
     website = Column(String(500), nullable=True)
     source = Column(String(100), nullable=True)  # e.g. "FB Ads", "Outscraper", "Referral"
+    # Rich Google Maps listing data (populated from Outscraper-style CSV imports)
+    rating = Column(Float, nullable=True)
+    reviews_count = Column(Integer, nullable=True)
+    google_maps_url = Column(String(1000), nullable=True)
+    working_hours = Column(String(1000), nullable=True)  # "Sun: 8AM-5PM | Mon: 8AM-5PM | ..."
+    description = Column(Text, nullable=True)
     notes = Column(Text, nullable=True)
     status = Column(
         String(20),

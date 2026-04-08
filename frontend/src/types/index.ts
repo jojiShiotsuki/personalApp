@@ -1659,6 +1659,11 @@ export interface CallProspect {
   facebook_url: string | null;
   website: string | null;
   source: string | null;
+  rating: number | null;
+  reviews_count: number | null;
+  google_maps_url: string | null;
+  working_hours: string | null;
+  description: string | null;
   notes: string | null;
   status: CallStatus;
   created_at: string;
@@ -1673,6 +1678,11 @@ export interface CallProspectCreate {
   facebook_url?: string;
   website?: string;
   source?: string;
+  rating?: number;
+  reviews_count?: number;
+  google_maps_url?: string;
+  working_hours?: string;
+  description?: string;
   notes?: string;
   status?: CallStatus;
 }
@@ -1685,6 +1695,11 @@ export interface CallProspectUpdate {
   facebook_url?: string | null;
   website?: string | null;
   source?: string | null;
+  rating?: number | null;
+  reviews_count?: number | null;
+  google_maps_url?: string | null;
+  working_hours?: string | null;
+  description?: string | null;
   notes?: string | null;
   status?: CallStatus;
 }
@@ -1697,6 +1712,11 @@ export interface CallProspectCsvColumnMapping {
   facebook_url?: string;
   website?: string;
   source?: string;
+  rating?: string;
+  reviews_count?: string;
+  google_maps_url?: string;
+  working_hours?: string;
+  description?: string;
   notes?: string;
   notes_append_columns?: string[];
 }

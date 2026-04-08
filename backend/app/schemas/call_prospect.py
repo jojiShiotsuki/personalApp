@@ -23,6 +23,11 @@ class CallProspectBase(BaseModel):
     facebook_url: Optional[str] = Field(None, max_length=500)
     website: Optional[str] = Field(None, max_length=500)
     source: Optional[str] = Field(None, max_length=100)
+    rating: Optional[float] = Field(None, ge=0, le=5)
+    reviews_count: Optional[int] = Field(None, ge=0)
+    google_maps_url: Optional[str] = Field(None, max_length=1000)
+    working_hours: Optional[str] = Field(None, max_length=1000)
+    description: Optional[str] = None
     notes: Optional[str] = None
 
 
@@ -38,6 +43,11 @@ class CallProspectUpdate(BaseModel):
     facebook_url: Optional[str] = Field(None, max_length=500)
     website: Optional[str] = Field(None, max_length=500)
     source: Optional[str] = Field(None, max_length=100)
+    rating: Optional[float] = Field(None, ge=0, le=5)
+    reviews_count: Optional[int] = Field(None, ge=0)
+    google_maps_url: Optional[str] = Field(None, max_length=1000)
+    working_hours: Optional[str] = Field(None, max_length=1000)
+    description: Optional[str] = None
     notes: Optional[str] = None
     status: Optional[CallStatus] = None
 
@@ -73,6 +83,11 @@ class CallProspectCsvColumnMapping(BaseModel):
     facebook_url: Optional[str] = None
     website: Optional[str] = None
     source: Optional[str] = None
+    rating: Optional[str] = None
+    reviews_count: Optional[str] = None
+    google_maps_url: Optional[str] = None
+    working_hours: Optional[str] = None
+    description: Optional[str] = None
     notes: Optional[str] = None
     notes_append_columns: List[str] = Field(default_factory=list)
 
