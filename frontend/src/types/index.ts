@@ -1656,6 +1656,9 @@ export interface CallProspect {
   phone: string | null;
   vertical: string | null;
   address: string | null;
+  facebook_url: string | null;
+  website: string | null;
+  source: string | null;
   notes: string | null;
   status: CallStatus;
   created_at: string;
@@ -1667,6 +1670,9 @@ export interface CallProspectCreate {
   phone?: string;
   vertical?: string;
   address?: string;
+  facebook_url?: string;
+  website?: string;
+  source?: string;
   notes?: string;
   status?: CallStatus;
 }
@@ -1676,6 +1682,9 @@ export interface CallProspectUpdate {
   phone?: string | null;
   vertical?: string | null;
   address?: string | null;
+  facebook_url?: string | null;
+  website?: string | null;
+  source?: string | null;
   notes?: string | null;
   status?: CallStatus;
 }

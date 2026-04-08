@@ -14,6 +14,7 @@ import { coldCallsApi } from '@/lib/api';
 import { CallProspect, CallStatus } from '@/types';
 import CallProspectDetailModal from './CallProspectDetailModal';
 import ColdCallCsvImportModal from './ColdCallCsvImportModal';
+import AddColdLeadModal from './AddColdLeadModal';
 
 interface ColumnConfig {
   status: CallStatus;
@@ -186,6 +187,7 @@ export default function ColdCallsTab() {
   const queryClient = useQueryClient();
   const [selectedProspect, setSelectedProspect] = useState<CallProspect | null>(null);
   const [isImportOpen, setIsImportOpen] = useState(false);
+  const [isAddOpen, setIsAddOpen] = useState(false);
 
   const {
     data: prospects = [],
@@ -271,17 +273,30 @@ export default function ColdCallsTab() {
           </div>
         </div>
 
-        <button
-          onClick={() => setIsImportOpen(true)}
-          className={cn(
-            'flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-white',
-            'transition-all duration-200 shadow-sm hover:shadow-md hover:brightness-110'
-          )}
-          style={{ backgroundColor: 'var(--exec-accent)' }}
-        >
-          <Upload className="w-4 h-4" />
-          Import CSV
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setIsAddOpen(true)}
+            className={cn(
+              'px-4 py-2 rounded-xl text-sm font-medium text-white',
+              'transition-all duration-200 shadow-sm hover:shadow-md hover:brightness-110'
+            )}
+            style={{ backgroundColor: 'var(--exec-accent)' }}
+          >
+            + Add Lead
+          </button>
+
+          <button
+            onClick={() => setIsImportOpen(true)}
+            className={cn(
+              'flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-white',
+              'transition-all duration-200 shadow-sm hover:shadow-md hover:brightness-110'
+            )}
+            style={{ backgroundColor: 'var(--exec-accent)' }}
+          >
+            <Upload className="w-4 h-4" />
+            Import CSV
+          </button>
+        </div>
       </div>
 
       {/* Board */}
@@ -325,6 +340,11 @@ export default function ColdCallsTab() {
       <ColdCallCsvImportModal
         isOpen={isImportOpen}
         onClose={() => setIsImportOpen(false)}
+      />
+
+      <AddColdLeadModal
+        isOpen={isAddOpen}
+        onClose={() => setIsAddOpen(false)}
       />
     </div>
   );

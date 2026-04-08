@@ -30,6 +30,9 @@ class CallProspect(Base):
     phone = Column(String(50), nullable=True)
     vertical = Column(String(100), nullable=True)  # aircon, barbershop, salon, etc.
     address = Column(String(500), nullable=True)
+    facebook_url = Column(String(500), nullable=True)
+    website = Column(String(500), nullable=True)
+    source = Column(String(100), nullable=True)  # e.g. "FB Ads", "Outscraper", "Referral"
     notes = Column(Text, nullable=True)
     status = Column(
         String(20),

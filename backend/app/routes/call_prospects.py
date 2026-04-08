@@ -12,6 +12,7 @@ import logging
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import func as sa_func
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -48,12 +49,37 @@ def list_call_prospects(
 
 @router.post("", response_model=CallProspectResponse, status_code=201)
 def create_call_prospect(data: CallProspectCreate, db: Session = Depends(get_db)):
-    """Create a single call prospect."""
+    """
+    Create a single call prospect.
+
+    Phone-based dedupe: if a prospect with the same normalized phone already
+    exists, returns 409 Conflict so the frontend can render an inline error.
+    Normalization matches the bulk import logic — strip + lowercase.
+    """
+    normalized_phone: Optional[str] = None
+    if data.phone:
+        normalized_phone = data.phone.strip()
+        if normalized_phone:
+            existing = (
+                db.query(CallProspect.id)
+                .filter(CallProspect.phone.isnot(None))
+                .filter(sa_func.lower(CallProspect.phone) == normalized_phone.lower())
+                .first()
+            )
+            if existing:
+                raise HTTPException(
+                    status_code=409,
+                    detail="Lead with this phone already exists",
+                )
+
     prospect = CallProspect(
         business_name=data.business_name.strip(),
-        phone=data.phone.strip() if data.phone else None,
+        phone=normalized_phone or None,
         vertical=data.vertical.strip() if data.vertical else None,
         address=data.address.strip() if data.address else None,
+        facebook_url=data.facebook_url.strip() if data.facebook_url else None,
+        website=data.website.strip() if data.website else None,
+        source=data.source.strip() if data.source else None,
         notes=data.notes,
         status=data.status.value,
     )

@@ -20,6 +20,9 @@ class CallProspectBase(BaseModel):
     phone: Optional[str] = Field(None, max_length=50)
     vertical: Optional[str] = Field(None, max_length=100)
     address: Optional[str] = Field(None, max_length=500)
+    facebook_url: Optional[str] = Field(None, max_length=500)
+    website: Optional[str] = Field(None, max_length=500)
+    source: Optional[str] = Field(None, max_length=100)
     notes: Optional[str] = None
 
 
@@ -32,6 +35,9 @@ class CallProspectUpdate(BaseModel):
     phone: Optional[str] = Field(None, max_length=50)
     vertical: Optional[str] = Field(None, max_length=100)
     address: Optional[str] = Field(None, max_length=500)
+    facebook_url: Optional[str] = Field(None, max_length=500)
+    website: Optional[str] = Field(None, max_length=500)
+    source: Optional[str] = Field(None, max_length=100)
     notes: Optional[str] = None
     status: Optional[CallStatus] = None
 
