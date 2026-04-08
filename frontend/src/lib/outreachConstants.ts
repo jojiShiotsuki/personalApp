@@ -1,11 +1,11 @@
 import { ProspectStatus } from '@/types';
 
 export const WEBSITE_ISSUE_LABELS: Record<string, { label: string; color: string }> = {
-  slow_load: { label: 'Slow Load', color: 'text-red-400 bg-red-900/30 border-red-800' },
-  not_mobile_friendly: { label: 'Not Mobile', color: 'text-orange-400 bg-orange-900/30 border-orange-800' },
-  no_google_presence: { label: 'No Google', color: 'text-yellow-400 bg-yellow-900/30 border-yellow-800' },
-  no_clear_cta: { label: 'No CTA', color: 'text-blue-400 bg-blue-900/30 border-blue-800' },
-  outdated_design: { label: 'Outdated', color: 'text-purple-400 bg-purple-900/30 border-purple-800' },
+  slow_load: { label: 'Slow Load', color: 'bg-rose-500/20 text-rose-400 border-rose-500/30' },
+  not_mobile_friendly: { label: 'Not Mobile', color: 'bg-orange-500/20 text-orange-400 border-orange-500/30' },
+  no_google_presence: { label: 'No Google', color: 'bg-amber-500/20 text-amber-400 border-amber-500/30' },
+  no_clear_cta: { label: 'No CTA', color: 'bg-blue-500/20 text-blue-400 border-blue-500/30' },
+  outdated_design: { label: 'Outdated', color: 'bg-purple-500/20 text-purple-400 border-purple-500/30' },
 };
 
 export const PROSPECT_STATUS_CONFIG: Record<string, { bg: string; text: string; label: string }> = {
