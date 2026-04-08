@@ -45,6 +45,7 @@ class ProspectStatus(str, enum.Enum):
     NOT_INTERESTED = "NOT_INTERESTED"
     CONVERTED = "CONVERTED"
     SKIPPED = "SKIPPED"
+    ARCHIVED = "ARCHIVED"  # Added 2026-04-07 — PH/US market pivot, bulk archive of legacy AU prospects
     # LinkedIn-specific statuses
     PENDING_CONNECTION = "PENDING_CONNECTION"
     CONNECTED = "CONNECTED"  # Legacy — kept for backward compat with existing DB rows

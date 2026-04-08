@@ -65,6 +65,7 @@ response.txt
 
 # Database backups
 *.backup-*
+backups/
 
 # Vault sync data (cloned repos, embeddings cache)
 backend/data/
