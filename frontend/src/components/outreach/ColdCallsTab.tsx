@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   DragDropContext,
@@ -67,45 +68,56 @@ function CallProspectCard({ prospect, index, onClick }: CallProspectCardProps) {
   const preview = firstNotePreview(prospect.notes);
   return (
     <Draggable draggableId={`cp-${prospect.id}`} index={index}>
-      {(provided, snapshot) => (
-        <div
-          ref={provided.innerRef}
-          {...provided.draggableProps}
-          {...provided.dragHandleProps}
-          onClick={() => onClick(prospect)}
-          className={cn(
-            'bg-[--exec-surface] rounded-xl shadow-sm border border-stone-600/40 p-4',
-            'cursor-pointer transition-all duration-150',
-            'hover:border-[--exec-accent]/60 hover:shadow-md',
-            snapshot.isDragging && 'ring-2 ring-[--exec-accent]/60 shadow-lg'
-          )}
-          style={provided.draggableProps.style}
-        >
-          <h3 className="text-sm font-semibold text-[--exec-text] truncate">
-            {prospect.business_name}
-          </h3>
+      {(provided, snapshot) => {
+        const content = (
+          <div
+            ref={provided.innerRef}
+            {...provided.draggableProps}
+            {...provided.dragHandleProps}
+            onClick={() => onClick(prospect)}
+            className={cn(
+              'bg-[--exec-surface] rounded-xl shadow-sm border border-stone-600/40 p-4',
+              'cursor-pointer transition-all duration-150',
+              'hover:border-[--exec-accent]/60 hover:shadow-md',
+              snapshot.isDragging && 'ring-2 ring-[--exec-accent]/60 shadow-lg'
+            )}
+            style={provided.draggableProps.style}
+          >
+            <h3 className="text-sm font-semibold text-[--exec-text] truncate">
+              {prospect.business_name}
+            </h3>
 
-          {prospect.phone && (
-            <p className="mt-1.5 text-xs text-[--exec-text-secondary] font-mono">
-              {prospect.phone}
-            </p>
-          )}
+            {prospect.phone && (
+              <p className="mt-1.5 text-xs text-[--exec-text-secondary] font-mono">
+                {prospect.phone}
+              </p>
+            )}
 
-          {prospect.vertical && (
-            <div className="mt-2">
-              <span className="inline-block text-[10px] uppercase tracking-wider font-medium text-[--exec-text-muted] bg-stone-800/60 px-2 py-0.5 rounded">
-                {prospect.vertical}
-              </span>
-            </div>
-          )}
+            {prospect.vertical && (
+              <div className="mt-2">
+                <span className="inline-block text-[10px] uppercase tracking-wider font-medium text-[--exec-text-muted] bg-stone-800/60 px-2 py-0.5 rounded">
+                  {prospect.vertical}
+                </span>
+              </div>
+            )}
 
-          {preview && (
-            <p className="mt-2 text-xs text-[--exec-text-muted] line-clamp-2">
-              {preview}
-            </p>
-          )}
-        </div>
-      )}
+            {preview && (
+              <p className="mt-2 text-xs text-[--exec-text-muted] line-clamp-2">
+                {preview}
+              </p>
+            )}
+          </div>
+        );
+
+        // Portal the dragging clone to document.body to escape the
+        // `animate-fade-slide-up` transform on OutreachHub's tab-content wrapper,
+        // which creates a containing block and breaks @hello-pangea/dnd's
+        // position:fixed drag clone.
+        if (snapshot.isDragging) {
+          return createPortal(content, document.body);
+        }
+        return content;
+      }}
     </Draggable>
   );
 }
