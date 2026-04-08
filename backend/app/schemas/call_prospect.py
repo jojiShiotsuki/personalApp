@@ -54,10 +54,27 @@ class CallProspectResponse(CallProspectBase):
 
 # CSV Import Schemas
 class CallProspectCsvColumnMapping(BaseModel):
+    """
+    Mapping of CallProspect field → CSV column header.
+
+    business_name and phone are required — the frontend enforces that both
+    are mapped before the Import button is enabled. Every other direct
+    mapping is optional.
+
+    notes_append_columns is the list of CSV column headers whose values
+    should be concatenated into the notes field as "ColumnName: value"
+    pairs joined with " | ". If notes (direct) is also set, the direct
+    notes value comes first, then the append columns follow.
+    """
     business_name: str
-    phone: Optional[str] = None
+    phone: str
     vertical: Optional[str] = None
     address: Optional[str] = None
+    facebook_url: Optional[str] = None
+    website: Optional[str] = None
+    source: Optional[str] = None
+    notes: Optional[str] = None
+    notes_append_columns: List[str] = Field(default_factory=list)
 
 
 class CallProspectCsvImportRequest(BaseModel):

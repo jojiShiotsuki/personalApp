@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -9,6 +9,7 @@ import {
   ChevronLeft,
   Check,
   AlertCircle,
+  Pencil,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -28,13 +29,54 @@ const STEP_CONFIG = [
   { key: 'preview' as const, label: 'Preview & Import', number: 3 },
 ];
 
+// Target fields a CSV column can map to in this import.
+type TargetField =
+  | 'ignore'
+  | 'business_name'
+  | 'phone'
+  | 'vertical'
+  | 'address'
+  | 'website'
+  | 'facebook_url'
+  | 'source'
+  | 'notes'
+  | 'append_notes';
+
+interface TargetOption {
+  value: TargetField;
+  label: string;
+  required?: boolean;
+  singleton?: boolean; // Can only be assigned to one CSV header
+}
+
+const TARGET_OPTIONS: TargetOption[] = [
+  { value: 'ignore', label: 'Ignore' },
+  { value: 'business_name', label: 'Business Name', required: true, singleton: true },
+  { value: 'phone', label: 'Phone', required: true, singleton: true },
+  { value: 'vertical', label: 'Category (Vertical)', singleton: true },
+  { value: 'address', label: 'Address', singleton: true },
+  { value: 'website', label: 'Website', singleton: true },
+  { value: 'facebook_url', label: 'Facebook URL', singleton: true },
+  { value: 'source', label: 'Source', singleton: true },
+  { value: 'notes', label: 'Notes (replace)', singleton: true },
+  { value: 'append_notes', label: 'Append to notes' },
+];
+
+const SINGLETON_TARGETS: readonly TargetField[] = TARGET_OPTIONS.filter(
+  (t) => t.singleton
+).map((t) => t.value);
+
+const LOCAL_STORAGE_PREFIX = 'vertex:cold-calls:csv-mapping:';
+
 const selectClasses = cn(
-  'flex-1 px-4 py-2.5 rounded-lg',
+  'w-full px-3 py-2 rounded-lg',
   'bg-stone-800/50 border border-stone-600/40',
   'text-[--exec-text] text-sm',
   'focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]/50',
-  'transition-all'
+  'transition-all cursor-pointer'
 );
+
+// --- CSV parsing ---------------------------------------------------
 
 // Parse a CSV line, handling quoted fields correctly.
 function parseCSVLine(line: string): string[] {
@@ -67,67 +109,192 @@ function parseCSVLine(line: string): string[] {
   return result;
 }
 
-function findHeader(
-  lowerHeaders: string[],
-  headers: string[],
-  patterns: string[]
-): string | undefined {
-  for (const pattern of patterns) {
-    const exactIdx = lowerHeaders.findIndex((h) => h === pattern);
-    if (exactIdx !== -1) return headers[exactIdx];
-  }
-  for (const pattern of patterns) {
-    const partialIdx = lowerHeaders.findIndex((h) => h.includes(pattern));
-    if (partialIdx !== -1) return headers[partialIdx];
-  }
-  return undefined;
+// --- Header normalization + auto-detect ---------------------------
+
+// Normalize for alias lookup: lowercase, strip non-alnum → underscore,
+// collapse repeats, trim. "Business Name" → "business_name", "Phone #" → "phone".
+function normalizeHeader(header: string): string {
+  return header
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '');
 }
 
-// Auto-detect Outscraper-style column names.
-function autoDetectMapping(headers: string[]): Partial<CallProspectCsvColumnMapping> {
-  const mapping: Partial<CallProspectCsvColumnMapping> = {};
-  const lowerHeaders = headers.map((h) => h.toLowerCase().trim());
+// Normalized-header → canonical TargetField. Exact matches on the
+// canonical field names AND common aliases across Outscraper/Apollo/Hunter.
+const HEADER_ALIASES: Record<string, TargetField> = {
+  // business_name
+  business_name: 'business_name',
+  businessname: 'business_name',
+  name: 'business_name',
+  company: 'business_name',
+  company_name: 'business_name',
+  business: 'business_name',
+  title: 'business_name',
+  // phone
+  phone: 'phone',
+  phone_number: 'phone',
+  phone_1: 'phone',
+  telephone: 'phone',
+  mobile: 'phone',
+  contact: 'phone',
+  // vertical
+  vertical: 'vertical',
+  category: 'vertical',
+  subcategory: 'vertical',
+  industry: 'vertical',
+  niche: 'vertical',
+  type: 'vertical',
+  // address
+  address: 'address',
+  full_address: 'address',
+  street: 'address',
+  location: 'address',
+  // website
+  website: 'website',
+  web: 'website',
+  site: 'website',
+  url: 'website',
+  web_url: 'website',
+  website_url: 'website',
+  // facebook_url
+  facebook_url: 'facebook_url',
+  facebook: 'facebook_url',
+  fb: 'facebook_url',
+  fb_url: 'facebook_url',
+  facebook_page: 'facebook_url',
+  // source
+  source: 'source',
+  lead_source: 'source',
+  // notes
+  notes: 'notes',
+  description: 'notes',
+  remarks: 'notes',
+};
 
-  mapping.business_name = findHeader(lowerHeaders, headers, [
-    'name',
-    'business_name',
-    'business name',
-    'company name',
-    'company_name',
-    'company',
-    'title',
-  ]);
-
-  mapping.phone = findHeader(lowerHeaders, headers, [
-    'phone',
-    'phone_1',
-    'phone 1',
-    'phone number',
-    'phone_number',
-    'telephone',
-    'contact',
-    'mobile',
-  ]);
-
-  mapping.vertical = findHeader(lowerHeaders, headers, [
-    'category',
-    'subcategory',
-    'type',
-    'vertical',
-    'niche',
-    'industry',
-  ]);
-
-  mapping.address = findHeader(lowerHeaders, headers, [
-    'full_address',
-    'full address',
-    'address',
-    'street',
-    'location',
-  ]);
-
-  return mapping;
+function inferTargetField(header: string): TargetField {
+  const normalized = normalizeHeader(header);
+  return HEADER_ALIASES[normalized] ?? 'ignore';
 }
+
+// Auto-generate an initial mapping. Each singleton target lands on at
+// most one header (first match wins); subsequent matches on the same
+// singleton fall back to "ignore" so the user can decide which one.
+function autoMapHeaders(headers: string[]): Record<string, TargetField> {
+  const result: Record<string, TargetField> = {};
+  const usedSingletons = new Set<TargetField>();
+
+  for (const h of headers) {
+    const inferred = inferTargetField(h);
+    if (inferred !== 'ignore' && SINGLETON_TARGETS.includes(inferred)) {
+      if (usedSingletons.has(inferred)) {
+        result[h] = 'ignore';
+      } else {
+        result[h] = inferred;
+        usedSingletons.add(inferred);
+      }
+    } else {
+      result[h] = inferred;
+    }
+  }
+
+  return result;
+}
+
+// --- localStorage persistence --------------------------------------
+
+// Fingerprint = sorted headers joined with "|". Identical header sets
+// produce identical fingerprints regardless of column order.
+function fingerprintHeaders(headers: string[]): string {
+  return [...headers].map((h) => h.trim()).sort().join('|');
+}
+
+function storageKey(headers: string[]): string {
+  return LOCAL_STORAGE_PREFIX + fingerprintHeaders(headers);
+}
+
+function loadSavedMapping(headers: string[]): Record<string, TargetField> | null {
+  try {
+    const raw = localStorage.getItem(storageKey(headers));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Record<string, TargetField>;
+    // Only keep entries where the header exists in the current file
+    const filtered: Record<string, TargetField> = {};
+    for (const h of headers) {
+      if (parsed[h]) filtered[h] = parsed[h];
+    }
+    // Require both business_name and phone to be present — otherwise
+    // the saved mapping is stale/invalid and we fall back to auto-detect.
+    const values = Object.values(filtered);
+    if (!values.includes('business_name') || !values.includes('phone')) return null;
+    return filtered;
+  } catch {
+    return null;
+  }
+}
+
+function saveMapping(headers: string[], mapping: Record<string, TargetField>): void {
+  try {
+    localStorage.setItem(storageKey(headers), JSON.stringify(mapping));
+  } catch {
+    // localStorage full/disabled — persistence is best-effort, silently ignore.
+  }
+}
+
+// --- Mapping → API payload + preview notes -------------------------
+
+// Build the API's column_mapping payload from the UI's per-header state.
+// Returns null if the two required targets aren't mapped yet.
+function buildColumnMapping(
+  headerMapping: Record<string, TargetField>
+): CallProspectCsvColumnMapping | null {
+  const payload: Partial<CallProspectCsvColumnMapping> = {
+    notes_append_columns: [],
+  };
+
+  for (const [header, target] of Object.entries(headerMapping)) {
+    if (target === 'ignore') continue;
+    if (target === 'append_notes') {
+      payload.notes_append_columns = [...(payload.notes_append_columns ?? []), header];
+      continue;
+    }
+    (payload as Record<string, unknown>)[target] = header;
+  }
+
+  if (!payload.business_name || !payload.phone) return null;
+
+  return {
+    business_name: payload.business_name,
+    phone: payload.phone,
+    vertical: payload.vertical,
+    address: payload.address,
+    facebook_url: payload.facebook_url,
+    website: payload.website,
+    source: payload.source,
+    notes: payload.notes,
+    notes_append_columns: payload.notes_append_columns ?? [],
+  };
+}
+
+// Preview-time composite notes builder. Mirrors the backend _build_notes
+// logic in routes/call_prospects.py so the preview matches reality.
+function buildPreviewNotes(
+  row: Record<string, string>,
+  columnMapping: CallProspectCsvColumnMapping
+): string {
+  const parts: string[] = [];
+  if (columnMapping.notes) {
+    const direct = (row[columnMapping.notes] ?? '').trim();
+    if (direct) parts.push(direct);
+  }
+  for (const col of columnMapping.notes_append_columns ?? []) {
+    const val = (row[col] ?? '').trim();
+    if (val) parts.push(`${col}: ${val}`);
+  }
+  return parts.join(' | ');
+}
+
+// --- Component -----------------------------------------------------
 
 export default function ColdCallCsvImportModal({
   isOpen,
@@ -136,7 +303,8 @@ export default function ColdCallCsvImportModal({
   const [step, setStep] = useState<Step>('upload');
   const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
   const [csvData, setCsvData] = useState<Record<string, string>[]>([]);
-  const [mapping, setMapping] = useState<Partial<CallProspectCsvColumnMapping>>({});
+  const [headerMapping, setHeaderMapping] = useState<Record<string, TargetField>>({});
+  const [loadedFromStorage, setLoadedFromStorage] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
@@ -153,8 +321,10 @@ export default function ColdCallCsvImportModal({
         }`
       );
       if (result.errors.length > 0) {
-        result.errors.slice(0, 3).forEach((error) => toast.error(error));
+        result.errors.slice(0, 3).forEach((err) => toast.error(err));
       }
+      // Persist mapping for this header shape only after a successful import
+      saveMapping(csvHeaders, headerMapping);
       queryClient.invalidateQueries({ queryKey: ['call-prospects'] });
       handleClose();
     },
@@ -167,7 +337,8 @@ export default function ColdCallCsvImportModal({
     setStep('upload');
     setCsvHeaders([]);
     setCsvData([]);
-    setMapping({});
+    setHeaderMapping({});
+    setLoadedFromStorage(false);
     setIsDragging(false);
     onClose();
   };
@@ -200,8 +371,22 @@ export default function ColdCallCsvImportModal({
 
       setCsvHeaders(headers);
       setCsvData(data);
-      setMapping(autoDetectMapping(headers));
-      setStep('map');
+
+      const saved = loadSavedMapping(headers);
+      if (saved) {
+        // Fill any new headers with 'ignore' so the state covers every column
+        const filled: Record<string, TargetField> = {};
+        for (const h of headers) {
+          filled[h] = saved[h] ?? 'ignore';
+        }
+        setHeaderMapping(filled);
+        setLoadedFromStorage(true);
+        setStep('preview');
+      } else {
+        setHeaderMapping(autoMapHeaders(headers));
+        setLoadedFromStorage(false);
+        setStep('map');
+      }
     };
 
     reader.onerror = () => {
@@ -239,45 +424,58 @@ export default function ColdCallCsvImportModal({
     [processFile]
   );
 
-  const handleMappingChange = (
-    field: keyof CallProspectCsvColumnMapping,
-    value: string
-  ) => {
-    setMapping((prev) => ({
-      ...prev,
-      [field]: value || undefined,
-    }));
-  };
+  // Enforces singleton targets — if another header already holds this
+  // target, we kick the old owner back to "ignore" so the invariant holds.
+  const handleTargetChange = useCallback(
+    (header: string, target: TargetField) => {
+      setHeaderMapping((prev) => {
+        const next = { ...prev };
+        if (target !== 'ignore' && SINGLETON_TARGETS.includes(target)) {
+          for (const h of Object.keys(next)) {
+            if (h !== header && next[h] === target) {
+              next[h] = 'ignore';
+            }
+          }
+        }
+        next[header] = target;
+        return next;
+      });
+    },
+    []
+  );
 
-  const canProceedToPreview = Boolean(mapping.business_name);
+  const columnMapping = useMemo(
+    () => buildColumnMapping(headerMapping),
+    [headerMapping]
+  );
+
+  const hasBusinessName = useMemo(
+    () => Object.values(headerMapping).includes('business_name'),
+    [headerMapping]
+  );
+  const hasPhone = useMemo(
+    () => Object.values(headerMapping).includes('phone'),
+    [headerMapping]
+  );
+
+  const canProceedToPreview = hasBusinessName && hasPhone;
+
+  const previewRows = useMemo(() => {
+    if (!columnMapping) return [];
+    return csvData.slice(0, 3).map((row) => ({
+      business_name: row[columnMapping.business_name] ?? '',
+      phone: row[columnMapping.phone] ?? '',
+      notes: buildPreviewNotes(row, columnMapping),
+    }));
+  }, [columnMapping, csvData]);
 
   const handleImport = () => {
-    if (!mapping.business_name) {
-      toast.error('Business name column is required');
+    if (!columnMapping) {
+      toast.error('Business Name and Phone must both be mapped');
       return;
     }
-
-    const mappedKeys = Object.values(mapping).filter(Boolean) as string[];
-    const strippedData = csvData.map((row) => {
-      const stripped: Record<string, string> = {};
-      for (const key of mappedKeys) {
-        if (key in row) stripped[key] = row[key];
-      }
-      return stripped;
-    });
-
-    importMutation.mutate({
-      column_mapping: mapping as CallProspectCsvColumnMapping,
-      data: strippedData,
-    });
+    importMutation.mutate({ column_mapping: columnMapping, data: csvData });
   };
-
-  const previewData = csvData.slice(0, 5).map((row) => ({
-    business_name: mapping.business_name ? row[mapping.business_name] : '',
-    phone: mapping.phone ? row[mapping.phone] : '',
-    vertical: mapping.vertical ? row[mapping.vertical] : '',
-    address: mapping.address ? row[mapping.address] : '',
-  }));
 
   if (!isOpen) return null;
 
@@ -296,8 +494,8 @@ export default function ColdCallCsvImportModal({
                   Import Cold Call Prospects
                 </h2>
                 <p className="text-sm text-[--exec-text-muted] mt-1">
-                  {step === 'upload' && 'Upload your Outscraper CSV export'}
-                  {step === 'map' && 'Map your columns'}
+                  {step === 'upload' && 'CSV from Outscraper, Apollo, Sheets, or any source'}
+                  {step === 'map' && 'Match each CSV column to a Vertex field'}
                   {step === 'preview' && 'Review and import'}
                 </p>
               </div>
@@ -387,111 +585,72 @@ export default function ColdCallCsvImportModal({
               <p className="text-sm text-[--exec-text-muted] mb-4">
                 Drag and drop or click to browse
               </p>
-              <div className="text-xs text-[--exec-text-muted]">
-                Required:{' '}
+              <div className="text-xs text-[--exec-text-muted] leading-relaxed">
                 <span className="font-medium text-[--exec-text-secondary]">Business Name</span>
-                <br />
-                Optional:{' '}
-                <span className="text-[--exec-text-secondary]">Phone, Vertical, Address</span>
-                <br />
-                <span className="text-[--exec-text-muted] mt-1 inline-block">
-                  Compatible with Outscraper exports
-                </span>
+                {' and '}
+                <span className="font-medium text-[--exec-text-secondary]">Phone</span>
+                {' are required. Other columns map to Vertex fields or append to notes.'}
               </div>
             </div>
           )}
 
           {step === 'map' && (
             <div className="space-y-4">
-              <p className="text-sm text-[--exec-text-secondary] mb-4">
-                Match your CSV columns to the prospect fields. Fields marked with * are required.
+              <p className="text-sm text-[--exec-text-secondary]">
+                For each CSV column, pick a target field.{' '}
+                <span className="text-red-400">*</span> required.
               </p>
 
-              <div className="space-y-3">
-                <div className="flex items-center gap-4">
-                  <label className="w-32 text-sm font-medium text-[--exec-text-secondary] shrink-0">
-                    Business Name <span className="text-red-400">*</span>
-                  </label>
-                  <select
-                    value={mapping.business_name || ''}
-                    onChange={(e) => handleMappingChange('business_name', e.target.value)}
-                    className={cn(selectClasses, !mapping.business_name && 'border-red-400/60')}
-                  >
-                    <option value="">Select column...</option>
-                    {csvHeaders.map((header) => (
-                      <option key={header} value={header}>
-                        {header}
-                      </option>
-                    ))}
-                  </select>
+              <div className="rounded-lg border border-stone-600/40 overflow-hidden">
+                <div className="grid grid-cols-[1fr_minmax(0,1fr)] gap-4 px-4 py-3 bg-stone-800/50 border-b border-stone-600/40">
+                  <div className="text-xs font-medium text-[--exec-text-muted] uppercase tracking-wider">
+                    CSV Column
+                  </div>
+                  <div className="text-xs font-medium text-[--exec-text-muted] uppercase tracking-wider">
+                    Target Field
+                  </div>
                 </div>
 
-                <div className="pt-3 border-t border-stone-700/30">
-                  <p className="text-xs font-medium text-[--exec-text-muted] mb-3 uppercase tracking-wider">
-                    Optional Fields
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-4">
-                  <label className="w-32 text-sm font-medium text-[--exec-text-secondary] shrink-0">
-                    Phone
-                  </label>
-                  <select
-                    value={mapping.phone || ''}
-                    onChange={(e) => handleMappingChange('phone', e.target.value)}
-                    className={selectClasses}
-                  >
-                    <option value="">Not mapped</option>
-                    {csvHeaders.map((header) => (
-                      <option key={header} value={header}>
-                        {header}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="flex items-center gap-4">
-                  <label className="w-32 text-sm font-medium text-[--exec-text-secondary] shrink-0">
-                    Vertical
-                  </label>
-                  <select
-                    value={mapping.vertical || ''}
-                    onChange={(e) => handleMappingChange('vertical', e.target.value)}
-                    className={selectClasses}
-                  >
-                    <option value="">Not mapped</option>
-                    {csvHeaders.map((header) => (
-                      <option key={header} value={header}>
-                        {header}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="flex items-center gap-4">
-                  <label className="w-32 text-sm font-medium text-[--exec-text-secondary] shrink-0">
-                    Address
-                  </label>
-                  <select
-                    value={mapping.address || ''}
-                    onChange={(e) => handleMappingChange('address', e.target.value)}
-                    className={selectClasses}
-                  >
-                    <option value="">Not mapped</option>
-                    {csvHeaders.map((header) => (
-                      <option key={header} value={header}>
-                        {header}
-                      </option>
-                    ))}
-                  </select>
+                <div className="divide-y divide-stone-700/30">
+                  {csvHeaders.map((header) => {
+                    const target = headerMapping[header] ?? 'ignore';
+                    return (
+                      <div
+                        key={header}
+                        className="grid grid-cols-[1fr_minmax(0,1fr)] gap-4 px-4 py-2.5 items-center hover:bg-stone-800/30 transition-colors"
+                      >
+                        <div className="text-sm text-[--exec-text] truncate font-mono min-w-0">
+                          {header}
+                        </div>
+                        <select
+                          value={target}
+                          onChange={(e) =>
+                            handleTargetChange(header, e.target.value as TargetField)
+                          }
+                          className={selectClasses}
+                        >
+                          {TARGET_OPTIONS.map((opt) => (
+                            <option key={opt.value} value={opt.value}>
+                              {opt.label}
+                              {opt.required ? ' *' : ''}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
               {!canProceedToPreview && (
-                <div className="flex items-center gap-2 p-3 bg-[--exec-warning-bg] rounded-lg mt-4">
-                  <AlertCircle className="w-4 h-4 text-[--exec-warning]" />
+                <div className="flex items-center gap-2 p-3 bg-[--exec-warning-bg] rounded-lg">
+                  <AlertCircle className="w-4 h-4 text-[--exec-warning] flex-shrink-0" />
                   <p className="text-sm text-[--exec-warning]">
-                    Please map the Business Name column to continue.
+                    {!hasBusinessName && !hasPhone
+                      ? 'Map Business Name and Phone to continue.'
+                      : !hasBusinessName
+                        ? 'Map Business Name to continue.'
+                        : 'Map Phone to continue.'}
                   </p>
                 </div>
               )}
@@ -500,11 +659,33 @@ export default function ColdCallCsvImportModal({
 
           {step === 'preview' && (
             <div className="space-y-4">
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center justify-between">
                 <p className="text-sm text-[--exec-text-secondary]">
-                  Preview of first {Math.min(5, csvData.length)} rows ({csvData.length} total)
+                  Previewing first {Math.min(3, csvData.length)} of {csvData.length} rows.
                 </p>
+                {loadedFromStorage && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setLoadedFromStorage(false);
+                      setStep('map');
+                    }}
+                    className="flex items-center gap-1.5 text-xs font-medium text-[--exec-accent] hover:brightness-110 transition-all"
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                    Edit mapping
+                  </button>
+                )}
               </div>
+
+              {loadedFromStorage && (
+                <div className="flex items-center gap-2 p-3 bg-[--exec-info-bg] rounded-lg">
+                  <Check className="w-4 h-4 text-[--exec-info] flex-shrink-0" />
+                  <p className="text-sm text-[--exec-info]">
+                    Using saved mapping from a previous import with the same column layout.
+                  </p>
+                </div>
+              )}
 
               <div className="overflow-x-auto rounded-lg border border-stone-600/40">
                 <table className="min-w-full divide-y divide-stone-700/30">
@@ -517,29 +698,23 @@ export default function ColdCallCsvImportModal({
                         Phone
                       </th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-[--exec-text-muted] uppercase tracking-wider">
-                        Vertical
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-[--exec-text-muted] uppercase tracking-wider">
-                        Address
+                        Notes (built)
                       </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-stone-700/30">
-                    {previewData.map((row, idx) => (
+                    {previewRows.map((row, idx) => (
                       <tr key={idx} className="hover:bg-stone-800/30 transition-colors">
-                        <td className="px-4 py-3 text-sm text-[--exec-text] whitespace-nowrap">
+                        <td className="px-4 py-3 text-sm text-[--exec-text] align-top">
                           {row.business_name || (
-                            <span className="text-[--exec-text-muted]">-</span>
+                            <span className="text-[--exec-text-muted]">—</span>
                           )}
                         </td>
-                        <td className="px-4 py-3 text-sm text-[--exec-text-secondary] whitespace-nowrap">
-                          {row.phone || <span className="text-[--exec-text-muted]">-</span>}
+                        <td className="px-4 py-3 text-sm text-[--exec-text-secondary] whitespace-nowrap font-mono align-top">
+                          {row.phone || <span className="text-[--exec-text-muted]">—</span>}
                         </td>
-                        <td className="px-4 py-3 text-sm text-[--exec-text-secondary] whitespace-nowrap">
-                          {row.vertical || <span className="text-[--exec-text-muted]">-</span>}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-[--exec-text-secondary] whitespace-nowrap truncate max-w-[200px]">
-                          {row.address || <span className="text-[--exec-text-muted]">-</span>}
+                        <td className="px-4 py-3 text-xs text-[--exec-text-secondary] align-top leading-relaxed">
+                          {row.notes || <span className="text-[--exec-text-muted]">—</span>}
                         </td>
                       </tr>
                     ))}
@@ -548,10 +723,10 @@ export default function ColdCallCsvImportModal({
               </div>
 
               <div className="flex items-center gap-2 p-3 bg-[--exec-info-bg] rounded-lg">
-                <AlertCircle className="w-4 h-4 text-[--exec-info]" />
+                <AlertCircle className="w-4 h-4 text-[--exec-info] flex-shrink-0" />
                 <p className="text-sm text-[--exec-info]">
-                  Ready to import {csvData.length} prospects. Duplicates (by phone) will be skipped.
-                  All rows go to New Leads.
+                  Ready to import {csvData.length} prospects. Duplicates (by phone) will be
+                  skipped. All rows go to New Leads.
                 </p>
               </div>
             </div>
@@ -594,7 +769,7 @@ export default function ColdCallCsvImportModal({
             {step === 'preview' && (
               <button
                 onClick={handleImport}
-                disabled={importMutation.isPending}
+                disabled={importMutation.isPending || !columnMapping}
                 className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-500 shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {importMutation.isPending ? (

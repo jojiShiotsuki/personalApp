@@ -141,6 +141,29 @@ def import_call_prospects(
     skipped_count = 0
     errors: list[str] = []
 
+    def _get(row: dict, header: Optional[str]) -> str:
+        """Safe stripped lookup — returns empty string if header is None or missing."""
+        if not header:
+            return ""
+        return (row.get(header) or "").strip()
+
+    def _build_notes(row: dict) -> Optional[str]:
+        """
+        Compose the final notes field:
+        - Direct notes mapping value (if set) goes first
+        - Then each notes_append_columns value, labeled as "ColumnName: value"
+        - Joined with " | ". Empty values are skipped.
+        """
+        parts: list[str] = []
+        direct = _get(row, mapping.notes)
+        if direct:
+            parts.append(direct)
+        for col in mapping.notes_append_columns:
+            val = _get(row, col)
+            if val:
+                parts.append(f"{col}: {val}")
+        return " | ".join(parts) if parts else None
+
     # Batch dedupe: load existing phones once
     existing_phones: set[str] = {
         (r[0] or "").strip().lower()
@@ -155,15 +178,19 @@ def import_call_prospects(
 
     for idx, row in enumerate(data.data, start=1):
         try:
-            business_name = (row.get(mapping.business_name) or "").strip()
+            business_name = _get(row, mapping.business_name)
             if not business_name:
                 skipped_count += 1
                 errors.append(f"Row {idx}: missing business_name")
                 continue
 
-            phone = (row.get(mapping.phone) or "").strip() if mapping.phone else ""
-            vertical = (row.get(mapping.vertical) or "").strip() if mapping.vertical else ""
-            address = (row.get(mapping.address) or "").strip() if mapping.address else ""
+            phone = _get(row, mapping.phone)
+            vertical = _get(row, mapping.vertical)
+            address = _get(row, mapping.address)
+            facebook_url = _get(row, mapping.facebook_url)
+            website = _get(row, mapping.website)
+            source = _get(row, mapping.source)
+            notes = _build_notes(row)
 
             if phone:
                 phone_key = phone.lower()
@@ -178,6 +205,10 @@ def import_call_prospects(
                     phone=phone or None,
                     vertical=vertical or None,
                     address=address or None,
+                    facebook_url=facebook_url or None,
+                    website=website or None,
+                    source=source or None,
+                    notes=notes,
                     status=CallStatus.NEW.value,
                 )
             )

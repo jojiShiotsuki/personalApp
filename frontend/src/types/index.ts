@@ -1691,9 +1691,14 @@ export interface CallProspectUpdate {
 
 export interface CallProspectCsvColumnMapping {
   business_name: string;
-  phone?: string;
+  phone: string;
   vertical?: string;
   address?: string;
+  facebook_url?: string;
+  website?: string;
+  source?: string;
+  notes?: string;
+  notes_append_columns?: string[];
 }
 
 export interface CallProspectCsvImportRequest {
