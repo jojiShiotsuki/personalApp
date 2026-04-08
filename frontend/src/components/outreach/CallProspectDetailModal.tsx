@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { X, Clock, Trash2 } from 'lucide-react';
+import { X, Clock, Trash2, Facebook, Globe } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { coldCallsApi } from '@/lib/api';
@@ -31,6 +31,13 @@ function formatTimestamp(): string {
   const now = new Date();
   const pad = (n: number) => String(n).padStart(2, '0');
   return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+}
+
+// Only treat as a clickable link if it's an http(s) URL — anything else
+// (bare domain, javascript:, data:, etc.) renders as plain text so it's
+// visible without becoming a footgun.
+function isSafeHttpUrl(url: string): boolean {
+  return /^https?:\/\//i.test(url.trim());
 }
 
 export default function CallProspectDetailModal({
@@ -125,6 +132,58 @@ export default function CallProspectDetailModal({
               <X className="w-5 h-5" />
             </button>
           </div>
+
+          {/* Lead metadata — source + links. Hidden entirely if all empty. */}
+          {(prospect.source || prospect.facebook_url || prospect.website) && (
+            <div className="mb-6 space-y-2">
+              {prospect.source && (
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="text-[--exec-text-muted]">Source:</span>
+                  <span className="text-[--exec-text-secondary]">{prospect.source}</span>
+                </div>
+              )}
+
+              {prospect.facebook_url && (
+                <div className="flex items-center gap-2 text-sm min-w-0">
+                  <Facebook className="w-3.5 h-3.5 text-[--exec-text-muted] flex-shrink-0" />
+                  {isSafeHttpUrl(prospect.facebook_url) ? (
+                    <a
+                      href={prospect.facebook_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[--exec-accent] hover:brightness-110 truncate transition-all min-w-0"
+                    >
+                      {prospect.facebook_url}
+                    </a>
+                  ) : (
+                    <span className="text-[--exec-text-secondary] truncate min-w-0">
+                      {prospect.facebook_url}
+                    </span>
+                  )}
+                </div>
+              )}
+
+              {prospect.website && (
+                <div className="flex items-center gap-2 text-sm min-w-0">
+                  <Globe className="w-3.5 h-3.5 text-[--exec-text-muted] flex-shrink-0" />
+                  {isSafeHttpUrl(prospect.website) ? (
+                    <a
+                      href={prospect.website}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[--exec-accent] hover:brightness-110 truncate transition-all min-w-0"
+                    >
+                      {prospect.website}
+                    </a>
+                  ) : (
+                    <span className="text-[--exec-text-secondary] truncate min-w-0">
+                      {prospect.website}
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
