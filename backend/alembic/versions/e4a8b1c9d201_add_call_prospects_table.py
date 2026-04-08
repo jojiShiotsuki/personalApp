@@ -1,7 +1,7 @@
 """add call_prospects table
 
 Revision ID: e4a8b1c9d201
-Revises: c377d436de9d
+Revises: b266c325cd8c
 Create Date: 2026-04-08
 
 Creates the call_prospects table for the Cold Calls pipeline tab in Outreach Hub.
@@ -11,6 +11,12 @@ phone prospecting. Stages are stored as plain varchar (not a native enum) so
 status values can evolve without ALTER TYPE migrations.
 
 Idempotent: safe to run multiple times via _table_exists guard.
+
+Note: down_revision points at b266c325cd8c (the last committed head on main)
+rather than c377d436de9d, because c377 is part of the PH/US pivot work that
+has not been committed yet. When c377 is later committed, its own
+down_revision must be updated to point at this migration (e4a8b1c9d201) to
+keep the linear chain: b266 -> e4a8 -> c377.
 """
 from typing import Sequence, Union
 
@@ -20,7 +26,7 @@ from sqlalchemy import inspect
 
 # revision identifiers, used by Alembic.
 revision: str = "e4a8b1c9d201"
-down_revision: Union[str, None] = "c377d436de9d"
+down_revision: Union[str, None] = "b266c325cd8c"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
