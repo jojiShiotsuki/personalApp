@@ -136,7 +136,7 @@ function Column({ column, prospects, onCardClick }: ColumnProps) {
           )}
         >
           <h2 className="text-sm font-medium tracking-tight">{column.label}</h2>
-          <span className="text-xs bg-white/50 dark:bg-black/20 px-2 py-0.5 rounded-full font-semibold">
+          <span className="text-xs bg-white/10 px-2 py-0.5 rounded-full font-semibold">
             {prospects.length}
           </span>
         </div>
