@@ -26,26 +26,22 @@ const COLUMNS: ColumnConfig[] = [
   {
     status: CallStatus.NEW,
     label: 'New Leads',
-    colorClasses:
-      'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800',
+    colorClasses: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
   },
   {
     status: CallStatus.ATTEMPTED,
     label: 'Attempted',
-    colorClasses:
-      'bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800',
+    colorClasses: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
   },
   {
     status: CallStatus.CONNECTED,
     label: 'Connected',
-    colorClasses:
-      'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800',
+    colorClasses: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
   },
   {
     status: CallStatus.DEAD,
     label: 'Dead',
-    colorClasses:
-      'bg-rose-50 dark:bg-rose-900/20 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800',
+    colorClasses: 'bg-rose-500/20 text-rose-400 border-rose-500/30',
   },
 ];
 
