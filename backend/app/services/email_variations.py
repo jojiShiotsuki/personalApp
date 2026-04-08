@@ -5,7 +5,10 @@ Both the Step 1 generator (autoresearch.py) and the audit-based email
 generator (audit_service.py) import from here so they share the same
 rotation, tracking, and learning logic.
 
-Every variation must reference a barbershop + concrete outcome + timeframe.
+Every variation references Pundok Studios (a premium barbershop in Cebu)
++ concrete outcome + timeframe. Each proof text contains a ``{location}``
+placeholder so the caller can decide whether to include " in Cebu" (PH
+market) or drop it (US market). Use ``format_proof_text()`` to resolve it.
 Python randomly selects one per generation to guarantee even rotation.
 Once 100+ sends per variation exist per niche, selection weights toward
 winners using the 70/20/10 rule.
@@ -24,23 +27,23 @@ from sqlalchemy.orm import Session
 PROOF_POOL: list[dict[str, str]] = [
     {
         "id": "barbershop-ranking-1",
-        "text": "I got a barbershop ranking #1 on Google and showing up in AI search within 3 months. Their phone went from quiet to fully booked.",
+        "text": "I recently helped Pundok Studios, a premium barbershop{location}, rank #1 on Google and show up in AI search results within 3 months. Their phone went from quiet to fully booked.",
     },
     {
         "id": "barbershop-zero-to-booked",
-        "text": "I took a barbershop from zero Google presence to fully booked in 3 months.",
+        "text": "I took Pundok Studios, a premium barbershop{location}, from zero Google presence to fully booked in 3 months.",
     },
     {
         "id": "barbershop-tripled-bookings",
-        "text": "I got a barbershop to the top of Google in 90 days and their bookings tripled.",
+        "text": "I got Pundok Studios, a premium barbershop{location}, to the top of Google in 90 days and their bookings tripled.",
     },
     {
         "id": "barbershop-phone-ringing",
-        "text": "I help businesses get found on Google so their phone rings. Got a barbershop to #1 in 3 months.",
+        "text": "I help service businesses get found on Google and AI search so their phone rings. Got Pundok Studios, a premium barbershop{location}, to #1 in 3 months.",
     },
     {
         "id": "barbershop-invisible-to-1",
-        "text": "A barbershop I worked with went from invisible on Google to ranked #1 in 3 months. Now they're fully booked.",
+        "text": "Pundok Studios, a premium barbershop{location}, went from invisible on Google to ranked #1 in 3 months. Now they're fully booked.",
     },
 ]
 
@@ -86,6 +89,90 @@ CTA_POOL: list[dict[str, str]] = [
         "text": "Happy to send through the list either way if you're curious.",
     },
 ]
+
+
+# ──────────────────────────────────────────────
+# Market-aware formatting
+# ──────────────────────────────────────────────
+
+def format_proof_text(proof: dict[str, str], market: str) -> str:
+    """Resolve the ``{location}`` placeholder in a proof variation.
+
+    Args:
+        proof: A dict from :data:`PROOF_POOL` with ``"id"`` and ``"text"``
+            (where ``text`` contains a ``{location}`` token).
+        market: ``"PH"`` injects ``" in Cebu"``; any other value (e.g.
+            ``"US"``, unknown) drops the location entirely.
+
+    Returns:
+        Fully rendered proof sentence ready to drop into a prompt.
+    """
+    location = " in Cebu" if market == "PH" else ""
+    return proof["text"].format(location=location)
+
+
+# ──────────────────────────────────────────────
+# Market routing (PH primary, US secondary, AU blocked)
+# Added 2026-04-07 as part of the PH/US pivot. Shared between the
+# autoresearch route handlers and the local_auditor script so the same
+# routing rules apply everywhere.
+# ──────────────────────────────────────────────
+
+def route_by_country(
+    email: str | None,
+    website: str | None,
+    prospect_id: int | None = None,
+) -> str:
+    """Decide which market a prospect belongs to based on email/website domain.
+
+    Rules (checked in order):
+      1. ``.com.au``, ``.net.au``, ``.org.au``, ``.edu.au``, ``.gov.au``, or
+         bare ``.au`` anywhere in email/website → ``"BLOCKED"`` (AU retired)
+      2. ``.ph`` or ``.com.ph`` → ``"PH"`` (primary market)
+      3. Everything else → ``"US"`` (secondary market, default)
+
+    Args:
+        email: prospect's email (may be None/empty)
+        website: prospect's website URL (may be None/empty)
+        prospect_id: optional prospect id for warning log context
+
+    Returns:
+        ``"PH"``, ``"US"``, or ``"BLOCKED"``
+    """
+    import logging
+    logger = logging.getLogger("app.services.email_variations.route_by_country")
+
+    if not email and not website:
+        if prospect_id is not None:
+            logger.warning(
+                "Prospect %d has no email or website, defaulting to US market",
+                prospect_id,
+            )
+        else:
+            logger.warning(
+                "Routing a prospect with no email or website, defaulting to US market"
+            )
+        return "US"
+
+    combined = ((email or "") + " " + (website or "")).lower()
+
+    # Australia — blocked
+    if any(
+        tld in combined
+        for tld in (".com.au", ".net.au", ".org.au", ".edu.au", ".gov.au")
+    ):
+        return "BLOCKED"
+    # Bare .au TLD — use regex to avoid false positives on "beautiful" / "australian"
+    import re
+    if re.search(r"\.au(?:/|\?|\s|$)", combined):
+        return "BLOCKED"
+
+    # Philippines — primary market
+    if ".ph" in combined or ".com.ph" in combined:
+        return "PH"
+
+    # Default: US (secondary market, covers .com, .io, .us, unknown TLDs)
+    return "US"
 
 
 # Selection thresholds
