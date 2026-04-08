@@ -13,6 +13,7 @@ from .user import User
 from .autoresearch import AuditResult, Experiment, GmailToken, EmailMatch, Insight, AutoresearchSettings, EmailOpen
 from .joji_ai import VaultFile, VaultChunk, Conversation, ConversationMessage, JojiAISettings
 from .nurture import NurtureLead, NurtureStepLog, NurtureStatus, FollowupStage
+from .call_prospect import CallProspect, CallStatus
 
 __all__ = [
     "Task", "TaskPriority", "TaskStatus",
@@ -31,4 +32,5 @@ __all__ = [
     "AuditResult", "Experiment", "GmailToken", "EmailMatch", "Insight", "AutoresearchSettings", "EmailOpen",
     "VaultFile", "VaultChunk", "Conversation", "ConversationMessage", "JojiAISettings",
     "NurtureLead", "NurtureStepLog", "NurtureStatus", "FollowupStage",
+    "CallProspect", "CallStatus",
 ]

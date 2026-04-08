@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 from app.database import init_db
 from app.services.scheduler_service import start_scheduler, stop_scheduler
 from app.auth import get_current_user
-from app.routes import auth, tasks, crm, task_parser, export, projects, project_templates, social_content, dashboard, outreach, cold_outreach, lead_discovery, daily_outreach, loom_audit, pipeline_calculator, discovery_call, search_planner, reports, autoresearch, joji_ai, tiktok, nurture
+from app.routes import auth, tasks, crm, task_parser, export, projects, project_templates, social_content, dashboard, outreach, cold_outreach, lead_discovery, daily_outreach, loom_audit, pipeline_calculator, discovery_call, search_planner, reports, autoresearch, joji_ai, tiktok, nurture, call_prospects
 
 app = FastAPI(
     title="Personal Productivity App",
@@ -171,6 +171,7 @@ app.include_router(autoresearch.router)
 app.include_router(joji_ai.router, dependencies=auth_dep)
 app.include_router(tiktok.router, dependencies=auth_dep)
 app.include_router(nurture.router, dependencies=auth_dep)
+app.include_router(call_prospects.router, dependencies=auth_dep)
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
