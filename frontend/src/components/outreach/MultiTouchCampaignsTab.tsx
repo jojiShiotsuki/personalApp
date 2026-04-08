@@ -577,12 +577,12 @@ function PipelineProspectCard({
             : 'hover:shadow-lg hover:-translate-y-0.5',
         isHighlighted && 'ring-2 ring-amber-400 shadow-[0_0_20px_rgba(251,191,36,0.3)] animate-pulse',
         isDragging && 'opacity-50 scale-95 ring-2 ring-blue-500/40',
-        isSelected && 'ring-2 ring-[#E07A5F] border-[#E07A5F]/40'
+        isSelected && 'ring-2 ring-[--exec-accent] border-[--exec-accent]/40'
       )}
     >
       {/* Selection indicator */}
       {isSelected && (
-        <div className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-[#E07A5F] flex items-center justify-center z-10">
+        <div className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-[--exec-accent] flex items-center justify-center z-10">
           <Check className="w-3 h-3 text-white" />
         </div>
       )}
@@ -1332,7 +1332,7 @@ function SequencePipelineView({
                       className={cn(
                         'w-full mb-2 px-2 py-1.5 rounded-lg text-[10px] font-medium transition-colors',
                         allSelected
-                          ? 'bg-[#E07A5F]/20 text-[#E07A5F]'
+                          ? 'bg-[--exec-accent]/20 text-[--exec-accent]'
                           : 'bg-stone-700/40 text-stone-400 hover:text-stone-200 hover:bg-stone-700/60'
                       )}
                     >
@@ -2327,13 +2327,13 @@ export default function MultiTouchCampaignsTab({ initialCampaignId, initialProsp
               className={cn(
                 "flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-lg transition-all",
                 selectedProspectIds.size > 0
-                  ? "bg-[#E07A5F]/15 text-[#E07A5F] border border-[#E07A5F]/30 hover:bg-[#E07A5F]/25"
+                  ? "bg-[--exec-accent]/15 text-[--exec-accent] border border-[--exec-accent]/30 hover:bg-[--exec-accent]/25"
                   : "text-[--exec-text-muted] border border-stone-700/40 hover:border-stone-600/60 hover:text-[--exec-text-secondary]"
               )}
             >
               {selectedProspectIds.size > 0 ? (
                 <>
-                  <div className="w-4 h-4 rounded-full bg-[#E07A5F] flex items-center justify-center">
+                  <div className="w-4 h-4 rounded-full bg-[--exec-accent] flex items-center justify-center">
                     <Check className="w-2.5 h-2.5 text-white" />
                   </div>
                   {selectedProspectIds.size} selected — click to clear

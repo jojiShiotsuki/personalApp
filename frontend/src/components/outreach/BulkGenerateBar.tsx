@@ -27,7 +27,7 @@ export function BulkGenerateBar({ selectedCount, onGenerate, onClear, isGenerati
         disabled={isGenerating}
         className={cn(
           "px-4 py-2 text-sm font-medium text-white rounded-lg",
-          "bg-[#E07A5F] hover:bg-[#c9684f] shadow-sm hover:shadow-md",
+          "bg-[--exec-accent] hover:bg-[--exec-accent-dark] shadow-sm hover:shadow-md",
           "transition-all disabled:opacity-50 disabled:cursor-not-allowed"
         )}
       >

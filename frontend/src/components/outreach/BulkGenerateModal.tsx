@@ -72,7 +72,7 @@ export function BulkGenerateModal({
           {/* Generating State */}
           {isGenerating && (
             <div className="flex flex-col items-center py-8 gap-4">
-              <Loader2 className="w-10 h-10 text-[#E07A5F] animate-spin" />
+              <Loader2 className="w-10 h-10 text-[--exec-accent] animate-spin" />
               <p className="text-sm text-[--exec-text-secondary]">
                 This may take a minute. Each prospect gets a unique, personalized message.
               </p>
@@ -134,7 +134,7 @@ export function BulkGenerateModal({
                   onClick={onClose}
                   className={cn(
                     "px-4 py-2 text-sm font-medium text-white rounded-lg",
-                    "bg-[#E07A5F] hover:bg-[#c9684f] shadow-sm hover:shadow-md transition-all"
+                    "bg-[--exec-accent] hover:bg-[--exec-accent-dark] shadow-sm hover:shadow-md transition-all"
                   )}
                 >
                   Done
