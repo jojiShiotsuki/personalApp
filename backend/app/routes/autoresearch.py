@@ -15,7 +15,7 @@ import re
 import time
 import uuid
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Literal
 
 import base64
 
@@ -203,7 +203,21 @@ async def audit_single_prospect(
     # Select variation pool picks and inject them into the prompt
     selected_proof = _select_proof_variation(db, niche=prospect.niche)
     selected_cta = _select_cta_variation(db, niche=prospect.niche)
-    audit_prompt = build_variation_injection(selected_proof, selected_cta) + audit_prompt
+    # Route by country so the proof sentence uses the correct market variant
+    prospect_market = _route_by_country(
+        prospect.email, prospect.website, prospect_id=prospect.id
+    )
+    if prospect_market == "BLOCKED":
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Prospect {prospect.id} is in a blocked market (Australian domain). "
+                "Current target markets are Philippines (primary) and United States (secondary)."
+            ),
+        )
+    audit_prompt = build_variation_injection(
+        selected_proof, selected_cta, market=prospect_market
+    ) + audit_prompt
 
     # Inject learning context into audit prompt
     learning_context = None
@@ -751,6 +765,22 @@ async def regenerate_audit(
     selected_proof = _select_proof_variation(db, niche=(prospect.niche if prospect else None))
     selected_cta = _select_cta_variation(db, niche=(prospect.niche if prospect else None))
 
+    # Route by country so the proof sentence uses the correct market variant
+    prospect_market = _route_by_country(
+        prospect.email if prospect else None,
+        prospect.website if prospect else None,
+        prospect_id=(prospect.id if prospect else None),
+    )
+    if prospect_market == "BLOCKED":
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Prospect {prospect.id if prospect else '?'} is in a blocked "
+                f"market (Australian domain). Current target markets are "
+                f"Philippines (primary) and United States (secondary)."
+            ),
+        )
+
     result = await service.regenerate_email(
         instruction=body.instruction,
         issue_type=audit.issue_type,
@@ -765,6 +795,7 @@ async def regenerate_audit(
         prospect_niche=(prospect.niche or "") if prospect else "",
         selected_proof=selected_proof,
         selected_cta=selected_cta,
+        market=prospect_market,
     )
 
     if "error" in result and "subject" not in result:
@@ -1508,7 +1539,21 @@ async def reaudit_prospect(
     # Select variation pool picks and inject them into the prompt
     selected_proof = _select_proof_variation(db, niche=prospect.niche)
     selected_cta = _select_cta_variation(db, niche=prospect.niche)
-    audit_prompt = build_variation_injection(selected_proof, selected_cta) + audit_prompt
+    # Route by country so the proof sentence uses the correct market variant
+    prospect_market = _route_by_country(
+        prospect.email, prospect.website, prospect_id=prospect.id
+    )
+    if prospect_market == "BLOCKED":
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Prospect {prospect.id} is in a blocked market (Australian domain). "
+                "Current target markets are Philippines (primary) and United States (secondary)."
+            ),
+        )
+    audit_prompt = build_variation_injection(
+        selected_proof, selected_cta, market=prospect_market
+    ) + audit_prompt
 
     # Build context with previous rejection reason
     rejection_context = ""
@@ -2138,6 +2183,8 @@ from app.services.email_variations import (
     CTA_POOL,
     select_proof_variation as _select_proof_variation,
     select_cta_variation as _select_cta_variation,
+    format_proof_text,
+    route_by_country as _route_by_country,
 )
 
 
@@ -2164,9 +2211,9 @@ def _learn_from_edit(db: Session, original_subject: str, original_body: str, edi
         patterns.append(f"User shortened the email significantly ({orig_words} → {edit_words} words). Write shorter emails.")
 
     # Detect greeting changes
-    if original_body.startswith("G'day") and not edited_body.startswith("G'day"):
+    if original_body.startswith("Hi ") and not edited_body.startswith("Hi "):
         first_line = edited_body.split("\n")[0].strip() if edited_body else ""
-        patterns.append(f"User changed greeting from \"G'day\" to \"{first_line}\". Use their preferred greeting.")
+        patterns.append(f"User changed greeting from \"Hi\" to \"{first_line}\". Use their preferred greeting.")
 
     for pattern in patterns:
         # Check if this insight already exists
@@ -2251,6 +2298,31 @@ async def _generate_followup_for_prospect(
     )
     if not prospect:
         raise HTTPException(status_code=404, detail="Prospect not found")
+
+    # --- Guard: archived prospects are permanently off-limits to generation ---
+    # Added 2026-04-07 as part of PH/US market pivot. Prevents accidental LLM
+    # spend on archived rows if someone hits this endpoint directly with an
+    # archived prospect id (bulk-generate-followup is the biggest risk).
+    if prospect.status == ProspectStatus.ARCHIVED:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Prospect {prospect_id} is archived and cannot be used for generation",
+        )
+
+    # --- Country routing: determine market (PH/US/BLOCKED) ---
+    # Added 2026-04-07. Australian prospects are hard-blocked at generation
+    # time even if they somehow slip through filters. PH prospects get the
+    # "in Cebu" proof variant; everyone else gets the default (US) variant.
+    routed_market = _route_by_country(prospect.email, prospect.website, prospect_id=prospect_id)
+    if routed_market == "BLOCKED":
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Prospect {prospect_id} ({prospect.agency_name}) is in a blocked "
+                f"market (Australian domain). Current target markets are Philippines "
+                f"(primary) and United States (secondary)."
+            ),
+        )
 
     step_number = prospect.current_step or 1
 
@@ -2447,7 +2519,7 @@ AUDIT FINDINGS (raw — you must reprioritize these, see ISSUE PRIORITY below):
         except Exception:
             pass
 
-        step1_prompt = f"""You are a strategic cold outreach specialist writing the FIRST email (Step 1) for Joji Shiotsuki, who runs Joji Web Solutions and helps trade businesses across Australia get found online.
+        step1_prompt = f"""You are a strategic cold outreach specialist writing the FIRST email (Step 1) for Joji Shiotsuki, who runs Joji Web Solutions and helps service businesses in the Philippines (primary market) and the United States (secondary market) get found online.
 
 GOAL: Get this prospect to reply. This is the FIRST touchpoint. Every word matters.
 
@@ -2456,8 +2528,8 @@ This is STEP 1 of the multi-touch sequence. There are more touchpoints after thi
 PROSPECT:
 - Name: {first_name}
 - Company: {prospect.agency_name}
-- Industry: {prospect.niche or 'trades'}
-- Location: Australia
+- Industry: {prospect.niche or 'service business'}
+- Market: {routed_market} ({"Philippines" if routed_market == "PH" else "United States"})
 - Website: {prospect.website or 'unknown'}
 - Detected issues: {issues_text}
 {audit_context}
@@ -2475,20 +2547,20 @@ The auditor surfaces multiple findings. Rank them using this order, then use the
 IMPORTANT: The proof (paragraph 1) always leads, regardless of which finding ranks highest. The audit finding only shapes paragraph 2 (the bridge).
 
 REFRAME AUDIT FINDINGS AS OPPORTUNITIES, NOT PROBLEMS:
-Tradies get defensive when criticised. Flip the frame so findings sound like opportunities and quick wins. Describe what you found using language like:
+Service business owners get defensive when criticised. Flip the frame so findings sound like opportunities and quick wins. Describe what you found using language like:
 - "spotted a few quick wins"
 - "noticed an opportunity to"
 - "room to improve on"
 - "a simple tweak could"
-- "stuff most {prospect.niche or 'trade'} businesses don't know about"
+- "stuff most {prospect.niche or 'service business'} owners don't know about"
 
 Never describe their site as broken, dead, failing, wrong, missing, or outdated — even if the audit flagged those exact words. Translate the finding into opportunity language.
 
 CASE STUDY LOCK (CRITICAL — DO NOT DEVIATE):
-The case study is ALWAYS a barbershop. Do not change it to match the prospect's industry. Do not say "an air con business", "a plumber", "a roofer", "an electrical company", "a landscaper", or any other trade. It is a barbershop. This is a real client and the only case study you are permitted to reference.
+The case study is ALWAYS Pundok Studios, a premium barbershop. Do not change it to match the prospect's industry. Do not say "a salon", "a cafe", "a plumber", "a roofer", "an electrical company", or any other business type. It is Pundok Studios, always referenced by its full name. This is a real client (pundokstudios.com) and the only case study you are permitted to reference.
 
 PROOF SENTENCE — USE THIS EXACT TEXT (do not rewrite, do not rephrase, do not soften):
-"{selected_proof["text"]}"
+"{format_proof_text(selected_proof, routed_market)}"
 
 CTA SENTENCE — USE THIS EXACT TEXT (do not rewrite, do not rephrase):
 "{selected_cta["text"]}"
@@ -2496,28 +2568,29 @@ CTA SENTENCE — USE THIS EXACT TEXT (do not rewrite, do not rephrase):
 Both the proof and CTA are pre-selected from a pool by the system. You MUST copy them verbatim into the email. Your only creative work is writing the BRIDGE (paragraph 2) based on the specific audit finding for this prospect.
 
 EMAIL STRUCTURE (this exact flow):
-1. "G'day {first_name}," opening
+1. "Hi {first_name}," opening
 2. PROOF FIRST (paragraph 1): Copy the proof sentence above VERBATIM.
 3. BRIDGE (paragraph 2): Must reference a SPECIFIC finding from the AUDIT FINDINGS section above. Do NOT write generic statements like "room to get ahead of competitors", "opportunity in your area", or "quick wins on searches". Pull the TOP-priority finding from the AUDIT FINDINGS and frame it as an opportunity with a concrete fix timeframe + concrete outcome. Format: "Ran {prospect.agency_name} through the same tools and noticed [SPECIFIC FINDING FROM AUDIT]. That's usually a [TIMEFRAME] fix that [CONCRETE OUTCOME], especially for [niche] searches in your area."
 4. CTA (paragraph 3): Copy the CTA sentence above VERBATIM.
-5. Sign-off will be appended automatically — DO NOT write "Cheers" or a sign-off in your body.
+5. Sign-off will be appended automatically — DO NOT write "Best" or any sign-off in your body.
 
 GOLD-STANDARD EXAMPLE showing the structure (note: your proof/CTA will be whatever the system pre-selected above, not necessarily these exact sentences):
 
-G'day Brandon-Lee,
+Hi Brandon-Lee,
 
-I got a barbershop ranking #1 on Google and showing up in AI search within 3 months. Their phone went from quiet to fully booked.
+I recently helped Pundok Studios, a premium barbershop in Cebu, rank #1 on Google and show up in AI search results within 3 months. Their phone went from quiet to fully booked.
 
-Ran BL Air through the same tools and noticed your homepage doesn't show your services upfront. That's usually a 1-hour fix that gets a lot more visitors picking up the phone, especially for air con searches in your area.
+Ran BL Services through the same tools and noticed your homepage doesn't show your services upfront. That's usually a 1-hour fix that gets a lot more visitors picking up the phone, especially for your niche in your area.
 
-Want me to send through a quick 3-minute walkthrough of what I found? Free, no pitch.
+Want me to send a quick 3-minute walkthrough of what I found? No cost, no pitch.
 
 Notice: the bridge references a SPECIFIC audit finding ("homepage doesn't show your services upfront") with a concrete timeframe ("1-hour fix") and concrete outcome ("more visitors picking up the phone"). Your bridge must do the same using the audit data above.
 
 LOCATION RULES (CRITICAL):
-- The case study reference says "a barbershop" with NO location mentioned
-- NEVER mention Cebu, Philippines, Manila, or any non-Australian location anywhere
-- Joji Web Solutions is AU-based. This must be consistent across every email.
+- The case study is Pundok Studios, a premium barbershop. The system has pre-selected the exact proof sentence above — for PH prospects it includes "in Cebu"; for US prospects it omits the location. DO NOT manually add or remove the location.
+- NEVER mention Australia, Australian cities (Sydney, Melbourne, Brisbane, Perth), or any AU-specific framing. Australia is a BLOCKED market.
+- Cebu, Manila, Philippines, and Pundok Studios ARE allowed — they appear in the proof sentence when the prospect is in the PH market.
+- Joji Web Solutions serves PH and US markets.
 
 VALUE EQUATION CHECK (before finalising, verify all 4 elements are present):
 1. Dream outcome — concrete positive result mentioned? (e.g., "ranking #1", "phone booked out")
@@ -2537,7 +2610,7 @@ WHAT NOT TO DO:
 - DO NOT describe their site in negative terms. Use opportunity language.
 - DO NOT list multiple findings. One bridge reference, framed positively.
 - DO NOT ask for a meeting, call, or chat in the CTA.
-- DO NOT mention any location other than Australia for yourself or the case study.
+- DO NOT mention Australia, Australian cities, or any AU-specific context. The proof sentence handles the case study location automatically.
 
 A/B TESTING — study the data below:
 {global_perf if global_perf else "No performance data yet — test DIFFERENT approaches for each prospect."}
@@ -2550,14 +2623,16 @@ YOUR STRATEGY:
 4. Vary one thing per email (subject style, CTA wording, bridge angle).
 
 RULES:
-- Start with "G'day {first_name},"
-- Australian English, conversational, casual tone
+- Start with "Hi {first_name}," — never "G'day", never "Dear", never "Hey"
+- Clear international English with American spelling (favor, color, organize), conversational, professional tone
 - NEVER use em dashes (—). Use commas, full stops, or rewrite the sentence instead
 - 65-90 words total (excluding sign-off)
 - BANNED PHRASES (never use any of these — they are banned in the BODY and SUBJECT):
   * CTA bans: "10 minutes", "15 minutes", "worth X minutes", "got X minutes", "quick chat", "jump on a call"
   * Negative framing bans: "broken", "dead end", "costing you", "walls of text", "outdated", "your site is", "wrong", "missing", "failing"
-  * Location bans: "Cebu", "Philippines", "Manila", or any non-Australian location reference
+  * Australian slang bans: "G'day", "mate", "no worries", "cheers mate", "reckon", "arvo", "fair dinkum", "heaps", "bloke", "keen", "tradie", "tradies"
+  * Market bans: "Australia", "Australian", "across Australia", any AU city (Sydney, Melbourne, Brisbane, Perth, Adelaide), ".com.au"
+  (Note: "Cebu", "Philippines", "Manila", "Pundok Studios" are ALLOWED — the case study system handles them.)
 - DO NOT write a sign-off in the body. The system appends the sign-off automatically.
 {step1_learning}
 SUBJECT LINE RULES (strict):
@@ -2565,7 +2640,7 @@ SUBJECT LINE RULES (strict):
 - NEVER use negative framing in the subject ("your website is", "broken", "blank", "wrong", "missing", "outdated", "failing", "problem", "issue", "bad", "not working")
 - NEVER include the words in the banned phrase list above
 - Frame as curiosity, opportunity, or a specific finding tied to their niche/area
-- Good examples: "quick find for {first_name}", "barbershop → booked out in 3mo", "3-minute walkthrough for {prospect.agency_name}", "spotted something on your site"
+- Good examples: "quick find for {first_name}", "Pundok Studios to #1 in 3mo", "3-minute walkthrough for {prospect.agency_name}", "spotted something on your site"
 - Bad examples: "Your website is blank", "Broken links on your homepage", "Missing phone number"
 
 Return ONLY valid JSON (no markdown fences):
@@ -2674,21 +2749,21 @@ Return ONLY valid JSON (no markdown fences):
 
     # Channel-specific prompt templates
     channel_prompts = {
-        "linkedin_connect": f"""You are writing a LinkedIn connection request note for Joji Shiotsuki, who works with trade businesses across Australia on their web presence.
+        "linkedin_connect": f"""You are writing a LinkedIn connection request note for Joji Shiotsuki, who works with service businesses in the Philippines and United States on their web presence.
 
-The prospect is "{first_name}" from "{prospect.agency_name}" in the {prospect.niche or 'trades'} industry.
+The prospect is "{first_name}" from "{prospect.agency_name}" in the {prospect.niche or 'services'} industry.
 
 Write a SHORT LinkedIn connection request note (under 20 words). Do NOT mention cold emails, website audits, or website issues. Position Joji as someone who works with businesses in their industry, not as a developer.
 
 Examples of good connection notes:
-- "Hi {first_name}, I work with {prospect.niche or 'trade'} businesses across Australia on their web presence. Would love to connect."
-- "G'day {first_name}, great to see your work in {prospect.niche or 'the trades'}. Let's connect!"
+- "Hi {first_name}, I work with {prospect.niche or 'service'} businesses on their web presence. Would love to connect."
+- "Hi {first_name}, great to see your work in {prospect.niche or 'your industry'}. Let's connect!"
 
 RULES:
 - Under 20 words
 - NEVER use em dashes (—). Use commas, full stops, or rewrite the sentence instead
 - No mention of emails or website audits
-- Casual, friendly, Australian
+- Casual, friendly, professional
 
 Return ONLY valid JSON: {{"subject": "LinkedIn Connect", "body": "connection note here", "word_count": N}}""",
 
@@ -2696,7 +2771,7 @@ Return ONLY valid JSON: {{"subject": "LinkedIn Connect", "body": "connection not
 
         "linkedin_engage": f"""You are writing a LinkedIn comment for Joji Shiotsuki to leave on a prospect's post.
 
-The prospect is "{first_name}" from "{prospect.agency_name}" in the {prospect.niche or 'trades'} industry.
+The prospect is "{first_name}" from "{prospect.agency_name}" in the {prospect.niche or 'services'} industry.
 
 {"THE PROSPECT'S LINKEDIN POST:" + chr(10) + custom_instruction + chr(10) if custom_instruction else "No post content provided. Write a generic engaging comment relevant to their industry."}
 
@@ -2726,11 +2801,11 @@ The email should:
 - No pressure, just dropping value
 
 RULES:
-- Start with "G'day {first_name},"
+- Start with "Hi {first_name},"
 - Under 40 words
-- Australian English, conversational
+- Clear international English, conversational
 - NEVER use em dashes (—). Use commas, full stops, or rewrite the sentence instead
-- End with: Cheers,\\nJoji Shiotsuki | Joji Web Solutions | jojishiotsuki.com\\n\\nNot interested? Just reply "stop" and I won't email again.
+- End with: Best,\\nJoji Shiotsuki | Joji Web Solutions | jojishiotsuki.com\\n\\nNot interested? Just reply "stop" and I won't email again.
 
 Return ONLY valid JSON: {{"subject": "Re: {original_subject}", "body": "email body here", "word_count": N}}""",
     }
@@ -2747,7 +2822,7 @@ Return ONLY valid JSON: {{"subject": "Re: {original_subject}", "body": "email bo
         "SEASONAL/TIMING HOOK: Tie the issue to a timely reason to fix it NOW (busy season coming, new financial year, etc).",
         "DIRECT VALUE OFFER: Offer one specific, small thing you could fix quickly for free — shows competence and generosity, lowers barrier to engagement.",
         "CURIOSITY GAP: Tease a specific insight about their site (e.g. 'found something interesting on page 2 of your Google results') without giving the full answer. Drive them to reply.",
-        "CASE STUDY: Share a brief before/after story of a similar business — 'fixed X for a plumber in Brisbane, their calls went up 40% in 2 weeks'.",
+        "CASE STUDY: Share a brief before/after story of a similar business — 'fixed X for a similar business in their area, their calls went up 40% in 2 weeks'.",
         "OBJECTION BUSTER: Preemptively address common objections (too busy, already have a guy, costs too much) with humor and a reframe.",
         "DIRECT ASK: Make a specific, low-friction offer — send them something useful (mockup, checklist, comparison) without asking for their time.",
     ]
@@ -3323,14 +3398,14 @@ You are now in a direct LinkedIn conversation. This is follow-up #{li_followup_c
 {"This is the LAST LinkedIn follow-up. Be gracious, leave the door open, don't be pushy." if li_followup_count >= 4 else "Keep building the relationship. Be conversational, not salesy."}
 """
 
-        prompt = f"""You are a strategic cold outreach specialist writing a LinkedIn DM for Joji Shiotsuki, who works with trade businesses across Australia on their web presence.
+        prompt = f"""You are a strategic cold outreach specialist writing a LinkedIn DM for Joji Shiotsuki, who works with service businesses in the Philippines and United States on their web presence.
 
 GOAL: Convert this prospect into a paying client through LinkedIn conversation. Every message should move them closer to booking a call.
 
 PROSPECT INFO:
 - Name: {first_name}
 - Company: {prospect.agency_name}
-- Industry: {prospect.niche or 'trades'}
+- Industry: {prospect.niche or 'services'}
 - Website: {prospect.website or 'unknown'}
 - Website issues: {', '.join(prospect.website_issues) if prospect.website_issues else 'unknown'}
 
@@ -3367,7 +3442,7 @@ RULES:
 - NEVER use em dashes (—). Use commas, full stops, or rewrite the sentence instead
 - No sign-off block (no "Cheers, Joji" — it's a DM)
 - No "following up on my email" — reference the conversation naturally
-- Australian English, conversational, pub banter
+- Clear international English, conversational, dry humor OK
 
 {followup_learning}
 Return ONLY valid JSON (no markdown fences):
@@ -3421,14 +3496,14 @@ Return ONLY valid JSON (no markdown fences):
         if is_last_email:
             last_email_note = "\nIMPORTANT: This is the LAST email in the sequence. Be gracious, self-aware about persistence, and leave the door open. Clean exit energy."
 
-        prompt = f"""You are a strategic cold outreach specialist writing for Joji Shiotsuki, who works with trade businesses across Australia on their web presence.
+        prompt = f"""You are a strategic cold outreach specialist writing for Joji Shiotsuki, who works with service businesses in the Philippines and United States on their web presence.
 
 GOAL: Convert this prospect into a paying client. Every email must move them closer to booking a call or saying yes. You are not just "following up" — you are strategically nurturing a lead through a sales pipeline. Read ALL the data below and craft the most effective next touch.
 
 PROSPECT INFO:
 - Name: {first_name}
 - Company: {prospect.agency_name}
-- Industry: {prospect.niche or 'trades'}
+- Industry: {prospect.niche or 'services'}
 - Website: {prospect.website or 'unknown'}
 - Website issues: {', '.join(prospect.website_issues) if prospect.website_issues else 'unknown'}
 
@@ -3498,7 +3573,7 @@ CTA A/B TESTING:
   * OFFER: "Want me to mock up what a fix would look like?"
   * CURIOSITY: "Noticed something interesting about page 2 of your Google results..."
   * DIRECT VALUE: "I put together a quick list of the 3 things I'd fix first, want it?"
-  * SOCIAL: "Just helped a {prospect.niche or 'trade'} biz in your area with the same thing, happy to share what worked"
+  * SOCIAL: "Just helped a {prospect.niche or 'similar'} biz in your area with the same thing, happy to share what worked"
   * SOFT EXIT: "No stress either way, just thought you should know"
   * QUESTION: "Who handles your website stuff?"
   * PROOF: "Want to see a before/after of a similar fix I did?"
@@ -3508,14 +3583,14 @@ CTA A/B TESTING:
 {angle_blacklist}
 
 RULES:
-- Start with "G'day {first_name}," greeting
+- Start with "Hi {first_name}," greeting
 - Reference the original issue naturally, don't repeat the full explanation
-- ADD HUMOR: Use a funny analogy, witty comparison, or light self-deprecating joke. Tradies appreciate dry humor and straight talk. Think pub banter, not corporate comedy. One good joke per email max.
+- ADD HUMOR: Use a funny analogy, witty comparison, or light self-deprecating joke. Small business owners appreciate dry humor and straight talk. Keep it professional, not slapstick. One good joke per email max.
 - BANNED PHRASES in CTA: "10 minutes", "15 minutes", "worth X minutes", "got X minutes", "quick chat", "jump on a call"
 - Under 50 words total
-- Australian English, conversational
+- Clear international English with American spelling, conversational
 - NEVER use em dashes (—). Use commas, full stops, or rewrite the sentence instead
-- End with: Cheers,\\nJoji Shiotsuki | Joji Web Solutions | jojishiotsuki.com\\n\\nNot interested? Just reply "stop" and I won't email again.
+- End with: Best,\\nJoji Shiotsuki | Joji Web Solutions | jojishiotsuki.com\\n\\nNot interested? Just reply "stop" and I won't email again.
 - Subject MUST be exactly "Re: {original_subject}"
 {followup_learning}
 Return ONLY valid JSON (no markdown fences):
@@ -3526,7 +3601,7 @@ Return ONLY valid JSON (no markdown fences):
     is_linkedin_step = channel_type in channel_prompts
     if custom_instruction and len(custom_instruction) > 200 and not is_linkedin_step:
         # Long context = pasted conversation/email thread — override the cold template
-        prompt = f"""You are writing the NEXT email reply for Joji Shiotsuki, who works with trade businesses across Australia on their web presence.
+        prompt = f"""You are writing the NEXT email reply for Joji Shiotsuki, who works with service businesses in the Philippines and United States on their web presence.
 
 IMPORTANT: The user has pasted a real conversation below. This is NOT a cold follow-up. The prospect has already engaged.
 Read the conversation carefully and write the appropriate next reply.
@@ -3534,7 +3609,7 @@ Read the conversation carefully and write the appropriate next reply.
 PROSPECT:
 - First name: {first_name}
 - Company: {prospect.agency_name}
-- Industry: {prospect.niche or 'trades'}
+- Industry: {prospect.niche or 'services'}
 
 ENGAGEMENT HISTORY:
 {engagement_context}
@@ -3549,10 +3624,10 @@ RULES:
 - Address the RIGHT person (read who you're replying to in the conversation)
 - If they've replied positively, this is a WARM lead — don't treat them like a cold prospect
 - If they watched the Loom / fixed issues / showed interest, acknowledge it and push toward a call
-- Australian English, conversational, match Joji's voice
+- Clear international English, conversational, match Joji's voice
 - NEVER use em dashes (—). Use commas, full stops, or rewrite the sentence instead
 - Keep it natural and conversational — not a templated cold email
-- End with: Cheers,\\nJoji Shiotsuki | Joji Web Solutions | jojishiotsuki.com
+- End with: Best,\\nJoji Shiotsuki | Joji Web Solutions | jojishiotsuki.com
 - Subject MUST be exactly "Re: {original_subject}"
 {followup_learning}
 Return ONLY valid JSON (no markdown fences):
@@ -3751,7 +3826,7 @@ FORMATTING RULES:
 
 CONTENT RULES:
 - Conversational and natural, not scripted-sounding
-- Australian English
+- Clear international English
 - NEVER use em dashes (—). Use commas, full stops, or rewrite the sentence instead
 - Be SPECIFIC to their website and issues, not generic advice
 - Reference details from the audit and past emails so it feels personal and connected
@@ -4212,8 +4287,26 @@ async def _run_batch_audit(
                 # Per-prospect: select proof/CTA variation + inject learning context
                 batch_selected_proof = _select_proof_variation(db, niche=prospect.niche)
                 batch_selected_cta = _select_cta_variation(db, niche=prospect.niche)
+                # Route by country — batch endpoint skips blocked prospects so a
+                # single AU domain doesn't kill the whole job. The audit batch
+                # job dict uses `errors` counter (not a results list like the
+                # bulk-generate endpoint). Increment errors + log + continue.
+                batch_market = _route_by_country(
+                    prospect.email, prospect.website, prospect_id=prospect.id
+                )
+                if batch_market == "BLOCKED":
+                    logger.warning(
+                        "Batch %s: skipping prospect %d (%s) — blocked market "
+                        "(Australian domain, pivot 2026-04-07)",
+                        batch_id, prospect.id, prospect.agency_name,
+                    )
+                    job["errors"] += 1
+                    job["completed"] += 1
+                    continue
                 prospect_audit_prompt = (
-                    build_variation_injection(batch_selected_proof, batch_selected_cta)
+                    build_variation_injection(
+                        batch_selected_proof, batch_selected_cta, market=batch_market
+                    )
                     + audit_prompt
                 )
                 if _learning_svc:

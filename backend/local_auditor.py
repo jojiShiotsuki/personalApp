@@ -28,7 +28,7 @@ load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
 sys.path.insert(0, os.path.dirname(__file__))
 
 from app.services.audit_service import AuditService, DEFAULT_AUDIT_PROMPT, validate_url, build_variation_injection
-from app.services.email_variations import PROOF_POOL, CTA_POOL
+from app.services.email_variations import PROOF_POOL, CTA_POOL, route_by_country
 import random as _pool_random
 
 logging.basicConfig(
@@ -214,7 +214,29 @@ async def audit_single_prospect(
     # Select proof + CTA variations from pool (uniform random — local auditor has no DB for weighting)
     selected_proof = _pool_random.choice(PROOF_POOL)
     selected_cta = _pool_random.choice(CTA_POOL)
-    injected_prompt = build_variation_injection(selected_proof, selected_cta) + audit_prompt
+
+    # Route by country so the proof sentence uses the correct market variant.
+    # Note: blocked prospects are caught earlier in the main audit loop so
+    # they never reach this helper; the BLOCKED branch here is a safety net.
+    market = route_by_country(
+        prospect.get("email"),
+        prospect.get("website"),
+        prospect_id=prospect.get("id"),
+    )
+    if market == "BLOCKED":
+        return (
+            {
+                "error": "blocked_market",
+                "site_quality": "not_target",
+                "issue_type": "not_target",
+                "issue_detail": "Australian domain — blocked market (pivot 2026-04-07)",
+            },
+            {},
+            None,
+            selected_proof,
+            selected_cta,
+        )
+    injected_prompt = build_variation_injection(selected_proof, selected_cta, market=market) + audit_prompt
 
     # Run screenshots + PageSpeed in parallel
     screenshots_task = asyncio.create_task(svc.capture_screenshots(url, min_wait=3))
@@ -293,6 +315,41 @@ async def main():
                 i + 1, len(prospects), name, prospect.get("website", "no url"),
             )
 
+            # STEP -1: Country routing — skip blocked (AU) prospects before
+            # spending any money. Added 2026-04-07 as part of the PH/US
+            # pivot. This saves the Haiku prefilter cost (~$0.0001) on top
+            # of the full audit cost (~$0.02) for each blocked prospect.
+            prospect_market = route_by_country(
+                prospect.get("email"),
+                prospect.get("website"),
+                prospect_id=prospect.get("id"),
+            )
+            if prospect_market == "BLOCKED":
+                logger.info(
+                    "  -> Country routing skip: %s (Australian domain, blocked market)",
+                    prospect.get("email") or prospect.get("website"),
+                )
+                prefilter_skipped += 1
+                skip_payload = {
+                    "prospect_id": prospect["id"],
+                    "campaign_id": prospect.get("campaign_id", args.campaign),
+                    "issue_type": "not_target",
+                    "issue_detail": "Blocked market (Australian domain — pivot 2026-04-07)",
+                    "status": "skipped",
+                    "site_quality": "not_target",
+                    "confidence": "high",
+                }
+                try:
+                    await client.post(
+                        f"{API_URL}/api/autoresearch/audits/ingest",
+                        json=skip_payload,
+                        headers={"Authorization": f"Bearer {token}"},
+                        timeout=30,
+                    )
+                except Exception as e:
+                    logger.warning("Failed to upload blocked-market skip record: %s", e)
+                continue
+
             # STEP 0: Cheap Haiku pre-filter (costs ~$0.0001 vs $0.02 for a full audit)
             try:
                 prefilter_url = validate_url(prospect["website"])
@@ -351,13 +408,13 @@ async def main():
                             "generated_subject": "Security warning on your website",
                             "generated_subject_variant": "Your site's showing a warning to visitors",
                             "generated_body": (
-                                f"G'day {first_name},\n\n"
+                                f"Hi {first_name},\n\n"
                                 "I tried visiting your website and got hit with a big security warning — "
                                 "the SSL certificate is either expired or broken. That means anyone trying "
                                 "to check out your business online is seeing a scary \"Not Secure\" message "
                                 "instead of your site.\n\n"
                                 "It's usually a quick fix. Happy to sort it out if you'd like a hand.\n\n"
-                                "Cheers,\n"
+                                "Best,\n"
                                 "Joji Shiotsuki | Joji Web Solutions | jojishiotsuki.com\n\n"
                                 "Not interested? Just reply \"stop\" and I won't email again."
                             ),
@@ -392,13 +449,13 @@ async def main():
                             "generated_subject": "Your website is completely down",
                             "generated_subject_variant": "Tried visiting your site — it's offline",
                             "generated_body": (
-                                f"G'day {first_name},\n\n"
+                                f"Hi {first_name},\n\n"
                                 "I tried to check out your website but it wouldn't load at all — "
                                 "looks like the domain might have expired or isn't set up properly. "
                                 "That means anyone searching for your business online can't find you.\n\n"
                                 "It's usually a straightforward fix. Happy to take a look if you'd like a hand "
                                 "getting it back online.\n\n"
-                                "Cheers,\n"
+                                "Best,\n"
                                 "Joji Shiotsuki | Joji Web Solutions | jojishiotsuki.com\n\n"
                                 "Not interested? Just reply \"stop\" and I won't email again."
                             ),
