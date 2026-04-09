@@ -516,7 +516,7 @@ export default function WarmLeadsTab() {
                           'bg-stone-800/50 border rounded-lg p-4 cursor-grab active:cursor-grabbing transition-all group',
                           selectedLeadId === lead.id
                             ? 'border-[--exec-accent] shadow-md'
-                            : 'border-stone-600/40 hover:border-stone-500/60 hover:shadow-lg hover:-translate-y-0.5',
+                            : 'border-stone-600/40 hover:border-stone-500/60 hover:shadow-lg',
                           draggedLeadId === lead.id && 'opacity-50 scale-95 ring-2 ring-blue-500/40'
                         )}
                       >
