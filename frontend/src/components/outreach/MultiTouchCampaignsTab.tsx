@@ -92,7 +92,7 @@ function formatShortDate(dateStr?: string | null): string | null {
 // Prospect links helper
 function ProspectLinks({ prospect }: { prospect: OutreachProspect }) {
   const btnClass = cn(
-    'inline-flex items-center justify-center w-7 h-7 rounded-md transition-colors',
+    'inline-flex items-center justify-center w-7 h-7 rounded-lg transition-colors',
     'text-[--exec-text-muted] hover:text-[--exec-text] hover:bg-[--exec-surface-alt]'
   );
   return (
@@ -592,7 +592,7 @@ function PipelineProspectCard({
           <GripVertical className="w-3 h-3 text-[--exec-text-muted] opacity-0 group-hover:opacity-50 transition-opacity flex-shrink-0" />
         )}
         {dueToday && !isMuted && (
-          <span className="px-2 py-0.5 text-[10px] font-bold uppercase rounded-md bg-[--exec-accent]/20 text-[--exec-accent] tracking-wide">
+          <span className="px-2 py-0.5 text-[10px] font-bold uppercase rounded-full bg-[--exec-accent]/20 text-[--exec-accent] tracking-wide">
             Today
           </span>
         )}
@@ -600,7 +600,7 @@ function PipelineProspectCard({
           {prospect.email && (
             <button
               onClick={() => onViewMessage(prospect)}
-              className="p-1.5 text-[--exec-text-muted] hover:text-blue-400 hover:bg-blue-500/15 rounded-md transition-colors"
+              className="p-1.5 text-[--exec-text-muted] hover:text-blue-400 hover:bg-blue-500/15 rounded-lg transition-colors"
               title="View email"
             >
               <Mail className="w-3.5 h-3.5" />
@@ -610,7 +610,7 @@ function PipelineProspectCard({
             <button
               onClick={() => onMarkConnected(prospect)}
               className={cn(
-                'p-1.5 rounded-md transition-colors',
+                'p-1.5 rounded-lg transition-colors',
                 prospect.linkedin_connected
                   ? 'text-emerald-400 bg-emerald-500/15'
                   : 'text-[--exec-text-muted] hover:text-emerald-400 hover:bg-emerald-500/15'
@@ -641,7 +641,7 @@ function PipelineProspectCard({
                   }
                 }
               }}
-              className="p-1.5 text-[--exec-text-muted] hover:text-pink-400 hover:bg-pink-500/15 rounded-md transition-colors"
+              className="p-1.5 text-[--exec-text-muted] hover:text-pink-400 hover:bg-pink-500/15 rounded-lg transition-colors"
               title="Move to Warm Leads"
             >
               <Heart className="w-3.5 h-3.5" />
@@ -682,7 +682,7 @@ function PipelineProspectCard({
                 }
               }}
               className={cn(
-                'p-1.5 rounded-md transition-colors',
+                'p-1.5 rounded-lg transition-colors',
                 loomWatched
                   ? 'text-purple-400 bg-purple-500/15'
                   : 'text-[--exec-text-muted] hover:text-purple-400 hover:bg-purple-500/15'
@@ -694,7 +694,7 @@ function PipelineProspectCard({
           )}
           <button
             onClick={() => onEdit(prospect)}
-            className="p-1.5 text-[--exec-text-muted] hover:text-[--exec-text] hover:bg-[--exec-surface-alt] rounded-md transition-colors"
+            className="p-1.5 text-[--exec-text-muted] hover:text-[--exec-text] hover:bg-[--exec-surface-alt] rounded-lg transition-colors"
             title="Edit prospect"
           >
             <Edit2 className="w-3.5 h-3.5" />
@@ -730,20 +730,20 @@ function PipelineProspectCard({
 
       {/* Step outcome indicator */}
       {prospect.step_outcome === 'FALLBACK_USED' && prospect.current_step_detail && (
-        <div className="flex items-center gap-1.5 text-[11px] text-amber-400 bg-amber-900/20 px-2 py-0.5 rounded-md mb-2">
+        <div className="flex items-center gap-1.5 text-[11px] text-amber-400 bg-amber-900/20 px-2 py-0.5 rounded-full mb-2">
           <GitBranch className="w-3 h-3" />
           <span>Condition met → {CHANNEL_LABELS[prospect.current_step_detail.fallback_channel_type as StepChannelType] || 'alternate'}</span>
         </div>
       )}
       {prospect.step_outcome === 'SKIPPED' && (
-        <div className="flex items-center gap-1.5 text-[11px] text-slate-400 bg-slate-700/30 px-2 py-0.5 rounded-md mb-2">
+        <div className="flex items-center gap-1.5 text-[11px] text-slate-400 bg-slate-700/30 px-2 py-0.5 rounded-full mb-2">
           <span>Auto-skipped (condition not met)</span>
         </div>
       )}
 
       {/* LinkedIn follow-up indicator */}
       {prospect.status === 'LINKEDIN_FOLLOWUP' && (
-        <div className="flex items-center gap-1.5 text-[11px] text-blue-400 bg-blue-900/20 px-2 py-0.5 rounded-md mb-2">
+        <div className="flex items-center gap-1.5 text-[11px] text-blue-400 bg-blue-900/20 px-2 py-0.5 rounded-full mb-2">
           <Linkedin className="w-3 h-3" />
           <span>LinkedIn follow-up {prospect.linkedin_followup_count || 0}/5</span>
         </div>
@@ -754,7 +754,7 @@ function PipelineProspectCard({
         <div className={cn(
           'flex items-center gap-1.5 text-xs mb-2',
           dueToday
-            ? 'text-amber-400 font-semibold bg-amber-500/15 border border-amber-500/25 rounded-md px-2 py-1'
+            ? 'text-amber-400 font-semibold bg-amber-500/15 border border-amber-500/25 rounded-lg px-2 py-1'
             : 'text-[--exec-text-muted]'
         )}>
           <Calendar className={cn('w-3.5 h-3.5', dueToday && 'text-amber-400')} />
