@@ -822,9 +822,17 @@ import { inputClasses, primaryButtonClasses, secondaryButtonClasses } from '@/li
 
 ---
 
-## 12. Status Badges (single style)
+## 12. Status Badges — two canonical forms
 
-**Canonical form:** `bg-{color}-500/20 text-{color}-400`
+There are **two valid pill forms** for status badges in Outreach Hub, distinguished by context. Both are legitimate; the choice depends on where the badge renders.
+
+### Form A — Inline status badge (no border)
+
+**Class:** `bg-{color}-500/20 text-{color}-400`
+
+**Use for:** `ProspectStatusBadge` in prospect lists, inline status pills in dense UI, search dropdown results, anywhere the pill sits adjacent to other text/content.
+
+**Rationale:** No border keeps badges compact and visually quiet next to other content. The colored background + colored text combo is sufficient affordance in context.
 
 ```tsx
 <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium bg-blue-500/20 text-blue-400 rounded-full">
@@ -833,7 +841,30 @@ import { inputClasses, primaryButtonClasses, secondaryButtonClasses } from '@/li
 </span>
 ```
 
-**Color → meaning mapping:**
+### Form B — Kanban header / issue tag (with border)
+
+**Class:** `bg-{color}-500/20 text-{color}-400 border-{color}-500/30`
+
+**Use for:** Kanban column headers (`ColdCallsTab` COLUMNS config), issue tag pills (`WEBSITE_ISSUE_LABELS` consumers), toggle buttons where the border is an active-state affordance.
+
+**Rationale:** The border ring gives visual weight needed for standalone chips and emphasizes active/inactive state for toggles. Consumers that wrap the badge in a `cn(..., 'border', info.color)` call rely on the border color coming from the config.
+
+```tsx
+<div className="flex items-center gap-1.5 px-3 py-2 rounded-lg border bg-blue-500/20 text-blue-400 border-blue-500/30">
+  <Icon className="w-4 h-4" />
+  Kanban Column Label
+</div>
+```
+
+### Decision rule — which form?
+
+| Context | Use | Why |
+|---|---|---|
+| Pill renders **inline next to other content** (prospect list rows, dropdowns, search results, dense UI) | **Form A, no border** | Compact, quiet, doesn't compete with surrounding content |
+| Pill is a **standalone chip** (kanban header, tag list, filter toggle button, solo indicator) | **Form B, with border** | Needs visual weight to stand alone |
+| In doubt | **Form A** | Default. Borders are the add-on. |
+
+### Color → meaning mapping (applies to both forms)
 
 | Color | Meaning |
 |---|---|
@@ -855,7 +886,7 @@ import { inputClasses, primaryButtonClasses, secondaryButtonClasses } from '@/li
 
 ## 13. Documented Exceptions
 
-Three intentional deviations from the canonical rules. Each is approved in Phase 1 review and **must be preserved** — do not "fix" them.
+Five intentional deviations from the canonical rules. Each is approved in review and **must be preserved** — do not "fix" them.
 
 ### Exception 1 — `ColdCallCsvImportModal` Import button uses `bg-green-600`
 
@@ -884,6 +915,30 @@ Three intentional deviations from the canonical rules. Each is approved in Phase
 **Why:** Slide-in panels keep the underlying page partially visible, which is essential when the user is composing a DM and wants to reference the underlying contact card. A modal would obscure the context entirely.
 
 **Scope of exception:** Side panels are a **valid sibling pattern** to modals (see §6), not an exception per se. Documented here because it's the only side panel currently in Outreach Hub.
+
+### Exception 4 — `WEBSITE_ISSUE_LABELS.not_mobile_friendly` uses `orange` hue
+
+**Where:** `frontend/src/lib/outreachConstants.ts` — the `not_mobile_friendly` entry in `WEBSITE_ISSUE_LABELS`.
+
+**Why:** `orange` is not in the spec §12 preferred hue list — the closest listed hue is `amber`. However, migrating `not_mobile_friendly` to `amber` would **collide with `no_google_presence`** (which already uses `amber` per the spec preference). When both tags render side-by-side on a LinkedIn prospect card (the card shows all 5 website issues at once), two amber tags would be visually indistinguishable and the user would lose the ability to spot "not mobile friendly" at a glance.
+
+**Scope of exception:** Limited to the `not_mobile_friendly` key specifically in `WEBSITE_ISSUE_LABELS`. `bg-orange-500/20 text-orange-400 border-orange-500/30` is the canonical form for this one entry. Do not use orange elsewhere unless you have a similar visual-uniqueness argument.
+
+**This is a deliberate deviation, not a drift.** Do not "fix" it back to amber.
+
+### Exception 5 — Prospect card `scale-95` during active drag state
+
+**Where:**
+- `frontend/src/components/outreach/MultiTouchCampaignsTab.tsx` — prospect card wrapper className, specifically the conditional `isDragging && 'opacity-50 scale-95 ring-2 ring-blue-500/40'`
+- `frontend/src/components/outreach/WarmLeadsTab.tsx` — lead card wrapper className, specifically the conditional `draggedLeadId === lead.id && 'opacity-50 scale-95 ring-2 ring-blue-500/40'`
+
+**Why:** Drag-state visual feedback is functionally distinct from hover/active motion. The 5% shrink during drag tells the user "you've grabbed this card" — it's tactile feedback during a drag-and-drop operation, not motion noise on rest-state interactions. Removing it would degrade dnd affordance.
+
+**Important distinction:** This is **NOT** `hover:scale-*` or `active:scale-*` — it's a drag-phase **bare state class** applied conditionally via `isDragging` or `draggedLeadId === lead.id`. The full motion ban in §10 targets hover/active animation noise; drag-phase visual feedback is a separate UX category and is preserved.
+
+**Scope of exception:** Limited to drag-state visual feedback inside dnd kanban implementations. Currently documented in 2 files (MultiTouch + WarmLeads). If a future feature needs similar drag-phase visual cues, it may use the same pattern — but document the third use here. Do not extend this exception to non-drag bare-`scale-*` classes.
+
+**This is a deliberate retention, not a drift.** Do not "fix" it back by removing the scale class.
 
 ---
 

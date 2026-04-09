@@ -362,6 +362,48 @@ const inputClasses = cn(
 - Primary: `bg-[--exec-accent] rounded-lg hover:bg-[--exec-accent-dark] shadow-sm hover:shadow-md` (no scale)
 - For wider modals: `max-w-lg` or `max-w-2xl`
 
+### Outreach Hub Modals — dedicated design system
+
+> **For all Outreach Hub modal work** (anything in `frontend/src/components/outreach/`), the full design system spec is at `frontend/design-system/vertex-outreach-hub/MASTER.md`. The ContactModal pattern documented above is the Outreach Hub's **Standard Form Modal (Pattern A)** — but Outreach Hub also codifies a **Large Modal (Pattern B)**, a **Slide-in Side Panel**, a **Floating Action Bar**, and a **Kanban / Pipeline** pattern. All are valid siblings, not replacements.
+
+**Which modal pattern to use (§5.3 of MASTER.md):**
+
+1. Does the modal have internal sub-navigation (steps, tabs, nested lists, multi-page wizards)?
+   - **Yes** → **Pattern B (Large Modal)** — `max-w-2xl`, separated sticky header / scrolling content / sticky footer, `flex flex-col`
+   - **No** → continue to question 2
+2. Will the content reliably exceed 90vh on a 768px-tall window?
+   - **Yes** → **Pattern B (Large Modal)**
+   - **No** → **Pattern A (Standard Form Modal)** — `max-w-lg`, single `p-6` wrapper, no internal borders (the ContactModal pattern documented above)
+
+**Concrete examples:**
+- Edit a contact / edit a prospect / add a lead → **Pattern A**
+- CSV import wizard (upload → map → preview) → **Pattern B**
+- Manage outreach templates (list of 50+) → **Pattern B**
+- Bulk generate confirmation → **Pattern A**
+
+Both patterns share the same backdrop, container border (`border-stone-600/40`), container radius (`rounded-2xl`), `transform transition-all animate-in zoom-in-95 duration-200` animation chain, primary button (`bg-[--exec-accent] hover:bg-[--exec-accent-dark]`), and cancel button (`bg-stone-700/50 hover:bg-stone-600/50`). They differ only in the wrapper structure (single `p-6` vs split `p-6 pb-0` header / `flex-1 px-6` content / `px-6 py-4 border-t` footer).
+
+**Documented Outreach Hub exceptions (MASTER.md §13):**
+
+| # | Where | What |
+|---|---|---|
+| 1 | `ColdCallCsvImportModal.tsx` Import button | Uses `bg-green-600` instead of `bg-[--exec-accent]` — commit-action differentiation for destructive irreversible bulk operations |
+| 2 | `SendDMPanel.tsx` Script/Template Type selectors | Uses custom button-based dropdowns instead of native `<select>` — supports grouped options + active-state affordance that native select can't replicate |
+| 3 | `SendDMPanel.tsx` slide-in panel shape | Uses slide-in-from-right panel instead of centered modal — keeps underlying content partially visible for DM composition |
+| 4 | `WEBSITE_ISSUE_LABELS.not_mobile_friendly` in `lib/outreachConstants.ts` | Uses `orange` hue (not in canonical palette) — preserves visual uniqueness when 5 issue tags render side-by-side and `amber` would collide with `no_google_presence` |
+| 5 | Prospect card `scale-95` during drag in `MultiTouchCampaignsTab.tsx` and `WarmLeadsTab.tsx` | Drag-phase bare `scale-95` preserved — drag-state tactile feedback, functionally distinct from the `hover:scale-*` / `active:scale-*` ban |
+
+**All 5 exceptions are deliberate deviations, not drift. Do not "fix" them.** See MASTER.md §13 for full rationale per exception.
+
+**Banned in Outreach Hub specifically:**
+- `dark:*` prefixes (the app is forced dark via `ThemeProvider`; dark branches never render in Outreach Hub's dark-only design)
+- `hover:scale-*` / `active:scale-*` on any button (spec §10 forbidden motion)
+- `hover:translate-*` / `hover:-translate-*` on cards (layout shift)
+- `rounded-md` (out of the 4-tier radius scale: `lg`/`xl`/`2xl`/`full`)
+- Hardcoded hex colors (`#E07A5F` etc.) — use `bg-[--exec-accent]` / `hover:bg-[--exec-accent-dark]` Tailwind arbitrary-value form
+- Inline `style={{ backgroundColor: 'var(--exec-accent)' }}` for theme colors — use the Tailwind class form
+- Border opacities other than `border-stone-600/40` (structural) or `border-stone-700/30` (subtle dividers)
+
 ### Empty States
 
 ```tsx
