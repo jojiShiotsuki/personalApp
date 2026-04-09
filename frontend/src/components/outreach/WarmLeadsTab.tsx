@@ -528,7 +528,7 @@ export default function WarmLeadsTab() {
                                 e.stopPropagation();
                                 handleViewEmail(lead);
                               }}
-                              className="p-1.5 text-[--exec-text-muted] hover:text-blue-400 hover:bg-blue-500/15 rounded-md transition-colors"
+                              className="p-1.5 text-[--exec-text-muted] hover:text-blue-400 hover:bg-blue-500/15 rounded-lg transition-colors"
                               title="View email"
                             >
                               <Mail className="w-3.5 h-3.5" />
@@ -557,7 +557,7 @@ export default function WarmLeadsTab() {
                               queryClient.invalidateQueries({ queryKey: ['nurture-leads'] });
                             }}
                             className={cn(
-                              'p-1.5 rounded-md transition-colors',
+                              'p-1.5 rounded-lg transition-colors',
                               lead.prospect_linkedin_connected
                                 ? 'text-emerald-400 bg-emerald-500/15'
                                 : 'text-[--exec-text-muted] hover:text-emerald-400 hover:bg-emerald-500/15'
@@ -576,7 +576,7 @@ export default function WarmLeadsTab() {
                                 handleSelectLead(lead);
                               }
                             }}
-                            className="p-1.5 text-[--exec-text-muted] hover:text-[--exec-text] hover:bg-[--exec-surface-alt] rounded-md transition-colors"
+                            className="p-1.5 text-[--exec-text-muted] hover:text-[--exec-text] hover:bg-[--exec-surface-alt] rounded-lg transition-colors"
                             title="Edit prospect"
                           >
                             <Edit2 className="w-3.5 h-3.5" />
@@ -653,7 +653,7 @@ export default function WarmLeadsTab() {
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 onClick={(e) => e.stopPropagation()}
-                                className="inline-flex items-center justify-center w-7 h-7 rounded-md text-[--exec-text-muted] hover:text-blue-400 hover:bg-[--exec-surface-alt] transition-colors"
+                                className="inline-flex items-center justify-center w-7 h-7 rounded-lg text-[--exec-text-muted] hover:text-blue-400 hover:bg-[--exec-surface-alt] transition-colors"
                                 title="LinkedIn"
                               >
                                 <Linkedin className="w-3.5 h-3.5" />
@@ -665,7 +665,7 @@ export default function WarmLeadsTab() {
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 onClick={(e) => e.stopPropagation()}
-                                className="inline-flex items-center justify-center w-7 h-7 rounded-md text-[--exec-text-muted] hover:text-[--exec-text] hover:bg-[--exec-surface-alt] transition-colors"
+                                className="inline-flex items-center justify-center w-7 h-7 rounded-lg text-[--exec-text-muted] hover:text-[--exec-text] hover:bg-[--exec-surface-alt] transition-colors"
                                 title="Website"
                               >
                                 <Globe className="w-3.5 h-3.5" />
@@ -676,7 +676,7 @@ export default function WarmLeadsTab() {
                               target="_blank"
                               rel="noopener noreferrer"
                               onClick={(e) => e.stopPropagation()}
-                              className="inline-flex items-center justify-center w-7 h-7 rounded-md text-[--exec-text-muted] hover:text-[--exec-text] hover:bg-[--exec-surface-alt] transition-colors"
+                              className="inline-flex items-center justify-center w-7 h-7 rounded-lg text-[--exec-text-muted] hover:text-[--exec-text] hover:bg-[--exec-surface-alt] transition-colors"
                               title="Google Maps"
                             >
                               <MapPin className="w-3.5 h-3.5" />
