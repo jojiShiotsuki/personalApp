@@ -574,7 +574,7 @@ function PipelineProspectCard({
           ? 'opacity-50 hover:opacity-75'
           : dueToday
             ? 'border-[--exec-accent]/40 shadow-[0_0_10px_rgba(var(--exec-accent-rgb,59,130,246),0.12)] hover:shadow-[0_0_16px_rgba(var(--exec-accent-rgb,59,130,246),0.2)]'
-            : 'hover:shadow-lg hover:-translate-y-0.5',
+            : 'hover:shadow-lg',
         isHighlighted && 'ring-2 ring-amber-400 shadow-[0_0_20px_rgba(251,191,36,0.3)] animate-pulse',
         isDragging && 'opacity-50 scale-95 ring-2 ring-blue-500/40',
         isSelected && 'ring-2 ring-[--exec-accent] border-[--exec-accent]/40'
@@ -2121,14 +2121,14 @@ export default function MultiTouchCampaignsTab({ initialCampaignId, initialProsp
                     <div className="flex items-center gap-1 ml-3">
                       <button
                         onClick={(e) => handleEditCampaign(e, campaign)}
-                        className="p-2 rounded-lg bg-blue-500/20 text-blue-400 hover:bg-blue-500 hover:text-white hover:scale-110 transition-all duration-200"
+                        className="p-2 rounded-lg bg-blue-500/20 text-blue-400 hover:bg-blue-500 hover:text-white transition-all duration-200"
                         title="Edit campaign"
                       >
                         <Edit2 className="w-4 h-4" />
                       </button>
                       <button
                         onClick={(e) => handleDeleteCampaign(e, campaign.id)}
-                        className="p-2 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white hover:scale-110 transition-all duration-200"
+                        className="p-2 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white transition-all duration-200"
                         title="Delete campaign"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -2170,8 +2170,8 @@ export default function MultiTouchCampaignsTab({ initialCampaignId, initialProsp
             onClick={() => setIsNewCampaignOpen(true)}
             className={cn(
               'flex items-center gap-2 px-4 py-2.5 rounded-xl',
-              'text-white hover:brightness-110 hover:scale-105 hover:shadow-lg',
-              'active:scale-95 transition-all duration-200 shadow-sm font-medium text-sm'
+              'text-white hover:brightness-110 hover:shadow-lg',
+              'transition-all duration-200 shadow-sm font-medium text-sm'
             )}
             style={{ backgroundColor: 'var(--exec-accent)' }}
           >
@@ -2193,7 +2193,7 @@ export default function MultiTouchCampaignsTab({ initialCampaignId, initialProsp
               'bg-slate-600/50 text-slate-300 border border-slate-500/30',
               'transition-all duration-200 font-medium text-sm',
               selectedCampaignId
-                ? 'hover:bg-slate-500 hover:text-white hover:border-slate-400 hover:scale-105 active:scale-95'
+                ? 'hover:bg-slate-500 hover:text-white hover:border-slate-400'
                 : 'opacity-50 cursor-not-allowed'
             )}
           >
@@ -2215,7 +2215,7 @@ export default function MultiTouchCampaignsTab({ initialCampaignId, initialProsp
               'bg-slate-600/50 text-slate-300 border border-slate-500/30',
               'transition-all duration-200 font-medium text-sm',
               selectedCampaignId
-                ? 'hover:bg-slate-500 hover:text-white hover:border-slate-400 hover:scale-105 active:scale-95'
+                ? 'hover:bg-slate-500 hover:text-white hover:border-slate-400'
                 : 'opacity-50 cursor-not-allowed'
             )}
           >
@@ -2369,7 +2369,7 @@ export default function MultiTouchCampaignsTab({ initialCampaignId, initialProsp
               onClick={() => setIsNewCampaignOpen(true)}
               className={cn(
                 'inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-white',
-                'hover:brightness-110 hover:scale-105 hover:shadow-lg active:scale-95 transition-all duration-200',
+                'hover:brightness-110 hover:shadow-lg transition-all duration-200',
                 'shadow-sm font-medium text-sm'
               )}
               style={{ backgroundColor: 'var(--exec-accent)' }}
