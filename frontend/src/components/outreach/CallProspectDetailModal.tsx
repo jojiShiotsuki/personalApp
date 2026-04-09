@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { inputClasses, primaryButtonClasses, secondaryButtonClasses } from '@/lib/outreachStyles';
 import { coldCallsApi } from '@/lib/api';
 import { CallProspect, CallStatus } from '@/types';
 
@@ -26,14 +27,6 @@ const STATUS_OPTIONS: { value: CallStatus; label: string }[] = [
   { value: CallStatus.CONNECTED, label: 'Connected' },
   { value: CallStatus.DEAD, label: 'Dead' },
 ];
-
-const inputClasses = cn(
-  'w-full px-4 py-2.5 rounded-lg',
-  'bg-stone-800/50 border border-stone-600/40',
-  'text-[--exec-text] placeholder:text-[--exec-text-muted]',
-  'focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]/50',
-  'transition-all text-sm'
-);
 
 function formatTimestamp(): string {
   const now = new Date();
@@ -361,14 +354,14 @@ export default function CallProspectDetailModal({
                 <button
                   type="button"
                   onClick={onClose}
-                  className="px-4 py-2 text-sm font-medium text-[--exec-text-secondary] bg-stone-700/50 rounded-lg hover:bg-stone-600/50 transition-colors"
+                  className={secondaryButtonClasses}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={updateMutation.isPending}
-                  className="px-4 py-2 text-sm font-medium text-white bg-[--exec-accent] rounded-lg hover:bg-[--exec-accent-dark] shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  className={primaryButtonClasses}
                 >
                   {updateMutation.isPending ? 'Saving...' : 'Save'}
                 </button>
