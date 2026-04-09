@@ -1372,7 +1372,7 @@ export default function LinkedInCampaignsTab({ initialCampaignId, initialProspec
                   placeholder="Search prospects..."
                   className={cn(
                     'w-full pl-9 pr-8 py-2 rounded-lg text-sm',
-                    'bg-stone-800/50 border border-stone-700/40',
+                    'bg-stone-800/50 border border-stone-600/40',
                     'text-[--exec-text] placeholder:text-[--exec-text-muted]',
                     'focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]/50',
                     'transition-all'
