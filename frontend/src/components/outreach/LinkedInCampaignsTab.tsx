@@ -48,7 +48,7 @@ type TabType = 'today' | 'pending' | 'connected' | 'sent' | 'all' | 'replied';
 function ProspectLinks({ prospect, size = 'sm' }: { prospect: OutreachProspect; size?: 'sm' | 'xs' }) {
   const iconSize = size === 'sm' ? 'w-3.5 h-3.5' : 'w-3 h-3';
   const btnClass = cn(
-    'inline-flex items-center justify-center rounded-md transition-colors',
+    'inline-flex items-center justify-center rounded-lg transition-colors',
     size === 'sm' ? 'w-7 h-7' : 'w-6 h-6',
     'text-[--exec-text-muted] hover:text-[--exec-text] hover:bg-[--exec-surface-alt]'
   );
