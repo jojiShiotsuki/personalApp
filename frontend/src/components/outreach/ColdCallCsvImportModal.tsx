@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { primaryButtonClasses, secondaryButtonClasses } from '@/lib/outreachStyles';
 import { coldCallsApi } from '@/lib/api';
 import { CallProspectCsvColumnMapping } from '@/types';
 
@@ -778,7 +779,7 @@ export default function ColdCallCsvImportModal({
             {step !== 'upload' && (
               <button
                 onClick={() => setStep(step === 'preview' ? 'map' : 'upload')}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-[--exec-text-secondary] bg-stone-700/50 rounded-lg hover:bg-stone-600/50 transition-colors"
+                className={cn('flex items-center gap-2', secondaryButtonClasses)}
               >
                 <ChevronLeft className="w-4 h-4" />
                 Back
@@ -789,7 +790,7 @@ export default function ColdCallCsvImportModal({
           <div className="flex items-center gap-3">
             <button
               onClick={handleClose}
-              className="px-4 py-2 text-sm font-medium text-[--exec-text-secondary] bg-stone-700/50 rounded-lg hover:bg-stone-600/50 transition-colors"
+              className={secondaryButtonClasses}
             >
               Cancel
             </button>
@@ -798,7 +799,7 @@ export default function ColdCallCsvImportModal({
               <button
                 onClick={() => setStep('preview')}
                 disabled={!canProceedToPreview}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-[--exec-accent] rounded-lg hover:bg-[--exec-accent-dark] shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                className={cn('flex items-center gap-2', primaryButtonClasses)}
               >
                 Continue
                 <ChevronRight className="w-4 h-4" />
