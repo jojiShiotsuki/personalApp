@@ -217,7 +217,7 @@ function EditProspectModal({
 
   return createPortal(
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 animate-in fade-in duration-200">
-      <div className="bg-[--exec-surface] rounded-2xl shadow-2xl w-full max-w-lg mx-4 border border-stone-600/40 transition-all animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
+      <div className="bg-[--exec-surface] rounded-2xl shadow-2xl w-full max-w-lg mx-4 border border-stone-600/40 transform transition-all animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
         <div className="p-6">
           <div className="flex justify-between items-center mb-6">
             <div>
@@ -419,7 +419,7 @@ function AddProspectModal({
 
   return createPortal(
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 animate-in fade-in duration-200">
-      <div className="bg-[--exec-surface] rounded-2xl shadow-2xl w-full max-w-lg mx-4 border border-stone-600/40 transition-all animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
+      <div className="bg-[--exec-surface] rounded-2xl shadow-2xl w-full max-w-lg mx-4 border border-stone-600/40 transform transition-all animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
         <div className="p-6">
           <div className="flex justify-between items-center mb-6">
             <div>
@@ -2449,7 +2449,7 @@ export default function MultiTouchCampaignsTab({ initialCampaignId, initialProsp
       {/* Delete Campaign Confirmation */}
       {confirmDeleteId && createPortal(
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 animate-in fade-in duration-200" onClick={() => setConfirmDeleteId(null)}>
-          <div className="bg-[--exec-surface] rounded-2xl shadow-2xl w-full max-w-sm mx-4 border border-stone-600/40 p-6 animate-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-[--exec-surface] rounded-2xl shadow-2xl w-full max-w-sm mx-4 border border-stone-600/40 p-6 transform transition-all animate-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
             <h3 className="text-lg font-semibold text-[--exec-text] mb-2">Delete Campaign</h3>
             <p className="text-sm text-[--exec-text-muted] mb-6">This will permanently delete the campaign and all its prospects. This cannot be undone.</p>
             <div className="flex gap-3 justify-end">
