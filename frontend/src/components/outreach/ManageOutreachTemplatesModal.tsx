@@ -317,13 +317,13 @@ export default function ManageOutreachTemplatesModal({ isOpen, onClose }: Manage
                               <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
                                 <button
                                   onClick={() => handleEdit(template)}
-                                  className="p-1.5 rounded-md text-[--exec-text-muted] hover:text-[--exec-accent] hover:bg-[--exec-accent]/10 transition-colors"
+                                  className="p-1.5 rounded-lg text-[--exec-text-muted] hover:text-[--exec-accent] hover:bg-[--exec-accent]/10 transition-colors"
                                 >
                                   <Edit3 className="w-3.5 h-3.5" />
                                 </button>
                                 <button
                                   onClick={() => setDeleteId(template.id)}
-                                  className="p-1.5 rounded-md text-[--exec-text-muted] hover:text-[--exec-danger] hover:bg-[--exec-danger]/10 transition-colors"
+                                  className="p-1.5 rounded-lg text-[--exec-text-muted] hover:text-[--exec-danger] hover:bg-[--exec-danger]/10 transition-colors"
                                 >
                                   <Trash2 className="w-3.5 h-3.5" />
                                 </button>
