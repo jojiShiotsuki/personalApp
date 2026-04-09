@@ -436,8 +436,7 @@ function LinkedInProspectCard({
               className={cn(
                 'flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200',
                 'bg-blue-600/30 text-blue-300 border border-blue-500/30',
-                'hover:bg-blue-500 hover:text-white hover:scale-105',
-                'active:scale-95'
+                'hover:bg-blue-500 hover:text-white'
               )}
             >
               <Linkedin className="w-4 h-4" />
@@ -451,7 +450,7 @@ function LinkedInProspectCard({
               onClick={() => onAction('connection-sent')}
               className={cn(
                 'flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200',
-                'text-white hover:brightness-110 hover:scale-105 hover:shadow-lg active:scale-95'
+                'text-white hover:brightness-110 hover:shadow-lg'
               )}
               style={{ backgroundColor: 'var(--exec-accent)' }}
             >
@@ -465,7 +464,7 @@ function LinkedInProspectCard({
               onClick={() => onAction('message-sent')}
               className={cn(
                 'flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200',
-                'text-white hover:brightness-110 hover:scale-105 hover:shadow-lg active:scale-95'
+                'text-white hover:brightness-110 hover:shadow-lg'
               )}
               style={{ backgroundColor: 'var(--exec-accent)' }}
             >
@@ -480,7 +479,7 @@ function LinkedInProspectCard({
                 onClick={() => onAction('message-sent')}
                 className={cn(
                   'flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200',
-                  'text-white hover:brightness-110 hover:scale-105 hover:shadow-lg active:scale-95'
+                  'text-white hover:brightness-110 hover:shadow-lg'
                 )}
                 style={{ backgroundColor: 'var(--exec-accent)' }}
               >
@@ -491,7 +490,7 @@ function LinkedInProspectCard({
                 onClick={() => setIsResponseModalOpen(true)}
                 className={cn(
                   'flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200',
-                  'bg-green-600 text-white hover:bg-green-500 hover:scale-105 hover:shadow-lg active:scale-95'
+                  'bg-green-600 text-white hover:bg-green-500 hover:shadow-lg'
                 )}
               >
                 <MessageSquare className="w-4 h-4" />
@@ -514,7 +513,7 @@ function LinkedInProspectCard({
                 }}
                 className={cn(
                   'flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200',
-                  'bg-pink-600 text-white hover:bg-pink-500 hover:scale-105 hover:shadow-lg active:scale-95'
+                  'bg-pink-600 text-white hover:bg-pink-500 hover:shadow-lg'
                 )}
               >
                 <Heart className="w-4 h-4" />
@@ -629,7 +628,7 @@ function PendingConnections({
               onClick={() => onMarkConnected(prospect.id)}
               className={cn(
                 'flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200',
-                'bg-cyan-600 text-white hover:bg-cyan-500 hover:scale-105 hover:shadow-lg active:scale-95'
+                'bg-cyan-600 text-white hover:bg-cyan-500 hover:shadow-lg'
               )}
             >
               <UserCheck className="w-4 h-4" />
@@ -701,7 +700,7 @@ function ConnectedProspects({
                 className={cn(
                   'flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200',
                   'bg-blue-600/30 text-blue-300 border border-blue-500/30',
-                  'hover:bg-blue-500 hover:text-white hover:scale-105 active:scale-95'
+                  'hover:bg-blue-500 hover:text-white'
                 )}
               >
                 <Linkedin className="w-4 h-4" />
@@ -712,7 +711,7 @@ function ConnectedProspects({
               onClick={() => onMessageSent(prospect.id)}
               className={cn(
                 'flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200',
-                'text-white hover:brightness-110 hover:scale-105 hover:shadow-lg active:scale-95'
+                'text-white hover:brightness-110 hover:shadow-lg'
               )}
               style={{ backgroundColor: 'var(--exec-accent)' }}
             >
@@ -791,7 +790,7 @@ function SentProspects({ prospects, onEdit }: { prospects: OutreachProspect[]; o
                   onClick={() => setOpenResponseId(prospect.id)}
                   className={cn(
                     'flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200',
-                    'bg-green-600 text-white hover:bg-green-500 hover:scale-105 hover:shadow-lg active:scale-95'
+                    'bg-green-600 text-white hover:bg-green-500 hover:shadow-lg'
                   )}
                 >
                   <MessageSquare className="w-4 h-4" />
@@ -1179,10 +1178,10 @@ export default function LinkedInCampaignsTab({ initialCampaignId, initialProspec
                       {campaign.name}
                     </button>
                     <div className="flex items-center gap-1 ml-3">
-                      <button onClick={(e) => handleEditCampaign(e, campaign)} className="p-2 rounded-lg bg-blue-500/20 text-blue-400 hover:bg-blue-500 hover:text-white hover:scale-110 transition-all duration-200" title="Edit campaign">
+                      <button onClick={(e) => handleEditCampaign(e, campaign)} className="p-2 rounded-lg bg-blue-500/20 text-blue-400 hover:bg-blue-500 hover:text-white transition-all duration-200" title="Edit campaign">
                         <Edit2 className="w-4 h-4" />
                       </button>
-                      <button onClick={(e) => handleDeleteCampaign(e, campaign.id)} className="p-2 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white hover:scale-110 transition-all duration-200" title="Delete campaign">
+                      <button onClick={(e) => handleDeleteCampaign(e, campaign.id)} className="p-2 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white transition-all duration-200" title="Delete campaign">
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
@@ -1199,8 +1198,8 @@ export default function LinkedInCampaignsTab({ initialCampaignId, initialProspec
             onClick={() => setIsNewCampaignOpen(true)}
             className={cn(
               'flex items-center gap-2 px-4 py-2.5 rounded-xl',
-              'text-white hover:brightness-110 hover:scale-105 hover:shadow-lg',
-              'active:scale-95 transition-all duration-200 shadow-sm font-medium text-sm'
+              'text-white hover:brightness-110 hover:shadow-lg',
+              'transition-all duration-200 shadow-sm font-medium text-sm'
             )}
             style={{ backgroundColor: 'var(--exec-accent)' }}
           >
@@ -1219,7 +1218,7 @@ export default function LinkedInCampaignsTab({ initialCampaignId, initialProspec
               'bg-slate-600/50 text-slate-300 border border-slate-500/30',
               'transition-all duration-200 font-medium text-sm',
               selectedCampaignId
-                ? 'hover:bg-slate-500 hover:text-white hover:border-slate-400 hover:scale-105 active:scale-95'
+                ? 'hover:bg-slate-500 hover:text-white hover:border-slate-400'
                 : 'opacity-50 cursor-not-allowed'
             )}
           >
@@ -1238,7 +1237,7 @@ export default function LinkedInCampaignsTab({ initialCampaignId, initialProspec
               'bg-slate-600/50 text-slate-300 border border-slate-500/30',
               'transition-all duration-200 font-medium text-sm',
               selectedCampaignId
-                ? 'hover:bg-slate-500 hover:text-white hover:border-slate-400 hover:scale-105 active:scale-95'
+                ? 'hover:bg-slate-500 hover:text-white hover:border-slate-400'
                 : 'opacity-50 cursor-not-allowed'
             )}
           >
@@ -1252,7 +1251,7 @@ export default function LinkedInCampaignsTab({ initialCampaignId, initialProspec
               'flex items-center gap-2 px-4 py-2.5 rounded-xl',
               'bg-slate-600/50 text-slate-300 border border-slate-500/30',
               'transition-all duration-200 font-medium text-sm',
-              'hover:bg-slate-500 hover:text-white hover:border-slate-400 hover:scale-105 active:scale-95'
+              'hover:bg-slate-500 hover:text-white hover:border-slate-400'
             )}
           >
             <FileText className="w-4 h-4" />
@@ -1348,8 +1347,8 @@ export default function LinkedInCampaignsTab({ initialCampaignId, initialProspec
                     className={cn(
                       'px-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200',
                       activeTab === tab
-                        ? 'text-white shadow-lg scale-105'
-                        : 'bg-slate-700/50 text-slate-400 hover:bg-slate-600 hover:text-white hover:scale-105'
+                        ? 'text-white shadow-lg'
+                        : 'bg-slate-700/50 text-slate-400 hover:bg-slate-600 hover:text-white'
                     )}
                     style={activeTab === tab ? { backgroundColor: 'var(--exec-accent)' } : undefined}
                   >
@@ -1440,7 +1439,7 @@ export default function LinkedInCampaignsTab({ initialCampaignId, initialProspec
               onClick={() => setIsNewCampaignOpen(true)}
               className={cn(
                 'inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-white',
-                'hover:brightness-110 hover:scale-105 hover:shadow-lg active:scale-95 transition-all duration-200',
+                'hover:brightness-110 hover:shadow-lg transition-all duration-200',
                 'shadow-sm font-medium text-sm'
               )}
               style={{ backgroundColor: 'var(--exec-accent)' }}
