@@ -45,6 +45,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { inputClasses, primaryButtonClasses, secondaryButtonClasses, iconButtonClasses } from '@/lib/outreachStyles';
 import CsvImportModal from '@/components/CsvImportModal';
 import NewCampaignModal from '@/components/NewCampaignModal';
 import CopyEmailModal from '@/components/CopyEmailModal';
@@ -207,14 +208,6 @@ function EditProspectModal({
     } as Partial<OutreachProspect>);
   };
 
-  const inputClasses = cn(
-    'w-full px-4 py-2.5 rounded-lg',
-    'bg-stone-800/50 border border-stone-600/40',
-    'text-[--exec-text] placeholder:text-[--exec-text-muted]',
-    'focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]/50',
-    'transition-all text-sm'
-  );
-
   return createPortal(
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 animate-in fade-in duration-200">
       <div className="bg-[--exec-surface] rounded-2xl shadow-2xl w-full max-w-lg mx-4 border border-stone-600/40 transform transition-all animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
@@ -360,8 +353,8 @@ function EditProspectModal({
                 Delete
               </button>
               <div className="flex gap-3">
-                <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-medium text-[--exec-text-secondary] bg-stone-700/50 rounded-lg hover:bg-stone-600/50 transition-colors">Cancel</button>
-                <button type="submit" disabled={isSaving} className="px-4 py-2 text-sm font-medium text-white bg-[--exec-accent] rounded-lg hover:bg-[--exec-accent-dark] shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+                <button type="button" onClick={onClose} className={secondaryButtonClasses}>Cancel</button>
+                <button type="submit" disabled={isSaving} className={primaryButtonClasses}>
                   {isSaving ? 'Saving...' : 'Save Changes'}
                 </button>
               </div>
@@ -408,14 +401,6 @@ function AddProspectModal({
       linkedin_url: form.linkedin_url || undefined,
     });
   };
-
-  const inputClasses = cn(
-    'w-full px-4 py-2.5 rounded-lg',
-    'bg-stone-800/50 border border-stone-600/40',
-    'text-[--exec-text] placeholder:text-[--exec-text-muted]',
-    'focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]/50',
-    'transition-all text-sm'
-  );
 
   return createPortal(
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 animate-in fade-in duration-200">
@@ -470,8 +455,8 @@ function AddProspectModal({
             </div>
 
             <div className="flex gap-3 justify-end pt-4 border-t border-stone-700/30 mt-6">
-              <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-medium text-[--exec-text-secondary] bg-stone-700/50 rounded-lg hover:bg-stone-600/50 transition-colors">Cancel</button>
-              <button type="submit" disabled={isSaving} className="px-4 py-2 text-sm font-medium text-white bg-[--exec-accent] rounded-lg hover:bg-[--exec-accent-dark] shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+              <button type="button" onClick={onClose} className={secondaryButtonClasses}>Cancel</button>
+              <button type="submit" disabled={isSaving} className={primaryButtonClasses}>
                 {isSaving ? 'Adding...' : 'Add Prospect'}
               </button>
             </div>
@@ -694,7 +679,7 @@ function PipelineProspectCard({
           )}
           <button
             onClick={() => onEdit(prospect)}
-            className="p-1.5 text-[--exec-text-muted] hover:text-[--exec-text] hover:bg-[--exec-surface-alt] rounded-lg transition-colors"
+            className={iconButtonClasses}
             title="Edit prospect"
           >
             <Edit2 className="w-3.5 h-3.5" />
@@ -2455,7 +2440,7 @@ export default function MultiTouchCampaignsTab({ initialCampaignId, initialProsp
             <div className="flex gap-3 justify-end">
               <button
                 onClick={() => setConfirmDeleteId(null)}
-                className="px-4 py-2 text-sm font-medium text-[--exec-text-secondary] bg-stone-700/50 rounded-lg hover:bg-stone-600/50 transition-colors"
+                className={secondaryButtonClasses}
               >
                 Cancel
               </button>
