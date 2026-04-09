@@ -5,6 +5,7 @@ import { X, Plus, Trash2, Edit3, Mail, Linkedin, Video, Building2, FileText } fr
 import { outreachApi } from '@/lib/api';
 import type { OutreachNiche, OutreachSituation, OutreachTemplate, TemplateType } from '@/types';
 import { cn } from '@/lib/utils';
+import { inputClasses, primaryButtonClasses, secondaryButtonClasses } from '@/lib/outreachStyles';
 import { toast } from 'sonner';
 import ConfirmModal from '@/components/ConfirmModal';
 
@@ -12,14 +13,6 @@ interface ManageOutreachTemplatesModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
-
-const inputClasses = cn(
-  "w-full px-4 py-2.5 rounded-lg",
-  "bg-stone-800/50 border border-stone-600/40",
-  "text-[--exec-text] placeholder:text-[--exec-text-muted]",
-  "focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]/50",
-  "transition-all text-sm"
-);
 
 const TEMPLATE_CATEGORIES = [
   {
@@ -449,14 +442,14 @@ export default function ManageOutreachTemplatesModal({ isOpen, onClose }: Manage
                 <button
                   type="button"
                   onClick={() => { resetForm(); setView('list'); }}
-                  className="px-4 py-2 text-sm font-medium text-[--exec-text-secondary] bg-stone-700/50 rounded-lg hover:bg-stone-600/50 transition-colors"
+                  className={secondaryButtonClasses}
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleSubmit}
                   disabled={!content.trim() || isPending}
-                  className="px-4 py-2 text-sm font-medium text-white bg-[--exec-accent] rounded-lg hover:bg-[--exec-accent-dark] shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  className={primaryButtonClasses}
                 >
                   {isPending ? 'Saving...' : view === 'edit' ? 'Update Template' : 'Create Template'}
                 </button>
