@@ -340,7 +340,7 @@ function EditProspectModal({
                         'px-2.5 py-1 text-xs font-medium rounded-lg border transition-all duration-150',
                         isActive
                           ? info.color
-                          : 'text-stone-500 bg-stone-800/30 border-stone-700/40 hover:border-stone-500/50 hover:text-stone-400'
+                          : 'text-stone-500 bg-stone-800/30 border-stone-600/40 hover:border-stone-500/50 hover:text-stone-400'
                       )}
                     >
                       {info.label}
@@ -721,7 +721,7 @@ function PipelineProspectCard({
             Audited
           </span>
         ) : prospect.email ? (
-          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium rounded bg-stone-700/40 text-stone-500 border border-stone-600/30">
+          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium rounded bg-stone-700/40 text-stone-500 border border-stone-700/30">
             <Mail className="w-2.5 h-2.5" />
             No msg
           </span>
@@ -1184,7 +1184,7 @@ function SequencePipelineView({
             placeholder="Search prospects..."
             className={cn(
               'w-full pl-9 pr-8 py-2 rounded-lg text-sm',
-              'bg-stone-800/50 border border-stone-700/40',
+              'bg-stone-800/50 border border-stone-600/40',
               'text-[--exec-text] placeholder:text-[--exec-text-muted]',
               'focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]/50',
               'transition-all'
@@ -1208,7 +1208,7 @@ function SequencePipelineView({
             onChange={(e) => setSortBy(e.target.value as SortOption)}
             className={cn(
               'px-3 py-1.5 rounded-lg text-xs font-medium appearance-none cursor-pointer',
-              'bg-stone-800/50 border border-stone-700/40',
+              'bg-stone-800/50 border border-stone-600/40',
               'text-[--exec-text-muted] hover:text-[--exec-text]',
               'focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]/50',
               'transition-all'
@@ -1791,7 +1791,7 @@ function SequenceStepsPanel({
                   <div
                     className={cn(
                       'flex flex-col gap-1.5 px-4 py-3 rounded-xl border min-w-[150px] max-w-[180px]',
-                      'bg-stone-800/40 border-stone-700/40',
+                      'bg-stone-800/40 border-stone-600/40',
                       'hover:bg-stone-800/60 hover:border-stone-600/50 transition-all duration-200'
                     )}
                   >
@@ -2328,7 +2328,7 @@ export default function MultiTouchCampaignsTab({ initialCampaignId, initialProsp
                 "flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-lg transition-all",
                 selectedProspectIds.size > 0
                   ? "bg-[--exec-accent]/15 text-[--exec-accent] border border-[--exec-accent]/30 hover:bg-[--exec-accent]/25"
-                  : "text-[--exec-text-muted] border border-stone-700/40 hover:border-stone-600/60 hover:text-[--exec-text-secondary]"
+                  : "text-[--exec-text-muted] border border-stone-600/40 hover:border-stone-600/60 hover:text-[--exec-text-secondary]"
               )}
             >
               {selectedProspectIds.size > 0 ? (
