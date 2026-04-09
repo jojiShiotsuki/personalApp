@@ -1,5 +1,6 @@
 import { X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { primaryButtonClasses } from '@/lib/outreachStyles';
 
 interface BulkGenerateBarProps {
   selectedCount: number;
@@ -25,11 +26,7 @@ export function BulkGenerateBar({ selectedCount, onGenerate, onClear, isGenerati
       <button
         onClick={onGenerate}
         disabled={isGenerating}
-        className={cn(
-          "px-4 py-2 text-sm font-medium text-white rounded-lg",
-          "bg-[--exec-accent] hover:bg-[--exec-accent-dark] shadow-sm hover:shadow-md",
-          "transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-        )}
+        className={primaryButtonClasses}
       >
         {isGenerating ? 'Generating...' : 'Generate AI Follow-ups'}
       </button>
