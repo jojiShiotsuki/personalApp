@@ -54,6 +54,6 @@ export const secondaryButtonClasses = cn(
  */
 export const iconButtonClasses = cn(
   'p-1.5 text-[--exec-text-muted]',
-  'hover:text-[--exec-text] hover:bg-stone-700/50',
+  'hover:text-[--exec-text] hover:bg-[--exec-surface-alt]',
   'rounded-lg transition-colors'
 );
