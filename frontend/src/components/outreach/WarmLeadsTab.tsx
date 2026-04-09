@@ -30,6 +30,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { inputClasses, primaryButtonClasses, secondaryButtonClasses, iconButtonClasses } from '@/lib/outreachStyles';
 
 const NURTURE_STEPS = [
   { step: 1, name: 'Reply with value', color: 'blue' },
@@ -121,14 +122,6 @@ function daysSince(dateStr: string): number {
   return Math.max(0, Math.floor((now.getTime() - then.getTime()) / (1000 * 60 * 60 * 24)));
 }
 
-const inputClasses = cn(
-  'w-full px-4 py-2.5 rounded-lg',
-  'bg-stone-800/50 border border-stone-600/40',
-  'text-[--exec-text] placeholder:text-[--exec-text-muted]',
-  'focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]/50',
-  'transition-all text-sm'
-);
-
 function EditProspectInlineModal({
   prospect,
   onClose,
@@ -192,10 +185,10 @@ function EditProspectInlineModal({
             </div>
 
             <div className="flex gap-3 justify-end pt-4 border-t border-stone-700/30 mt-6">
-              <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-medium text-[--exec-text-secondary] bg-stone-700/50 rounded-lg hover:bg-stone-600/50 transition-colors">
+              <button type="button" onClick={onClose} className={secondaryButtonClasses}>
                 Cancel
               </button>
-              <button type="submit" disabled={isSaving} className="px-4 py-2 text-sm font-medium text-white bg-[--exec-accent] rounded-lg hover:bg-[--exec-accent-dark] shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+              <button type="submit" disabled={isSaving} className={primaryButtonClasses}>
                 {isSaving ? 'Saving...' : 'Save Changes'}
               </button>
             </div>
@@ -576,7 +569,7 @@ export default function WarmLeadsTab() {
                                 handleSelectLead(lead);
                               }
                             }}
-                            className="p-1.5 text-[--exec-text-muted] hover:text-[--exec-text] hover:bg-[--exec-surface-alt] rounded-lg transition-colors"
+                            className={iconButtonClasses}
                             title="Edit prospect"
                           >
                             <Edit2 className="w-3.5 h-3.5" />
@@ -915,10 +908,10 @@ export default function WarmLeadsTab() {
                 </div>
 
                 <div className="flex gap-3 justify-end pt-4 border-t border-stone-700/30 mt-6">
-                  <button type="button" onClick={() => setIsAddLeadOpen(false)} className="px-4 py-2 text-sm font-medium text-[--exec-text-secondary] bg-stone-700/50 rounded-lg hover:bg-stone-600/50 transition-colors">
+                  <button type="button" onClick={() => setIsAddLeadOpen(false)} className={secondaryButtonClasses}>
                     Cancel
                   </button>
-                  <button type="submit" disabled={!addLeadForm.company_name.trim() || createManualMutation.isPending} className="px-4 py-2 text-sm font-medium text-white bg-[--exec-accent] rounded-lg hover:bg-[--exec-accent-dark] shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+                  <button type="submit" disabled={!addLeadForm.company_name.trim() || createManualMutation.isPending} className={primaryButtonClasses}>
                     {createManualMutation.isPending ? 'Adding...' : 'Add to Pipeline'}
                   </button>
                 </div>
