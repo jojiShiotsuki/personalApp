@@ -168,7 +168,7 @@ function Column({ column, prospects, onCardClick }: ColumnProps) {
             </div>
 
             {prospects.length === 0 && !snapshot.isDraggingOver && (
-              <div className="flex items-center justify-center h-24 text-xs text-[--exec-text-muted] border border-dashed border-stone-700/40 rounded-lg">
+              <div className="flex items-center justify-center h-24 text-xs text-[--exec-text-muted] border border-dashed border-stone-600/40 rounded-lg">
                 No prospects
               </div>
             )}
