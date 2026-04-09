@@ -309,7 +309,7 @@ export default function CampaignKeywordTracker({ campaignId }: Props) {
                                 'w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors',
                                 kw.is_searched
                                   ? 'bg-green-500 border-green-500 text-white'
-                                  : 'border-stone-500 hover:border-stone-400',
+                                  : 'border-stone-600/40 hover:border-stone-400',
                               )}
                             >
                               {kw.is_searched && <Check className="w-3 h-3" />}
