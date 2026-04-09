@@ -1,5 +1,6 @@
 import { X, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { primaryButtonClasses } from '@/lib/outreachStyles';
 
 interface BulkResult {
   prospect_id: number;
@@ -132,10 +133,7 @@ export function BulkGenerateModal({
               <div className="flex justify-end pt-4 border-t border-stone-700/30 mt-6">
                 <button
                   onClick={onClose}
-                  className={cn(
-                    "px-4 py-2 text-sm font-medium text-white rounded-lg",
-                    "bg-[--exec-accent] hover:bg-[--exec-accent-dark] shadow-sm hover:shadow-md transition-all"
-                  )}
+                  className={primaryButtonClasses}
                 >
                   Done
                 </button>
