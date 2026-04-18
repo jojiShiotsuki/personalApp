@@ -144,10 +144,12 @@ def evaluate_condition(step, prospect, step_logs: list) -> bool:
     if condition == "LINKEDIN_CONNECTED":
         return getattr(prospect, 'linkedin_connected', False) is True
     elif condition == "EMAIL_REPLIED":
-        return any(
-            log.outcome.upper() == "REPLIED"
-            for log in step_logs
-        )
+        # Reads the dedicated prospect.email_replied flag (set by mark_replied and
+        # gmail_service.poll_inbox). A prior implementation scanned prospect_step_log
+        # for outcome=="REPLIED", but the only writer of that outcome is the LinkedIn
+        # reply endpoint — so email replies never satisfied this condition while
+        # LinkedIn replies spuriously did. See audit bug_009.
+        return getattr(prospect, 'email_replied', False) is True
     elif condition == "EMAIL_OPENED":
         return getattr(prospect, 'email_opened', False) is True
     elif condition == "EMAIL_DELIVERED":
@@ -853,6 +855,8 @@ def mark_replied(prospect_id: int, data: MarkRepliedRequest, db: Session = Depen
     prospect.response_type = data.response_type
     prospect.notes = data.notes
     prospect.next_action_date = None
+    # Mirrors prospect.linkedin_replied — read by EMAIL_REPLIED condition in evaluate_condition.
+    prospect.email_replied = True
 
     contact_id = None
     deal_id = None

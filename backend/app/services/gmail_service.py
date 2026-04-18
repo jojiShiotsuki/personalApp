@@ -12,7 +12,7 @@ import logging
 import os
 import re
 import base64
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.utils import parseaddr
@@ -485,6 +485,9 @@ class GmailService:
                     prospect.status = ProspectStatus.CONVERTED
                     self._auto_create_nurture_lead(db, prospect)
 
+                # Mark email-reply flag so EMAIL_REPLIED condition can gate later steps.
+                prospect.email_replied = True
+
                 result["new_replies"] += 1
 
             elif direction == "outbound":
@@ -825,8 +828,9 @@ class GmailService:
         for fmt in formats:
             try:
                 parsed = datetime.strptime(cleaned, fmt)
-                # Convert to naive UTC
-                return parsed.replace(tzinfo=None)
+                if parsed.tzinfo is not None:
+                    parsed = parsed.astimezone(timezone.utc).replace(tzinfo=None)
+                return parsed
             except ValueError:
                 continue
 

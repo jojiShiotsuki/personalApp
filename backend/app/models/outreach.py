@@ -171,6 +171,7 @@ class OutreachProspect(Base):
     email_opened = Column(Boolean, default=False, server_default="0")
     email_bounced = Column(Boolean, default=False, server_default="0")
     linkedin_replied = Column(Boolean, default=False, server_default="0")
+    email_replied = Column(Boolean, default=False, server_default="0")
     linkedin_followup_count = Column(Integer, default=0, server_default="0")  # How many LinkedIn follow-ups sent post-sequence
 
     # Social links (copied from discovered lead during import)
