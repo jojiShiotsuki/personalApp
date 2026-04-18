@@ -115,8 +115,11 @@ except Exception as gmail_init_err:
     )
     gmail_service = None  # type: ignore[assignment]
 
-# OAuth state → user_id mapping (CSRF protection)
-_oauth_states: dict[str, int] = {}
+# OAuth state → {user_id, code_verifier, _created_at} mapping (CSRF + PKCE)
+_oauth_states: dict[str, dict] = {}
+
+# OAuth state TTL — a full OAuth roundtrip should never take this long
+_OAUTH_STATE_MAX_AGE = 600  # 10 minutes
 
 # ──────────────────────────────────────────────
 # In-memory batch tracking
@@ -145,6 +148,20 @@ def _cleanup_stale_batch_jobs() -> None:
         del _batch_jobs[bid]
     if stale_ids:
         logger.info("Cleaned up %d stale batch jobs", len(stale_ids))
+
+
+def _cleanup_stale_oauth_states() -> None:
+    """Remove OAuth state entries older than the TTL — abandoned flows leak otherwise."""
+    now = time.monotonic()
+    stale_states = [
+        s
+        for s, entry in _oauth_states.items()
+        if (now - entry.get("_created_at", 0)) > _OAUTH_STATE_MAX_AGE
+    ]
+    for s in stale_states:
+        del _oauth_states[s]
+    if stale_states:
+        logger.info("Cleaned up %d stale OAuth state entries", len(stale_states))
 
 
 def _require_audit_service() -> "AuditService":
@@ -1833,10 +1850,17 @@ def gmail_auth_url(
         "http://localhost:8000/api/autoresearch/gmail/callback",
     )
 
+    # Opportunistically sweep abandoned OAuth flows (closed tabs, denied consent, etc.)
+    _cleanup_stale_oauth_states()
+
     auth_url, state, code_verifier = svc.get_auth_url(redirect_uri)
 
-    # Store state → (user_id, code_verifier) for CSRF validation + PKCE in the callback
-    _oauth_states[state] = {"user_id": current_user.id, "code_verifier": code_verifier}
+    # Store state → (user_id, code_verifier, _created_at) for CSRF validation + PKCE
+    _oauth_states[state] = {
+        "user_id": current_user.id,
+        "code_verifier": code_verifier,
+        "_created_at": time.monotonic(),
+    }
 
     return {"auth_url": auth_url}
 
@@ -1891,7 +1915,23 @@ def gmail_callback(
         .first()
     )
     if existing:
-        existing.user_id = user_id
+        # Reject silent cross-user re-parenting — the uniqueness constraint is on
+        # email_address, so without this guard a second app user completing OAuth for
+        # the same mailbox would silently steal ownership from the original owner.
+        if existing.user_id != user_id:
+            logger.warning(
+                "Gmail %s is already connected to user %s; user %s attempted to reconnect.",
+                email_address,
+                existing.user_id,
+                user_id,
+            )
+            raise HTTPException(
+                status_code=409,
+                detail=(
+                    f"Gmail account {email_address} is already connected to a "
+                    "different user. Disconnect it from that account first."
+                ),
+            )
         existing.encrypted_refresh_token = encrypted_token
         existing.is_active = True
     else:
