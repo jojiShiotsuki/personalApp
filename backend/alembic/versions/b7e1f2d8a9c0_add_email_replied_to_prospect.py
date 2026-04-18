@@ -1,6 +1,6 @@
 """add email_replied flag to outreach_prospects
 
-Revision ID: a3b4c5d6e7f8
+Revision ID: b7e1f2d8a9c0
 Revises: 1e29b83c0815
 Create Date: 2026-04-18
 
@@ -28,7 +28,7 @@ from sqlalchemy import inspect
 
 
 # revision identifiers, used by Alembic.
-revision: str = "a3b4c5d6e7f8"
+revision: str = "b7e1f2d8a9c0"
 down_revision: Union[str, None] = "1e29b83c0815"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
