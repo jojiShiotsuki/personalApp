@@ -230,6 +230,10 @@ class MultiTouchStep(Base):
     fallback_template_content = Column(Text, nullable=True)
     fallback_instruction_text = Column(String(500), nullable=True)
     loom_script = Column(Text, nullable=True)  # script for Loom video recording on LOOM_EMAIL steps
+    # Short palette key (e.g. 'cyan', 'rose', 'amber') for CUSTOM steps. The
+    # frontend resolves the key to Tailwind classes via stepColors. NULL
+    # means fall back to the default CUSTOM accent.
+    custom_color = Column(String(20), nullable=True)
 
     campaign = relationship("OutreachCampaign", back_populates="multi_touch_steps")
 

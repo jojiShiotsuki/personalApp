@@ -653,6 +653,7 @@ export interface MultiTouchStep {
   fallback_template_subject?: string;
   fallback_template_content?: string;
   fallback_instruction_text?: string;
+  custom_color?: string;
 }
 
 export interface MultiTouchStepCreate {
@@ -669,6 +670,7 @@ export interface MultiTouchStepCreate {
   fallback_template_subject?: string;
   fallback_template_content?: string;
   fallback_instruction_text?: string;
+  custom_color?: string;
 }
 
 export interface OutreachCampaign {

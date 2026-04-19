@@ -5,6 +5,7 @@ import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea
 import { coldOutreachApi } from '@/lib/api';
 import type { OutreachCampaign, MultiTouchStepCreate } from '@/types';
 import { CampaignType, StepChannelType, ConditionType, CONDITION_LABELS } from '@/types';
+import { STEP_COLOR_KEYS, STEP_COLOR_PALETTE, DEFAULT_CUSTOM_COLOR } from '@/lib/stepColors';
 import { X, Plus, Trash2, Mail, Linkedin, MessageCircle, Heart, Reply, ChevronDown, GripVertical, Video, GitBranch, Phone, Pencil } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -425,6 +426,37 @@ export default function NewCampaignModal({
                                         className={cn(inputClasses, 'py-1.5 text-xs')}
                                       />
 
+                                      {/* Color picker — only for CUSTOM steps */}
+                                      {step.channel_type === StepChannelType.CUSTOM && (
+                                        <div className="flex items-center gap-2 pt-0.5">
+                                          <span className="text-[10px] text-[--exec-text-muted] flex-shrink-0 uppercase tracking-wider">
+                                            Color
+                                          </span>
+                                          <div className="flex items-center gap-1 flex-wrap">
+                                            {STEP_COLOR_KEYS.map((key) => {
+                                              const tokens = STEP_COLOR_PALETTE[key];
+                                              const activeKey = step.custom_color ?? DEFAULT_CUSTOM_COLOR;
+                                              const isActive = activeKey === key;
+                                              return (
+                                                <button
+                                                  key={key}
+                                                  type="button"
+                                                  onClick={() => updateStep(index, { custom_color: key })}
+                                                  className={cn(
+                                                    'w-4 h-4 rounded-full transition-all',
+                                                    tokens.swatch,
+                                                    isActive
+                                                      ? 'ring-2 ring-offset-2 ring-offset-stone-900 ring-[--exec-text]'
+                                                      : 'hover:scale-110 opacity-70 hover:opacity-100'
+                                                  )}
+                                                  title={key}
+                                                />
+                                              );
+                                            })}
+                                          </div>
+                                        </div>
+                                      )}
+
                                       {/* Condition & Fallback Section */}
                                       <div className="mt-3 pt-3 border-t border-stone-700/30">
                                         <div className="flex items-center gap-2 mb-2">
@@ -553,21 +585,30 @@ export default function NewCampaignModal({
                                     </div>
                                   </div>
 
-                                  {/* Channel type indicator — for CUSTOM steps, surface the user-typed name as the label */}
-                                  <div className="flex items-center gap-1.5 mt-2 ml-16">
-                                    <Icon className={cn('w-3 h-3', config.color)} />
-                                    <span className={cn('text-[10px] font-medium', config.color)}>
-                                      {step.channel_type === StepChannelType.CUSTOM
-                                        ? (step.instruction_text?.trim() || 'Unnamed step')
-                                        : config.label}
-                                    </span>
-                                    <span className="text-[10px] text-[--exec-text-muted] ml-1">
-                                      {index === 0
-                                        ? step.delay_days === 0 ? '(starts immediately)' : `(starts after ${step.delay_days}d)`
-                                        : step.delay_days === 0 ? '(same day as prev step)' : `(${step.delay_days}d after prev step)`
-                                      }
-                                    </span>
-                                  </div>
+                                  {/* Channel type indicator — for CUSTOM steps, surface the user-typed name as the label and the picked color */}
+                                  {(() => {
+                                    const isCustom = step.channel_type === StepChannelType.CUSTOM;
+                                    const customTokens = isCustom
+                                      ? STEP_COLOR_PALETTE[(step.custom_color ?? DEFAULT_CUSTOM_COLOR) as keyof typeof STEP_COLOR_PALETTE] ?? STEP_COLOR_PALETTE[DEFAULT_CUSTOM_COLOR]
+                                      : null;
+                                    const iconColor = customTokens ? customTokens.accent : config.color;
+                                    return (
+                                      <div className="flex items-center gap-1.5 mt-2 ml-16">
+                                        <Icon className={cn('w-3 h-3', iconColor)} />
+                                        <span className={cn('text-[10px] font-medium', iconColor)}>
+                                          {isCustom
+                                            ? (step.instruction_text?.trim() || 'Unnamed step')
+                                            : config.label}
+                                        </span>
+                                        <span className="text-[10px] text-[--exec-text-muted] ml-1">
+                                          {index === 0
+                                            ? step.delay_days === 0 ? '(starts immediately)' : `(starts after ${step.delay_days}d)`
+                                            : step.delay_days === 0 ? '(same day as prev step)' : `(${step.delay_days}d after prev step)`
+                                          }
+                                        </span>
+                                      </div>
+                                    );
+                                  })()}
                                 </div>
                               )}
                             </Draggable>

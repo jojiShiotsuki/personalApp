@@ -43,6 +43,7 @@ import {
   prospectCardDraggingClasses,
   type KanbanAccent,
 } from '@/lib/outreachStyles';
+import { getStepColor } from '@/lib/stepColors';
 
 interface ColumnConfig {
   status: CallStatus;
@@ -189,14 +190,17 @@ interface StepColumnProps {
 function StepColumn({ step, prospects, onCardClick }: StepColumnProps) {
   const chKey = (step.channel_type || '').toUpperCase();
   const Icon = CHANNEL_ICON[chKey] ?? Phone;
-  const accent = CHANNEL_ACCENT[chKey] ?? 'text-stone-400';
-  const borderClass = CHANNEL_BORDER_TOP[chKey] ?? 'border-t-stone-500';
-  const countBadgeClass = CHANNEL_COUNT_BADGE[chKey] ?? 'bg-stone-500/20 text-stone-400';
+  const isCustom = chKey === StepChannelType.CUSTOM;
+  // CUSTOM steps resolve color from step.custom_color (user-picked swatch);
+  // predefined channels use the fixed channel palette maps.
+  const customTokens = isCustom ? getStepColor(step.custom_color) : null;
+  const accent = customTokens ? customTokens.accent : (CHANNEL_ACCENT[chKey] ?? 'text-stone-400');
+  const borderClass = customTokens ? customTokens.border : (CHANNEL_BORDER_TOP[chKey] ?? 'border-t-stone-500');
+  const countBadgeClass = customTokens ? customTokens.badge : (CHANNEL_COUNT_BADGE[chKey] ?? 'bg-stone-500/20 text-stone-400');
 
   // For CUSTOM steps the user's instruction_text IS the step label; for
   // predefined channels we keep the generic channel label and surface
   // instruction_text separately as the action description.
-  const isCustom = chKey === StepChannelType.CUSTOM;
   const headerLabel = isCustom
     ? (step.instruction_text?.trim() || `Step ${step.step_number}`)
     : `Step ${step.step_number}`;

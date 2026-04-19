@@ -429,6 +429,7 @@ def create_campaign(data: CampaignCreate, db: Session = Depends(get_db)):
                 fallback_template_subject=step_data.fallback_template_subject,
                 fallback_template_content=step_data.fallback_template_content,
                 fallback_instruction_text=step_data.fallback_instruction_text,
+                custom_color=step_data.custom_color,
             )
             db.add(step)
 
@@ -1095,6 +1096,7 @@ def update_campaign_steps(campaign_id: int, steps: List[MultiTouchStepCreate], d
             fallback_template_subject=step_data.fallback_template_subject,
             fallback_template_content=step_data.fallback_template_content,
             fallback_instruction_text=step_data.fallback_instruction_text,
+            custom_color=step_data.custom_color,
         )
         db.add(step)
         new_steps.append(step)

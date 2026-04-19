@@ -175,6 +175,7 @@ class MultiTouchStepCreate(BaseModel):
     fallback_template_content: Optional[str] = None
     fallback_instruction_text: Optional[str] = Field(None, max_length=500)
     loom_script: Optional[str] = None
+    custom_color: Optional[str] = Field(None, max_length=20)
 
     @model_validator(mode='after')
     def validate_condition_step_ref(self):
