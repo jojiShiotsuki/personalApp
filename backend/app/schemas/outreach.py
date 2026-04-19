@@ -121,6 +121,7 @@ class CampaignType(str, Enum):
     EMAIL = "EMAIL"
     LINKEDIN = "LINKEDIN"
     MULTI_TOUCH = "MULTI_TOUCH"
+    COLD_CALLS = "COLD_CALLS"
 
 
 class StepChannelType(str, Enum):
