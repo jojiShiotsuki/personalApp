@@ -613,6 +613,7 @@ export enum StepChannelType {
   LINKEDIN_ENGAGE = "LINKEDIN_ENGAGE",
   FOLLOW_UP_EMAIL = "FOLLOW_UP_EMAIL",
   LOOM_EMAIL = "LOOM_EMAIL",
+  PHONE_CALL = "PHONE_CALL",
 }
 
 export enum ConditionType {

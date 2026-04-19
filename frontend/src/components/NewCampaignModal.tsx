@@ -5,7 +5,7 @@ import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea
 import { coldOutreachApi } from '@/lib/api';
 import type { OutreachCampaign, MultiTouchStepCreate } from '@/types';
 import { CampaignType, StepChannelType, ConditionType, CONDITION_LABELS } from '@/types';
-import { X, Plus, Trash2, Mail, Linkedin, MessageCircle, Heart, Reply, ChevronDown, GripVertical, Video, GitBranch } from 'lucide-react';
+import { X, Plus, Trash2, Mail, Linkedin, MessageCircle, Heart, Reply, ChevronDown, GripVertical, Video, GitBranch, Phone } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -16,6 +16,7 @@ const CHANNEL_CONFIG: Record<StepChannelType, { label: string; icon: typeof Mail
   [StepChannelType.LINKEDIN_MESSAGE]: { label: 'LinkedIn Message', icon: MessageCircle, color: 'text-indigo-400', defaultDelay: 1, defaultInstruction: 'Send LinkedIn message referencing your email' },
   [StepChannelType.FOLLOW_UP_EMAIL]: { label: 'Follow-up Email', icon: Reply, color: 'text-purple-400', defaultDelay: 2, defaultInstruction: 'Send follow-up email if no reply' },
   [StepChannelType.LOOM_EMAIL]: { label: 'Loom Email', icon: Video, color: 'text-rose-400', defaultDelay: 2, defaultInstruction: 'Send email with Loom video walkthrough' },
+  [StepChannelType.PHONE_CALL]: { label: 'Phone Call', icon: Phone, color: 'text-orange-400', defaultDelay: 2, defaultInstruction: 'Call and pitch — leave voicemail if no answer' },
 };
 
 const DEFAULT_MT_STEPS: MultiTouchStepCreate[] = [
@@ -24,6 +25,12 @@ const DEFAULT_MT_STEPS: MultiTouchStepCreate[] = [
   { step_number: 3, channel_type: StepChannelType.LINKEDIN_ENGAGE, delay_days: 2, instruction_text: 'Like or comment on a recent post' },
   { step_number: 4, channel_type: StepChannelType.LINKEDIN_MESSAGE, delay_days: 1, instruction_text: 'Send LinkedIn message referencing your email' },
   { step_number: 5, channel_type: StepChannelType.FOLLOW_UP_EMAIL, delay_days: 2, instruction_text: 'Send follow-up email if no reply' },
+];
+
+const DEFAULT_CC_STEPS: MultiTouchStepCreate[] = [
+  { step_number: 1, channel_type: StepChannelType.PHONE_CALL, delay_days: 0, instruction_text: 'First call — introduce yourself, ask to speak with the owner' },
+  { step_number: 2, channel_type: StepChannelType.PHONE_CALL, delay_days: 2, instruction_text: 'Second call — try a different time of day' },
+  { step_number: 3, channel_type: StepChannelType.PHONE_CALL, delay_days: 3, instruction_text: 'Third call — leave voicemail if still no answer' },
 ];
 
 /** Renumber steps sequentially starting from 1 */
@@ -54,13 +61,24 @@ export default function NewCampaignModal({
   const isMultiTouch = isEditing
     ? editCampaign?.campaign_type === CampaignType.MULTI_TOUCH
     : defaultCampaignType === CampaignType.MULTI_TOUCH;
+  const isLinkedIn = isEditing
+    ? editCampaign?.campaign_type === CampaignType.LINKEDIN
+    : defaultCampaignType === CampaignType.LINKEDIN;
+  const isColdCalls = isEditing
+    ? editCampaign?.campaign_type === CampaignType.COLD_CALLS
+    : defaultCampaignType === CampaignType.COLD_CALLS;
+  const hasStepBuilder = isMultiTouch || isColdCalls;
 
   // Populate form when editing or switching type
   useEffect(() => {
     if (editCampaign) {
       setName(editCampaign.name);
-      if (editCampaign.campaign_type === CampaignType.MULTI_TOUCH && editCampaign.multi_touch_steps?.length) {
-        setSteps(editCampaign.multi_touch_steps.map(s => ({
+      const editType = editCampaign.campaign_type;
+      const editHasSteps =
+        (editType === CampaignType.MULTI_TOUCH || editType === CampaignType.COLD_CALLS)
+        && editCampaign.multi_touch_steps?.length;
+      if (editHasSteps) {
+        setSteps(editCampaign.multi_touch_steps!.map(s => ({
           step_number: s.step_number,
           channel_type: (s.channel_type || '').toUpperCase() as StepChannelType,
           delay_days: s.delay_days,
@@ -80,7 +98,13 @@ export default function NewCampaignModal({
       }
     } else {
       setName('');
-      setSteps(defaultCampaignType === CampaignType.MULTI_TOUCH ? [...DEFAULT_MT_STEPS] : []);
+      if (defaultCampaignType === CampaignType.MULTI_TOUCH) {
+        setSteps([...DEFAULT_MT_STEPS]);
+      } else if (defaultCampaignType === CampaignType.COLD_CALLS) {
+        setSteps([...DEFAULT_CC_STEPS]);
+      } else {
+        setSteps([]);
+      }
     }
   }, [editCampaign, defaultCampaignType]);
 
@@ -136,7 +160,7 @@ export default function NewCampaignModal({
       toast.error('Please enter a campaign name');
       return;
     }
-    if (isMultiTouch && steps.length === 0) {
+    if (hasStepBuilder && steps.length === 0) {
       toast.error('Add at least one step to the sequence');
       return;
     }
@@ -144,13 +168,13 @@ export default function NewCampaignModal({
       updateMutation.mutate({
         id: editCampaign.id,
         name: name.trim(),
-        steps: isMultiTouch ? steps : undefined,
+        steps: hasStepBuilder ? steps : undefined,
       });
     } else {
       createMutation.mutate({
         name: name.trim(),
         campaign_type: defaultCampaignType,
-        steps: isMultiTouch ? steps : undefined,
+        steps: hasStepBuilder ? steps : undefined,
       });
     }
   };
@@ -213,12 +237,6 @@ export default function NewCampaignModal({
   };
 
   const isPending = createMutation.isPending || updateMutation.isPending;
-  const isLinkedIn = isEditing
-    ? editCampaign?.campaign_type === CampaignType.LINKEDIN
-    : defaultCampaignType === CampaignType.LINKEDIN;
-  const isColdCalls = isEditing
-    ? editCampaign?.campaign_type === CampaignType.COLD_CALLS
-    : defaultCampaignType === CampaignType.COLD_CALLS;
 
   const getTitle = () => {
     if (isEditing) return 'Edit Campaign';
@@ -242,7 +260,7 @@ export default function NewCampaignModal({
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 animate-in fade-in duration-200">
       <div className={cn(
         'bg-[--exec-surface] rounded-2xl shadow-2xl w-full mx-4 border border-stone-600/40 animate-in zoom-in-95 duration-200',
-        isMultiTouch ? 'max-w-2xl max-h-[90vh] overflow-y-auto' : 'max-w-md'
+        hasStepBuilder ? 'max-w-2xl max-h-[90vh] overflow-y-auto' : 'max-w-md'
       )}>
         <div className="p-6">
           {/* Header */}
@@ -283,11 +301,11 @@ export default function NewCampaignModal({
               />
             </div>
 
-            {/* Step Builder for Multi-Touch */}
-            {isMultiTouch && (
+            {/* Step Builder for Multi-Touch and Cold Calls */}
+            {hasStepBuilder && (
               <div className="pt-4 border-t border-stone-700/30">
                 <h3 className="text-sm font-semibold text-[--exec-text] mb-3 flex items-center justify-between">
-                  <span>Sequence Steps ({steps.length})</span>
+                  <span>{isColdCalls ? 'Call Sequence' : 'Sequence Steps'} ({steps.length})</span>
                   {steps.length < 50 && (
                     <div className="relative" ref={addMenuRef}>
                       <button
@@ -571,7 +589,7 @@ export default function NewCampaignModal({
               </button>
               <button
                 type="submit"
-                disabled={isPending || !name.trim() || (isMultiTouch && steps.length === 0)}
+                disabled={isPending || !name.trim() || (hasStepBuilder && steps.length === 0)}
                 className="px-4 py-2 text-sm font-medium text-white bg-[--exec-accent] rounded-lg hover:bg-[--exec-accent-dark] shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isPending

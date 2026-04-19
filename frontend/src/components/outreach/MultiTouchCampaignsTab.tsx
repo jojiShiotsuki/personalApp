@@ -42,6 +42,7 @@ import {
   GitBranch,
   GripVertical,
   Check,
+  Phone,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -63,6 +64,7 @@ const CHANNEL_COLORS: Record<StepChannelType, { bg: string; text: string; dot: s
   [StepChannelType.LINKEDIN_ENGAGE]: { bg: 'bg-amber-500/20', text: 'text-amber-400', dot: 'bg-amber-400', borderTop: 'border-t-amber-400' },
   [StepChannelType.FOLLOW_UP_EMAIL]: { bg: 'bg-purple-500/20', text: 'text-purple-400', dot: 'bg-purple-400', borderTop: 'border-t-purple-400' },
   [StepChannelType.LOOM_EMAIL]: { bg: 'bg-rose-500/20', text: 'text-rose-400', dot: 'bg-rose-400', borderTop: 'border-t-rose-400' },
+  [StepChannelType.PHONE_CALL]: { bg: 'bg-orange-500/20', text: 'text-orange-400', dot: 'bg-orange-400', borderTop: 'border-t-orange-400' },
 };
 
 const CHANNEL_LABELS: Record<StepChannelType, string> = {
@@ -72,6 +74,7 @@ const CHANNEL_LABELS: Record<StepChannelType, string> = {
   [StepChannelType.LINKEDIN_ENGAGE]: 'LI Engage',
   [StepChannelType.FOLLOW_UP_EMAIL]: 'Follow-up',
   [StepChannelType.LOOM_EMAIL]: 'Loom Email',
+  [StepChannelType.PHONE_CALL]: 'Phone Call',
 };
 
 const CHANNEL_ICONS: Record<StepChannelType, typeof Mail> = {
@@ -81,6 +84,7 @@ const CHANNEL_ICONS: Record<StepChannelType, typeof Mail> = {
   [StepChannelType.LINKEDIN_ENGAGE]: Heart,
   [StepChannelType.FOLLOW_UP_EMAIL]: Reply,
   [StepChannelType.LOOM_EMAIL]: Video,
+  [StepChannelType.PHONE_CALL]: Phone,
 };
 
 // Helpers

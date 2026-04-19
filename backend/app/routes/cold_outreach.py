@@ -411,8 +411,9 @@ def create_campaign(data: CampaignCreate, db: Session = Depends(get_db)):
     db.add(campaign)
     db.flush()
 
-    # Create multi-touch steps if provided
-    if data.steps and data.campaign_type == CampaignType.MULTI_TOUCH:
+    # Create steps if provided — both MULTI_TOUCH and COLD_CALLS campaigns
+    # support the step builder (MultiTouchStep rows).
+    if data.steps and data.campaign_type in (CampaignType.MULTI_TOUCH, CampaignType.COLD_CALLS):
         for step_data in data.steps:
             step = MultiTouchStep(
                 campaign_id=campaign.id,
