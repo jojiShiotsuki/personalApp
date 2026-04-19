@@ -21,6 +21,7 @@ import {
   Heart,
   Reply,
   Video,
+  Sparkles,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -70,6 +71,7 @@ const CHANNEL_ICON: Record<string, typeof Phone> = {
   [StepChannelType.LINKEDIN_MESSAGE]: MessageCircle,
   [StepChannelType.LINKEDIN_ENGAGE]: Heart,
   [StepChannelType.LOOM_EMAIL]: Video,
+  [StepChannelType.CUSTOM]: Sparkles,
 };
 
 const CHANNEL_ACCENT: Record<string, string> = {
@@ -80,6 +82,7 @@ const CHANNEL_ACCENT: Record<string, string> = {
   [StepChannelType.LINKEDIN_MESSAGE]: 'text-indigo-400',
   [StepChannelType.LINKEDIN_ENGAGE]: 'text-amber-400',
   [StepChannelType.LOOM_EMAIL]: 'text-rose-400',
+  [StepChannelType.CUSTOM]: 'text-cyan-400',
 };
 
 const CHANNEL_LABEL: Record<string, string> = {
@@ -90,6 +93,7 @@ const CHANNEL_LABEL: Record<string, string> = {
   [StepChannelType.LINKEDIN_MESSAGE]: 'LinkedIn Message',
   [StepChannelType.LINKEDIN_ENGAGE]: 'LinkedIn Engage',
   [StepChannelType.LOOM_EMAIL]: 'Loom Email',
+  [StepChannelType.CUSTOM]: 'Custom',
 };
 
 // Channel-colored kanban column chrome for the step-based view.
@@ -101,6 +105,7 @@ const CHANNEL_BORDER_TOP: Record<string, string> = {
   [StepChannelType.LINKEDIN_MESSAGE]: 'border-t-indigo-500',
   [StepChannelType.LINKEDIN_ENGAGE]: 'border-t-amber-500',
   [StepChannelType.LOOM_EMAIL]: 'border-t-rose-500',
+  [StepChannelType.CUSTOM]: 'border-t-cyan-500',
 };
 
 const CHANNEL_COUNT_BADGE: Record<string, string> = {
@@ -111,6 +116,7 @@ const CHANNEL_COUNT_BADGE: Record<string, string> = {
   [StepChannelType.LINKEDIN_MESSAGE]: 'bg-indigo-500/20 text-indigo-400',
   [StepChannelType.LINKEDIN_ENGAGE]: 'bg-amber-500/20 text-amber-400',
   [StepChannelType.LOOM_EMAIL]: 'bg-rose-500/20 text-rose-400',
+  [StepChannelType.CUSTOM]: 'bg-cyan-500/20 text-cyan-400',
 };
 
 function firstNotePreview(notes: string | null): string | null {

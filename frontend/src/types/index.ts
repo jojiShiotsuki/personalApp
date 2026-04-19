@@ -614,6 +614,7 @@ export enum StepChannelType {
   FOLLOW_UP_EMAIL = "FOLLOW_UP_EMAIL",
   LOOM_EMAIL = "LOOM_EMAIL",
   PHONE_CALL = "PHONE_CALL",
+  CUSTOM = "CUSTOM",
 }
 
 export enum ConditionType {

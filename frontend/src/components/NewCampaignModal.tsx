@@ -5,7 +5,7 @@ import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea
 import { coldOutreachApi } from '@/lib/api';
 import type { OutreachCampaign, MultiTouchStepCreate } from '@/types';
 import { CampaignType, StepChannelType, ConditionType, CONDITION_LABELS } from '@/types';
-import { X, Plus, Trash2, Mail, Linkedin, MessageCircle, Heart, Reply, ChevronDown, GripVertical, Video, GitBranch, Phone } from 'lucide-react';
+import { X, Plus, Trash2, Mail, Linkedin, MessageCircle, Heart, Reply, ChevronDown, GripVertical, Video, GitBranch, Phone, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -17,6 +17,7 @@ const CHANNEL_CONFIG: Record<StepChannelType, { label: string; icon: typeof Mail
   [StepChannelType.FOLLOW_UP_EMAIL]: { label: 'Follow-up Email', icon: Reply, color: 'text-purple-400', defaultDelay: 2, defaultInstruction: 'Send follow-up email if no reply' },
   [StepChannelType.LOOM_EMAIL]: { label: 'Loom Email', icon: Video, color: 'text-rose-400', defaultDelay: 2, defaultInstruction: 'Send email with Loom video walkthrough' },
   [StepChannelType.PHONE_CALL]: { label: 'Phone Call', icon: Phone, color: 'text-orange-400', defaultDelay: 2, defaultInstruction: 'Call and pitch — leave voicemail if no answer' },
+  [StepChannelType.CUSTOM]: { label: 'Custom', icon: Sparkles, color: 'text-cyan-400', defaultDelay: 1, defaultInstruction: 'Describe the action to take at this step' },
 };
 
 const DEFAULT_MT_STEPS: MultiTouchStepCreate[] = [
