@@ -191,12 +191,15 @@ function StepColumn({ step, prospects, onCardClick }: StepColumnProps) {
   const chKey = (step.channel_type || '').toUpperCase();
   const Icon = CHANNEL_ICON[chKey] ?? Phone;
   const isCustom = chKey === StepChannelType.CUSTOM;
-  // CUSTOM steps resolve color from step.custom_color (user-picked swatch);
-  // predefined channels use the fixed channel palette maps.
-  const customTokens = isCustom ? getStepColor(step.custom_color) : null;
-  const accent = customTokens ? customTokens.accent : (CHANNEL_ACCENT[chKey] ?? 'text-stone-400');
-  const borderClass = customTokens ? customTokens.border : (CHANNEL_BORDER_TOP[chKey] ?? 'border-t-stone-500');
-  const countBadgeClass = customTokens ? customTokens.badge : (CHANNEL_COUNT_BADGE[chKey] ?? 'bg-stone-500/20 text-stone-400');
+  // Color resolution: a user-picked custom_color overrides any channel default.
+  // CUSTOM steps without a pick fall back to the palette default (cyan).
+  // Predefined channels without a pick use their fixed channel palette maps.
+  const overrideTokens = step.custom_color ? getStepColor(step.custom_color) : null;
+  const customDefaultTokens = isCustom && !overrideTokens ? getStepColor(undefined) : null;
+  const effectiveTokens = overrideTokens ?? customDefaultTokens;
+  const accent = effectiveTokens ? effectiveTokens.accent : (CHANNEL_ACCENT[chKey] ?? 'text-stone-400');
+  const borderClass = effectiveTokens ? effectiveTokens.border : (CHANNEL_BORDER_TOP[chKey] ?? 'border-t-stone-500');
+  const countBadgeClass = effectiveTokens ? effectiveTokens.badge : (CHANNEL_COUNT_BADGE[chKey] ?? 'bg-stone-500/20 text-stone-400');
 
   // For CUSTOM steps the user's instruction_text IS the step label; for
   // predefined channels we keep the generic channel label and surface

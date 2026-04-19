@@ -426,36 +426,45 @@ export default function NewCampaignModal({
                                         className={cn(inputClasses, 'py-1.5 text-xs')}
                                       />
 
-                                      {/* Color picker — only for CUSTOM steps */}
-                                      {step.channel_type === StepChannelType.CUSTOM && (
-                                        <div className="flex items-center gap-2 pt-0.5">
-                                          <span className="text-[10px] text-[--exec-text-muted] flex-shrink-0 uppercase tracking-wider">
-                                            Color
-                                          </span>
-                                          <div className="flex items-center gap-1 flex-wrap">
-                                            {STEP_COLOR_KEYS.map((key) => {
-                                              const tokens = STEP_COLOR_PALETTE[key];
-                                              const activeKey = step.custom_color ?? DEFAULT_CUSTOM_COLOR;
-                                              const isActive = activeKey === key;
-                                              return (
-                                                <button
-                                                  key={key}
-                                                  type="button"
-                                                  onClick={() => updateStep(index, { custom_color: key })}
-                                                  className={cn(
-                                                    'w-4 h-4 rounded-full transition-all',
-                                                    tokens.swatch,
-                                                    isActive
-                                                      ? 'ring-2 ring-offset-2 ring-offset-stone-900 ring-[--exec-text]'
-                                                      : 'hover:scale-110 opacity-70 hover:opacity-100'
-                                                  )}
-                                                  title={key}
-                                                />
-                                              );
-                                            })}
-                                          </div>
+                                      {/* Color picker — available on every step. Clicking Default clears the override. */}
+                                      <div className="flex items-center gap-2 pt-0.5 flex-wrap">
+                                        <span className="text-[10px] text-[--exec-text-muted] flex-shrink-0 uppercase tracking-wider">
+                                          Color
+                                        </span>
+                                        <div className="flex items-center gap-1 flex-wrap">
+                                          {/* Default / reset swatch — clears custom_color */}
+                                          <button
+                                            type="button"
+                                            onClick={() => updateStep(index, { custom_color: undefined })}
+                                            className={cn(
+                                              'w-4 h-4 rounded-full transition-all border border-dashed border-stone-500 bg-transparent',
+                                              !step.custom_color
+                                                ? 'ring-2 ring-offset-2 ring-offset-stone-900 ring-[--exec-text]'
+                                                : 'hover:scale-110 opacity-70 hover:opacity-100'
+                                            )}
+                                            title="Default (channel color)"
+                                          />
+                                          {STEP_COLOR_KEYS.map((key) => {
+                                            const tokens = STEP_COLOR_PALETTE[key];
+                                            const isActive = step.custom_color === key;
+                                            return (
+                                              <button
+                                                key={key}
+                                                type="button"
+                                                onClick={() => updateStep(index, { custom_color: key })}
+                                                className={cn(
+                                                  'w-4 h-4 rounded-full transition-all',
+                                                  tokens.swatch,
+                                                  isActive
+                                                    ? 'ring-2 ring-offset-2 ring-offset-stone-900 ring-[--exec-text]'
+                                                    : 'hover:scale-110 opacity-70 hover:opacity-100'
+                                                )}
+                                                title={key}
+                                              />
+                                            );
+                                          })}
                                         </div>
-                                      )}
+                                      </div>
 
                                       {/* Condition & Fallback Section */}
                                       <div className="mt-3 pt-3 border-t border-stone-700/30">
@@ -585,13 +594,17 @@ export default function NewCampaignModal({
                                     </div>
                                   </div>
 
-                                  {/* Channel type indicator — for CUSTOM steps, surface the user-typed name as the label and the picked color */}
+                                  {/* Channel type indicator — for CUSTOM steps surface the user-typed name as the label; for any step a picked custom_color overrides the channel's default */}
                                   {(() => {
                                     const isCustom = step.channel_type === StepChannelType.CUSTOM;
-                                    const customTokens = isCustom
-                                      ? STEP_COLOR_PALETTE[(step.custom_color ?? DEFAULT_CUSTOM_COLOR) as keyof typeof STEP_COLOR_PALETTE] ?? STEP_COLOR_PALETTE[DEFAULT_CUSTOM_COLOR]
+                                    const overrideTokens = step.custom_color
+                                      ? STEP_COLOR_PALETTE[step.custom_color as keyof typeof STEP_COLOR_PALETTE]
                                       : null;
-                                    const iconColor = customTokens ? customTokens.accent : config.color;
+                                    const customDefaultTokens = isCustom
+                                      ? STEP_COLOR_PALETTE[DEFAULT_CUSTOM_COLOR]
+                                      : null;
+                                    const effectiveTokens = overrideTokens ?? customDefaultTokens;
+                                    const iconColor = effectiveTokens ? effectiveTokens.accent : config.color;
                                     return (
                                       <div className="flex items-center gap-1.5 mt-2 ml-16">
                                         <Icon className={cn('w-3 h-3', iconColor)} />
