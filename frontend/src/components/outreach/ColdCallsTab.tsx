@@ -7,7 +7,14 @@ import {
   Draggable,
   DropResult,
 } from '@hello-pangea/dnd';
-import { Upload, Phone } from 'lucide-react';
+import {
+  Upload,
+  Plus,
+  Circle,
+  PhoneOutgoing,
+  CheckCircle2,
+  XCircle,
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { coldCallsApi } from '@/lib/api';
@@ -15,35 +22,36 @@ import { CallProspect, CallStatus } from '@/types';
 import CallProspectDetailModal from './CallProspectDetailModal';
 import ColdCallCsvImportModal from './ColdCallCsvImportModal';
 import AddColdLeadModal from './AddColdLeadModal';
+import HubStatsBar, { type HubStat } from './HubStatsBar';
+import {
+  kanbanColumnClasses,
+  kanbanColumnAccents,
+  kanbanColumnTitleAccents,
+  kanbanCountBadgeAccents,
+  prospectCardClasses,
+  prospectCardHoverClasses,
+  prospectCardDraggingClasses,
+  type KanbanAccent,
+} from '@/lib/outreachStyles';
 
 interface ColumnConfig {
   status: CallStatus;
   label: string;
-  colorClasses: string;
+  accent: KanbanAccent;
 }
 
 const COLUMNS: ColumnConfig[] = [
-  {
-    status: CallStatus.NEW,
-    label: 'New Leads',
-    colorClasses: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-  },
-  {
-    status: CallStatus.ATTEMPTED,
-    label: 'Attempted',
-    colorClasses: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
-  },
-  {
-    status: CallStatus.CONNECTED,
-    label: 'Connected',
-    colorClasses: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
-  },
-  {
-    status: CallStatus.DEAD,
-    label: 'Dead',
-    colorClasses: 'bg-rose-500/20 text-rose-400 border-rose-500/30',
-  },
+  { status: CallStatus.NEW, label: 'New Leads', accent: 'blue' },
+  { status: CallStatus.ATTEMPTED, label: 'Attempted', accent: 'amber' },
+  { status: CallStatus.CONNECTED, label: 'Connected', accent: 'emerald' },
+  { status: CallStatus.DEAD, label: 'Dead', accent: 'rose' },
 ];
+
+const smallPrimaryButtonClasses = cn(
+  'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-white',
+  'bg-[--exec-accent] hover:bg-[--exec-accent-dark]',
+  'transition-all duration-200 shadow-sm hover:shadow-md'
+);
 
 function firstNotePreview(notes: string | null): string | null {
   if (!notes) return null;
@@ -73,33 +81,31 @@ function CallProspectCard({ prospect, index, onClick }: CallProspectCardProps) {
             {...provided.dragHandleProps}
             onClick={() => onClick(prospect)}
             className={cn(
-              'bg-[--exec-surface] rounded-xl shadow-sm border border-stone-600/40 p-4',
-              'cursor-pointer transition-all duration-150',
-              'hover:border-[--exec-accent]/60 hover:shadow-md',
-              snapshot.isDragging && 'ring-2 ring-[--exec-accent]/60 shadow-lg'
+              prospectCardClasses,
+              prospectCardHoverClasses,
+              'cursor-pointer',
+              snapshot.isDragging && prospectCardDraggingClasses
             )}
             style={provided.draggableProps.style}
           >
-            <h3 className="text-sm font-semibold text-[--exec-text] truncate">
+            <h4 className="text-sm font-semibold text-[--exec-text] line-clamp-2 leading-tight mb-1">
               {prospect.business_name}
-            </h3>
+            </h4>
 
             {prospect.phone && (
-              <p className="mt-1.5 text-xs text-[--exec-text-secondary] font-mono">
+              <p className="text-xs text-[--exec-text-muted] font-mono mb-2">
                 {prospect.phone}
               </p>
             )}
 
             {prospect.vertical && (
-              <div className="mt-2">
-                <span className="inline-block text-[10px] uppercase tracking-wider font-medium text-[--exec-text-muted] bg-stone-800/60 px-2 py-0.5 rounded">
-                  {prospect.vertical}
-                </span>
-              </div>
+              <span className="inline-block text-[10px] uppercase tracking-wider font-medium text-[--exec-text-muted] bg-stone-700/60 px-2 py-0.5 rounded mb-2">
+                {prospect.vertical}
+              </span>
             )}
 
             {preview && (
-              <p className="mt-2 text-xs text-[--exec-text-muted] line-clamp-2">
+              <p className="text-xs text-[--exec-text-muted] line-clamp-2">
                 {preview}
               </p>
             )}
@@ -127,55 +133,57 @@ interface ColumnProps {
 
 function Column({ column, prospects, onCardClick }: ColumnProps) {
   return (
-    <div className="flex flex-col min-w-[300px] w-[320px] flex-shrink-0 h-full max-h-full">
-      <div className="px-3 py-3 flex-shrink-0">
+    <Droppable droppableId={column.status}>
+      {(provided, snapshot) => (
         <div
+          ref={provided.innerRef}
+          {...provided.droppableProps}
           className={cn(
-            'flex items-center justify-between px-3 py-2 rounded-lg border',
-            column.colorClasses
+            kanbanColumnClasses,
+            kanbanColumnAccents[column.accent],
+            snapshot.isDraggingOver && 'ring-2 ring-[--exec-accent]/40 bg-stone-800/40'
           )}
         >
-          <h2 className="text-sm font-medium tracking-tight">{column.label}</h2>
-          <span className="text-xs bg-white/10 px-2 py-0.5 rounded-full font-semibold">
-            {prospects.length}
-          </span>
-        </div>
-      </div>
+          {/* Column header */}
+          <div className="flex items-center justify-between mb-3">
+            <span
+              className={cn(
+                'text-xs font-semibold',
+                kanbanColumnTitleAccents[column.accent]
+              )}
+            >
+              {column.label}
+            </span>
+            <span
+              className={cn(
+                'text-xs font-medium px-1.5 py-0.5 rounded-full',
+                kanbanCountBadgeAccents[column.accent]
+              )}
+            >
+              {prospects.length}
+            </span>
+          </div>
 
-      <Droppable droppableId={column.status}>
-        {(provided, snapshot) => (
-          <div
-            ref={provided.innerRef}
-            {...provided.droppableProps}
-            className={cn(
-              'flex-1 px-3 pb-3 overflow-y-auto transition-colors duration-200',
-              '[&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-full',
-              '[&::-webkit-scrollbar-thumb]:bg-stone-600 [&::-webkit-scrollbar-track]:bg-transparent',
-              snapshot.isDraggingOver && 'bg-[--exec-accent]/10 rounded-lg'
-            )}
-            style={{ scrollbarWidth: 'thin' }}
-          >
-            <div className="space-y-3">
-              {prospects.map((prospect, index) => (
-                <CallProspectCard
-                  key={prospect.id}
-                  prospect={prospect}
-                  index={index}
-                  onClick={onCardClick}
-                />
-              ))}
-              {provided.placeholder}
-            </div>
-
+          {/* Cards */}
+          <div className="space-y-2">
+            {prospects.map((prospect, index) => (
+              <CallProspectCard
+                key={prospect.id}
+                prospect={prospect}
+                index={index}
+                onClick={onCardClick}
+              />
+            ))}
+            {provided.placeholder}
             {prospects.length === 0 && !snapshot.isDraggingOver && (
-              <div className="flex items-center justify-center h-24 text-xs text-[--exec-text-muted] border border-dashed border-stone-600/40 rounded-lg">
-                No prospects
-              </div>
+              <p className="text-xs text-[--exec-text-muted] text-center py-4 italic">
+                No leads
+              </p>
             )}
           </div>
-        )}
-      </Droppable>
-    </div>
+        </div>
+      )}
+    </Droppable>
   );
 }
 
@@ -251,80 +259,83 @@ export default function ColdCallsTab() {
     return map;
   }, [prospects]);
 
+  const stats: HubStat[] = [
+    {
+      icon: Circle,
+      label: 'New',
+      value: prospectsByStatus[CallStatus.NEW].length,
+      accent: 'blue',
+    },
+    {
+      icon: PhoneOutgoing,
+      label: 'Attempted',
+      value: prospectsByStatus[CallStatus.ATTEMPTED].length,
+      accent: 'amber',
+    },
+    {
+      icon: CheckCircle2,
+      label: 'Connected',
+      value: prospectsByStatus[CallStatus.CONNECTED].length,
+      accent: 'emerald',
+    },
+    {
+      icon: XCircle,
+      label: 'Dead',
+      value: prospectsByStatus[CallStatus.DEAD].length,
+      accent: 'rose',
+    },
+  ];
+
   return (
-    <div className="px-8 py-6">
-      {/* Header row */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-[--exec-accent-bg] flex items-center justify-center">
-            <Phone className="w-5 h-5 text-[--exec-accent]" />
-          </div>
-          <div>
-            <h2 className="text-xl font-semibold text-[--exec-text]">
-              Cold Calls Pipeline
-            </h2>
-            <p className="text-sm text-[--exec-text-muted] mt-0.5">
-              PH service-business phone prospecting
-            </p>
+    <div className="space-y-6">
+      {/* Stats bar */}
+      <HubStatsBar stats={stats} />
+
+      {/* Kanban */}
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-semibold text-[--exec-text]">Call Pipeline</h3>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsAddOpen(true)}
+              className={smallPrimaryButtonClasses}
+            >
+              <Plus className="w-3.5 h-3.5" />
+              Add Lead
+            </button>
+            <button
+              onClick={() => setIsImportOpen(true)}
+              className={smallPrimaryButtonClasses}
+            >
+              <Upload className="w-3.5 h-3.5" />
+              Import CSV
+            </button>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => setIsAddOpen(true)}
-            className={cn(
-              'px-4 py-2 rounded-xl text-sm font-medium text-white',
-              'transition-all duration-200 shadow-sm hover:shadow-md hover:brightness-110'
-            )}
-            style={{ backgroundColor: 'var(--exec-accent)' }}
-          >
-            + Add Lead
-          </button>
-
-          <button
-            onClick={() => setIsImportOpen(true)}
-            className={cn(
-              'flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-white',
-              'transition-all duration-200 shadow-sm hover:shadow-md hover:brightness-110'
-            )}
-            style={{ backgroundColor: 'var(--exec-accent)' }}
-          >
-            <Upload className="w-4 h-4" />
-            Import CSV
-          </button>
-        </div>
+        {isLoading ? (
+          <div className="flex items-center justify-center h-64 text-[--exec-text-muted]">
+            Loading prospects...
+          </div>
+        ) : isError ? (
+          <div className="flex items-center justify-center h-64 text-red-400">
+            Failed to load prospects. Refresh to retry.
+          </div>
+        ) : (
+          <DragDropContext onDragEnd={handleDragEnd}>
+            <div className="flex gap-3 overflow-x-auto pb-2">
+              {COLUMNS.map((col) => (
+                <Column
+                  key={col.status}
+                  column={col}
+                  prospects={prospectsByStatus[col.status]}
+                  onCardClick={setSelectedProspect}
+                />
+              ))}
+            </div>
+          </DragDropContext>
+        )}
       </div>
-
-      {/* Board */}
-      {isLoading ? (
-        <div className="flex items-center justify-center h-64 text-[--exec-text-muted]">
-          Loading prospects...
-        </div>
-      ) : isError ? (
-        <div className="flex items-center justify-center h-64 text-red-400">
-          Failed to load prospects. Refresh to retry.
-        </div>
-      ) : (
-        <DragDropContext onDragEnd={handleDragEnd}>
-          <div
-            className={cn(
-              'flex gap-4 overflow-x-auto pb-4 pt-2 px-2',
-              'h-[calc(100vh-280px)]',
-              '[&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar-thumb]:rounded-full',
-              '[&::-webkit-scrollbar-thumb]:bg-stone-600 [&::-webkit-scrollbar-track]:bg-transparent'
-            )}
-          >
-            {COLUMNS.map((col) => (
-              <Column
-                key={col.status}
-                column={col}
-                prospects={prospectsByStatus[col.status]}
-                onCardClick={setSelectedProspect}
-              />
-            ))}
-          </div>
-        </DragDropContext>
-      )}
 
       {selectedProspect && (
         <CallProspectDetailModal
