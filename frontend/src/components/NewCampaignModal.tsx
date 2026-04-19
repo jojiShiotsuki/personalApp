@@ -216,11 +216,15 @@ export default function NewCampaignModal({
   const isLinkedIn = isEditing
     ? editCampaign?.campaign_type === CampaignType.LINKEDIN
     : defaultCampaignType === CampaignType.LINKEDIN;
+  const isColdCalls = isEditing
+    ? editCampaign?.campaign_type === CampaignType.COLD_CALLS
+    : defaultCampaignType === CampaignType.COLD_CALLS;
 
   const getTitle = () => {
     if (isEditing) return 'Edit Campaign';
     if (isMultiTouch) return 'New Multi-Touch Campaign';
     if (isLinkedIn) return 'New LinkedIn Campaign';
+    if (isColdCalls) return 'New Cold Calls Campaign';
     return 'New Campaign';
   };
 
@@ -250,7 +254,9 @@ export default function NewCampaignModal({
                   ? 'Coordinate across email and LinkedIn in one sequence'
                   : isLinkedIn
                     ? 'Connection Request \u2192 Message \u2192 Follow-ups'
-                    : 'Configure your outreach campaign'}
+                    : isColdCalls
+                      ? 'Group phone prospects into a named calling campaign'
+                      : 'Configure your outreach campaign'}
               </p>
             </div>
             <button
@@ -271,7 +277,7 @@ export default function NewCampaignModal({
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder={isMultiTouch ? 'e.g., Q1 Multi-Touch Outreach' : isLinkedIn ? 'e.g., LinkedIn Agency Outreach' : 'e.g., Q1 Agency Outreach'}
+                placeholder={isMultiTouch ? 'e.g., Q1 Multi-Touch Outreach' : isLinkedIn ? 'e.g., LinkedIn Agency Outreach' : isColdCalls ? 'e.g., Sydney Cafes Apr 2026' : 'e.g., Q1 Agency Outreach'}
                 autoFocus
                 className={inputClasses}
               />

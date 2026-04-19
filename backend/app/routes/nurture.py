@@ -131,10 +131,16 @@ def list_leads(
     current_step: Optional[int] = None,
     followup_stage: Optional[FollowupStage] = None,
     needs_followup: Optional[bool] = None,
+    campaign_id: Optional[int] = None,
     search: Optional[str] = None,
     db: Session = Depends(get_db),
 ):
-    """List nurture leads with filters."""
+    """List nurture leads with filters.
+
+    campaign_id=0 matches leads with NULL campaign_id (manually added,
+    not linked to any outreach campaign). Omit the param to see leads
+    across all campaigns.
+    """
     query = (
         db.query(NurtureLead)
         .options(
@@ -154,6 +160,12 @@ def list_leads(
 
     if followup_stage is not None:
         query = query.filter(NurtureLead.followup_stage == followup_stage)
+
+    if campaign_id is not None:
+        if campaign_id == 0:
+            query = query.filter(NurtureLead.campaign_id.is_(None))
+        else:
+            query = query.filter(NurtureLead.campaign_id == campaign_id)
 
     if needs_followup is True:
         query = query.filter(

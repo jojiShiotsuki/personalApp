@@ -17,12 +17,14 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import { coldCallsApi } from '@/lib/api';
-import { CallProspect, CallStatus } from '@/types';
+import { coldCallsApi, coldOutreachApi } from '@/lib/api';
+import { CallProspect, CallStatus, CampaignType, type OutreachCampaign } from '@/types';
 import CallProspectDetailModal from './CallProspectDetailModal';
 import ColdCallCsvImportModal from './ColdCallCsvImportModal';
 import AddColdLeadModal from './AddColdLeadModal';
 import HubStatsBar, { type HubStat } from './HubStatsBar';
+import CampaignSelector from './CampaignSelector';
+import NewCampaignModal from '@/components/NewCampaignModal';
 import {
   kanbanColumnClasses,
   kanbanColumnAccents,
@@ -192,23 +194,33 @@ export default function ColdCallsTab() {
   const [selectedProspect, setSelectedProspect] = useState<CallProspect | null>(null);
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [isAddOpen, setIsAddOpen] = useState(false);
+  const [selectedCampaignId, setSelectedCampaignId] = useState<number | null>(null);
+  const [isNewCampaignOpen, setIsNewCampaignOpen] = useState(false);
+
+  const { data: campaigns = [], isLoading: isCampaignsLoading } = useQuery<OutreachCampaign[]>({
+    queryKey: ['outreach-campaigns'],
+    queryFn: () => coldOutreachApi.getCampaigns(),
+  });
 
   const {
     data: prospects = [],
     isLoading,
     isError,
   } = useQuery<CallProspect[]>({
-    queryKey: ['call-prospects'],
-    queryFn: () => coldCallsApi.list(),
+    queryKey: ['call-prospects', selectedCampaignId],
+    queryFn: () =>
+      coldCallsApi.list(
+        selectedCampaignId === null ? undefined : { campaign_id: selectedCampaignId },
+      ),
   });
 
   const updateStageMutation = useMutation({
     mutationFn: ({ id, status }: { id: number; status: CallStatus }) =>
       coldCallsApi.update(id, { status }),
     onMutate: async ({ id, status }) => {
-      await queryClient.cancelQueries({ queryKey: ['call-prospects'] });
-      const previous = queryClient.getQueryData<CallProspect[]>(['call-prospects']);
-      queryClient.setQueryData<CallProspect[]>(['call-prospects'], (old) =>
+      await queryClient.cancelQueries({ queryKey: ['call-prospects', selectedCampaignId] });
+      const previous = queryClient.getQueryData<CallProspect[]>(['call-prospects', selectedCampaignId]);
+      queryClient.setQueryData<CallProspect[]>(['call-prospects', selectedCampaignId], (old) =>
         old
           ? old.map((p) =>
               p.id === id
@@ -221,7 +233,7 @@ export default function ColdCallsTab() {
     },
     onError: (_err, _vars, context) => {
       if (context?.previous) {
-        queryClient.setQueryData(['call-prospects'], context.previous);
+        queryClient.setQueryData(['call-prospects', selectedCampaignId], context.previous);
       }
       toast.error('Failed to update stage');
     },
@@ -288,6 +300,18 @@ export default function ColdCallsTab() {
 
   return (
     <div className="space-y-6">
+      {/* Campaign selector row */}
+      <div className="flex items-center justify-between">
+        <CampaignSelector
+          campaignTypes={[CampaignType.COLD_CALLS]}
+          campaigns={campaigns}
+          selectedId={selectedCampaignId}
+          onSelect={setSelectedCampaignId}
+          onNewClick={() => setIsNewCampaignOpen(true)}
+          isLoading={isCampaignsLoading}
+        />
+      </div>
+
       {/* Stats bar */}
       <HubStatsBar stats={stats} />
 
@@ -352,6 +376,16 @@ export default function ColdCallsTab() {
       <AddColdLeadModal
         isOpen={isAddOpen}
         onClose={() => setIsAddOpen(false)}
+      />
+
+      <NewCampaignModal
+        isOpen={isNewCampaignOpen}
+        onClose={() => setIsNewCampaignOpen(false)}
+        onCreated={(campaignId) => {
+          setSelectedCampaignId(campaignId);
+          setIsNewCampaignOpen(false);
+        }}
+        defaultCampaignType={CampaignType.COLD_CALLS}
       />
     </div>
   );

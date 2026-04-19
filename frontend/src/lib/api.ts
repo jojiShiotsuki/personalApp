@@ -1536,6 +1536,7 @@ export const nurtureApi = {
     current_step?: number;
     needs_followup?: boolean;
     search?: string;
+    campaign_id?: number;
   }): Promise<NurtureLead[]> => {
     const res = await api.get('/api/nurture/leads', { params });
     return res.data;
@@ -1605,9 +1606,13 @@ export const nurtureApi = {
 
 // Cold Calls Pipeline API
 export const coldCallsApi = {
-  list: async (status?: CallStatus): Promise<CallProspect[]> => {
-    const params = status ? { status } : undefined;
-    const response = await api.get('/api/cold-calls', { params });
+  list: async (options?: { status?: CallStatus; campaign_id?: number }): Promise<CallProspect[]> => {
+    const params: Record<string, string | number> = {};
+    if (options?.status) params.status = options.status;
+    if (options?.campaign_id !== undefined) params.campaign_id = options.campaign_id;
+    const response = await api.get('/api/cold-calls', {
+      params: Object.keys(params).length ? params : undefined,
+    });
     return response.data;
   },
 

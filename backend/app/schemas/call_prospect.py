@@ -29,6 +29,7 @@ class CallProspectBase(BaseModel):
     working_hours: Optional[str] = Field(None, max_length=1000)
     description: Optional[str] = None
     notes: Optional[str] = None
+    campaign_id: Optional[int] = None
 
 
 class CallProspectCreate(CallProspectBase):
@@ -50,6 +51,7 @@ class CallProspectUpdate(BaseModel):
     description: Optional[str] = None
     notes: Optional[str] = None
     status: Optional[CallStatus] = None
+    campaign_id: Optional[int] = None
 
 
 class CallProspectResponse(CallProspectBase):

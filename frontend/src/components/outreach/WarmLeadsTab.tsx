@@ -2,10 +2,12 @@ import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { nurtureApi, coldOutreachApi } from '@/lib/api';
-import type { NurtureLead, OutreachProspect } from '@/types';
-import { NurtureStatus, FollowupStage } from '@/types';
+import type { NurtureLead, OutreachCampaign, OutreachProspect } from '@/types';
+import { CampaignType, NurtureStatus, FollowupStage } from '@/types';
 import CopyEmailModal from '@/components/CopyEmailModal';
 import NurtureLeadDetail from '@/components/NurtureLeadDetail';
+import NewCampaignModal from '@/components/NewCampaignModal';
+import CampaignSelector from './CampaignSelector';
 import {
   Heart,
   Users,
@@ -207,6 +209,8 @@ export default function WarmLeadsTab() {
   const [emailModalProspect, setEmailModalProspect] = useState<OutreachProspect | null>(null);
   const [editingProspect, setEditingProspect] = useState<OutreachProspect | null>(null);
   const [isAddLeadOpen, setIsAddLeadOpen] = useState(false);
+  const [selectedCampaignId, setSelectedCampaignId] = useState<number | null>(null);
+  const [isNewCampaignOpen, setIsNewCampaignOpen] = useState(false);
   const [addLeadForm, setAddLeadForm] = useState({
     company_name: '',
     contact_name: '',
@@ -216,6 +220,11 @@ export default function WarmLeadsTab() {
     niche: '',
     source_channel: 'EMAIL',
     notes: '',
+  });
+
+  const { data: campaigns = [], isLoading: isCampaignsLoading } = useQuery<OutreachCampaign[]>({
+    queryKey: ['outreach-campaigns'],
+    queryFn: () => coldOutreachApi.getCampaigns(),
   });
 
   const createManualMutation = useMutation({
@@ -261,8 +270,11 @@ export default function WarmLeadsTab() {
   });
 
   const { data: leads = [], isLoading } = useQuery({
-    queryKey: ['nurture-leads'],
-    queryFn: () => nurtureApi.getLeads(),
+    queryKey: ['nurture-leads', selectedCampaignId],
+    queryFn: () =>
+      nurtureApi.getLeads(
+        selectedCampaignId === null ? undefined : { campaign_id: selectedCampaignId },
+      ),
   });
 
   // Mutations
@@ -390,6 +402,18 @@ export default function WarmLeadsTab() {
 
   return (
     <div className="space-y-6">
+      {/* Campaign selector row */}
+      <div className="flex items-center justify-between">
+        <CampaignSelector
+          campaignTypes={[CampaignType.LINKEDIN, CampaignType.MULTI_TOUCH, CampaignType.EMAIL]}
+          campaigns={campaigns}
+          selectedId={selectedCampaignId}
+          onSelect={setSelectedCampaignId}
+          onNewClick={() => setIsNewCampaignOpen(true)}
+          isLoading={isCampaignsLoading}
+        />
+      </div>
+
       {/* Stats Bar */}
       <div className="grid grid-cols-4 gap-4">
         <div className="bg-stone-800/50 border border-stone-600/40 rounded-xl p-4">
@@ -855,6 +879,17 @@ export default function WarmLeadsTab() {
           )}
         </div>
       )}
+
+      {/* New Campaign Modal */}
+      <NewCampaignModal
+        isOpen={isNewCampaignOpen}
+        onClose={() => setIsNewCampaignOpen(false)}
+        onCreated={(campaignId) => {
+          setSelectedCampaignId(campaignId);
+          setIsNewCampaignOpen(false);
+        }}
+        defaultCampaignType={CampaignType.MULTI_TOUCH}
+      />
 
       {/* Add Warm Lead Modal */}
       {isAddLeadOpen && createPortal(

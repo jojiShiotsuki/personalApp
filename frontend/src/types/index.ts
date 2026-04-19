@@ -603,6 +603,7 @@ export enum CampaignType {
   EMAIL = "EMAIL",
   LINKEDIN = "LINKEDIN",
   MULTI_TOUCH = "MULTI_TOUCH",
+  COLD_CALLS = "COLD_CALLS",
 }
 
 export enum StepChannelType {
@@ -1666,6 +1667,7 @@ export interface CallProspect {
   description: string | null;
   notes: string | null;
   status: CallStatus;
+  campaign_id: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -1685,6 +1687,7 @@ export interface CallProspectCreate {
   description?: string;
   notes?: string;
   status?: CallStatus;
+  campaign_id?: number | null;
 }
 
 export interface CallProspectUpdate {
@@ -1702,6 +1705,7 @@ export interface CallProspectUpdate {
   description?: string | null;
   notes?: string | null;
   status?: CallStatus;
+  campaign_id?: number | null;
 }
 
 export interface CallProspectCsvColumnMapping {

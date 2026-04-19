@@ -10,7 +10,7 @@ workflow differ from email/LinkedIn outreach.
 import enum
 from datetime import datetime
 
-from sqlalchemy import Column, DateTime, Float, Index, Integer, String, Text
+from sqlalchemy import Column, DateTime, Float, ForeignKey, Index, Integer, String, Text
 
 from app.database import Base
 
@@ -45,6 +45,14 @@ class CallProspect(Base):
         nullable=False,
         default=CallStatus.NEW.value,
         server_default=CallStatus.NEW.value,
+        index=True,
+    )
+    # Optional link to an OutreachCampaign (campaign_type='COLD_CALLS'). NULL
+    # means the prospect is unassigned and shows under "All Campaigns".
+    campaign_id = Column(
+        Integer,
+        ForeignKey("outreach_campaigns.id", ondelete="SET NULL"),
+        nullable=True,
         index=True,
     )
     created_at = Column(DateTime, default=datetime.utcnow)

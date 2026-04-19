@@ -63,14 +63,24 @@ def _parse_int(s: str) -> Optional[int]:
 @router.get("", response_model=List[CallProspectResponse])
 def list_call_prospects(
     status: Optional[str] = None,
+    campaign_id: Optional[int] = None,
     db: Session = Depends(get_db),
 ):
-    """List all call prospects, optionally filtered by status."""
+    """List all call prospects, optionally filtered by status and/or campaign.
+
+    campaign_id=0 is treated as "unassigned" — matches prospects with NULL
+    campaign_id. Omit the param to see prospects across all campaigns.
+    """
     query = db.query(CallProspect).order_by(CallProspect.updated_at.desc())
     if status:
         if status not in VALID_STATUSES:
             raise HTTPException(status_code=400, detail=f"Invalid status: {status}")
         query = query.filter(CallProspect.status == status)
+    if campaign_id is not None:
+        if campaign_id == 0:
+            query = query.filter(CallProspect.campaign_id.is_(None))
+        else:
+            query = query.filter(CallProspect.campaign_id == campaign_id)
     return query.all()
 
 
@@ -114,6 +124,7 @@ def create_call_prospect(data: CallProspectCreate, db: Session = Depends(get_db)
         description=data.description,
         notes=data.notes,
         status=data.status.value,
+        campaign_id=data.campaign_id,
     )
     db.add(prospect)
     db.commit()
