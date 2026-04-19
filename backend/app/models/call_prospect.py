@@ -55,6 +55,9 @@ class CallProspect(Base):
         nullable=True,
         index=True,
     )
+    # Which sequence step the prospect is currently on. Used by the
+    # step-based kanban when the selected campaign has multi_touch_steps.
+    current_step = Column(Integer, nullable=False, default=1, server_default="1")
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

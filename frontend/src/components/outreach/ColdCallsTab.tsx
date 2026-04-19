@@ -25,7 +25,7 @@ import {
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { coldCallsApi, coldOutreachApi } from '@/lib/api';
-import { CallProspect, CallStatus, CampaignType, StepChannelType, type OutreachCampaign, type CampaignWithStats } from '@/types';
+import { CallProspect, CallStatus, CampaignType, StepChannelType, type OutreachCampaign, type CampaignWithStats, type MultiTouchStep, type CallProspectUpdate } from '@/types';
 import CallProspectDetailModal from './CallProspectDetailModal';
 import ColdCallCsvImportModal from './ColdCallCsvImportModal';
 import AddColdLeadModal from './AddColdLeadModal';
@@ -90,6 +90,27 @@ const CHANNEL_LABEL: Record<string, string> = {
   [StepChannelType.LINKEDIN_MESSAGE]: 'LinkedIn Message',
   [StepChannelType.LINKEDIN_ENGAGE]: 'LinkedIn Engage',
   [StepChannelType.LOOM_EMAIL]: 'Loom Email',
+};
+
+// Channel-colored kanban column chrome for the step-based view.
+const CHANNEL_BORDER_TOP: Record<string, string> = {
+  [StepChannelType.PHONE_CALL]: 'border-t-orange-500',
+  [StepChannelType.EMAIL]: 'border-t-blue-500',
+  [StepChannelType.FOLLOW_UP_EMAIL]: 'border-t-purple-500',
+  [StepChannelType.LINKEDIN_CONNECT]: 'border-t-sky-500',
+  [StepChannelType.LINKEDIN_MESSAGE]: 'border-t-indigo-500',
+  [StepChannelType.LINKEDIN_ENGAGE]: 'border-t-amber-500',
+  [StepChannelType.LOOM_EMAIL]: 'border-t-rose-500',
+};
+
+const CHANNEL_COUNT_BADGE: Record<string, string> = {
+  [StepChannelType.PHONE_CALL]: 'bg-orange-500/20 text-orange-400',
+  [StepChannelType.EMAIL]: 'bg-blue-500/20 text-blue-400',
+  [StepChannelType.FOLLOW_UP_EMAIL]: 'bg-purple-500/20 text-purple-400',
+  [StepChannelType.LINKEDIN_CONNECT]: 'bg-sky-500/20 text-sky-400',
+  [StepChannelType.LINKEDIN_MESSAGE]: 'bg-indigo-500/20 text-indigo-400',
+  [StepChannelType.LINKEDIN_ENGAGE]: 'bg-amber-500/20 text-amber-400',
+  [StepChannelType.LOOM_EMAIL]: 'bg-rose-500/20 text-rose-400',
 };
 
 function firstNotePreview(notes: string | null): string | null {
@@ -161,6 +182,80 @@ function CallProspectCard({ prospect, index, onClick }: CallProspectCardProps) {
         return content;
       }}
     </Draggable>
+  );
+}
+
+interface StepColumnProps {
+  step: MultiTouchStep;
+  prospects: CallProspect[];
+  onCardClick: (prospect: CallProspect) => void;
+}
+
+function StepColumn({ step, prospects, onCardClick }: StepColumnProps) {
+  const chKey = (step.channel_type || '').toUpperCase();
+  const Icon = CHANNEL_ICON[chKey] ?? Phone;
+  const accent = CHANNEL_ACCENT[chKey] ?? 'text-stone-400';
+  const borderClass = CHANNEL_BORDER_TOP[chKey] ?? 'border-t-stone-500';
+  const countBadgeClass = CHANNEL_COUNT_BADGE[chKey] ?? 'bg-stone-500/20 text-stone-400';
+  const channelLabel = CHANNEL_LABEL[chKey] ?? chKey;
+
+  return (
+    <Droppable droppableId={`step-${step.step_number}`}>
+      {(provided, snapshot) => (
+        <div
+          ref={provided.innerRef}
+          {...provided.droppableProps}
+          className={cn(
+            'bg-stone-900/30 rounded-xl p-3 min-w-[240px] flex-1',
+            'border-t-2 transition-all',
+            borderClass,
+            snapshot.isDraggingOver && 'ring-2 ring-[--exec-accent]/40 bg-stone-800/40'
+          )}
+        >
+          {/* Column header */}
+          <div className="flex items-start justify-between mb-2 gap-2">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <div className="w-5 h-5 rounded-full bg-stone-700/60 flex items-center justify-center flex-shrink-0">
+                <span className="text-[10px] font-bold text-[--exec-text-secondary]">
+                  {step.step_number}
+                </span>
+              </div>
+              <Icon className={cn('w-3.5 h-3.5 flex-shrink-0', accent)} />
+              <span className={cn('text-xs font-semibold truncate', accent)} title={channelLabel}>
+                Step {step.step_number}
+              </span>
+            </div>
+            <span className={cn('text-xs font-medium px-1.5 py-0.5 rounded-full flex-shrink-0', countBadgeClass)}>
+              {prospects.length}
+            </span>
+          </div>
+
+          {step.instruction_text && (
+            <p className="text-[10px] text-[--exec-text-muted] mb-3 line-clamp-2">
+              {step.instruction_text}
+            </p>
+          )}
+
+          {/* Cards */}
+          <div className="space-y-2">
+            {prospects.map((prospect, index) => (
+              <CallProspectCard
+                key={prospect.id}
+                prospect={prospect}
+                index={index}
+                onClick={onCardClick}
+              />
+            ))}
+            {provided.placeholder}
+            {prospects.length === 0 && !snapshot.isDraggingOver && (
+              <p className="text-xs text-[--exec-text-muted] text-center py-4 italic">
+                No prospects
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+    </Droppable>
   );
 }
 
@@ -285,17 +380,17 @@ export default function ColdCallsTab() {
       ),
   });
 
-  const updateStageMutation = useMutation({
-    mutationFn: ({ id, status }: { id: number; status: CallStatus }) =>
-      coldCallsApi.update(id, { status }),
-    onMutate: async ({ id, status }) => {
+  const updateProspectMutation = useMutation({
+    mutationFn: ({ id, ...data }: { id: number } & Partial<CallProspectUpdate>) =>
+      coldCallsApi.update(id, data),
+    onMutate: async ({ id, ...data }) => {
       await queryClient.cancelQueries({ queryKey: ['call-prospects', selectedCampaignId] });
       const previous = queryClient.getQueryData<CallProspect[]>(['call-prospects', selectedCampaignId]);
       queryClient.setQueryData<CallProspect[]>(['call-prospects', selectedCampaignId], (old) =>
         old
           ? old.map((p) =>
               p.id === id
-                ? { ...p, status, updated_at: new Date().toISOString() }
+                ? { ...p, ...data, updated_at: new Date().toISOString() }
                 : p
             )
           : []
@@ -306,7 +401,7 @@ export default function ColdCallsTab() {
       if (context?.previous) {
         queryClient.setQueryData(['call-prospects', selectedCampaignId], context.previous);
       }
-      toast.error('Failed to update stage');
+      toast.error('Failed to update prospect');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['call-prospects'] });
@@ -323,8 +418,15 @@ export default function ColdCallsTab() {
       return;
     }
     const id = parseInt(draggableId.replace('cp-', ''), 10);
-    const newStatus = destination.droppableId as CallStatus;
-    updateStageMutation.mutate({ id, status: newStatus });
+    const dest = destination.droppableId;
+    if (dest.startsWith('step-')) {
+      const newStep = parseInt(dest.slice(5), 10);
+      if (!Number.isNaN(newStep)) {
+        updateProspectMutation.mutate({ id, current_step: newStep });
+      }
+    } else {
+      updateProspectMutation.mutate({ id, status: dest as CallStatus });
+    }
   };
 
   const prospectsByStatus = useMemo(() => {
@@ -341,6 +443,30 @@ export default function ColdCallsTab() {
     }
     return map;
   }, [prospects]);
+
+  // Step-based view: active only when a specific campaign is selected and it
+  // has configured multi_touch_steps. Otherwise fall back to status kanban.
+  const stepColumns: MultiTouchStep[] =
+    selectedCampaignId !== null && selectedCampaignDetail
+      ? selectedCampaignDetail.multi_touch_steps ?? []
+      : [];
+  const isStepView = stepColumns.length > 0;
+
+  const prospectsByStep = useMemo(() => {
+    const map: Record<number, CallProspect[]> = {};
+    for (const s of stepColumns) map[s.step_number] = [];
+    if (stepColumns.length === 0) return map;
+    for (const p of prospects) {
+      const step = p.current_step ?? 1;
+      if (map[step] !== undefined) {
+        map[step].push(p);
+      } else {
+        // Out-of-range step: bucket into the first column rather than dropping.
+        map[stepColumns[0].step_number].push(p);
+      }
+    }
+    return map;
+  }, [prospects, stepColumns]);
 
   const stats: HubStat[] = [
     {
@@ -388,55 +514,15 @@ export default function ColdCallsTab() {
         />
       </div>
 
-      {/* Sequence preview — only when a specific campaign is selected and it has steps */}
-      {selectedCampaignId !== null && selectedCampaignDetail && (selectedCampaignDetail.multi_touch_steps?.length ?? 0) > 0 && (
-        <div>
-          <h3 className="text-sm font-semibold text-[--exec-text] mb-3">
-            Call Sequence ({selectedCampaignDetail.multi_touch_steps?.length ?? 0})
-          </h3>
-          <div className="flex gap-3 overflow-x-auto pb-2">
-            {(selectedCampaignDetail.multi_touch_steps ?? []).map((step) => {
-              const chKey = (step.channel_type || '').toUpperCase();
-              const Icon = CHANNEL_ICON[chKey] ?? Phone;
-              const accent = CHANNEL_ACCENT[chKey] ?? 'text-stone-400';
-              const label = CHANNEL_LABEL[chKey] ?? chKey;
-              const delayText = step.step_number === 1
-                ? (step.delay_days === 0 ? 'Starts immediately' : `Starts after ${step.delay_days}d`)
-                : (step.delay_days === 0 ? 'Same day as prev' : `${step.delay_days}d after prev`);
-              return (
-                <div
-                  key={step.step_number}
-                  className="bg-stone-800/50 border border-stone-600/40 rounded-lg p-3 min-w-[240px] flex-1"
-                >
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="w-6 h-6 rounded-full bg-stone-700/60 flex items-center justify-center flex-shrink-0">
-                      <span className="text-xs font-bold text-[--exec-text-secondary]">{step.step_number}</span>
-                    </div>
-                    <Icon className={cn('w-3.5 h-3.5 flex-shrink-0', accent)} />
-                    <span className={cn('text-xs font-medium', accent)}>{label}</span>
-                  </div>
-                  {step.instruction_text && (
-                    <p className="text-xs text-[--exec-text-secondary] mb-1.5 line-clamp-2">
-                      {step.instruction_text}
-                    </p>
-                  )}
-                  <p className="text-[10px] text-[--exec-text-muted] uppercase tracking-wider">
-                    {delayText}
-                  </p>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
       {/* Stats bar */}
       <HubStatsBar stats={stats} />
 
       {/* Kanban */}
       <div>
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-semibold text-[--exec-text]">Call Pipeline</h3>
+          <h3 className="text-sm font-semibold text-[--exec-text]">
+            {isStepView ? 'Call Sequence' : 'Call Pipeline'}
+          </h3>
           <div className="flex items-center gap-2">
             <button
               onClick={() => setIsAddOpen(true)}
@@ -466,14 +552,23 @@ export default function ColdCallsTab() {
         ) : (
           <DragDropContext onDragEnd={handleDragEnd}>
             <div className="flex gap-3 overflow-x-auto pb-2">
-              {COLUMNS.map((col) => (
-                <Column
-                  key={col.status}
-                  column={col}
-                  prospects={prospectsByStatus[col.status]}
-                  onCardClick={setSelectedProspect}
-                />
-              ))}
+              {isStepView
+                ? stepColumns.map((step) => (
+                    <StepColumn
+                      key={step.step_number}
+                      step={step}
+                      prospects={prospectsByStep[step.step_number] ?? []}
+                      onCardClick={setSelectedProspect}
+                    />
+                  ))
+                : COLUMNS.map((col) => (
+                    <Column
+                      key={col.status}
+                      column={col}
+                      prospects={prospectsByStatus[col.status]}
+                      onCardClick={setSelectedProspect}
+                    />
+                  ))}
             </div>
           </DragDropContext>
         )}

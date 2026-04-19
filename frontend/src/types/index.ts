@@ -1669,6 +1669,7 @@ export interface CallProspect {
   notes: string | null;
   status: CallStatus;
   campaign_id: number | null;
+  current_step: number;
   created_at: string;
   updated_at: string;
 }
@@ -1689,6 +1690,7 @@ export interface CallProspectCreate {
   notes?: string;
   status?: CallStatus;
   campaign_id?: number | null;
+  current_step?: number;
 }
 
 export interface CallProspectUpdate {
@@ -1707,6 +1709,7 @@ export interface CallProspectUpdate {
   notes?: string | null;
   status?: CallStatus;
   campaign_id?: number | null;
+  current_step?: number;
 }
 
 export interface CallProspectCsvColumnMapping {

@@ -30,6 +30,7 @@ class CallProspectBase(BaseModel):
     description: Optional[str] = None
     notes: Optional[str] = None
     campaign_id: Optional[int] = None
+    current_step: int = 1
 
 
 class CallProspectCreate(CallProspectBase):
@@ -52,6 +53,7 @@ class CallProspectUpdate(BaseModel):
     notes: Optional[str] = None
     status: Optional[CallStatus] = None
     campaign_id: Optional[int] = None
+    current_step: Optional[int] = Field(None, ge=1)
 
 
 class CallProspectResponse(CallProspectBase):
