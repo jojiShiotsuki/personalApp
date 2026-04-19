@@ -211,6 +211,7 @@ export default function WarmLeadsTab() {
   const [isAddLeadOpen, setIsAddLeadOpen] = useState(false);
   const [selectedCampaignId, setSelectedCampaignId] = useState<number | null>(null);
   const [isNewCampaignOpen, setIsNewCampaignOpen] = useState(false);
+  const [editingCampaign, setEditingCampaign] = useState<OutreachCampaign | null>(null);
   const [addLeadForm, setAddLeadForm] = useState({
     company_name: '',
     contact_name: '',
@@ -226,6 +227,34 @@ export default function WarmLeadsTab() {
     queryKey: ['outreach-campaigns'],
     queryFn: () => coldOutreachApi.getCampaigns(),
   });
+
+  const deleteCampaignMutation = useMutation({
+    mutationFn: (id: number) => coldOutreachApi.deleteCampaign(id),
+    onSuccess: (_data, deletedId) => {
+      queryClient.invalidateQueries({ queryKey: ['outreach-campaigns'] });
+      queryClient.invalidateQueries({ queryKey: ['nurture-leads'] });
+      queryClient.invalidateQueries({ queryKey: ['nurture-stats'] });
+      if (selectedCampaignId === deletedId) setSelectedCampaignId(null);
+      toast.success('Campaign deleted');
+    },
+    onError: () => toast.error('Failed to delete campaign'),
+  });
+
+  const handleEditCampaign = (c: OutreachCampaign) => {
+    setEditingCampaign(c);
+    setIsNewCampaignOpen(true);
+  };
+
+  const handleDeleteCampaign = (id: number) => {
+    if (window.confirm('Delete this campaign? Warm leads stay but become unassigned.')) {
+      deleteCampaignMutation.mutate(id);
+    }
+  };
+
+  const handleCloseCampaignModal = () => {
+    setIsNewCampaignOpen(false);
+    setEditingCampaign(null);
+  };
 
   const createManualMutation = useMutation({
     mutationFn: (data: typeof addLeadForm) => nurtureApi.createManual(data),
@@ -409,7 +438,12 @@ export default function WarmLeadsTab() {
           campaigns={campaigns}
           selectedId={selectedCampaignId}
           onSelect={setSelectedCampaignId}
-          onNewClick={() => setIsNewCampaignOpen(true)}
+          onNewClick={() => {
+            setEditingCampaign(null);
+            setIsNewCampaignOpen(true);
+          }}
+          onEditClick={handleEditCampaign}
+          onDeleteClick={handleDeleteCampaign}
           isLoading={isCampaignsLoading}
         />
       </div>
@@ -880,15 +914,16 @@ export default function WarmLeadsTab() {
         </div>
       )}
 
-      {/* New Campaign Modal */}
+      {/* New Campaign / Edit Campaign Modal */}
       <NewCampaignModal
         isOpen={isNewCampaignOpen}
-        onClose={() => setIsNewCampaignOpen(false)}
+        onClose={handleCloseCampaignModal}
         onCreated={(campaignId) => {
-          setSelectedCampaignId(campaignId);
-          setIsNewCampaignOpen(false);
+          if (!editingCampaign) setSelectedCampaignId(campaignId);
+          handleCloseCampaignModal();
         }}
-        defaultCampaignType={CampaignType.MULTI_TOUCH}
+        defaultCampaignType={editingCampaign?.campaign_type ?? CampaignType.MULTI_TOUCH}
+        editCampaign={editingCampaign}
       />
 
       {/* Add Warm Lead Modal */}

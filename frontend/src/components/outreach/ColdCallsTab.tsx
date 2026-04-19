@@ -196,11 +196,39 @@ export default function ColdCallsTab() {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [selectedCampaignId, setSelectedCampaignId] = useState<number | null>(null);
   const [isNewCampaignOpen, setIsNewCampaignOpen] = useState(false);
+  const [editingCampaign, setEditingCampaign] = useState<OutreachCampaign | null>(null);
 
   const { data: campaigns = [], isLoading: isCampaignsLoading } = useQuery<OutreachCampaign[]>({
     queryKey: ['outreach-campaigns'],
     queryFn: () => coldOutreachApi.getCampaigns(),
   });
+
+  const deleteCampaignMutation = useMutation({
+    mutationFn: (id: number) => coldOutreachApi.deleteCampaign(id),
+    onSuccess: (_data, deletedId) => {
+      queryClient.invalidateQueries({ queryKey: ['outreach-campaigns'] });
+      queryClient.invalidateQueries({ queryKey: ['call-prospects'] });
+      if (selectedCampaignId === deletedId) setSelectedCampaignId(null);
+      toast.success('Campaign deleted');
+    },
+    onError: () => toast.error('Failed to delete campaign'),
+  });
+
+  const handleEditCampaign = (c: OutreachCampaign) => {
+    setEditingCampaign(c);
+    setIsNewCampaignOpen(true);
+  };
+
+  const handleDeleteCampaign = (id: number) => {
+    if (window.confirm('Delete this campaign? Prospects stay but become unassigned.')) {
+      deleteCampaignMutation.mutate(id);
+    }
+  };
+
+  const handleCloseCampaignModal = () => {
+    setIsNewCampaignOpen(false);
+    setEditingCampaign(null);
+  };
 
   const {
     data: prospects = [],
@@ -307,7 +335,12 @@ export default function ColdCallsTab() {
           campaigns={campaigns}
           selectedId={selectedCampaignId}
           onSelect={setSelectedCampaignId}
-          onNewClick={() => setIsNewCampaignOpen(true)}
+          onNewClick={() => {
+            setEditingCampaign(null);
+            setIsNewCampaignOpen(true);
+          }}
+          onEditClick={handleEditCampaign}
+          onDeleteClick={handleDeleteCampaign}
           isLoading={isCampaignsLoading}
         />
       </div>
@@ -380,12 +413,13 @@ export default function ColdCallsTab() {
 
       <NewCampaignModal
         isOpen={isNewCampaignOpen}
-        onClose={() => setIsNewCampaignOpen(false)}
+        onClose={handleCloseCampaignModal}
         onCreated={(campaignId) => {
-          setSelectedCampaignId(campaignId);
-          setIsNewCampaignOpen(false);
+          if (!editingCampaign) setSelectedCampaignId(campaignId);
+          handleCloseCampaignModal();
         }}
-        defaultCampaignType={CampaignType.COLD_CALLS}
+        defaultCampaignType={editingCampaign?.campaign_type ?? CampaignType.COLD_CALLS}
+        editCampaign={editingCampaign}
       />
     </div>
   );
