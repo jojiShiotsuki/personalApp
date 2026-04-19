@@ -43,7 +43,7 @@ import {
   GripVertical,
   Check,
   Phone,
-  Sparkles,
+  Pencil,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -88,7 +88,7 @@ const CHANNEL_ICONS: Record<StepChannelType, typeof Mail> = {
   [StepChannelType.FOLLOW_UP_EMAIL]: Reply,
   [StepChannelType.LOOM_EMAIL]: Video,
   [StepChannelType.PHONE_CALL]: Phone,
-  [StepChannelType.CUSTOM]: Sparkles,
+  [StepChannelType.CUSTOM]: Pencil,
 };
 
 // Helpers

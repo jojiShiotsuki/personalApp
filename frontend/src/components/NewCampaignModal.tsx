@@ -5,7 +5,7 @@ import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea
 import { coldOutreachApi } from '@/lib/api';
 import type { OutreachCampaign, MultiTouchStepCreate } from '@/types';
 import { CampaignType, StepChannelType, ConditionType, CONDITION_LABELS } from '@/types';
-import { X, Plus, Trash2, Mail, Linkedin, MessageCircle, Heart, Reply, ChevronDown, GripVertical, Video, GitBranch, Phone, Sparkles } from 'lucide-react';
+import { X, Plus, Trash2, Mail, Linkedin, MessageCircle, Heart, Reply, ChevronDown, GripVertical, Video, GitBranch, Phone, Pencil } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -17,7 +17,7 @@ const CHANNEL_CONFIG: Record<StepChannelType, { label: string; icon: typeof Mail
   [StepChannelType.FOLLOW_UP_EMAIL]: { label: 'Follow-up Email', icon: Reply, color: 'text-purple-400', defaultDelay: 2, defaultInstruction: 'Send follow-up email if no reply' },
   [StepChannelType.LOOM_EMAIL]: { label: 'Loom Email', icon: Video, color: 'text-rose-400', defaultDelay: 2, defaultInstruction: 'Send email with Loom video walkthrough' },
   [StepChannelType.PHONE_CALL]: { label: 'Phone Call', icon: Phone, color: 'text-orange-400', defaultDelay: 2, defaultInstruction: 'Call and pitch — leave voicemail if no answer' },
-  [StepChannelType.CUSTOM]: { label: 'Custom', icon: Sparkles, color: 'text-cyan-400', defaultDelay: 1, defaultInstruction: 'Describe the action to take at this step' },
+  [StepChannelType.CUSTOM]: { label: 'Other...', icon: Pencil, color: 'text-cyan-400', defaultDelay: 1, defaultInstruction: '' },
 };
 
 const DEFAULT_MT_STEPS: MultiTouchStepCreate[] = [
@@ -412,12 +412,16 @@ export default function NewCampaignModal({
                                         </button>
                                       </div>
 
-                                      {/* Instruction text */}
+                                      {/* Instruction text — doubles as the step's name/label when channel is CUSTOM */}
                                       <input
                                         type="text"
                                         value={step.instruction_text || ''}
                                         onChange={(e) => updateStep(index, { instruction_text: e.target.value })}
-                                        placeholder="Instruction shown in queue..."
+                                        placeholder={
+                                          step.channel_type === StepChannelType.CUSTOM
+                                            ? 'Name this step — e.g. Send SMS, Research on LinkedIn, In-person visit'
+                                            : 'Instruction shown in queue...'
+                                        }
                                         className={cn(inputClasses, 'py-1.5 text-xs')}
                                       />
 
@@ -549,10 +553,14 @@ export default function NewCampaignModal({
                                     </div>
                                   </div>
 
-                                  {/* Channel type indicator */}
+                                  {/* Channel type indicator — for CUSTOM steps, surface the user-typed name as the label */}
                                   <div className="flex items-center gap-1.5 mt-2 ml-16">
                                     <Icon className={cn('w-3 h-3', config.color)} />
-                                    <span className={cn('text-[10px] font-medium', config.color)}>{config.label}</span>
+                                    <span className={cn('text-[10px] font-medium', config.color)}>
+                                      {step.channel_type === StepChannelType.CUSTOM
+                                        ? (step.instruction_text?.trim() || 'Unnamed step')
+                                        : config.label}
+                                    </span>
                                     <span className="text-[10px] text-[--exec-text-muted] ml-1">
                                       {index === 0
                                         ? step.delay_days === 0 ? '(starts immediately)' : `(starts after ${step.delay_days}d)`

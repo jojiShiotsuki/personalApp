@@ -21,7 +21,7 @@ import {
   Heart,
   Reply,
   Video,
-  Sparkles,
+  Pencil,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -71,7 +71,7 @@ const CHANNEL_ICON: Record<string, typeof Phone> = {
   [StepChannelType.LINKEDIN_MESSAGE]: MessageCircle,
   [StepChannelType.LINKEDIN_ENGAGE]: Heart,
   [StepChannelType.LOOM_EMAIL]: Video,
-  [StepChannelType.CUSTOM]: Sparkles,
+  [StepChannelType.CUSTOM]: Pencil,
 };
 
 const CHANNEL_ACCENT: Record<string, string> = {
@@ -83,17 +83,6 @@ const CHANNEL_ACCENT: Record<string, string> = {
   [StepChannelType.LINKEDIN_ENGAGE]: 'text-amber-400',
   [StepChannelType.LOOM_EMAIL]: 'text-rose-400',
   [StepChannelType.CUSTOM]: 'text-cyan-400',
-};
-
-const CHANNEL_LABEL: Record<string, string> = {
-  [StepChannelType.PHONE_CALL]: 'Phone Call',
-  [StepChannelType.EMAIL]: 'Email',
-  [StepChannelType.FOLLOW_UP_EMAIL]: 'Follow-up',
-  [StepChannelType.LINKEDIN_CONNECT]: 'LinkedIn Connect',
-  [StepChannelType.LINKEDIN_MESSAGE]: 'LinkedIn Message',
-  [StepChannelType.LINKEDIN_ENGAGE]: 'LinkedIn Engage',
-  [StepChannelType.LOOM_EMAIL]: 'Loom Email',
-  [StepChannelType.CUSTOM]: 'Custom',
 };
 
 // Channel-colored kanban column chrome for the step-based view.
@@ -203,7 +192,15 @@ function StepColumn({ step, prospects, onCardClick }: StepColumnProps) {
   const accent = CHANNEL_ACCENT[chKey] ?? 'text-stone-400';
   const borderClass = CHANNEL_BORDER_TOP[chKey] ?? 'border-t-stone-500';
   const countBadgeClass = CHANNEL_COUNT_BADGE[chKey] ?? 'bg-stone-500/20 text-stone-400';
-  const channelLabel = CHANNEL_LABEL[chKey] ?? chKey;
+
+  // For CUSTOM steps the user's instruction_text IS the step label; for
+  // predefined channels we keep the generic channel label and surface
+  // instruction_text separately as the action description.
+  const isCustom = chKey === StepChannelType.CUSTOM;
+  const headerLabel = isCustom
+    ? (step.instruction_text?.trim() || `Step ${step.step_number}`)
+    : `Step ${step.step_number}`;
+  const description = isCustom ? null : step.instruction_text;
 
   return (
     <Droppable droppableId={`step-${step.step_number}`}>
@@ -227,8 +224,8 @@ function StepColumn({ step, prospects, onCardClick }: StepColumnProps) {
                 </span>
               </div>
               <Icon className={cn('w-3.5 h-3.5 flex-shrink-0', accent)} />
-              <span className={cn('text-xs font-semibold truncate', accent)} title={channelLabel}>
-                Step {step.step_number}
+              <span className={cn('text-xs font-semibold truncate', accent)} title={headerLabel}>
+                {headerLabel}
               </span>
             </div>
             <span className={cn('text-xs font-medium px-1.5 py-0.5 rounded-full flex-shrink-0', countBadgeClass)}>
@@ -236,9 +233,9 @@ function StepColumn({ step, prospects, onCardClick }: StepColumnProps) {
             </span>
           </div>
 
-          {step.instruction_text && (
+          {description && (
             <p className="text-[10px] text-[--exec-text-muted] mb-3 line-clamp-2">
-              {step.instruction_text}
+              {description}
             </p>
           )}
 
