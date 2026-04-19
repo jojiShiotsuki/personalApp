@@ -14,11 +14,18 @@ import {
   PhoneOutgoing,
   CheckCircle2,
   XCircle,
+  Phone,
+  Mail,
+  Linkedin,
+  MessageCircle,
+  Heart,
+  Reply,
+  Video,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { coldCallsApi, coldOutreachApi } from '@/lib/api';
-import { CallProspect, CallStatus, CampaignType, type OutreachCampaign } from '@/types';
+import { CallProspect, CallStatus, CampaignType, StepChannelType, type OutreachCampaign, type CampaignWithStats } from '@/types';
 import CallProspectDetailModal from './CallProspectDetailModal';
 import ColdCallCsvImportModal from './ColdCallCsvImportModal';
 import AddColdLeadModal from './AddColdLeadModal';
@@ -54,6 +61,36 @@ const smallPrimaryButtonClasses = cn(
   'bg-[--exec-accent] hover:bg-[--exec-accent-dark]',
   'transition-all duration-200 shadow-sm hover:shadow-md'
 );
+
+const CHANNEL_ICON: Record<string, typeof Phone> = {
+  [StepChannelType.PHONE_CALL]: Phone,
+  [StepChannelType.EMAIL]: Mail,
+  [StepChannelType.FOLLOW_UP_EMAIL]: Reply,
+  [StepChannelType.LINKEDIN_CONNECT]: Linkedin,
+  [StepChannelType.LINKEDIN_MESSAGE]: MessageCircle,
+  [StepChannelType.LINKEDIN_ENGAGE]: Heart,
+  [StepChannelType.LOOM_EMAIL]: Video,
+};
+
+const CHANNEL_ACCENT: Record<string, string> = {
+  [StepChannelType.PHONE_CALL]: 'text-orange-400',
+  [StepChannelType.EMAIL]: 'text-blue-400',
+  [StepChannelType.FOLLOW_UP_EMAIL]: 'text-purple-400',
+  [StepChannelType.LINKEDIN_CONNECT]: 'text-sky-400',
+  [StepChannelType.LINKEDIN_MESSAGE]: 'text-indigo-400',
+  [StepChannelType.LINKEDIN_ENGAGE]: 'text-amber-400',
+  [StepChannelType.LOOM_EMAIL]: 'text-rose-400',
+};
+
+const CHANNEL_LABEL: Record<string, string> = {
+  [StepChannelType.PHONE_CALL]: 'Phone Call',
+  [StepChannelType.EMAIL]: 'Email',
+  [StepChannelType.FOLLOW_UP_EMAIL]: 'Follow-up',
+  [StepChannelType.LINKEDIN_CONNECT]: 'LinkedIn Connect',
+  [StepChannelType.LINKEDIN_MESSAGE]: 'LinkedIn Message',
+  [StepChannelType.LINKEDIN_ENGAGE]: 'LinkedIn Engage',
+  [StepChannelType.LOOM_EMAIL]: 'Loom Email',
+};
 
 function firstNotePreview(notes: string | null): string | null {
   if (!notes) return null;
@@ -203,6 +240,12 @@ export default function ColdCallsTab() {
     queryFn: () => coldOutreachApi.getCampaigns(),
   });
 
+  const { data: selectedCampaignDetail } = useQuery<CampaignWithStats>({
+    queryKey: ['outreach-campaign', selectedCampaignId],
+    queryFn: () => coldOutreachApi.getCampaign(selectedCampaignId!),
+    enabled: selectedCampaignId !== null,
+  });
+
   const deleteCampaignMutation = useMutation({
     mutationFn: (id: number) => coldOutreachApi.deleteCampaign(id),
     onSuccess: (_data, deletedId) => {
@@ -344,6 +387,48 @@ export default function ColdCallsTab() {
           isLoading={isCampaignsLoading}
         />
       </div>
+
+      {/* Sequence preview — only when a specific campaign is selected and it has steps */}
+      {selectedCampaignId !== null && selectedCampaignDetail && (selectedCampaignDetail.multi_touch_steps?.length ?? 0) > 0 && (
+        <div>
+          <h3 className="text-sm font-semibold text-[--exec-text] mb-3">
+            Call Sequence ({selectedCampaignDetail.multi_touch_steps?.length ?? 0})
+          </h3>
+          <div className="flex gap-3 overflow-x-auto pb-2">
+            {(selectedCampaignDetail.multi_touch_steps ?? []).map((step) => {
+              const chKey = (step.channel_type || '').toUpperCase();
+              const Icon = CHANNEL_ICON[chKey] ?? Phone;
+              const accent = CHANNEL_ACCENT[chKey] ?? 'text-stone-400';
+              const label = CHANNEL_LABEL[chKey] ?? chKey;
+              const delayText = step.step_number === 1
+                ? (step.delay_days === 0 ? 'Starts immediately' : `Starts after ${step.delay_days}d`)
+                : (step.delay_days === 0 ? 'Same day as prev' : `${step.delay_days}d after prev`);
+              return (
+                <div
+                  key={step.step_number}
+                  className="bg-stone-800/50 border border-stone-600/40 rounded-lg p-3 min-w-[240px] flex-1"
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-6 h-6 rounded-full bg-stone-700/60 flex items-center justify-center flex-shrink-0">
+                      <span className="text-xs font-bold text-[--exec-text-secondary]">{step.step_number}</span>
+                    </div>
+                    <Icon className={cn('w-3.5 h-3.5 flex-shrink-0', accent)} />
+                    <span className={cn('text-xs font-medium', accent)}>{label}</span>
+                  </div>
+                  {step.instruction_text && (
+                    <p className="text-xs text-[--exec-text-secondary] mb-1.5 line-clamp-2">
+                      {step.instruction_text}
+                    </p>
+                  )}
+                  <p className="text-[10px] text-[--exec-text-muted] uppercase tracking-wider">
+                    {delayText}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Stats bar */}
       <HubStatsBar stats={stats} />
