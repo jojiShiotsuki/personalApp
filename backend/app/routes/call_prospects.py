@@ -263,6 +263,7 @@ def import_call_prospects(
                     description=description or None,
                     notes=notes,
                     status=CallStatus.NEW.value,
+                    campaign_id=data.campaign_id,
                 )
             )
             imported_count += 1

@@ -1729,6 +1729,7 @@ export interface CallProspectCsvColumnMapping {
 export interface CallProspectCsvImportRequest {
   column_mapping: CallProspectCsvColumnMapping;
   data: Record<string, string>[];
+  campaign_id?: number | null;
 }
 
 export interface CallProspectCsvImportResponse {

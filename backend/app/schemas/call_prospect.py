@@ -97,6 +97,7 @@ class CallProspectCsvColumnMapping(BaseModel):
 class CallProspectCsvImportRequest(BaseModel):
     column_mapping: CallProspectCsvColumnMapping
     data: List[dict]
+    campaign_id: Optional[int] = None
 
 
 class CallProspectCsvImportResponse(BaseModel):

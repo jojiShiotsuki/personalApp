@@ -20,6 +20,8 @@ import { CallProspectCsvColumnMapping } from '@/types';
 interface ColdCallCsvImportModalProps {
   isOpen: boolean;
   onClose: () => void;
+  /** If set, every imported lead is assigned to this campaign. */
+  campaignId?: number | null;
 }
 
 type Step = 'upload' | 'map' | 'preview';
@@ -339,6 +341,7 @@ function buildPreviewNotes(
 export default function ColdCallCsvImportModal({
   isOpen,
   onClose,
+  campaignId = null,
 }: ColdCallCsvImportModalProps) {
   const [step, setStep] = useState<Step>('upload');
   const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
@@ -353,6 +356,7 @@ export default function ColdCallCsvImportModal({
     mutationFn: (data: {
       column_mapping: CallProspectCsvColumnMapping;
       data: Record<string, string>[];
+      campaign_id?: number | null;
     }) => coldCallsApi.import(data),
     onSuccess: (result) => {
       toast.success(
@@ -514,7 +518,7 @@ export default function ColdCallCsvImportModal({
       toast.error('Business Name and Phone must both be mapped');
       return;
     }
-    importMutation.mutate({ column_mapping: columnMapping, data: csvData });
+    importMutation.mutate({ column_mapping: columnMapping, data: csvData, campaign_id: campaignId });
   };
 
   if (!isOpen) return null;

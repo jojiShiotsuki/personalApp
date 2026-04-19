@@ -489,11 +489,13 @@ export default function ColdCallsTab() {
       <ColdCallCsvImportModal
         isOpen={isImportOpen}
         onClose={() => setIsImportOpen(false)}
+        campaignId={selectedCampaignId}
       />
 
       <AddColdLeadModal
         isOpen={isAddOpen}
         onClose={() => setIsAddOpen(false)}
+        campaignId={selectedCampaignId}
       />
 
       <NewCampaignModal

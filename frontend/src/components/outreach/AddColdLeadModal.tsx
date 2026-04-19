@@ -11,6 +11,8 @@ import { CallProspectCreate, CallStatus } from '@/types';
 interface AddColdLeadModalProps {
   isOpen: boolean;
   onClose: () => void;
+  /** If set, the created lead is assigned to this campaign. null = unassigned. */
+  campaignId?: number | null;
 }
 
 interface FormState {
@@ -51,7 +53,7 @@ function extractErrorMessage(err: unknown): string {
   return e?.response?.data?.detail ?? e?.message ?? 'Failed to create lead';
 }
 
-export default function AddColdLeadModal({ isOpen, onClose }: AddColdLeadModalProps) {
+export default function AddColdLeadModal({ isOpen, onClose, campaignId = null }: AddColdLeadModalProps) {
   const queryClient = useQueryClient();
   const [form, setForm] = useState<FormState>(INITIAL_FORM);
   const [phoneError, setPhoneError] = useState<string | null>(null);
@@ -103,6 +105,7 @@ export default function AddColdLeadModal({ isOpen, onClose }: AddColdLeadModalPr
       source: form.source.trim() || undefined,
       notes: form.notes.trim() || undefined,
       status: CallStatus.NEW,
+      campaign_id: campaignId,
     };
 
     createMutation.mutate(payload);
