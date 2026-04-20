@@ -185,10 +185,18 @@ def import_call_prospects(
     errors: list[str] = []
 
     def _get(row: dict, header: Optional[str]) -> str:
-        """Safe stripped lookup — returns empty string if header is None or missing."""
+        """Safe stripped lookup — returns empty string if header is None or missing.
+
+        Strips a leading apostrophe (Apollo's Excel text-protection prefix on
+        phone numbers, e.g. "'+61 499 153 849") since it serves no purpose in
+        a database value and breaks tel: links.
+        """
         if not header:
             return ""
-        return (row.get(header) or "").strip()
+        value = (row.get(header) or "").strip()
+        if value.startswith("'"):
+            value = value[1:].strip()
+        return value
 
     def _build_notes(row: dict) -> Optional[str]:
         """

@@ -17,6 +17,7 @@ import {
   Phone,
   Mail,
   Linkedin,
+  Globe,
   MessageCircle,
   Heart,
   Reply,
@@ -119,6 +120,26 @@ function firstNotePreview(notes: string | null): string | null {
   return last.length > 80 ? last.slice(0, 80) + '…' : last;
 }
 
+// Apollo prefixes phone numbers with a leading apostrophe (Excel
+// text-protection). Strip it for display + tel: links — older imports
+// done before the backend strip lived with the apostrophe in the DB.
+function cleanPhone(phone: string): string {
+  const trimmed = phone.trim();
+  return trimmed.startsWith("'") ? trimmed.slice(1).trim() : trimmed;
+}
+
+function buildPersonLine(prospect: CallProspect): string | null {
+  const name = [prospect.first_name, prospect.last_name].filter(Boolean).join(' ').trim();
+  if (name && prospect.position) return `${name} · ${prospect.position}`;
+  if (name) return name;
+  if (prospect.position) return prospect.position;
+  return null;
+}
+
+function ensureUrl(value: string): string {
+  return /^https?:\/\//i.test(value) ? value : `https://${value}`;
+}
+
 interface CallProspectCardProps {
   prospect: CallProspect;
   index: number;
@@ -127,6 +148,10 @@ interface CallProspectCardProps {
 
 function CallProspectCard({ prospect, index, onClick }: CallProspectCardProps) {
   const preview = firstNotePreview(prospect.notes);
+  const personLine = buildPersonLine(prospect);
+  const phone = prospect.phone ? cleanPhone(prospect.phone) : null;
+  const hasQuickActions = Boolean(phone || prospect.email || prospect.linkedin_url || prospect.website);
+
   return (
     <Draggable draggableId={`cp-${prospect.id}`} index={index}>
       {(provided, snapshot) => {
@@ -148,20 +173,73 @@ function CallProspectCard({ prospect, index, onClick }: CallProspectCardProps) {
               {prospect.business_name}
             </h4>
 
-            {prospect.phone && (
-              <p className="text-xs text-[--exec-text-muted] font-mono mb-2">
-                {prospect.phone}
+            {personLine && (
+              <p className="text-xs text-[--exec-text-secondary] line-clamp-1 mb-2">
+                {personLine}
               </p>
             )}
 
+            {phone && (
+              <a
+                href={`tel:${phone.replace(/\s+/g, '')}`}
+                onClick={(e) => e.stopPropagation()}
+                className="inline-flex items-center gap-1.5 text-xs text-[--exec-text] font-mono mb-2 hover:text-[--exec-accent] transition-colors"
+                title="Call"
+              >
+                <Phone className="w-3 h-3 text-[--exec-text-muted]" />
+                {phone}
+              </a>
+            )}
+
             {prospect.vertical && (
-              <span className="inline-block text-[10px] uppercase tracking-wider font-medium text-[--exec-text-muted] bg-stone-700/60 px-2 py-0.5 rounded mb-2">
-                {prospect.vertical}
-              </span>
+              <div className="mb-2">
+                <span className="inline-block text-[10px] uppercase tracking-wider font-medium text-[--exec-text-muted] bg-stone-700/60 px-2 py-0.5 rounded">
+                  {prospect.vertical}
+                </span>
+              </div>
+            )}
+
+            {hasQuickActions && (
+              <div className="flex items-center gap-1 mb-2">
+                {prospect.email && (
+                  <a
+                    href={`mailto:${prospect.email}`}
+                    onClick={(e) => e.stopPropagation()}
+                    className="inline-flex items-center justify-center w-7 h-7 rounded-lg text-[--exec-text-muted] hover:text-blue-400 hover:bg-blue-500/15 transition-colors"
+                    title={prospect.email}
+                  >
+                    <Mail className="w-3.5 h-3.5" />
+                  </a>
+                )}
+                {prospect.linkedin_url && (
+                  <a
+                    href={ensureUrl(prospect.linkedin_url)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    className="inline-flex items-center justify-center w-7 h-7 rounded-lg text-[--exec-text-muted] hover:text-sky-400 hover:bg-sky-500/15 transition-colors"
+                    title="LinkedIn"
+                  >
+                    <Linkedin className="w-3.5 h-3.5" />
+                  </a>
+                )}
+                {prospect.website && (
+                  <a
+                    href={ensureUrl(prospect.website)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    className="inline-flex items-center justify-center w-7 h-7 rounded-lg text-[--exec-text-muted] hover:text-[--exec-text] hover:bg-stone-700/60 transition-colors"
+                    title={prospect.website}
+                  >
+                    <Globe className="w-3.5 h-3.5" />
+                  </a>
+                )}
+              </div>
             )}
 
             {preview && (
-              <p className="text-xs text-[--exec-text-muted] line-clamp-2">
+              <p className="text-xs text-[--exec-text-muted] line-clamp-2 pt-2 border-t border-stone-700/30">
                 {preview}
               </p>
             )}
