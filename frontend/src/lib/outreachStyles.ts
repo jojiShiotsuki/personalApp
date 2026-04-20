@@ -107,9 +107,14 @@ export const statCardAccents: Record<StatAccent, string> = {
 /**
  * Canonical kanban column shell — compose with an entry from
  * `kanbanColumnAccents` for the top border accent color.
+ *
+ * Empty columns must hold their shape against the page background, so the
+ * shell carries a slightly brighter fill (stone-800/50) plus thin borders
+ * on the sides + bottom. The 2px top border is owned by the accent class.
  */
 export const kanbanColumnClasses = cn(
-  'bg-stone-900/30 rounded-xl p-3 min-w-[220px] flex-1',
+  'bg-stone-800/50 rounded-xl p-3 min-w-[220px] flex-1',
+  'border-l border-r border-b border-stone-700/50',
   'border-t-2 transition-all'
 );
 
