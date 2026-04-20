@@ -481,10 +481,19 @@ export default function ColdCallCsvImportModal({
 
       const saved = loadSavedMapping(headers);
       if (saved) {
-        // Fill any new headers with 'ignore' so the state covers every column
+        // Fill any new headers with 'ignore' so the state covers every column.
+        // Self-heal stale saved mappings: phone became non-singleton (Apollo
+        // splits phone across 5 columns), so upgrade any 'ignore' header that
+        // auto-infers to 'phone' — over-mapping phone is strictly safer
+        // because the backend just takes the first non-empty value per row.
         const filled: Record<string, TargetField> = {};
         for (const h of headers) {
-          filled[h] = saved[h] ?? 'ignore';
+          const savedTarget = saved[h] ?? 'ignore';
+          if (savedTarget === 'ignore' && inferTargetField(h) === 'phone') {
+            filled[h] = 'phone';
+          } else {
+            filled[h] = savedTarget;
+          }
         }
         setHeaderMapping(filled);
         setLoadedFromStorage(true);
