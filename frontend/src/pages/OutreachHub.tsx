@@ -127,9 +127,10 @@ export default function OutreachHub() {
     <div className="min-h-full bg-[--exec-surface] grain">
       {/* Hero Header */}
       <header className="relative z-30">
-        {/* Gradient background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-[--exec-surface] via-[--exec-surface] to-[--exec-accent-bg-subtle] overflow-hidden">
-          {/* Decorative elements (contained within this overflow-hidden wrapper) */}
+        {/* Background — uniform surface so the header blends seamlessly into
+            the tab content below (no color boundary). The subtle decorative
+            blur circles add depth without introducing a hard edge. */}
+        <div className="absolute inset-0 bg-[--exec-surface] overflow-hidden">
           <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-bl from-[--exec-accent]/5 to-transparent rounded-full blur-3xl" />
           <div className="absolute bottom-0 left-1/3 w-64 h-64 bg-gradient-to-t from-[--exec-sage]/5 to-transparent rounded-full blur-2xl" />
         </div>
