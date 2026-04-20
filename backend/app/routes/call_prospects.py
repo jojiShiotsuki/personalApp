@@ -18,6 +18,8 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models.call_prospect import CallProspect, CallStatus
+from pydantic import BaseModel, Field
+
 from app.schemas.call_prospect import (
     CallProspectCreate,
     CallProspectCsvImportRequest,
@@ -25,6 +27,14 @@ from app.schemas.call_prospect import (
     CallProspectResponse,
     CallProspectUpdate,
 )
+
+
+class BulkDeleteRequest(BaseModel):
+    ids: List[int] = Field(..., min_length=1)
+
+
+class BulkDeleteResponse(BaseModel):
+    deleted_count: int
 
 logger = logging.getLogger(__name__)
 
@@ -166,6 +176,23 @@ def delete_call_prospect(prospect_id: int, db: Session = Depends(get_db)):
     db.delete(prospect)
     db.commit()
     return None
+
+
+@router.post("/bulk-delete", response_model=BulkDeleteResponse)
+def bulk_delete_call_prospects(
+    payload: BulkDeleteRequest,
+    db: Session = Depends(get_db),
+):
+    """Delete multiple call prospects in one request. Returns the actual count
+    deleted (silently skips IDs that don't exist — idempotent under concurrent
+    deletes)."""
+    deleted = (
+        db.query(CallProspect)
+        .filter(CallProspect.id.in_(payload.ids))
+        .delete(synchronize_session=False)
+    )
+    db.commit()
+    return BulkDeleteResponse(deleted_count=deleted)
 
 
 @router.post("/import", response_model=CallProspectCsvImportResponse)

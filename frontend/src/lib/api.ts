@@ -1632,6 +1632,11 @@ export const coldCallsApi = {
     await api.delete(`/api/cold-calls/${id}`);
   },
 
+  bulkDelete: async (ids: number[]): Promise<{ deleted_count: number }> => {
+    const response = await api.post('/api/cold-calls/bulk-delete', { ids });
+    return response.data;
+  },
+
   import: async (data: CallProspectCsvImportRequest): Promise<CallProspectCsvImportResponse> => {
     const response = await api.post('/api/cold-calls/import', data);
     return response.data;
