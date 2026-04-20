@@ -149,6 +149,21 @@ function shortenPhoneLabel(label: string): string {
   return label.replace(/\s*Phone\s*$/i, '').trim() || label;
 }
 
+// Digits-only signature for dedupe: "+61 1800 975 399" and "1800 975 399"
+// collapse to the same key. Apollo often has Corporate Phone == Company Phone.
+function phoneSignature(value: string): string {
+  return value.replace(/\D/g, '');
+}
+
+async function copyPhoneToClipboard(value: string): Promise<void> {
+  try {
+    await navigator.clipboard.writeText(value);
+    toast.success(`Copied ${value}`);
+  } catch {
+    toast.error('Failed to copy — clipboard blocked');
+  }
+}
+
 interface CallProspectCardProps {
   prospect: CallProspect;
   index: number;
@@ -163,6 +178,24 @@ function CallProspectCard({ prospect, index, onClick, isSelected, onToggleSelect
   const personLine = buildPersonLine(prospect);
   const phone = prospect.phone ? cleanPhone(prospect.phone) : null;
   const hasQuickActions = Boolean(phone || prospect.email || prospect.linkedin_url || prospect.website);
+
+  // Dedupe additional phones: drop any matching primary, drop duplicates among themselves.
+  // Apollo often has Corporate Phone == Company Phone; old DB rows may have both stored.
+  const dedupedAdditional = (() => {
+    if (!prospect.additional_phones || prospect.additional_phones.length === 0) return [];
+    const seen = new Set<string>();
+    if (phone) seen.add(phoneSignature(phone));
+    const out: Array<{ label: string; value: string }> = [];
+    for (const p of prospect.additional_phones) {
+      const cleaned = cleanPhone(p.value);
+      if (!cleaned) continue;
+      const sig = phoneSignature(cleaned);
+      if (!sig || seen.has(sig)) continue;
+      seen.add(sig);
+      out.push({ label: p.label, value: cleaned });
+    }
+    return out;
+  })();
 
   return (
     <Draggable draggableId={`cp-${prospect.id}`} index={index}>
@@ -219,37 +252,39 @@ function CallProspectCard({ prospect, index, onClick, isSelected, onToggleSelect
             )}
 
             {phone && (
-              <a
-                href={`tel:${phone.replace(/\s+/g, '')}`}
-                onClick={(e) => e.stopPropagation()}
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  copyPhoneToClipboard(phone);
+                }}
                 className="inline-flex items-center gap-1.5 text-xs text-[--exec-text] font-mono mb-1 hover:text-[--exec-accent] transition-colors"
-                title="Call"
+                title="Click to copy"
               >
                 <Phone className="w-3 h-3 text-[--exec-text-muted]" />
                 {phone}
-              </a>
+              </button>
             )}
 
-            {prospect.additional_phones && prospect.additional_phones.length > 0 && (
+            {dedupedAdditional.length > 0 && (
               <div className="ml-[18px] mb-2 space-y-0.5">
-                {prospect.additional_phones.map((p) => {
-                  const cleaned = cleanPhone(p.value);
-                  if (!cleaned) return null;
-                  return (
-                    <a
-                      key={`${p.label}-${cleaned}`}
-                      href={`tel:${cleaned.replace(/\s+/g, '')}`}
-                      onClick={(e) => e.stopPropagation()}
-                      className="flex items-baseline gap-1.5 text-[11px] font-mono text-[--exec-text-muted] hover:text-[--exec-accent] transition-colors"
-                      title={`Call ${p.label}`}
-                    >
-                      <span className="text-[10px] uppercase tracking-wide font-sans font-medium text-[--exec-text-muted]/80 w-[58px] flex-shrink-0">
-                        {shortenPhoneLabel(p.label)}
-                      </span>
-                      <span className="truncate">{cleaned}</span>
-                    </a>
-                  );
-                })}
+                {dedupedAdditional.map((p) => (
+                  <button
+                    key={`${p.label}-${p.value}`}
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      copyPhoneToClipboard(p.value);
+                    }}
+                    className="flex items-baseline gap-1.5 text-[11px] font-mono text-[--exec-text-muted] hover:text-[--exec-accent] transition-colors w-full text-left"
+                    title={`Click to copy ${p.label}`}
+                  >
+                    <span className="text-[10px] uppercase tracking-wide font-sans font-medium text-[--exec-text-muted]/80 w-[58px] flex-shrink-0">
+                      {shortenPhoneLabel(p.label)}
+                    </span>
+                    <span className="truncate">{p.value}</span>
+                  </button>
+                ))}
               </div>
             )}
 

@@ -239,13 +239,21 @@ def import_call_prospects(
         Walks every mapped phone column; first non-empty value becomes the
         primary, the rest are stored as labeled additional phones so the
         cold-call card can show every available number.
+
+        Deduplicates by normalized value — Apollo often has Corporate Phone
+        and Company Phone holding the same number; no point showing both.
         """
         primary = ""
         additional: list = []
+        seen: set = set()
         for h in headers:
             v = _get(row, h)
             if not v:
                 continue
+            key = re.sub(r"\D", "", v)  # digits-only signature ignores spaces/+
+            if not key or key in seen:
+                continue
+            seen.add(key)
             if not primary:
                 primary = v
             else:
