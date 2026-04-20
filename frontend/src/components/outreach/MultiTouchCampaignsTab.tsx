@@ -1238,7 +1238,7 @@ function SequencePipelineView({
               <div
                 key={col.stepNumber}
                 className={cn(
-                  'bg-stone-800/50 rounded-xl p-3 border-l border-r border-b border-stone-700/50 min-w-[220px] flex-1',
+                  'bg-stone-700/30 rounded-xl p-3 border-l border-r border-b border-stone-600/40 min-w-[220px] flex-1',
                   'border-t-2 transition-all',
                   colors?.borderTop || 'border-t-stone-500',
                   dragOverColumn === `step-${col.stepNumber}` && 'ring-2 ring-[--exec-accent]/40 bg-stone-800/40'
@@ -1372,7 +1372,7 @@ function SequencePipelineView({
           {/* LinkedIn Follow-up column (after sequence steps, before outcome columns) */}
           <div
             className={cn(
-              'bg-stone-800/50 rounded-xl p-3 border-l border-r border-b border-stone-700/50 min-w-[220px] flex-1',
+              'bg-stone-700/30 rounded-xl p-3 border-l border-r border-b border-stone-600/40 min-w-[220px] flex-1',
               'border-t-2 border-t-sky-500 transition-all',
               dragOverColumn === 'linkedin-followup' && 'ring-2 ring-[--exec-accent]/40 bg-stone-800/40'
             )}
@@ -1431,7 +1431,7 @@ function SequencePipelineView({
               <div
                 key={ocol.key}
                 className={cn(
-                  'bg-stone-800/50 rounded-xl p-3 border-l border-r border-b border-stone-700/50 min-w-[220px] flex-1',
+                  'bg-stone-700/30 rounded-xl p-3 border-l border-r border-b border-stone-600/40 min-w-[220px] flex-1',
                   'border-t-2 transition-all',
                   ocol.borderTop,
                   dragOverColumn === `outcome-${ocol.key}` && 'ring-2 ring-[--exec-accent]/40 bg-stone-800/40'

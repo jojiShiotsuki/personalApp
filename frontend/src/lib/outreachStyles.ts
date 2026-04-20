@@ -113,8 +113,8 @@ export const statCardAccents: Record<StatAccent, string> = {
  * on the sides + bottom. The 2px top border is owned by the accent class.
  */
 export const kanbanColumnClasses = cn(
-  'bg-stone-800/50 rounded-xl p-3 min-w-[220px] flex-1',
-  'border-l border-r border-b border-stone-700/50',
+  'bg-stone-700/30 rounded-xl p-3 min-w-[220px] flex-1',
+  'border-l border-r border-b border-stone-600/40',
   'border-t-2 transition-all'
 );
 

@@ -124,7 +124,7 @@ export default function OutreachHub() {
   };
 
   return (
-    <div className="min-h-full bg-[--exec-bg] grain">
+    <div className="min-h-full bg-[--exec-surface] grain">
       {/* Hero Header */}
       <header className="relative z-30">
         {/* Gradient background */}

@@ -688,7 +688,7 @@ export default function WarmLeadsTab() {
                 onDragLeave={handleDragLeave}
                 onDrop={(e) => handleDrop(e, step.step)}
                 className={cn(
-                  'bg-stone-800/50 rounded-xl p-3 border-l border-r border-b border-stone-700/50 min-w-[220px] flex-1',
+                  'bg-stone-700/30 rounded-xl p-3 border-l border-r border-b border-stone-600/40 min-w-[220px] flex-1',
                   'border-t-2 transition-all',
                   STEP_BORDER_COLORS[step.step],
                   dragOverStep === step.step && 'ring-2 ring-[--exec-accent]/40 bg-stone-800/40'

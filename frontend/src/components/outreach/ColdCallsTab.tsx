@@ -393,7 +393,7 @@ function StepColumn({ step, prospects, onCardClick, selectedIds, onToggleSelect 
           ref={provided.innerRef}
           {...provided.droppableProps}
           className={cn(
-            'bg-stone-800/50 rounded-xl p-3 border-l border-r border-b border-stone-700/50 min-w-[240px] flex-1',
+            'bg-stone-700/30 rounded-xl p-3 border-l border-r border-b border-stone-600/40 min-w-[240px] flex-1',
             'border-t-2 transition-all',
             borderClass,
             snapshot.isDraggingOver && 'ring-2 ring-[--exec-accent]/40 bg-stone-800/40'
