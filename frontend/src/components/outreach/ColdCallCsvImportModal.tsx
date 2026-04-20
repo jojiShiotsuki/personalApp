@@ -36,6 +36,11 @@ const STEP_CONFIG = [
 type TargetField =
   | 'ignore'
   | 'business_name'
+  | 'first_name'
+  | 'last_name'
+  | 'position'
+  | 'email'
+  | 'linkedin_url'
   | 'phone'
   | 'vertical'
   | 'address'
@@ -61,6 +66,11 @@ const TARGET_OPTIONS: TargetOption[] = [
   { value: 'ignore', label: 'Ignore' },
   { value: 'business_name', label: 'Business Name', required: true, singleton: true },
   { value: 'phone', label: 'Phone', required: true, singleton: true },
+  { value: 'first_name', label: 'First Name', singleton: true },
+  { value: 'last_name', label: 'Last Name', singleton: true },
+  { value: 'position', label: 'Position / Job Title', singleton: true },
+  { value: 'email', label: 'Email', singleton: true },
+  { value: 'linkedin_url', label: 'LinkedIn URL', singleton: true },
   { value: 'vertical', label: 'Category (Vertical)', singleton: true },
   { value: 'address', label: 'Address', singleton: true },
   { value: 'website', label: 'Website', singleton: true },
@@ -136,20 +146,55 @@ function normalizeHeader(header: string): string {
 // Normalized-header → canonical TargetField. Exact matches on the
 // canonical field names AND common aliases across Outscraper/Apollo/Hunter.
 const HEADER_ALIASES: Record<string, TargetField> = {
-  // business_name
+  // business_name (NOTE: do NOT alias "title" here — Apollo's "Title"
+  // column means job title, mapped to `position` below.)
   business_name: 'business_name',
   businessname: 'business_name',
-  name: 'business_name',
   company: 'business_name',
   company_name: 'business_name',
+  company_name_for_emails: 'business_name',
   business: 'business_name',
-  title: 'business_name',
+  organization: 'business_name',
+  organization_name: 'business_name',
+  account_name: 'business_name',
+  agency_name: 'business_name',
+  // first_name
+  first_name: 'first_name',
+  firstname: 'first_name',
+  given_name: 'first_name',
+  fname: 'first_name',
+  // last_name
+  last_name: 'last_name',
+  lastname: 'last_name',
+  surname: 'last_name',
+  family_name: 'last_name',
+  lname: 'last_name',
+  // position (job title)
+  position: 'position',
+  title: 'position',
+  job_title: 'position',
+  jobtitle: 'position',
+  role: 'position',
+  seniority: 'position',
+  // email
+  email: 'email',
+  email_address: 'email',
+  primary_email: 'email',
+  work_email: 'email',
+  // linkedin_url
+  linkedin_url: 'linkedin_url',
+  linkedin: 'linkedin_url',
+  person_linkedin_url: 'linkedin_url',
+  linkedin_profile: 'linkedin_url',
   // phone
   phone: 'phone',
   phone_number: 'phone',
   phone_1: 'phone',
   telephone: 'phone',
   mobile: 'phone',
+  mobile_phone: 'phone',
+  work_direct_phone: 'phone',
+  corporate_phone: 'phone',
   contact: 'phone',
   // vertical
   vertical: 'vertical',
@@ -303,6 +348,11 @@ function buildColumnMapping(
   return {
     business_name: payload.business_name,
     phone: payload.phone,
+    first_name: payload.first_name,
+    last_name: payload.last_name,
+    position: payload.position,
+    email: payload.email,
+    linkedin_url: payload.linkedin_url,
     vertical: payload.vertical,
     address: payload.address,
     facebook_url: payload.facebook_url,

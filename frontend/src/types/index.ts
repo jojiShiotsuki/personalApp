@@ -1659,6 +1659,11 @@ export enum CallStatus {
 export interface CallProspect {
   id: number;
   business_name: string;
+  first_name: string | null;
+  last_name: string | null;
+  position: string | null;
+  email: string | null;
+  linkedin_url: string | null;
   phone: string | null;
   vertical: string | null;
   address: string | null;
@@ -1680,6 +1685,11 @@ export interface CallProspect {
 
 export interface CallProspectCreate {
   business_name: string;
+  first_name?: string;
+  last_name?: string;
+  position?: string;
+  email?: string;
+  linkedin_url?: string;
   phone?: string;
   vertical?: string;
   address?: string;
@@ -1699,6 +1709,11 @@ export interface CallProspectCreate {
 
 export interface CallProspectUpdate {
   business_name?: string;
+  first_name?: string | null;
+  last_name?: string | null;
+  position?: string | null;
+  email?: string | null;
+  linkedin_url?: string | null;
   phone?: string | null;
   vertical?: string | null;
   address?: string | null;
@@ -1719,6 +1734,11 @@ export interface CallProspectUpdate {
 export interface CallProspectCsvColumnMapping {
   business_name: string;
   phone: string;
+  first_name?: string;
+  last_name?: string;
+  position?: string;
+  email?: string;
+  linkedin_url?: string;
   vertical?: string;
   address?: string;
   facebook_url?: string;

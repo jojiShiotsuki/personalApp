@@ -17,6 +17,11 @@ class CallStatus(str, Enum):
 
 class CallProspectBase(BaseModel):
     business_name: str = Field(..., min_length=1, max_length=255)
+    first_name: Optional[str] = Field(None, max_length=100)
+    last_name: Optional[str] = Field(None, max_length=100)
+    position: Optional[str] = Field(None, max_length=255)
+    email: Optional[str] = Field(None, max_length=255)
+    linkedin_url: Optional[str] = Field(None, max_length=500)
     phone: Optional[str] = Field(None, max_length=50)
     vertical: Optional[str] = Field(None, max_length=100)
     address: Optional[str] = Field(None, max_length=500)
@@ -39,6 +44,11 @@ class CallProspectCreate(CallProspectBase):
 
 class CallProspectUpdate(BaseModel):
     business_name: Optional[str] = Field(None, min_length=1, max_length=255)
+    first_name: Optional[str] = Field(None, max_length=100)
+    last_name: Optional[str] = Field(None, max_length=100)
+    position: Optional[str] = Field(None, max_length=255)
+    email: Optional[str] = Field(None, max_length=255)
+    linkedin_url: Optional[str] = Field(None, max_length=500)
     phone: Optional[str] = Field(None, max_length=50)
     vertical: Optional[str] = Field(None, max_length=100)
     address: Optional[str] = Field(None, max_length=500)
@@ -82,6 +92,11 @@ class CallProspectCsvColumnMapping(BaseModel):
     """
     business_name: str
     phone: str
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    position: Optional[str] = None
+    email: Optional[str] = None
+    linkedin_url: Optional[str] = None
     vertical: Optional[str] = None
     address: Optional[str] = None
     facebook_url: Optional[str] = None

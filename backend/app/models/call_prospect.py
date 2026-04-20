@@ -27,6 +27,12 @@ class CallProspect(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     business_name = Column(String(255), nullable=False)
+    # Person fields (populated from Apollo-style person-centric CSVs)
+    first_name = Column(String(100), nullable=True)
+    last_name = Column(String(100), nullable=True)
+    position = Column(String(255), nullable=True)  # job title, e.g. "Founder & Creative Director"
+    email = Column(String(255), nullable=True)
+    linkedin_url = Column(String(500), nullable=True)
     phone = Column(String(50), nullable=True)
     vertical = Column(String(100), nullable=True)  # aircon, barbershop, salon, etc.
     address = Column(String(500), nullable=True)

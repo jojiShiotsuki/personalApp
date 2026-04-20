@@ -228,6 +228,11 @@ def import_call_prospects(
                 continue
 
             phone = _get(row, mapping.phone)
+            first_name = _get(row, mapping.first_name)
+            last_name = _get(row, mapping.last_name)
+            position = _get(row, mapping.position)
+            email = _get(row, mapping.email)
+            linkedin_url = _get(row, mapping.linkedin_url)
             vertical = _get(row, mapping.vertical)
             address = _get(row, mapping.address)
             facebook_url = _get(row, mapping.facebook_url)
@@ -250,6 +255,11 @@ def import_call_prospects(
             pending.append(
                 CallProspect(
                     business_name=business_name,
+                    first_name=first_name or None,
+                    last_name=last_name or None,
+                    position=position or None,
+                    email=email or None,
+                    linkedin_url=linkedin_url or None,
                     phone=phone or None,
                     vertical=vertical or None,
                     address=address or None,
