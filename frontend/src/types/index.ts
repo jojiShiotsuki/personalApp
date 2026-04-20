@@ -1621,6 +1621,7 @@ export interface NurtureLead {
   quiet_since: string | null;
   last_action_at: string;
   next_followup_at: string | null;
+  scheduled_followup_at: string | null;
   followup_stage: FollowupStage | null;
   notes: string | null;
   created_at: string;

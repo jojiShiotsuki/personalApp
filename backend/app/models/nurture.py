@@ -43,7 +43,8 @@ class NurtureLead(Base):
     status = Column(Enum(NurtureStatus), default=NurtureStatus.ACTIVE, nullable=False)
     quiet_since = Column(DateTime, nullable=True)
     last_action_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    next_followup_at = Column(DateTime, nullable=True)
+    next_followup_at = Column(DateTime, nullable=True)  # Auto-computed by scheduler
+    scheduled_followup_at = Column(DateTime, nullable=True, index=True)  # User-set override; scheduler respects this
     followup_stage = Column(Enum(FollowupStage), nullable=True)
     notes = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)

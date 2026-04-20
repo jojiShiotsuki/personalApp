@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import func, or_, case, nullslast
+from sqlalchemy import func, or_, and_, case, nullslast
 from typing import Optional
 from datetime import datetime
 import logging
@@ -53,6 +53,7 @@ def _build_lead_response(lead: NurtureLead) -> NurtureLeadResponse:
         quiet_since=lead.quiet_since,
         last_action_at=lead.last_action_at,
         next_followup_at=lead.next_followup_at,
+        scheduled_followup_at=lead.scheduled_followup_at,
         followup_stage=lead.followup_stage,
         notes=lead.notes,
         created_at=lead.created_at,
@@ -101,9 +102,22 @@ def get_stats(db: Session = Depends(get_db)):
         NurtureLead.status == NurtureStatus.ACTIVE,
     ).scalar() or 0
 
+    now = datetime.utcnow()
+    # A lead needs follow-up if either:
+    #   (a) the user scheduled a follow-up date that has now arrived, OR
+    #   (b) no user-scheduled date AND the auto-computed next_followup_at has arrived
     needs_followup = db.query(func.count(NurtureLead.id)).filter(
         NurtureLead.status.in_([NurtureStatus.ACTIVE, NurtureStatus.QUIET]),
-        NurtureLead.next_followup_at <= datetime.utcnow(),
+        or_(
+            and_(
+                NurtureLead.scheduled_followup_at.is_not(None),
+                NurtureLead.scheduled_followup_at <= now,
+            ),
+            and_(
+                NurtureLead.scheduled_followup_at.is_(None),
+                NurtureLead.next_followup_at <= now,
+            ),
+        ),
     ).scalar() or 0
 
     long_term = db.query(func.count(NurtureLead.id)).filter(
@@ -168,9 +182,19 @@ def list_leads(
             query = query.filter(NurtureLead.campaign_id == campaign_id)
 
     if needs_followup is True:
+        now = datetime.utcnow()
         query = query.filter(
             NurtureLead.status.in_([NurtureStatus.ACTIVE, NurtureStatus.QUIET]),
-            NurtureLead.next_followup_at <= datetime.utcnow(),
+            or_(
+                and_(
+                    NurtureLead.scheduled_followup_at.is_not(None),
+                    NurtureLead.scheduled_followup_at <= now,
+                ),
+                and_(
+                    NurtureLead.scheduled_followup_at.is_(None),
+                    NurtureLead.next_followup_at <= now,
+                ),
+            ),
         )
 
     if search:
@@ -185,9 +209,14 @@ def list_leads(
             )
         )
 
-    # Order: next_followup_at ASC NULLS LAST, then last_action_at DESC
+    # Order by effective follow-up date (user-set wins over auto-computed),
+    # NULLS LAST, then last_action_at DESC.
+    effective_followup = func.coalesce(
+        NurtureLead.scheduled_followup_at,
+        NurtureLead.next_followup_at,
+    )
     query = query.order_by(
-        nullslast(NurtureLead.next_followup_at.asc()),
+        nullslast(effective_followup.asc()),
         NurtureLead.last_action_at.desc(),
     )
 
@@ -342,6 +371,16 @@ def update_lead(lead_id: int, data: NurtureLeadUpdate, db: Session = Depends(get
         lead.status = data.status
     if data.source_channel is not None:
         lead.source_channel = data.source_channel
+    if data.clear_scheduled_followup:
+        lead.scheduled_followup_at = None
+    elif data.scheduled_followup_at is not None:
+        lead.scheduled_followup_at = data.scheduled_followup_at
+        # User-set date overrides any auto-derived followup state
+        lead.followup_stage = None
+        lead.next_followup_at = None
+        lead.quiet_since = None
+        if lead.status == NurtureStatus.QUIET:
+            lead.status = NurtureStatus.ACTIVE
     if data.current_step is not None and 1 <= data.current_step <= 5:
         # Create step log if moving to a new step that doesn't have one
         existing_log = (

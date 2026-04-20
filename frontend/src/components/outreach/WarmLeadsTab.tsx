@@ -29,6 +29,7 @@ import {
   Instagram,
   Facebook,
   Music,
+  Calendar,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -124,6 +125,114 @@ function daysSince(dateStr: string): number {
   return Math.max(0, Math.floor((now.getTime() - then.getTime()) / (1000 * 60 * 60 * 24)));
 }
 
+function formatScheduledDate(iso: string): string {
+  const d = new Date(iso);
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+function isScheduledDue(iso: string | null): boolean {
+  if (!iso) return false;
+  return new Date(iso).getTime() <= Date.now();
+}
+
+function toDateInputValue(iso: string | null): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function ScheduleFollowupPopover({
+  anchorRect,
+  currentValue,
+  onClose,
+  onSave,
+  onClear,
+  isSaving,
+}: {
+  anchorRect: DOMRect;
+  currentValue: string | null;
+  onClose: () => void;
+  onSave: (isoDate: string) => void;
+  onClear: () => void;
+  isSaving: boolean;
+}) {
+  const [date, setDate] = useState(toDateInputValue(currentValue));
+
+  // Position below anchor, clamped to viewport
+  const popoverWidth = 260;
+  const left = Math.min(
+    Math.max(8, anchorRect.left),
+    window.innerWidth - popoverWidth - 8
+  );
+  const top = Math.min(
+    anchorRect.bottom + 6,
+    window.innerHeight - 200
+  );
+
+  const handleSave = () => {
+    if (!date) return;
+    // Send ISO datetime at end of day local time so the date the user picked is what they see
+    const d = new Date(date);
+    d.setHours(23, 59, 59, 999);
+    onSave(d.toISOString());
+  };
+
+  return createPortal(
+    <>
+      <div className="fixed inset-0 z-40" onClick={onClose} />
+      <div
+        className="fixed z-50 bg-[--exec-surface] border border-stone-600/40 rounded-xl shadow-2xl p-3"
+        style={{ top, left, width: popoverWidth }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-xs font-semibold text-[--exec-text]">Schedule follow-up</span>
+          <button
+            onClick={onClose}
+            className="text-[--exec-text-muted] hover:text-[--exec-text] p-0.5 rounded transition-colors"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+        <input
+          type="date"
+          value={date}
+          onChange={(e) => setDate(e.target.value)}
+          min={toDateInputValue(new Date().toISOString())}
+          className={cn(inputClasses, 'text-xs py-2')}
+          autoFocus
+        />
+        <div className="flex gap-2 mt-2">
+          {currentValue && (
+            <button
+              onClick={onClear}
+              disabled={isSaving}
+              className="flex-1 px-2 py-1.5 text-xs font-medium text-[--exec-text-secondary] bg-stone-700/50 hover:bg-stone-600/50 rounded-lg transition-colors disabled:opacity-50"
+            >
+              Clear
+            </button>
+          )}
+          <button
+            onClick={handleSave}
+            disabled={!date || isSaving}
+            className={cn(
+              'flex-1 px-2 py-1.5 text-xs font-medium text-white rounded-lg transition-all',
+              'shadow-sm hover:shadow-md hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed'
+            )}
+            style={{ backgroundColor: 'var(--exec-accent)' }}
+          >
+            {isSaving ? 'Saving...' : 'Save'}
+          </button>
+        </div>
+      </div>
+    </>,
+    document.body
+  );
+}
+
 function EditProspectInlineModal({
   prospect,
   onClose,
@@ -208,6 +317,7 @@ export default function WarmLeadsTab() {
   const [followupOpen, setFollowupOpen] = useState(true);
   const [emailModalProspect, setEmailModalProspect] = useState<OutreachProspect | null>(null);
   const [editingProspect, setEditingProspect] = useState<OutreachProspect | null>(null);
+  const [scheduleAnchor, setScheduleAnchor] = useState<{ leadId: number; rect: DOMRect } | null>(null);
   const [isAddLeadOpen, setIsAddLeadOpen] = useState(false);
   const [selectedCampaignId, setSelectedCampaignId] = useState<number | null>(null);
   const [isNewCampaignOpen, setIsNewCampaignOpen] = useState(false);
@@ -325,6 +435,41 @@ export default function WarmLeadsTab() {
     },
   });
 
+  const scheduleFollowupMutation = useMutation({
+    mutationFn: ({ id, isoDate, clear }: { id: number; isoDate?: string; clear?: boolean }) =>
+      nurtureApi.updateLead(
+        id,
+        clear
+          ? { clear_scheduled_followup: true }
+          : { scheduled_followup_at: isoDate }
+      ),
+    onMutate: async ({ id, isoDate, clear }) => {
+      await queryClient.cancelQueries({ queryKey: ['nurture-leads'] });
+      queryClient.setQueryData<NurtureLead[]>(['nurture-leads', selectedCampaignId], (old) =>
+        old?.map((l) =>
+          l.id === id
+            ? {
+                ...l,
+                scheduled_followup_at: clear ? null : isoDate ?? l.scheduled_followup_at,
+                followup_stage: clear ? l.followup_stage : null,
+              }
+            : l
+        )
+      );
+      setScheduleAnchor(null);
+      return {};
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['nurture-leads'] });
+      queryClient.invalidateQueries({ queryKey: ['nurture-stats'] });
+      toast.success(variables.clear ? 'Follow-up date cleared' : 'Follow-up scheduled');
+    },
+    onError: () => {
+      toast.error('Failed to update follow-up date');
+      queryClient.invalidateQueries({ queryKey: ['nurture-leads'] });
+    },
+  });
+
   // Drag-and-drop state
   const [draggedLeadId, setDraggedLeadId] = useState<number | null>(null);
   const [dragOverStep, setDragOverStep] = useState<number | null>(null);
@@ -405,8 +550,16 @@ export default function WarmLeadsTab() {
   }
 
   const followupLeads = leads
-    .filter((l) => l.followup_stage !== null)
+    .filter((l) => l.followup_stage !== null || isScheduledDue(l.scheduled_followup_at))
     .sort((a, b) => {
+      // User-scheduled-due leads sort to the top (urgency: user explicitly chose this date)
+      const aScheduledDue = isScheduledDue(a.scheduled_followup_at);
+      const bScheduledDue = isScheduledDue(b.scheduled_followup_at);
+      if (aScheduledDue && !bScheduledDue) return -1;
+      if (!aScheduledDue && bScheduledDue) return 1;
+      if (aScheduledDue && bScheduledDue) {
+        return new Date(a.scheduled_followup_at!).getTime() - new Date(b.scheduled_followup_at!).getTime();
+      }
       const pa = FOLLOWUP_PRIORITY[a.followup_stage!];
       const pb = FOLLOWUP_PRIORITY[b.followup_stage!];
       return pa - pb;
@@ -632,6 +785,22 @@ export default function WarmLeadsTab() {
                           >
                             <Edit2 className="w-3.5 h-3.5" />
                           </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                              setScheduleAnchor({ leadId: lead.id, rect });
+                            }}
+                            className={cn(
+                              'p-1.5 rounded-lg transition-colors',
+                              lead.scheduled_followup_at
+                                ? 'text-amber-400 bg-amber-500/15'
+                                : 'text-[--exec-text-muted] hover:text-amber-400 hover:bg-amber-500/15'
+                            )}
+                            title={lead.scheduled_followup_at ? `Scheduled: ${formatScheduledDate(lead.scheduled_followup_at)}` : 'Schedule follow-up'}
+                          >
+                            <Calendar className="w-3.5 h-3.5" />
+                          </button>
                         </div>
 
                         {/* Company name */}
@@ -694,6 +863,24 @@ export default function WarmLeadsTab() {
                             </span>
                           </div>
                         </div>
+
+                        {/* Scheduled follow-up badge */}
+                        {lead.scheduled_followup_at && (
+                          <div
+                            className={cn(
+                              'flex items-center gap-1.5 px-2 py-1 mb-2 rounded-lg text-xs font-medium',
+                              isScheduledDue(lead.scheduled_followup_at)
+                                ? 'bg-red-500/15 text-red-400'
+                                : 'bg-amber-500/15 text-amber-400'
+                            )}
+                          >
+                            <Calendar className="w-3 h-3" />
+                            <span>
+                              {isScheduledDue(lead.scheduled_followup_at) ? 'Due' : 'Scheduled'}{' '}
+                              {formatScheduledDate(lead.scheduled_followup_at)}
+                            </span>
+                          </div>
+                        )}
 
                         {/* Links row */}
                         <div className="pt-2 border-t border-stone-700/30">
@@ -849,7 +1036,8 @@ export default function WarmLeadsTab() {
             <div className="border-t border-stone-700/30 divide-y divide-stone-700/30">
               {followupLeads.map((lead) => {
                 const stepInfo = NURTURE_STEPS.find((s) => s.step === lead.current_step);
-                const stageBadge = getFollowupStageBadge(lead.followup_stage!);
+                const scheduledDue = isScheduledDue(lead.scheduled_followup_at);
+                const stageBadge = lead.followup_stage ? getFollowupStageBadge(lead.followup_stage) : null;
                 const daysSinceAction = daysSince(lead.last_action_at);
 
                 return (
@@ -875,16 +1063,23 @@ export default function WarmLeadsTab() {
                         </span>
                       )}
 
-                      {/* Follow-up Stage Badge */}
-                      <span
-                        className={cn(
-                          'px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap',
-                          stageBadge.bg,
-                          stageBadge.text
-                        )}
-                      >
-                        {stageBadge.label}
-                      </span>
+                      {/* Follow-up Stage / Scheduled Badge */}
+                      {scheduledDue ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap bg-red-500/20 text-red-400">
+                          <Calendar className="w-3 h-3" />
+                          Scheduled — Due {formatScheduledDate(lead.scheduled_followup_at!)}
+                        </span>
+                      ) : stageBadge ? (
+                        <span
+                          className={cn(
+                            'px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap',
+                            stageBadge.bg,
+                            stageBadge.text
+                          )}
+                        >
+                          {stageBadge.label}
+                        </span>
+                      ) : null}
 
                       {/* Days since last action */}
                       <span className="text-xs text-[--exec-text-muted] whitespace-nowrap">
@@ -913,6 +1108,22 @@ export default function WarmLeadsTab() {
           )}
         </div>
       )}
+
+      {/* Schedule Follow-up Popover */}
+      {scheduleAnchor && (() => {
+        const lead = leads.find((l) => l.id === scheduleAnchor.leadId);
+        if (!lead) return null;
+        return (
+          <ScheduleFollowupPopover
+            anchorRect={scheduleAnchor.rect}
+            currentValue={lead.scheduled_followup_at}
+            onClose={() => setScheduleAnchor(null)}
+            onSave={(isoDate) => scheduleFollowupMutation.mutate({ id: lead.id, isoDate })}
+            onClear={() => scheduleFollowupMutation.mutate({ id: lead.id, clear: true })}
+            isSaving={scheduleFollowupMutation.isPending}
+          />
+        );
+      })()}
 
       {/* New Campaign / Edit Campaign Modal */}
       <NewCampaignModal

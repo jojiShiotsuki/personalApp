@@ -29,6 +29,7 @@ class NurtureLeadResponse(BaseModel):
     quiet_since: Optional[datetime] = None
     last_action_at: datetime
     next_followup_at: Optional[datetime] = None
+    scheduled_followup_at: Optional[datetime] = None
     followup_stage: Optional[FollowupStage] = None
     notes: Optional[str] = None
     created_at: datetime
@@ -72,6 +73,12 @@ class NurtureLeadUpdate(BaseModel):
     status: Optional[NurtureStatus] = None
     current_step: Optional[int] = None
     source_channel: Optional[str] = None
+    # Pydantic-friendly tri-state for clearing a date:
+    # - omit field → leave unchanged
+    # - send null → clear
+    # - send ISO datetime → set
+    scheduled_followup_at: Optional[datetime] = None
+    clear_scheduled_followup: Optional[bool] = False
 
 
 class CompleteStepRequest(BaseModel):

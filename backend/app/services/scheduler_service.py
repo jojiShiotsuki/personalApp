@@ -153,6 +153,10 @@ def _nurture_followup_check_blocking():
         )
         now = datetime.utcnow()
         for lead in active_leads:
+            # User-set scheduled follow-up takes precedence — scheduler stays out of it.
+            if lead.scheduled_followup_at is not None:
+                continue
+
             days_quiet = (now - lead.last_action_at).days
 
             if days_quiet >= 20:
