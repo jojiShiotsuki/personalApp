@@ -198,6 +198,14 @@ def import_call_prospects(
             value = value[1:].strip()
         return value
 
+    def _get_first_nonempty(row: dict, headers: list) -> str:
+        """Walk a list of CSV headers and return the first non-empty value."""
+        for h in headers:
+            v = _get(row, h)
+            if v:
+                return v
+        return ""
+
     def _build_notes(row: dict) -> Optional[str]:
         """
         Compose the final notes field:
@@ -235,7 +243,7 @@ def import_call_prospects(
                 errors.append(f"Row {idx}: missing business_name")
                 continue
 
-            phone = _get(row, mapping.phone)
+            phone = _get_first_nonempty(row, mapping.phone)
             first_name = _get(row, mapping.first_name)
             last_name = _get(row, mapping.last_name)
             position = _get(row, mapping.position)

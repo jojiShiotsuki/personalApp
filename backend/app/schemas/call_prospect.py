@@ -91,7 +91,11 @@ class CallProspectCsvColumnMapping(BaseModel):
     notes value comes first, then the append columns follow.
     """
     business_name: str
-    phone: str
+    # Phone is a list of CSV header names. The import walks them in order and
+    # takes the first non-empty value per row. Apollo splits phone across
+    # Mobile/Work Direct/Corporate/Home/Other and any single column is empty
+    # for many rows — fallbacks make the import resilient.
+    phone: List[str]
     first_name: Optional[str] = None
     last_name: Optional[str] = None
     position: Optional[str] = None

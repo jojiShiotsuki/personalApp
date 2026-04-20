@@ -65,7 +65,11 @@ interface TargetOption {
 const TARGET_OPTIONS: TargetOption[] = [
   { value: 'ignore', label: 'Ignore' },
   { value: 'business_name', label: 'Business Name', required: true, singleton: true },
-  { value: 'phone', label: 'Phone', required: true, singleton: true },
+  // phone is intentionally NOT singleton — Apollo splits phone across
+  // Mobile/Work Direct/Corporate/Home/Other and any single column is empty
+  // for many rows. Mapping multiple columns lets the backend fall back to
+  // whichever has data per row.
+  { value: 'phone', label: 'Phone (map all phone columns)', required: true },
   { value: 'first_name', label: 'First Name', singleton: true },
   { value: 'last_name', label: 'Last Name', singleton: true },
   { value: 'position', label: 'Position / Job Title', singleton: true },
@@ -186,7 +190,8 @@ const HEADER_ALIASES: Record<string, TargetField> = {
   linkedin: 'linkedin_url',
   person_linkedin_url: 'linkedin_url',
   linkedin_profile: 'linkedin_url',
-  // phone
+  // phone — non-singleton, all phone variants map here so the backend
+  // can fall back to whichever has data per row.
   phone: 'phone',
   phone_number: 'phone',
   phone_1: 'phone',
@@ -195,6 +200,9 @@ const HEADER_ALIASES: Record<string, TargetField> = {
   mobile_phone: 'phone',
   work_direct_phone: 'phone',
   corporate_phone: 'phone',
+  home_phone: 'phone',
+  other_phone: 'phone',
+  company_phone: 'phone',
   contact: 'phone',
   // vertical
   vertical: 'vertical',
@@ -331,6 +339,7 @@ function buildColumnMapping(
   headerMapping: Record<string, TargetField>
 ): CallProspectCsvColumnMapping | null {
   const payload: Partial<CallProspectCsvColumnMapping> = {
+    phone: [],
     notes_append_columns: [],
   };
 
@@ -340,10 +349,14 @@ function buildColumnMapping(
       payload.notes_append_columns = [...(payload.notes_append_columns ?? []), header];
       continue;
     }
+    if (target === 'phone') {
+      payload.phone = [...(payload.phone ?? []), header];
+      continue;
+    }
     (payload as Record<string, unknown>)[target] = header;
   }
 
-  if (!payload.business_name || !payload.phone) return null;
+  if (!payload.business_name || !payload.phone || payload.phone.length === 0) return null;
 
   return {
     business_name: payload.business_name,
@@ -558,7 +571,10 @@ export default function ColdCallCsvImportModal({
     if (!columnMapping) return [];
     return csvData.slice(0, 3).map((row) => ({
       business_name: row[columnMapping.business_name] ?? '',
-      phone: row[columnMapping.phone] ?? '',
+      phone:
+        columnMapping.phone
+          .map((h) => (row[h] ?? '').trim())
+          .find((v) => v.length > 0) ?? '',
       notes: buildPreviewNotes(row, columnMapping),
     }));
   }, [columnMapping, csvData]);

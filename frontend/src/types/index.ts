@@ -1733,7 +1733,10 @@ export interface CallProspectUpdate {
 
 export interface CallProspectCsvColumnMapping {
   business_name: string;
-  phone: string;
+  // Phone is a list of CSV header names. Backend takes the first non-empty
+  // value per row — Apollo splits phone across Mobile/Work/Corporate so a
+  // single column is empty for many rows; fallbacks make import resilient.
+  phone: string[];
   first_name?: string;
   last_name?: string;
   position?: string;
