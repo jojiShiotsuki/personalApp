@@ -23,6 +23,7 @@ class CallProspectBase(BaseModel):
     email: Optional[str] = Field(None, max_length=255)
     linkedin_url: Optional[str] = Field(None, max_length=500)
     phone: Optional[str] = Field(None, max_length=50)
+    additional_phones: Optional[List[dict]] = None  # [{label, value}, ...]
     vertical: Optional[str] = Field(None, max_length=100)
     address: Optional[str] = Field(None, max_length=500)
     facebook_url: Optional[str] = Field(None, max_length=500)
@@ -50,6 +51,7 @@ class CallProspectUpdate(BaseModel):
     email: Optional[str] = Field(None, max_length=255)
     linkedin_url: Optional[str] = Field(None, max_length=500)
     phone: Optional[str] = Field(None, max_length=50)
+    additional_phones: Optional[List[dict]] = None
     vertical: Optional[str] = Field(None, max_length=100)
     address: Optional[str] = Field(None, max_length=500)
     facebook_url: Optional[str] = Field(None, max_length=500)

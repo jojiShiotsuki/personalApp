@@ -233,6 +233,25 @@ def import_call_prospects(
                 return v
         return ""
 
+    def _collect_phones(row: dict, headers: list) -> tuple[str, list]:
+        """Return (primary_phone, additional_phones).
+
+        Walks every mapped phone column; first non-empty value becomes the
+        primary, the rest are stored as labeled additional phones so the
+        cold-call card can show every available number.
+        """
+        primary = ""
+        additional: list = []
+        for h in headers:
+            v = _get(row, h)
+            if not v:
+                continue
+            if not primary:
+                primary = v
+            else:
+                additional.append({"label": h, "value": v})
+        return primary, additional
+
     def _build_notes(row: dict) -> Optional[str]:
         """
         Compose the final notes field:
@@ -270,7 +289,7 @@ def import_call_prospects(
                 errors.append(f"Row {idx}: missing business_name")
                 continue
 
-            phone = _get_first_nonempty(row, mapping.phone)
+            phone, additional_phones = _collect_phones(row, mapping.phone)
             first_name = _get(row, mapping.first_name)
             last_name = _get(row, mapping.last_name)
             position = _get(row, mapping.position)
@@ -304,6 +323,7 @@ def import_call_prospects(
                     email=email or None,
                     linkedin_url=linkedin_url or None,
                     phone=phone or None,
+                    additional_phones=additional_phones or None,
                     vertical=vertical or None,
                     address=address or None,
                     facebook_url=facebook_url or None,

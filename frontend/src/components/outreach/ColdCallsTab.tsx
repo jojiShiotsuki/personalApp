@@ -143,6 +143,12 @@ function ensureUrl(value: string): string {
   return /^https?:\/\//i.test(value) ? value : `https://${value}`;
 }
 
+// "Mobile Phone" → "Mobile", "Work Direct Phone" → "Work Direct".
+// Drops trailing " Phone" so the label doesn't visually duplicate the icon.
+function shortenPhoneLabel(label: string): string {
+  return label.replace(/\s*Phone\s*$/i, '').trim() || label;
+}
+
 interface CallProspectCardProps {
   prospect: CallProspect;
   index: number;
@@ -216,12 +222,35 @@ function CallProspectCard({ prospect, index, onClick, isSelected, onToggleSelect
               <a
                 href={`tel:${phone.replace(/\s+/g, '')}`}
                 onClick={(e) => e.stopPropagation()}
-                className="inline-flex items-center gap-1.5 text-xs text-[--exec-text] font-mono mb-2 hover:text-[--exec-accent] transition-colors"
+                className="inline-flex items-center gap-1.5 text-xs text-[--exec-text] font-mono mb-1 hover:text-[--exec-accent] transition-colors"
                 title="Call"
               >
                 <Phone className="w-3 h-3 text-[--exec-text-muted]" />
                 {phone}
               </a>
+            )}
+
+            {prospect.additional_phones && prospect.additional_phones.length > 0 && (
+              <div className="ml-[18px] mb-2 space-y-0.5">
+                {prospect.additional_phones.map((p) => {
+                  const cleaned = cleanPhone(p.value);
+                  if (!cleaned) return null;
+                  return (
+                    <a
+                      key={`${p.label}-${cleaned}`}
+                      href={`tel:${cleaned.replace(/\s+/g, '')}`}
+                      onClick={(e) => e.stopPropagation()}
+                      className="flex items-baseline gap-1.5 text-[11px] font-mono text-[--exec-text-muted] hover:text-[--exec-accent] transition-colors"
+                      title={`Call ${p.label}`}
+                    >
+                      <span className="text-[10px] uppercase tracking-wide font-sans font-medium text-[--exec-text-muted]/80 w-[58px] flex-shrink-0">
+                        {shortenPhoneLabel(p.label)}
+                      </span>
+                      <span className="truncate">{cleaned}</span>
+                    </a>
+                  );
+                })}
+              </div>
             )}
 
             {prospect.vertical && (

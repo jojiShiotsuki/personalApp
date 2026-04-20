@@ -1665,6 +1665,7 @@ export interface CallProspect {
   email: string | null;
   linkedin_url: string | null;
   phone: string | null;
+  additional_phones: Array<{ label: string; value: string }> | null;
   vertical: string | null;
   address: string | null;
   facebook_url: string | null;

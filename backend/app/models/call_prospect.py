@@ -10,7 +10,7 @@ workflow differ from email/LinkedIn outreach.
 import enum
 from datetime import datetime
 
-from sqlalchemy import Column, DateTime, Float, ForeignKey, Index, Integer, String, Text
+from sqlalchemy import JSON, Column, DateTime, Float, ForeignKey, Index, Integer, String, Text
 
 from app.database import Base
 
@@ -33,7 +33,11 @@ class CallProspect(Base):
     position = Column(String(255), nullable=True)  # job title, e.g. "Founder & Creative Director"
     email = Column(String(255), nullable=True)
     linkedin_url = Column(String(500), nullable=True)
-    phone = Column(String(50), nullable=True)
+    phone = Column(String(50), nullable=True)  # Primary (first non-empty) phone
+    # All phones from the source CSV, labeled with their original column name
+    # (e.g. [{"label": "Mobile Phone", "value": "+61 499 153 849"}, ...]).
+    # Lets the cold-call UI surface every phone so the user picks the right one.
+    additional_phones = Column(JSON, nullable=True)
     vertical = Column(String(100), nullable=True)  # aircon, barbershop, salon, etc.
     address = Column(String(500), nullable=True)
     facebook_url = Column(String(500), nullable=True)
