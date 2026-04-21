@@ -35,6 +35,7 @@ class CallProspectBase(BaseModel):
     working_hours: Optional[str] = Field(None, max_length=1000)
     description: Optional[str] = None
     notes: Optional[str] = None
+    script_label: Optional[str] = Field(None, max_length=50)
     campaign_id: Optional[int] = None
     current_step: int = 1
 
@@ -63,6 +64,7 @@ class CallProspectUpdate(BaseModel):
     working_hours: Optional[str] = Field(None, max_length=1000)
     description: Optional[str] = None
     notes: Optional[str] = None
+    script_label: Optional[str] = Field(None, max_length=50)
     status: Optional[CallStatus] = None
     campaign_id: Optional[int] = None
     current_step: Optional[int] = Field(None, ge=1)
@@ -127,3 +129,12 @@ class CallProspectCsvImportResponse(BaseModel):
     imported_count: int
     skipped_count: int
     errors: List[str]
+
+
+class BulkLabelRequest(BaseModel):
+    ids: List[int] = Field(..., min_length=1)
+    script_label: Optional[str] = Field(None, max_length=50)
+
+
+class BulkLabelResponse(BaseModel):
+    updated_count: int
