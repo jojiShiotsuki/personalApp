@@ -48,6 +48,7 @@ import {
   type KanbanAccent,
 } from '@/lib/outreachStyles';
 import { getStepColor } from '@/lib/stepColors';
+import { getScriptLabelTokens } from '@/lib/scriptLabelColor';
 import { useWheelToHorizontalScroll } from '@/hooks/useWheelToHorizontalScroll';
 
 interface ColumnConfig {
@@ -245,6 +246,23 @@ function CallProspectCard({ prospect, index, onClick, isSelected, onToggleSelect
             )}>
               {prospect.business_name}
             </h4>
+
+            {prospect.script_label && (() => {
+              const tokens = getScriptLabelTokens(prospect.script_label);
+              return (
+                <div className="mb-1.5">
+                  <span
+                    className={cn(
+                      'inline-flex items-center text-[10px] uppercase tracking-wider font-semibold px-2 py-0.5 rounded-md',
+                      tokens.bg,
+                      tokens.text,
+                    )}
+                  >
+                    {prospect.script_label}
+                  </span>
+                </div>
+              );
+            })()}
 
             {personLine && (
               <p className="text-xs text-[--exec-text-secondary] line-clamp-1 mb-2">
