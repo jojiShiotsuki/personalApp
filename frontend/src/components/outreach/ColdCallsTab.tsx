@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -48,6 +48,7 @@ import {
   type KanbanAccent,
 } from '@/lib/outreachStyles';
 import { getStepColor } from '@/lib/stepColors';
+import { useWheelToHorizontalScroll } from '@/hooks/useWheelToHorizontalScroll';
 
 interface ColumnConfig {
   status: CallStatus;
@@ -395,6 +396,7 @@ function StepColumn({ step, prospects, onCardClick, selectedIds, onToggleSelect 
           className={cn(
             'bg-stone-700/30 rounded-xl p-3 border-l border-r border-b border-stone-600/40 min-w-[240px] flex-1',
             'border-t-2 transition-all',
+            'h-full flex flex-col min-h-0',
             borderClass,
             snapshot.isDraggingOver && 'ring-2 ring-[--exec-accent]/40 bg-stone-800/40'
           )}
@@ -424,7 +426,10 @@ function StepColumn({ step, prospects, onCardClick, selectedIds, onToggleSelect 
           )}
 
           {/* Cards */}
-          <div className="space-y-2">
+          <div
+            data-col-scroll
+            className="flex-1 min-h-0 overflow-y-auto pr-1 space-y-2"
+          >
             {prospects.map((prospect, index) => (
               <CallProspectCard
                 key={prospect.id}
@@ -467,6 +472,7 @@ function Column({ column, prospects, onCardClick, selectedIds, onToggleSelect }:
           className={cn(
             kanbanColumnClasses,
             kanbanColumnAccents[column.accent],
+            'h-full flex flex-col min-h-0',
             snapshot.isDraggingOver && 'ring-2 ring-[--exec-accent]/40 bg-stone-800/40'
           )}
         >
@@ -491,7 +497,10 @@ function Column({ column, prospects, onCardClick, selectedIds, onToggleSelect }:
           </div>
 
           {/* Cards */}
-          <div className="space-y-2">
+          <div
+            data-col-scroll
+            className="flex-1 min-h-0 overflow-y-auto pr-1 space-y-2"
+          >
             {prospects.map((prospect, index) => (
               <CallProspectCard
                 key={prospect.id}
@@ -526,6 +535,9 @@ export default function ColdCallsTab() {
   const [editingCampaign, setEditingCampaign] = useState<OutreachCampaign | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
+
+  const kanbanScrollRef = useRef<HTMLDivElement | null>(null);
+  useWheelToHorizontalScroll(kanbanScrollRef);
 
   const toggleSelect = (id: number) => {
     setSelectedIds((prev) => {
@@ -788,7 +800,10 @@ export default function ColdCallsTab() {
           </div>
         ) : (
           <DragDropContext onDragEnd={handleDragEnd}>
-            <div className="flex gap-3 overflow-x-auto pb-2">
+            <div
+              ref={kanbanScrollRef}
+              className="flex gap-3 overflow-x-auto overflow-y-hidden pb-2 h-[calc(100vh-22rem)] min-h-[480px]"
+            >
               {isStepView
                 ? stepColumns.map((step) => (
                     <StepColumn
