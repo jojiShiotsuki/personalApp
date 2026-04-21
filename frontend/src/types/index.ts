@@ -1677,6 +1677,7 @@ export interface CallProspect {
   working_hours: string | null;
   description: string | null;
   notes: string | null;
+  script_label?: string | null;
   status: CallStatus;
   campaign_id: number | null;
   current_step: number;
@@ -1727,6 +1728,7 @@ export interface CallProspectUpdate {
   working_hours?: string | null;
   description?: string | null;
   notes?: string | null;
+  script_label?: string | null;
   status?: CallStatus;
   campaign_id?: number | null;
   current_step?: number;
