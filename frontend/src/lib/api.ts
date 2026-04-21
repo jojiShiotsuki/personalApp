@@ -1637,6 +1637,17 @@ export const coldCallsApi = {
     return response.data;
   },
 
+  bulkUpdateLabel: async (
+    ids: number[],
+    script_label: string | null,
+  ): Promise<{ updated_count: number }> => {
+    const response = await api.post('/api/cold-calls/bulk-update-label', {
+      ids,
+      script_label,
+    });
+    return response.data;
+  },
+
   import: async (data: CallProspectCsvImportRequest): Promise<CallProspectCsvImportResponse> => {
     const response = await api.post('/api/cold-calls/import', data);
     return response.data;
