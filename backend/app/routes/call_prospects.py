@@ -1,12 +1,14 @@
 """
-Cold Calls pipeline routes — CRUD and CSV import for CallProspect.
+Cold Calls pipeline routes — CRUD, bulk ops, and CSV import for CallProspect.
 
 Endpoints:
-  GET    /api/cold-calls              list (optional status filter)
-  POST   /api/cold-calls              create
-  PUT    /api/cold-calls/{id}         update (stage, notes, fields)
-  DELETE /api/cold-calls/{id}         delete
-  POST   /api/cold-calls/import       bulk CSV import (Outscraper)
+  GET    /api/cold-calls                    list (optional status filter)
+  POST   /api/cold-calls                    create
+  PUT    /api/cold-calls/{id}               update (stage, notes, fields)
+  DELETE /api/cold-calls/{id}               delete
+  POST   /api/cold-calls/bulk-delete        bulk delete by ID list
+  POST   /api/cold-calls/bulk-update-label  bulk assign script_label
+  POST   /api/cold-calls/import             bulk CSV import (Outscraper)
 """
 import logging
 import re
@@ -135,7 +137,7 @@ def create_call_prospect(data: CallProspectCreate, db: Session = Depends(get_db)
         working_hours=data.working_hours.strip() if data.working_hours else None,
         description=data.description,
         notes=data.notes,
-        script_label=data.script_label,
+        script_label=(data.script_label or "").strip() or None,
         status=data.status.value,
         campaign_id=data.campaign_id,
     )
@@ -160,6 +162,8 @@ def update_call_prospect(
     for field, value in update_data.items():
         if field in ("business_name", "phone", "vertical", "address") and value:
             value = value.strip()
+        if field == "script_label":
+            value = (value or "").strip() or None
         if field == "status" and value is not None:
             # Pydantic gives us a CallStatus enum; store the string value.
             value = value.value if hasattr(value, "value") else value
