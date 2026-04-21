@@ -60,6 +60,7 @@ export default function CallProspectDetailModal({
   const queryClient = useQueryClient();
   const [notes, setNotes] = useState(prospect.notes ?? '');
   const [status, setStatus] = useState<CallStatus>(prospect.status);
+  const [scriptLabel, setScriptLabel] = useState(prospect.script_label ?? '');
   const [descExpanded, setDescExpanded] = useState(false);
   const [descOverflows, setDescOverflows] = useState(false);
   const descRef = useRef<HTMLDivElement>(null);
@@ -68,8 +69,9 @@ export default function CallProspectDetailModal({
   useEffect(() => {
     setNotes(prospect.notes ?? '');
     setStatus(prospect.status);
+    setScriptLabel(prospect.script_label ?? '');
     setDescExpanded(false);
-  }, [prospect.id, prospect.notes, prospect.status]);
+  }, [prospect.id, prospect.notes, prospect.status, prospect.script_label]);
 
   // Detect whether the clamped description actually overflows. Only measures
   // while collapsed — when expanded, scrollHeight === clientHeight so
@@ -86,6 +88,7 @@ export default function CallProspectDetailModal({
       coldCallsApi.update(prospect.id, {
         notes: notes.trim() ? notes : null,
         status,
+        script_label: scriptLabel.trim() || null,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['call-prospects'] });
@@ -309,6 +312,21 @@ export default function CallProspectDetailModal({
                   </option>
                 ))}
               </select>
+            </div>
+
+            {/* Script label — free text for A/B testing call scripts */}
+            <div>
+              <label className="block text-sm font-medium text-[--exec-text-secondary] mb-1.5">
+                Script Label
+              </label>
+              <input
+                type="text"
+                value={scriptLabel}
+                onChange={(e) => setScriptLabel(e.target.value)}
+                maxLength={50}
+                placeholder="e.g. Script A"
+                className={inputClasses}
+              />
             </div>
 
             {/* Notes textarea with timestamp button */}
