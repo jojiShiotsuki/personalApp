@@ -50,6 +50,8 @@ class CallProspect(Base):
     working_hours = Column(String(1000), nullable=True)  # "Sun: 8AM-5PM | Mon: 8AM-5PM | ..."
     description = Column(Text, nullable=True)
     notes = Column(Text, nullable=True)
+    # Free-text tag for A/B testing phone scripts. NULL = no label.
+    script_label = Column(String(50), nullable=True)
     status = Column(
         String(20),
         nullable=False,
