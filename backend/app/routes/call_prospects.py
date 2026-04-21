@@ -21,6 +21,8 @@ from app.models.call_prospect import CallProspect, CallStatus
 from pydantic import BaseModel, Field
 
 from app.schemas.call_prospect import (
+    BulkLabelRequest,
+    BulkLabelResponse,
     CallProspectCreate,
     CallProspectCsvImportRequest,
     CallProspectCsvImportResponse,
@@ -133,6 +135,7 @@ def create_call_prospect(data: CallProspectCreate, db: Session = Depends(get_db)
         working_hours=data.working_hours.strip() if data.working_hours else None,
         description=data.description,
         notes=data.notes,
+        script_label=data.script_label,
         status=data.status.value,
         campaign_id=data.campaign_id,
     )
@@ -193,6 +196,26 @@ def bulk_delete_call_prospects(
     )
     db.commit()
     return BulkDeleteResponse(deleted_count=deleted)
+
+
+@router.post("/bulk-update-label", response_model=BulkLabelResponse)
+def bulk_update_label(
+    payload: BulkLabelRequest,
+    db: Session = Depends(get_db),
+):
+    """Bulk-assign a script label to multiple prospects.
+
+    Empty string or None clears the label — both normalize to NULL in the
+    database so the frontend has one unambiguous shape for "no label".
+    """
+    cleaned = (payload.script_label or "").strip() or None
+    updated = (
+        db.query(CallProspect)
+        .filter(CallProspect.id.in_(payload.ids))
+        .update({"script_label": cleaned}, synchronize_session=False)
+    )
+    db.commit()
+    return BulkLabelResponse(updated_count=updated)
 
 
 @router.post("/import", response_model=CallProspectCsvImportResponse)
