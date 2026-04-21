@@ -10,6 +10,11 @@ import { useEffect } from 'react';
  *
  * No-op when the user is already scrolling horizontally (trackpad
  * two-finger) so the translation does not double-apply.
+ *
+ * Assumption: the referenced element's identity is stable for the
+ * component's lifetime. The effect re-runs only on ref-object change,
+ * not on `ref.current` mutations — swapping the underlying node after
+ * mount would leave the listener bound to the stale element.
  */
 export function useWheelToHorizontalScroll(
   ref: React.RefObject<HTMLElement | null>,
