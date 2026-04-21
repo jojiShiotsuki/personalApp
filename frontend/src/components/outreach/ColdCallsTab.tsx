@@ -939,7 +939,12 @@ export default function ColdCallsTab() {
                 maxLength={50}
                 autoFocus
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter' && labelInput.trim()) {
+                  if (
+                    e.key === 'Enter' &&
+                    labelInput.trim() &&
+                    !bulkUpdateLabelMutation.isPending
+                  ) {
+                    e.preventDefault();
                     bulkUpdateLabelMutation.mutate({
                       ids: Array.from(selectedIds),
                       label: labelInput,
@@ -960,12 +965,13 @@ export default function ColdCallsTab() {
               <div className="flex items-center gap-2 mt-2.5">
                 <button
                   type="button"
-                  onClick={() =>
+                  onClick={() => {
+                    if (!labelInput.trim() || bulkUpdateLabelMutation.isPending) return;
                     bulkUpdateLabelMutation.mutate({
                       ids: Array.from(selectedIds),
                       label: labelInput,
-                    })
-                  }
+                    });
+                  }}
                   disabled={!labelInput.trim() || bulkUpdateLabelMutation.isPending}
                   className="flex-1 px-3 py-1.5 text-xs font-semibold text-white bg-[--exec-accent] hover:bg-[--exec-accent-dark] rounded-lg shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
@@ -973,12 +979,13 @@ export default function ColdCallsTab() {
                 </button>
                 <button
                   type="button"
-                  onClick={() =>
+                  onClick={() => {
+                    if (bulkUpdateLabelMutation.isPending) return;
                     bulkUpdateLabelMutation.mutate({
                       ids: Array.from(selectedIds),
                       label: null,
-                    })
-                  }
+                    });
+                  }}
                   disabled={bulkUpdateLabelMutation.isPending}
                   className="px-3 py-1.5 text-xs font-medium text-[--exec-text-secondary] bg-stone-700/70 hover:bg-stone-600/70 rounded-lg transition-colors disabled:opacity-50"
                 >
