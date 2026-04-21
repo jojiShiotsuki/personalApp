@@ -24,6 +24,7 @@ import {
   Video,
   Pencil,
   Trash2,
+  Tag,
   X,
   Check,
 } from 'lucide-react';
@@ -553,6 +554,8 @@ export default function ColdCallsTab() {
   const [editingCampaign, setEditingCampaign] = useState<OutreachCampaign | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
+  const [isLabelPopoverOpen, setIsLabelPopoverOpen] = useState(false);
+  const [labelInput, setLabelInput] = useState('');
 
   const kanbanScrollRef = useRef<HTMLDivElement | null>(null);
   useWheelToHorizontalScroll(kanbanScrollRef);
@@ -565,7 +568,11 @@ export default function ColdCallsTab() {
       return next;
     });
   };
-  const clearSelection = () => setSelectedIds(new Set());
+  const clearSelection = () => {
+    setSelectedIds(new Set());
+    setIsLabelPopoverOpen(false);
+    setLabelInput('');
+  };
 
   // Clear selection when changing campaign (different prospect scope)
   useEffect(() => {
@@ -671,6 +678,44 @@ export default function ColdCallsTab() {
       toast.success(`Deleted ${result.deleted_count} prospect${result.deleted_count === 1 ? '' : 's'}`);
       clearSelection();
       setIsConfirmDeleteOpen(false);
+      queryClient.invalidateQueries({ queryKey: ['call-prospects'] });
+    },
+  });
+
+  const bulkUpdateLabelMutation = useMutation({
+    mutationFn: ({ ids, label }: { ids: number[]; label: string | null }) =>
+      coldCallsApi.bulkUpdateLabel(ids, label),
+    onMutate: async ({ ids, label }) => {
+      await queryClient.cancelQueries({ queryKey: ['call-prospects', selectedCampaignId] });
+      const previous = queryClient.getQueryData<CallProspect[]>([
+        'call-prospects',
+        selectedCampaignId,
+      ]);
+      const idSet = new Set(ids);
+      const cleaned = (label ?? '').trim() || null;
+      queryClient.setQueryData<CallProspect[]>(
+        ['call-prospects', selectedCampaignId],
+        (old) =>
+          old ? old.map((p) => (idSet.has(p.id) ? { ...p, script_label: cleaned } : p)) : [],
+      );
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(['call-prospects', selectedCampaignId], context.previous);
+      }
+      toast.error('Failed to update labels');
+    },
+    onSuccess: (result, { label }) => {
+      const cleaned = (label ?? '').trim() || null;
+      if (cleaned === null) {
+        toast.success(`Cleared ${result.updated_count} label${result.updated_count === 1 ? '' : 's'}`);
+      } else {
+        toast.success(`Labeled ${result.updated_count} prospect${result.updated_count === 1 ? '' : 's'}`);
+      }
+      clearSelection();
+      setIsLabelPopoverOpen(false);
+      setLabelInput('');
       queryClient.invalidateQueries({ queryKey: ['call-prospects'] });
     },
   });
@@ -881,6 +926,77 @@ export default function ColdCallsTab() {
       {/* Floating Action Bar — appears when ≥1 prospect selected */}
       {selectedIds.size > 0 && createPortal(
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 animate-in slide-in-from-bottom-4 fade-in duration-200">
+          {isLabelPopoverOpen && (
+            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-80 bg-stone-800 border border-stone-500/70 rounded-xl shadow-2xl shadow-black/60 ring-1 ring-black/40 p-3">
+              <label className="block text-xs font-medium text-[--exec-text-secondary] mb-1.5">
+                Label {selectedIds.size} prospect{selectedIds.size === 1 ? '' : 's'}
+              </label>
+              <input
+                type="text"
+                value={labelInput}
+                onChange={(e) => setLabelInput(e.target.value)}
+                placeholder="Script A"
+                maxLength={50}
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && labelInput.trim()) {
+                    bulkUpdateLabelMutation.mutate({
+                      ids: Array.from(selectedIds),
+                      label: labelInput,
+                    });
+                  }
+                  if (e.key === 'Escape') {
+                    setIsLabelPopoverOpen(false);
+                    setLabelInput('');
+                  }
+                }}
+                className={cn(
+                  'w-full px-3 py-2 rounded-lg text-sm',
+                  'bg-stone-900/60 border border-stone-600/40',
+                  'text-[--exec-text] placeholder:text-[--exec-text-muted]',
+                  'focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]/50',
+                )}
+              />
+              <div className="flex items-center gap-2 mt-2.5">
+                <button
+                  type="button"
+                  onClick={() =>
+                    bulkUpdateLabelMutation.mutate({
+                      ids: Array.from(selectedIds),
+                      label: labelInput,
+                    })
+                  }
+                  disabled={!labelInput.trim() || bulkUpdateLabelMutation.isPending}
+                  className="flex-1 px-3 py-1.5 text-xs font-semibold text-white bg-[--exec-accent] hover:bg-[--exec-accent-dark] rounded-lg shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Apply
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    bulkUpdateLabelMutation.mutate({
+                      ids: Array.from(selectedIds),
+                      label: null,
+                    })
+                  }
+                  disabled={bulkUpdateLabelMutation.isPending}
+                  className="px-3 py-1.5 text-xs font-medium text-[--exec-text-secondary] bg-stone-700/70 hover:bg-stone-600/70 rounded-lg transition-colors disabled:opacity-50"
+                >
+                  Clear label
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsLabelPopoverOpen(false);
+                    setLabelInput('');
+                  }}
+                  className="px-3 py-1.5 text-xs font-medium text-[--exec-text-muted] hover:text-[--exec-text] transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
           <div className="flex items-center gap-2 px-3 py-2 bg-stone-800 border border-stone-500/70 rounded-2xl shadow-2xl shadow-black/60 ring-1 ring-black/40">
             <span className="text-sm font-semibold text-[--exec-text] px-2">
               {selectedIds.size} selected
@@ -891,6 +1007,13 @@ export default function ColdCallsTab() {
             >
               <X className="w-3.5 h-3.5" />
               Clear
+            </button>
+            <button
+              onClick={() => setIsLabelPopoverOpen((v) => !v)}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[--exec-text-secondary] bg-stone-700/70 hover:bg-stone-600/70 rounded-lg transition-colors"
+            >
+              <Tag className="w-3.5 h-3.5" />
+              Set label
             </button>
             <button
               onClick={() => setIsConfirmDeleteOpen(true)}
