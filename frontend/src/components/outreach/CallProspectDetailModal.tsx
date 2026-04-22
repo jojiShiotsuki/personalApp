@@ -9,8 +9,6 @@ import {
   Globe,
   MapPin,
   ExternalLink,
-  // @ts-expect-error — PhoneCall is reserved for Task 9 (Callback card pill)
-  PhoneCall,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
