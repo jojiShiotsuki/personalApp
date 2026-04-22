@@ -60,6 +60,7 @@ import {
 } from '@/lib/callbackFormat';
 import { useCurrentMinute } from '@/hooks/useCurrentMinute';
 import { sortProspects, SORT_OPTIONS, type SortKey } from '@/lib/sortProspects';
+import { TIER_META } from '@/lib/tierMeta';
 
 interface ColumnConfig {
   status: CallStatus;
@@ -294,6 +295,23 @@ function CallProspectCard({ prospect, index, onClick, isSelected, onToggleSelect
             )}>
               {prospect.business_name}
             </h4>
+
+            {prospect.tier && (() => {
+              const meta = TIER_META[prospect.tier];
+              return (
+                <div className="mb-1.5">
+                  <span
+                    className={cn(
+                      'inline-flex items-center text-[10px] uppercase tracking-wider font-semibold px-2 py-0.5 rounded-md',
+                      meta.pillClasses,
+                    )}
+                    title={meta.fullLabel}
+                  >
+                    {meta.pillLabel}
+                  </span>
+                </div>
+              );
+            })()}
 
             {prospect.script_label && (() => {
               const tokens = getScriptLabelTokens(prospect.script_label);
