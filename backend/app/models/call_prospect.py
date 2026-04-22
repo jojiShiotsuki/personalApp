@@ -52,6 +52,13 @@ class CallProspect(Base):
     notes = Column(Text, nullable=True)
     # Free-text tag for A/B testing phone scripts. NULL = no label.
     script_label = Column(String(50), nullable=True)
+    # Scheduled callback time captured when the prospect says "call me back at X".
+    # Stored in UTC; frontend converts to browser local for display + input.
+    # NULL = no callback scheduled. Orthogonal to `status` — setting this does
+    # not move the prospect between kanban columns.
+    callback_at = Column(DateTime, nullable=True, index=True)
+    # Optional short context for the callback (e.g. "owner back from holiday").
+    callback_notes = Column(String(255), nullable=True)
     status = Column(
         String(20),
         nullable=False,
