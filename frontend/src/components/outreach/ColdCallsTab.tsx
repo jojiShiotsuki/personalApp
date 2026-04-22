@@ -29,8 +29,10 @@ import {
   Layers,
   X,
   Check,
+  Download,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import axios from 'axios';
 import { cn } from '@/lib/utils';
 import { coldCallsApi, coldOutreachApi } from '@/lib/api';
 import { CallProspect, CallStatus, CampaignType, StepChannelType, ProspectTier, type OutreachCampaign, type CampaignWithStats, type MultiTouchStep, type CallProspectUpdate } from '@/types';
@@ -48,6 +50,7 @@ import {
   prospectCardClasses,
   prospectCardHoverClasses,
   prospectCardDraggingClasses,
+  secondaryButtonClasses,
   type KanbanAccent,
 } from '@/lib/outreachStyles';
 import { getStepColor } from '@/lib/stepColors';
@@ -836,6 +839,30 @@ export default function ColdCallsTab() {
     },
   });
 
+  const exportCsvMutation = useMutation({
+    mutationFn: (campaignId: number | null) => coldCallsApi.exportCsv(campaignId),
+    onSuccess: ({ blob, filename }) => {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast.success(`Downloaded ${filename}`);
+    },
+    onError: (error: unknown) => {
+      const detail =
+        axios.isAxiosError(error) && typeof error.response?.data?.detail === 'string'
+          ? error.response.data.detail
+          : error instanceof Error
+            ? error.message
+            : 'Failed to export CSV';
+      toast.error(detail);
+    },
+  });
+
   const handleDragEnd = (result: DropResult) => {
     const { destination, source, draggableId } = result;
     if (!destination) return;
@@ -1014,6 +1041,19 @@ export default function ColdCallsTab() {
             >
               <Plus className="w-3.5 h-3.5" />
               Add Lead
+            </button>
+            <button
+              type="button"
+              onClick={() => exportCsvMutation.mutate(selectedCampaignId)}
+              disabled={exportCsvMutation.isPending}
+              className={cn('flex items-center gap-2', secondaryButtonClasses)}
+            >
+              {exportCsvMutation.isPending ? (
+                <div className="w-4 h-4 border-2 border-current/30 border-t-current rounded-full animate-spin" />
+              ) : (
+                <Download className="w-4 h-4" />
+              )}
+              Export CSV
             </button>
             <button
               onClick={() => setIsImportOpen(true)}
