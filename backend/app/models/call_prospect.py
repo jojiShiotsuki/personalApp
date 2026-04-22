@@ -22,6 +22,14 @@ class CallStatus(str, enum.Enum):
     DEAD = "DEAD"
 
 
+class ProspectTier(str, enum.Enum):
+    S_TIER_FLAGSHIP = "S_TIER_FLAGSHIP"
+    A_TIER_FLAGSHIP = "A_TIER_FLAGSHIP"
+    B_TIER_FLAGSHIP = "B_TIER_FLAGSHIP"
+    COMMERCIAL_SPECIALIST = "COMMERCIAL_SPECIALIST"
+    DEVELOPMENTAL = "DEVELOPMENTAL"
+
+
 class CallProspect(Base):
     __tablename__ = "call_prospects"
 
@@ -52,6 +60,10 @@ class CallProspect(Base):
     notes = Column(Text, nullable=True)
     # Free-text tag for A/B testing phone scripts. NULL = no label.
     script_label = Column(String(50), nullable=True)
+    # Prospect quality tier (S/A/B flagship, Commercial specialist, Developmental).
+    # Stored as the enum's string value; NULL = untagged. No index — low cardinality
+    # (5 values) and filtering/sorting happens client-side.
+    tier = Column(String(30), nullable=True)
     # Scheduled callback time captured when the prospect says "call me back at X".
     # Stored in UTC; frontend converts to browser local for display + input.
     # NULL = no callback scheduled. Orthogonal to `status` — setting this does
