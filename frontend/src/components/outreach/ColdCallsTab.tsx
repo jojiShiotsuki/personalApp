@@ -26,13 +26,14 @@ import {
   Pencil,
   Trash2,
   Tag,
+  Layers,
   X,
   Check,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { coldCallsApi, coldOutreachApi } from '@/lib/api';
-import { CallProspect, CallStatus, CampaignType, StepChannelType, type OutreachCampaign, type CampaignWithStats, type MultiTouchStep, type CallProspectUpdate } from '@/types';
+import { CallProspect, CallStatus, CampaignType, StepChannelType, ProspectTier, type OutreachCampaign, type CampaignWithStats, type MultiTouchStep, type CallProspectUpdate } from '@/types';
 import CallProspectDetailModal from './CallProspectDetailModal';
 import ColdCallCsvImportModal from './ColdCallCsvImportModal';
 import AddColdLeadModal from './AddColdLeadModal';
@@ -60,7 +61,7 @@ import {
 } from '@/lib/callbackFormat';
 import { useCurrentMinute } from '@/hooks/useCurrentMinute';
 import { sortProspects, SORT_OPTIONS, type SortKey } from '@/lib/sortProspects';
-import { TIER_META } from '@/lib/tierMeta';
+import { TIER_META, TIER_ORDER } from '@/lib/tierMeta';
 
 interface ColumnConfig {
   status: CallStatus;
@@ -631,6 +632,7 @@ export default function ColdCallsTab() {
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
   const [isLabelPopoverOpen, setIsLabelPopoverOpen] = useState(false);
+  const [isTierPopoverOpen, setIsTierPopoverOpen] = useState(false);
   const [labelInput, setLabelInput] = useState('');
   const [callbackFilterActive, setCallbackFilterActive] = useState(false);
   const [sortKey, setSortKey] = useState<SortKey>('default');
@@ -649,6 +651,7 @@ export default function ColdCallsTab() {
   const clearSelection = () => {
     setSelectedIds(new Set());
     setIsLabelPopoverOpen(false);
+    setIsTierPopoverOpen(false);
     setLabelInput('');
   };
 
@@ -794,6 +797,41 @@ export default function ColdCallsTab() {
       clearSelection();
       setIsLabelPopoverOpen(false);
       setLabelInput('');
+      queryClient.invalidateQueries({ queryKey: ['call-prospects'] });
+    },
+  });
+
+  const bulkUpdateTierMutation = useMutation({
+    mutationFn: ({ ids, tier }: { ids: number[]; tier: ProspectTier | null }) =>
+      coldCallsApi.bulkUpdateTier(ids, tier),
+    onMutate: async ({ ids, tier }) => {
+      await queryClient.cancelQueries({ queryKey: ['call-prospects', selectedCampaignId] });
+      const previous = queryClient.getQueryData<CallProspect[]>([
+        'call-prospects',
+        selectedCampaignId,
+      ]);
+      const idSet = new Set(ids);
+      queryClient.setQueryData<CallProspect[]>(
+        ['call-prospects', selectedCampaignId],
+        (old) =>
+          old ? old.map((p) => (idSet.has(p.id) ? { ...p, tier } : p)) : [],
+      );
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(['call-prospects', selectedCampaignId], context.previous);
+      }
+      toast.error('Failed to update tiers');
+    },
+    onSuccess: (result, { tier }) => {
+      if (tier === null) {
+        toast.success(`Cleared tier on ${result.updated_count} prospect${result.updated_count === 1 ? '' : 's'}`);
+      } else {
+        toast.success(`Tagged ${result.updated_count} prospect${result.updated_count === 1 ? '' : 's'}`);
+      }
+      clearSelection();
+      setIsTierPopoverOpen(false);
       queryClient.invalidateQueries({ queryKey: ['call-prospects'] });
     },
   });
@@ -1140,6 +1178,69 @@ export default function ColdCallsTab() {
               </div>
             </div>
           )}
+          {isTierPopoverOpen && (
+            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-80 bg-stone-800 border border-stone-500/70 rounded-xl shadow-2xl shadow-black/60 ring-1 ring-black/40 p-3">
+              <label className="block text-xs font-medium text-[--exec-text-secondary] mb-2">
+                Set tier on {selectedIds.size} prospect{selectedIds.size === 1 ? '' : 's'}
+              </label>
+              <div className="space-y-1.5">
+                {TIER_ORDER.map((t) => {
+                  const meta = TIER_META[t];
+                  return (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => {
+                        if (bulkUpdateTierMutation.isPending) return;
+                        bulkUpdateTierMutation.mutate({
+                          ids: Array.from(selectedIds),
+                          tier: t,
+                        });
+                      }}
+                      disabled={bulkUpdateTierMutation.isPending}
+                      className={cn(
+                        'w-full flex items-center justify-between px-3 py-2 rounded-lg transition-colors text-left',
+                        'bg-stone-900/60 hover:bg-stone-700/60 disabled:opacity-50 disabled:cursor-not-allowed',
+                      )}
+                    >
+                      <span className="text-sm text-[--exec-text]">{meta.fullLabel}</span>
+                      <span
+                        className={cn(
+                          'text-[10px] uppercase tracking-wider font-semibold px-2 py-0.5 rounded-md',
+                          meta.pillClasses,
+                        )}
+                      >
+                        {meta.pillLabel}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="flex items-center gap-2 mt-3 pt-2 border-t border-stone-700/40">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (bulkUpdateTierMutation.isPending) return;
+                    bulkUpdateTierMutation.mutate({
+                      ids: Array.from(selectedIds),
+                      tier: null,
+                    });
+                  }}
+                  disabled={bulkUpdateTierMutation.isPending}
+                  className="flex-1 px-3 py-1.5 text-xs font-medium text-[--exec-text-secondary] bg-stone-700/70 hover:bg-stone-600/70 rounded-lg transition-colors disabled:opacity-50"
+                >
+                  Clear tier
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsTierPopoverOpen(false)}
+                  className="px-3 py-1.5 text-xs font-medium text-[--exec-text-muted] hover:text-[--exec-text] transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
           <div className="flex items-center gap-2 px-3 py-2 bg-stone-800 border border-stone-500/70 rounded-2xl shadow-2xl shadow-black/60 ring-1 ring-black/40">
             <span className="text-sm font-semibold text-[--exec-text] px-2">
               {selectedIds.size} selected
@@ -1152,11 +1253,24 @@ export default function ColdCallsTab() {
               Clear
             </button>
             <button
-              onClick={() => setIsLabelPopoverOpen((v) => !v)}
+              onClick={() => {
+                setIsTierPopoverOpen(false);
+                setIsLabelPopoverOpen((v) => !v);
+              }}
               className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[--exec-text-secondary] bg-stone-700/70 hover:bg-stone-600/70 rounded-lg transition-colors"
             >
               <Tag className="w-3.5 h-3.5" />
               Set label
+            </button>
+            <button
+              onClick={() => {
+                setIsLabelPopoverOpen(false);
+                setIsTierPopoverOpen((v) => !v);
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[--exec-text-secondary] bg-stone-700/70 hover:bg-stone-600/70 rounded-lg transition-colors"
+            >
+              <Layers className="w-3.5 h-3.5" />
+              Set tier
             </button>
             <button
               onClick={() => setIsConfirmDeleteOpen(true)}
