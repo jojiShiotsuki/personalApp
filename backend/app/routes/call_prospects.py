@@ -1,5 +1,5 @@
 """
-Cold Calls pipeline routes — CRUD, bulk ops, and CSV import for CallProspect.
+Cold Calls pipeline routes — CRUD, bulk ops, CSV import, CSV export.
 
 Endpoints:
   GET    /api/cold-calls                    list (optional status filter)
@@ -8,18 +8,26 @@ Endpoints:
   DELETE /api/cold-calls/{id}               delete
   POST   /api/cold-calls/bulk-delete        bulk delete by ID list
   POST   /api/cold-calls/bulk-update-label  bulk assign script_label
+  POST   /api/cold-calls/bulk-update-tier   bulk assign tier
   POST   /api/cold-calls/import             bulk CSV import (Outscraper)
+  GET    /api/cold-calls/export             CSV download (optional campaign scope)
 """
+import csv
+import io
+import json
 import logging
 import re
-from typing import List, Optional
+from datetime import datetime
+from typing import Iterator, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import StreamingResponse
 from sqlalchemy import func as sa_func
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models.call_prospect import CallProspect, CallStatus
+from app.models.outreach import OutreachCampaign
 from pydantic import BaseModel, Field
 
 from app.schemas.call_prospect import (
@@ -147,6 +155,168 @@ def create_call_prospect(data: CallProspectCreate, db: Session = Depends(get_db)
     db.commit()
     db.refresh(prospect)
     return prospect
+
+
+# -- CSV export (must come before /{prospect_id} routes) ---
+
+EXPORT_HEADERS = [
+    "id",
+    "business_name",
+    "first_name",
+    "last_name",
+    "position",
+    "email",
+    "linkedin_url",
+    "phone",
+    "additional_phones",
+    "vertical",
+    "address",
+    "facebook_url",
+    "website",
+    "source",
+    "rating",
+    "reviews_count",
+    "google_maps_url",
+    "working_hours",
+    "description",
+    "notes",
+    "script_label",
+    "tier",
+    "callback_at",
+    "callback_notes",
+    "status",
+    "campaign_id",
+    "campaign_name",
+    "current_step",
+    "created_at",
+    "updated_at",
+]
+
+
+def _export_fmt_dt(dt: Optional[datetime]) -> str:
+    """Naive-UTC datetime → ISO 8601 with Z suffix. Empty string if None.
+
+    Matches the frontend's `parseBackendDatetime` invariant: backend stores
+    naive UTC, append `Z` on serialization so JS parses it as UTC rather
+    than local time.
+    """
+    if dt is None:
+        return ""
+    return dt.replace(microsecond=0).isoformat() + "Z"
+
+
+def _export_fmt_json(value) -> str:
+    """JSON blob → compact stringified JSON. Empty string if None."""
+    if value is None:
+        return ""
+    return json.dumps(value, ensure_ascii=False, separators=(",", ":"))
+
+
+def _export_fmt_scalar(value) -> str:
+    """Any scalar → str. Empty string if None. Not `"None"`."""
+    if value is None:
+        return ""
+    return str(value)
+
+
+def _export_slugify(name: str) -> str:
+    """Campaign name → filename-safe slug. Empty name falls back to 'campaign'."""
+    slug = re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
+    return slug or "campaign"
+
+
+@router.get("/export")
+def export_call_prospects(
+    campaign_id: Optional[int] = None,
+    db: Session = Depends(get_db),
+):
+    """Stream all cold-call prospects as CSV, optionally scoped to a campaign.
+
+    - `campaign_id` absent or None → every prospect in the table.
+    - `campaign_id` set → only prospects with that campaign_id.
+    - Unknown `campaign_id` returns an empty CSV (header row only), not 404 —
+      mirrors the "no rows match" case; simpler contract for the frontend.
+    """
+    query = (
+        db.query(CallProspect, OutreachCampaign.name)
+        .outerjoin(
+            OutreachCampaign, CallProspect.campaign_id == OutreachCampaign.id
+        )
+        .order_by(CallProspect.id.asc())
+    )
+    if campaign_id is not None:
+        query = query.filter(CallProspect.campaign_id == campaign_id)
+
+    # Resolve the campaign name for the filename separately so we still get
+    # the right slug when the query returns zero rows.
+    campaign_name_for_filename: Optional[str] = None
+    if campaign_id is not None:
+        campaign_name_for_filename = (
+            db.query(OutreachCampaign.name)
+            .filter(OutreachCampaign.id == campaign_id)
+            .scalar()
+        )
+
+    def _generate() -> Iterator[str]:
+        buffer = io.StringIO()
+        writer = csv.writer(buffer, lineterminator="\r\n")
+        writer.writerow(EXPORT_HEADERS)
+        yield buffer.getvalue()
+        buffer.seek(0)
+        buffer.truncate()
+
+        for prospect, camp_name in query.yield_per(500):
+            writer.writerow(
+                [
+                    _export_fmt_scalar(prospect.id),
+                    _export_fmt_scalar(prospect.business_name),
+                    _export_fmt_scalar(prospect.first_name),
+                    _export_fmt_scalar(prospect.last_name),
+                    _export_fmt_scalar(prospect.position),
+                    _export_fmt_scalar(prospect.email),
+                    _export_fmt_scalar(prospect.linkedin_url),
+                    _export_fmt_scalar(prospect.phone),
+                    _export_fmt_json(prospect.additional_phones),
+                    _export_fmt_scalar(prospect.vertical),
+                    _export_fmt_scalar(prospect.address),
+                    _export_fmt_scalar(prospect.facebook_url),
+                    _export_fmt_scalar(prospect.website),
+                    _export_fmt_scalar(prospect.source),
+                    _export_fmt_scalar(prospect.rating),
+                    _export_fmt_scalar(prospect.reviews_count),
+                    _export_fmt_scalar(prospect.google_maps_url),
+                    _export_fmt_scalar(prospect.working_hours),
+                    _export_fmt_scalar(prospect.description),
+                    _export_fmt_scalar(prospect.notes),
+                    _export_fmt_scalar(prospect.script_label),
+                    _export_fmt_scalar(prospect.tier),
+                    _export_fmt_dt(prospect.callback_at),
+                    _export_fmt_scalar(prospect.callback_notes),
+                    _export_fmt_scalar(prospect.status),
+                    _export_fmt_scalar(prospect.campaign_id),
+                    _export_fmt_scalar(camp_name),
+                    _export_fmt_scalar(prospect.current_step),
+                    _export_fmt_dt(prospect.created_at),
+                    _export_fmt_dt(prospect.updated_at),
+                ]
+            )
+            yield buffer.getvalue()
+            buffer.seek(0)
+            buffer.truncate()
+
+    today = datetime.utcnow().strftime("%Y-%m-%d")
+    if campaign_id is not None and campaign_name_for_filename:
+        filename = (
+            f"cold-calls-{_export_slugify(campaign_name_for_filename)}-{today}.csv"
+        )
+    else:
+        filename = f"cold-calls-all-{today}.csv"
+
+    return StreamingResponse(
+        _generate(),
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 
 
 @router.put("/{prospect_id}", response_model=CallProspectResponse)
