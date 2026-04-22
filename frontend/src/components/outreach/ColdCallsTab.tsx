@@ -12,6 +12,7 @@ import {
   Plus,
   Circle,
   PhoneOutgoing,
+  PhoneCall,
   CheckCircle2,
   XCircle,
   Phone,
@@ -51,6 +52,11 @@ import {
 import { getStepColor } from '@/lib/stepColors';
 import { getScriptLabelTokens } from '@/lib/scriptLabelColor';
 import { useWheelToHorizontalScroll } from '@/hooks/useWheelToHorizontalScroll';
+import {
+  callbackTier,
+  formatCallbackLabel,
+} from '@/lib/callbackFormat';
+import { useCurrentMinute } from '@/hooks/useCurrentMinute';
 
 interface ColumnConfig {
   status: CallStatus;
@@ -116,6 +122,19 @@ const CHANNEL_COUNT_BADGE: Record<string, string> = {
   [StepChannelType.CUSTOM]: 'bg-cyan-500/20 text-cyan-400',
 };
 
+const CALLBACK_PILL_TOKENS: Record<
+  ReturnType<typeof callbackTier>,
+  string
+> = {
+  overdue:
+    'bg-red-500/20 text-red-400 animate-pulse',
+  soon: 'bg-orange-500/20 text-orange-400',
+  today: 'bg-amber-500/20 text-amber-400',
+  tomorrow: 'bg-blue-500/20 text-blue-400',
+  thisweek: 'bg-stone-500/20 text-stone-300',
+  future: 'bg-stone-500/20 text-stone-300',
+};
+
 function firstNotePreview(notes: string | null): string | null {
   if (!notes) return null;
   const trimmed = notes.trim();
@@ -167,6 +186,30 @@ async function copyPhoneToClipboard(value: string): Promise<void> {
   }
 }
 
+interface CallbackPillProps {
+  callbackAt: string;
+  now: Date;
+}
+
+function CallbackPill({ callbackAt, now }: CallbackPillProps) {
+  const at = new Date(callbackAt);
+  const tier = callbackTier(at, now);
+  const tokens = CALLBACK_PILL_TOKENS[tier];
+  const label = formatCallbackLabel(at, now);
+  return (
+    <span
+      className={cn(
+        'inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-md mb-1',
+        tokens,
+      )}
+      title={at.toLocaleString()}
+    >
+      <PhoneCall className="w-3 h-3" />
+      {label}
+    </span>
+  );
+}
+
 interface CallProspectCardProps {
   prospect: CallProspect;
   index: number;
@@ -174,9 +217,10 @@ interface CallProspectCardProps {
   isSelected: boolean;
   onToggleSelect: (id: number) => void;
   hasAnySelection: boolean;
+  now: Date;
 }
 
-function CallProspectCard({ prospect, index, onClick, isSelected, onToggleSelect, hasAnySelection }: CallProspectCardProps) {
+function CallProspectCard({ prospect, index, onClick, isSelected, onToggleSelect, hasAnySelection, now }: CallProspectCardProps) {
   const preview = firstNotePreview(prospect.notes);
   const personLine = buildPersonLine(prospect);
   const phone = prospect.phone ? cleanPhone(prospect.phone) : null;
@@ -286,6 +330,12 @@ function CallProspectCard({ prospect, index, onClick, isSelected, onToggleSelect
               </button>
             )}
 
+            {prospect.callback_at && (
+              <div className="mb-1">
+                <CallbackPill callbackAt={prospect.callback_at} now={now} />
+              </div>
+            )}
+
             {dedupedAdditional.length > 0 && (
               <div className="ml-[18px] mb-2 space-y-0.5">
                 {dedupedAdditional.map((p) => (
@@ -382,9 +432,10 @@ interface StepColumnProps {
   onCardClick: (prospect: CallProspect) => void;
   selectedIds: Set<number>;
   onToggleSelect: (id: number) => void;
+  now: Date;
 }
 
-function StepColumn({ step, prospects, onCardClick, selectedIds, onToggleSelect }: StepColumnProps) {
+function StepColumn({ step, prospects, onCardClick, selectedIds, onToggleSelect, now }: StepColumnProps) {
   const chKey = (step.channel_type || '').toUpperCase();
   const Icon = CHANNEL_ICON[chKey] ?? Phone;
   const isCustom = chKey === StepChannelType.CUSTOM;
@@ -458,6 +509,7 @@ function StepColumn({ step, prospects, onCardClick, selectedIds, onToggleSelect 
                 isSelected={selectedIds.has(prospect.id)}
                 onToggleSelect={onToggleSelect}
                 hasAnySelection={selectedIds.size > 0}
+                now={now}
               />
             ))}
             {provided.placeholder}
@@ -479,9 +531,10 @@ interface ColumnProps {
   onCardClick: (prospect: CallProspect) => void;
   selectedIds: Set<number>;
   onToggleSelect: (id: number) => void;
+  now: Date;
 }
 
-function Column({ column, prospects, onCardClick, selectedIds, onToggleSelect }: ColumnProps) {
+function Column({ column, prospects, onCardClick, selectedIds, onToggleSelect, now }: ColumnProps) {
   return (
     <Droppable droppableId={column.status}>
       {(provided, snapshot) => (
@@ -529,6 +582,7 @@ function Column({ column, prospects, onCardClick, selectedIds, onToggleSelect }:
                 isSelected={selectedIds.has(prospect.id)}
                 onToggleSelect={onToggleSelect}
                 hasAnySelection={selectedIds.size > 0}
+                now={now}
               />
             ))}
             {provided.placeholder}
@@ -546,6 +600,7 @@ function Column({ column, prospects, onCardClick, selectedIds, onToggleSelect }:
 
 export default function ColdCallsTab() {
   const queryClient = useQueryClient();
+  const now = useCurrentMinute();
   const [selectedProspect, setSelectedProspect] = useState<CallProspect | null>(null);
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -876,6 +931,7 @@ export default function ColdCallsTab() {
                       onCardClick={setSelectedProspect}
                       selectedIds={selectedIds}
                       onToggleSelect={toggleSelect}
+                      now={now}
                     />
                   ))
                 : COLUMNS.map((col) => (
@@ -886,6 +942,7 @@ export default function ColdCallsTab() {
                       onCardClick={setSelectedProspect}
                       selectedIds={selectedIds}
                       onToggleSelect={toggleSelect}
+                      now={now}
                     />
                   ))}
             </div>
