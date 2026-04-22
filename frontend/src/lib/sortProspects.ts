@@ -1,5 +1,6 @@
 import type { CallProspect } from '@/types';
 import { parseBackendDatetime } from './callbackFormat';
+import { tierRank } from './tierMeta';
 
 /**
  * Available sort keys for the Cold Calls kanban. Each key orders prospects
@@ -14,6 +15,7 @@ export type SortKey =
   | 'rating_asc'
   | 'reviews_desc'
   | 'callback_asc'
+  | 'tier_asc'
   | 'created_desc'
   | 'updated_desc';
 
@@ -34,6 +36,7 @@ export const SORT_OPTIONS: readonly SortOption[] = [
   { key: 'rating_asc', label: 'Rating · low → high' },
   { key: 'reviews_desc', label: 'Reviews · high → low' },
   { key: 'callback_asc', label: 'Callback · soonest' },
+  { key: 'tier_asc', label: 'Tier · S → Developmental' },
   { key: 'created_desc', label: 'Recently added' },
   { key: 'updated_desc', label: 'Recently updated' },
 ] as const;
@@ -97,6 +100,11 @@ const compareBuilders: Record<Exclude<SortKey, 'default'>, Comparator> = {
   rating_asc: nullsLast((p) => p.rating, 1, compareNumbers),
   reviews_desc: nullsLast((p) => p.reviews_count, -1, compareNumbers),
   callback_asc: nullsLast((p) => p.callback_at, 1, compareDatetimes),
+  tier_asc: nullsLast(
+    (p) => p.tier ?? null,
+    1,
+    (a, b) => tierRank(a) - tierRank(b),
+  ),
   created_desc: nullsLast((p) => p.created_at, -1, compareDatetimes),
   updated_desc: nullsLast((p) => p.updated_at, -1, compareDatetimes),
 };
