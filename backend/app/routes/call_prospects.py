@@ -25,6 +25,8 @@ from pydantic import BaseModel, Field
 from app.schemas.call_prospect import (
     BulkLabelRequest,
     BulkLabelResponse,
+    BulkTierRequest,
+    BulkTierResponse,
     CallProspectCreate,
     CallProspectCsvImportRequest,
     CallProspectCsvImportResponse,
@@ -220,6 +222,26 @@ def bulk_update_label(
     )
     db.commit()
     return BulkLabelResponse(updated_count=updated)
+
+
+@router.post("/bulk-update-tier", response_model=BulkTierResponse)
+def bulk_update_tier(
+    payload: BulkTierRequest,
+    db: Session = Depends(get_db),
+):
+    """Bulk-assign a tier (or clear it) on multiple prospects.
+
+    `tier=None` clears the tier — normalizes to NULL in the DB so the frontend
+    has one unambiguous shape for 'no tier'.
+    """
+    value = payload.tier.value if payload.tier else None
+    updated = (
+        db.query(CallProspect)
+        .filter(CallProspect.id.in_(payload.ids))
+        .update({"tier": value}, synchronize_session=False)
+    )
+    db.commit()
+    return BulkTierResponse(updated_count=updated)
 
 
 @router.post("/import", response_model=CallProspectCsvImportResponse)

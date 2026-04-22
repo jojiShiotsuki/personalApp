@@ -15,6 +15,14 @@ class CallStatus(str, Enum):
     DEAD = "DEAD"
 
 
+class ProspectTier(str, Enum):
+    S_TIER_FLAGSHIP = "S_TIER_FLAGSHIP"
+    A_TIER_FLAGSHIP = "A_TIER_FLAGSHIP"
+    B_TIER_FLAGSHIP = "B_TIER_FLAGSHIP"
+    COMMERCIAL_SPECIALIST = "COMMERCIAL_SPECIALIST"
+    DEVELOPMENTAL = "DEVELOPMENTAL"
+
+
 class CallProspectBase(BaseModel):
     business_name: str = Field(..., min_length=1, max_length=255)
     first_name: Optional[str] = Field(None, max_length=100)
@@ -40,6 +48,7 @@ class CallProspectBase(BaseModel):
     current_step: int = 1
     callback_at: Optional[datetime] = None
     callback_notes: Optional[str] = Field(None, max_length=255)
+    tier: Optional[ProspectTier] = None
 
 
 class CallProspectCreate(CallProspectBase):
@@ -72,6 +81,7 @@ class CallProspectUpdate(BaseModel):
     current_step: Optional[int] = Field(None, ge=1)
     callback_at: Optional[datetime] = None
     callback_notes: Optional[str] = Field(None, max_length=255)
+    tier: Optional[ProspectTier] = None
 
 
 class CallProspectResponse(CallProspectBase):
@@ -141,4 +151,13 @@ class BulkLabelRequest(BaseModel):
 
 
 class BulkLabelResponse(BaseModel):
+    updated_count: int
+
+
+class BulkTierRequest(BaseModel):
+    ids: List[int] = Field(..., min_length=1)
+    tier: Optional[ProspectTier] = None  # None = clear
+
+
+class BulkTierResponse(BaseModel):
     updated_count: int
