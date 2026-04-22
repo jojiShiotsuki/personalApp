@@ -1,5 +1,7 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import axios from 'axios';
+import Papa from 'papaparse';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   X,
@@ -93,7 +95,12 @@ const SINGLETON_TARGETS: readonly TargetField[] = TARGET_OPTIONS.filter(
   (t) => t.singleton
 ).map((t) => t.value);
 
-const LOCAL_STORAGE_PREFIX = 'vertex:cold-calls:csv-mapping:';
+// Bumped to v2 when `name`/`name_for_emails` were added to HEADER_ALIASES —
+// pre-v2 saved mappings for Outscraper CSVs had `name` as "ignore" and fell
+// back to the sparse `company_name` column for business_name, silently
+// skipping most rows. Invalidating forces auto-map to re-run with the new
+// aliases; users can re-save their mapping on the next successful import.
+const LOCAL_STORAGE_PREFIX = 'vertex:cold-calls:csv-mapping:v2:';
 
 const selectClasses = cn(
   'w-full px-3 py-2 rounded-lg',
@@ -102,39 +109,6 @@ const selectClasses = cn(
   'focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]/50',
   'transition-all cursor-pointer'
 );
-
-// --- CSV parsing ---------------------------------------------------
-
-// Parse a CSV line, handling quoted fields correctly.
-function parseCSVLine(line: string): string[] {
-  const result: string[] = [];
-  let current = '';
-  let inQuotes = false;
-
-  for (let i = 0; i < line.length; i++) {
-    const char = line[i];
-    const nextChar = line[i + 1];
-
-    if (char === '"' && !inQuotes) {
-      inQuotes = true;
-    } else if (char === '"' && inQuotes) {
-      if (nextChar === '"') {
-        current += '"';
-        i++;
-      } else {
-        inQuotes = false;
-      }
-    } else if (char === ',' && !inQuotes) {
-      result.push(current.trim());
-      current = '';
-    } else {
-      current += char;
-    }
-  }
-
-  result.push(current.trim());
-  return result;
-}
 
 // --- Header normalization + auto-detect ---------------------------
 
@@ -152,6 +126,15 @@ function normalizeHeader(header: string): string {
 const HEADER_ALIASES: Record<string, TargetField> = {
   // business_name (NOTE: do NOT alias "title" here — Apollo's "Title"
   // column means job title, mapped to `position` below.)
+  // In Outscraper Google Maps exports the primary business column is
+  // just "name" (with "name_for_emails" as the cleaned variant). Those
+  // are 100% populated; "company_name" is sparse (~15%) because it only
+  // has a value when Outscraper matched the listing to a linked entity.
+  // Auto-map is first-match-wins on the header-order iteration, so
+  // listing "name" first here ensures it claims the business_name
+  // singleton before the sparse "company_name" column can.
+  name: 'business_name',
+  name_for_emails: 'business_name',
   business_name: 'business_name',
   businessname: 'business_name',
   company: 'business_name',
@@ -412,6 +395,10 @@ export default function ColdCallCsvImportModal({
   const [headerMapping, setHeaderMapping] = useState<Record<string, TargetField>>({});
   const [loadedFromStorage, setLoadedFromStorage] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  // Rows the user has unchecked in the preview — these are skipped on import.
+  // Stored as excluded (vs. included) so the default of "all selected" is just
+  // an empty Set — no bookkeeping needed when csvData swaps on re-upload.
+  const [excludedRowIndices, setExcludedRowIndices] = useState<Set<number>>(new Set());
   const fileInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
 
@@ -422,21 +409,39 @@ export default function ColdCallCsvImportModal({
       campaign_id?: number | null;
     }) => coldCallsApi.import(data),
     onSuccess: (result) => {
-      toast.success(
-        `Imported ${result.imported_count} prospects${
-          result.skipped_count > 0 ? `, skipped ${result.skipped_count}` : ''
-        }`
-      );
+      if (result.imported_count === 0 && result.skipped_count > 0) {
+        toast.error(
+          `Import failed — 0 imported, ${result.skipped_count} skipped`,
+          { duration: 10_000 }
+        );
+      } else {
+        toast.success(
+          `Imported ${result.imported_count} prospects${
+            result.skipped_count > 0 ? `, skipped ${result.skipped_count}` : ''
+          }`
+        );
+      }
       if (result.errors.length > 0) {
-        result.errors.slice(0, 3).forEach((err) => toast.error(err));
+        result.errors.slice(0, 3).forEach((err) => toast.error(err, { duration: 10_000 }));
       }
       // Persist mapping for this header shape only after a successful import
-      saveMapping(csvHeaders, headerMapping);
+      if (result.imported_count > 0) {
+        saveMapping(csvHeaders, headerMapping);
+      }
       queryClient.invalidateQueries({ queryKey: ['call-prospects'] });
-      handleClose();
+      // Leave modal open when everything failed so the user can review errors
+      if (result.imported_count > 0) {
+        handleClose();
+      }
     },
-    onError: () => {
-      toast.error('Failed to import prospects');
+    onError: (error: unknown) => {
+      const detail =
+        axios.isAxiosError(error) && typeof error.response?.data?.detail === 'string'
+          ? error.response.data.detail
+          : error instanceof Error
+            ? error.message
+            : 'Failed to import prospects';
+      toast.error(detail, { duration: 10_000 });
     },
   });
 
@@ -447,6 +452,7 @@ export default function ColdCallCsvImportModal({
     setHeaderMapping({});
     setLoadedFromStorage(false);
     setIsDragging(false);
+    setExcludedRowIndices(new Set());
     onClose();
   };
 
@@ -456,59 +462,93 @@ export default function ColdCallCsvImportModal({
       return;
     }
 
+    // Read as text first so we can normalize line endings before parsing.
+    // Papaparse auto-detects the newline from the first occurrence, so a
+    // single stray CRLF (e.g. header ends with \r\n but the rest is \n only)
+    // makes it split on \r\n and merge every LF-terminated row into one
+    // giant record. Normalizing to \n up front makes auto-detect moot.
     const reader = new FileReader();
+    reader.onerror = () => toast.error('Failed to read file');
     reader.onload = (e) => {
-      const text = e.target?.result as string;
-      const lines = text.split('\n').filter((line) => line.trim());
+      const raw = (e.target?.result as string) ?? '';
+      const normalized = raw.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 
-      if (lines.length < 2) {
-        toast.error('CSV file must have at least a header row and one data row');
-        return;
-      }
+      Papa.parse<Record<string, string>>(normalized, {
+        header: true,
+        skipEmptyLines: true,
+        transform: (value) => value.trim(),
+        complete: (results) => {
+        const headers = (results.meta.fields ?? []).map((h) => h.trim());
+        const data = results.data;
 
-      const headers = parseCSVLine(lines[0]);
-      const data = lines.slice(1).map((line) => {
-        const values = parseCSVLine(line);
-        const row: Record<string, string> = {};
-        headers.forEach((header, idx) => {
-          row[header] = values[idx] || '';
-        });
-        return row;
-      });
+        if (headers.length === 0 || data.length === 0) {
+          toast.error('CSV file must have at least a header row and one data row');
+          return;
+        }
 
-      setCsvHeaders(headers);
-      setCsvData(data);
-
-      const saved = loadSavedMapping(headers);
-      if (saved) {
-        // Fill any new headers with 'ignore' so the state covers every column.
-        // Self-heal stale saved mappings: phone became non-singleton (Apollo
-        // splits phone across 5 columns), so upgrade any 'ignore' header that
-        // auto-infers to 'phone' — over-mapping phone is strictly safer
-        // because the backend just takes the first non-empty value per row.
-        const filled: Record<string, TargetField> = {};
-        for (const h of headers) {
-          const savedTarget = saved[h] ?? 'ignore';
-          if (savedTarget === 'ignore' && inferTargetField(h) === 'phone') {
-            filled[h] = 'phone';
-          } else {
-            filled[h] = savedTarget;
+        // Rows papaparse flagged as malformed (column count mismatch). These
+        // usually came from an unescaped quote that cascaded into merging
+        // unrelated source rows, so the data landed in the wrong fields.
+        // Pre-exclude them so the user doesn't have to hunt for the bad row
+        // in a 300-row preview.
+        const malformedRowIndices = new Set<number>();
+        for (const err of results.errors) {
+          if (
+            (err.code === 'TooManyFields' || err.code === 'TooFewFields') &&
+            typeof err.row === 'number'
+          ) {
+            malformedRowIndices.add(err.row);
           }
         }
-        setHeaderMapping(filled);
-        setLoadedFromStorage(true);
-        setStep('preview');
-      } else {
-        setHeaderMapping(autoMapHeaders(headers));
-        setLoadedFromStorage(false);
-        setStep('map');
-      }
-    };
 
-    reader.onerror = () => {
-      toast.error('Failed to read file');
-    };
+        if (results.errors.length > 0) {
+          // eslint-disable-next-line no-console
+          console.warn('CSV parse warnings', results.errors);
+        }
 
+        if (malformedRowIndices.size > 0) {
+          toast.info(
+            `${malformedRowIndices.size} malformed row${
+              malformedRowIndices.size === 1 ? '' : 's'
+            } auto-excluded. The rest are ready to import.`,
+            { duration: 8_000 }
+          );
+        }
+
+        setCsvHeaders(headers);
+        setCsvData(data);
+        setExcludedRowIndices(malformedRowIndices);
+
+        const saved = loadSavedMapping(headers);
+        if (saved) {
+          // Fill any new headers with 'ignore' so the state covers every column.
+          // Self-heal stale saved mappings: phone became non-singleton (Apollo
+          // splits phone across 5 columns), so upgrade any 'ignore' header that
+          // auto-infers to 'phone' — over-mapping phone is strictly safer
+          // because the backend just takes the first non-empty value per row.
+          const filled: Record<string, TargetField> = {};
+          for (const h of headers) {
+            const savedTarget = saved[h] ?? 'ignore';
+            if (savedTarget === 'ignore' && inferTargetField(h) === 'phone') {
+              filled[h] = 'phone';
+            } else {
+              filled[h] = savedTarget;
+            }
+          }
+          setHeaderMapping(filled);
+          setLoadedFromStorage(true);
+          setStep('preview');
+        } else {
+          setHeaderMapping(autoMapHeaders(headers));
+          setLoadedFromStorage(false);
+          setStep('map');
+        }
+        },
+        error: (err) => {
+          toast.error(`Failed to read CSV: ${err.message}`);
+        },
+      });
+    };
     reader.readAsText(file);
   }, []);
 
@@ -578,7 +618,7 @@ export default function ColdCallCsvImportModal({
 
   const previewRows = useMemo(() => {
     if (!columnMapping) return [];
-    return csvData.slice(0, 3).map((row) => ({
+    return csvData.map((row) => ({
       business_name: row[columnMapping.business_name] ?? '',
       phone:
         columnMapping.phone
@@ -588,12 +628,49 @@ export default function ColdCallCsvImportModal({
     }));
   }, [columnMapping, csvData]);
 
+  const selectedCount = csvData.length - excludedRowIndices.size;
+  const allSelected = csvData.length > 0 && excludedRowIndices.size === 0;
+  const someSelected =
+    excludedRowIndices.size > 0 && excludedRowIndices.size < csvData.length;
+
+  const toggleRow = useCallback((idx: number) => {
+    setExcludedRowIndices((prev) => {
+      const next = new Set(prev);
+      if (next.has(idx)) {
+        next.delete(idx);
+      } else {
+        next.add(idx);
+      }
+      return next;
+    });
+  }, []);
+
+  const toggleAll = useCallback(() => {
+    setExcludedRowIndices((prev) => {
+      if (prev.size === 0) {
+        // Currently all selected → deselect all.
+        return new Set(csvData.map((_, i) => i));
+      }
+      // Any partial or fully-excluded state → select all.
+      return new Set();
+    });
+  }, [csvData]);
+
   const handleImport = () => {
     if (!columnMapping) {
       toast.error('Business Name and Phone must both be mapped');
       return;
     }
-    importMutation.mutate({ column_mapping: columnMapping, data: csvData, campaign_id: campaignId });
+    if (selectedCount === 0) {
+      toast.error('Select at least one row to import');
+      return;
+    }
+    const filteredData = csvData.filter((_, idx) => !excludedRowIndices.has(idx));
+    importMutation.mutate({
+      column_mapping: columnMapping,
+      data: filteredData,
+      campaign_id: campaignId,
+    });
   };
 
   if (!isOpen) return null;
@@ -780,7 +857,7 @@ export default function ColdCallCsvImportModal({
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <p className="text-sm text-[--exec-text-secondary]">
-                  Previewing first {Math.min(3, csvData.length)} of {csvData.length} rows.
+                  {selectedCount} of {csvData.length} rows selected
                 </p>
                 {loadedFromStorage && (
                   <button
@@ -806,10 +883,22 @@ export default function ColdCallCsvImportModal({
                 </div>
               )}
 
-              <div className="overflow-x-auto rounded-lg border border-stone-600/40">
+              <div className="overflow-x-auto rounded-lg border border-stone-600/40 max-h-[50vh]">
                 <table className="min-w-full divide-y divide-stone-700/30">
-                  <thead className="bg-stone-800/50">
+                  <thead className="bg-stone-800/50 sticky top-0 z-10">
                     <tr>
+                      <th className="px-3 py-3 w-10 text-left">
+                        <input
+                          type="checkbox"
+                          checked={allSelected}
+                          ref={(el) => {
+                            if (el) el.indeterminate = someSelected;
+                          }}
+                          onChange={toggleAll}
+                          aria-label={allSelected ? 'Deselect all rows' : 'Select all rows'}
+                          className="w-4 h-4 rounded border-stone-600/40 bg-stone-800/50 text-[--exec-accent] focus:ring-2 focus:ring-[--exec-accent]/20 cursor-pointer"
+                        />
+                      </th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-[--exec-text-muted] uppercase tracking-wider">
                         Business
                       </th>
@@ -822,21 +911,39 @@ export default function ColdCallCsvImportModal({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-stone-700/30">
-                    {previewRows.map((row, idx) => (
-                      <tr key={idx} className="hover:bg-stone-800/30 transition-colors">
-                        <td className="px-4 py-3 text-sm text-[--exec-text] align-top">
-                          {row.business_name || (
-                            <span className="text-[--exec-text-muted]">—</span>
+                    {previewRows.map((row, idx) => {
+                      const isExcluded = excludedRowIndices.has(idx);
+                      return (
+                        <tr
+                          key={idx}
+                          className={cn(
+                            'hover:bg-stone-800/30 transition-colors',
+                            isExcluded && 'opacity-40'
                           )}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-[--exec-text-secondary] whitespace-nowrap font-mono align-top">
-                          {row.phone || <span className="text-[--exec-text-muted]">—</span>}
-                        </td>
-                        <td className="px-4 py-3 text-xs text-[--exec-text-secondary] align-top leading-relaxed">
-                          {row.notes || <span className="text-[--exec-text-muted]">—</span>}
-                        </td>
-                      </tr>
-                    ))}
+                        >
+                          <td className="px-3 py-3 align-top">
+                            <input
+                              type="checkbox"
+                              checked={!isExcluded}
+                              onChange={() => toggleRow(idx)}
+                              aria-label={`${isExcluded ? 'Include' : 'Exclude'} row ${idx + 1}`}
+                              className="w-4 h-4 rounded border-stone-600/40 bg-stone-800/50 text-[--exec-accent] focus:ring-2 focus:ring-[--exec-accent]/20 cursor-pointer"
+                            />
+                          </td>
+                          <td className="px-4 py-3 text-sm text-[--exec-text] align-top">
+                            {row.business_name || (
+                              <span className="text-[--exec-text-muted]">—</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-[--exec-text-secondary] whitespace-nowrap font-mono align-top">
+                            {row.phone || <span className="text-[--exec-text-muted]">—</span>}
+                          </td>
+                          <td className="px-4 py-3 text-xs text-[--exec-text-secondary] align-top leading-relaxed">
+                            {row.notes || <span className="text-[--exec-text-muted]">—</span>}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -844,7 +951,7 @@ export default function ColdCallCsvImportModal({
               <div className="flex items-center gap-2 p-3 bg-[--exec-info-bg] rounded-lg">
                 <AlertCircle className="w-4 h-4 text-[--exec-info] flex-shrink-0" />
                 <p className="text-sm text-[--exec-info]">
-                  Ready to import {csvData.length} prospects. Duplicates (by phone) will be
+                  Ready to import {selectedCount} prospects. Duplicates (by phone) will be
                   skipped. All rows go to New Leads.
                 </p>
               </div>
@@ -888,7 +995,7 @@ export default function ColdCallCsvImportModal({
             {step === 'preview' && (
               <button
                 onClick={handleImport}
-                disabled={importMutation.isPending || !columnMapping}
+                disabled={importMutation.isPending || !columnMapping || selectedCount === 0}
                 className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-500 shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {importMutation.isPending ? (
@@ -899,7 +1006,7 @@ export default function ColdCallCsvImportModal({
                 ) : (
                   <>
                     <Check className="w-4 h-4" />
-                    Import {csvData.length} Prospects
+                    Import {selectedCount} Prospects
                   </>
                 )}
               </button>

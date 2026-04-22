@@ -403,9 +403,15 @@ def import_call_prospects(
                     db.bulk_save_objects(pending)
                     db.commit()
                 except Exception as e:
-                    logger.error("Bulk insert failed at row %d: %s", idx, e)
+                    logger.exception("Bulk insert failed at row %d", idx)
                     db.rollback()
-                    raise
+                    batch_size = len(pending)
+                    imported_count -= batch_size
+                    skipped_count += batch_size
+                    errors.append(
+                        f"Bulk save failed (rows up to {idx}, {batch_size} rows): "
+                        f"{type(e).__name__}: {e}"
+                    )
                 pending.clear()
         except Exception as e:
             skipped_count += 1
@@ -416,9 +422,16 @@ def import_call_prospects(
             db.bulk_save_objects(pending)
             db.commit()
         except Exception as e:
-            logger.error("Final bulk insert failed: %s", e)
+            logger.exception("Final bulk insert failed")
             db.rollback()
-            raise
+            batch_size = len(pending)
+            imported_count -= batch_size
+            skipped_count += batch_size
+            errors.append(
+                f"Final bulk save failed ({batch_size} rows): "
+                f"{type(e).__name__}: {e}"
+            )
+            pending.clear()
 
     return CallProspectCsvImportResponse(
         imported_count=imported_count,
