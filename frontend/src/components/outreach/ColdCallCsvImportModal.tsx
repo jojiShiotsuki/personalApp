@@ -544,7 +544,7 @@ export default function ColdCallCsvImportModal({
           setStep('map');
         }
         },
-        error: (err) => {
+        error: (err: Error) => {
           toast.error(`Failed to read CSV: ${err.message}`);
         },
       });
