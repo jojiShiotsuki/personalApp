@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { parseFilenameFromContentDisposition } from '@/lib/contentDisposition';
 import type {
   Task,
   TaskCreate,
@@ -1663,6 +1664,20 @@ export const coldCallsApi = {
   import: async (data: CallProspectCsvImportRequest): Promise<CallProspectCsvImportResponse> => {
     const response = await api.post('/api/cold-calls/import', data);
     return response.data;
+  },
+
+  exportCsv: async (
+    campaignId: number | null
+  ): Promise<{ blob: Blob; filename: string }> => {
+    const response = await api.get('/api/cold-calls/export', {
+      params: campaignId === null ? undefined : { campaign_id: campaignId },
+      responseType: 'blob',
+    });
+    const filename =
+      parseFilenameFromContentDisposition(
+        response.headers['content-disposition']
+      ) ?? 'cold-calls.csv';
+    return { blob: response.data as Blob, filename };
   },
 };
 
