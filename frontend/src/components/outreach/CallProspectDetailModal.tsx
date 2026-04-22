@@ -9,12 +9,22 @@ import {
   Globe,
   MapPin,
   ExternalLink,
+  // @ts-expect-error — PhoneCall is reserved for Task 9 (Callback card pill)
+  PhoneCall,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { inputClasses, primaryButtonClasses, secondaryButtonClasses } from '@/lib/outreachStyles';
 import { coldCallsApi } from '@/lib/api';
 import { CallProspect, CallStatus } from '@/types';
+import {
+  fromLocalInputValue,
+  presetInOneHour,
+  presetInTwoHours,
+  presetNextMondayTenAm,
+  presetTomorrowTenAm,
+  toLocalInputValue,
+} from '@/lib/callbackFormat';
 
 interface CallProspectDetailModalProps {
   prospect: CallProspect;
@@ -61,6 +71,10 @@ export default function CallProspectDetailModal({
   const [notes, setNotes] = useState(prospect.notes ?? '');
   const [status, setStatus] = useState<CallStatus>(prospect.status);
   const [scriptLabel, setScriptLabel] = useState(prospect.script_label ?? '');
+  const [callbackInput, setCallbackInput] = useState<string>(() =>
+    toLocalInputValue(prospect.callback_at ? new Date(prospect.callback_at) : null),
+  );
+  const [callbackNotes, setCallbackNotes] = useState(prospect.callback_notes ?? '');
   const [descExpanded, setDescExpanded] = useState(false);
   const [descOverflows, setDescOverflows] = useState(false);
   const descRef = useRef<HTMLDivElement>(null);
@@ -70,8 +84,19 @@ export default function CallProspectDetailModal({
     setNotes(prospect.notes ?? '');
     setStatus(prospect.status);
     setScriptLabel(prospect.script_label ?? '');
+    setCallbackInput(
+      toLocalInputValue(prospect.callback_at ? new Date(prospect.callback_at) : null),
+    );
+    setCallbackNotes(prospect.callback_notes ?? '');
     setDescExpanded(false);
-  }, [prospect.id, prospect.notes, prospect.status, prospect.script_label]);
+  }, [
+    prospect.id,
+    prospect.notes,
+    prospect.status,
+    prospect.script_label,
+    prospect.callback_at,
+    prospect.callback_notes,
+  ]);
 
   // Detect whether the clamped description actually overflows. Only measures
   // while collapsed — when expanded, scrollHeight === clientHeight so
@@ -84,12 +109,16 @@ export default function CallProspectDetailModal({
   }, [prospect.id, prospect.description, descExpanded]);
 
   const updateMutation = useMutation({
-    mutationFn: () =>
-      coldCallsApi.update(prospect.id, {
+    mutationFn: () => {
+      const callbackDate = fromLocalInputValue(callbackInput);
+      return coldCallsApi.update(prospect.id, {
         notes: notes.trim() ? notes : null,
         status,
         script_label: scriptLabel.trim() || null,
-      }),
+        callback_at: callbackDate ? callbackDate.toISOString() : null,
+        callback_notes: callbackNotes.trim() || null,
+      });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['call-prospects'] });
       toast.success('Prospect saved');
@@ -120,6 +149,15 @@ export default function CallProspectDetailModal({
       if (prev.endsWith('\n')) return prev + stamp;
       return prev + '\n' + stamp;
     });
+  };
+
+  const applyPreset = (preset: (now: Date) => Date) => {
+    setCallbackInput(toLocalInputValue(preset(new Date())));
+  };
+
+  const clearCallback = () => {
+    setCallbackInput('');
+    setCallbackNotes('');
   };
 
   const handleDelete = () => {
@@ -326,6 +364,55 @@ export default function CallProspectDetailModal({
                 maxLength={50}
                 placeholder="e.g. Script A"
                 className={inputClasses}
+              />
+            </div>
+
+            {/* Callback — datetime picker + quick presets + optional note */}
+            <div>
+              <label className="block text-sm font-medium text-[--exec-text-secondary] mb-1.5">
+                Callback
+              </label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="datetime-local"
+                  value={callbackInput}
+                  onChange={(e) => setCallbackInput(e.target.value)}
+                  className={cn(inputClasses, 'flex-1')}
+                />
+                {callbackInput && (
+                  <button
+                    type="button"
+                    onClick={clearCallback}
+                    className="px-3 py-2 text-xs font-medium text-[--exec-text-secondary] bg-stone-700/50 hover:bg-stone-600/50 rounded-lg transition-colors"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                {[
+                  { label: 'In 1h', fn: presetInOneHour },
+                  { label: 'In 2h', fn: presetInTwoHours },
+                  { label: 'Tomorrow 10am', fn: presetTomorrowTenAm },
+                  { label: 'Next Mon 10am', fn: presetNextMondayTenAm },
+                ].map((p) => (
+                  <button
+                    key={p.label}
+                    type="button"
+                    onClick={() => applyPreset(p.fn)}
+                    className="px-2.5 py-1 text-[11px] font-medium text-[--exec-text-secondary] bg-stone-700/50 hover:bg-stone-600/50 rounded-lg transition-colors"
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+              <input
+                type="text"
+                value={callbackNotes}
+                onChange={(e) => setCallbackNotes(e.target.value)}
+                maxLength={255}
+                placeholder="Callback note (optional) — e.g. owner back from holiday"
+                className={cn(inputClasses, 'mt-2')}
               />
             </div>
 
