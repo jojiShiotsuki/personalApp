@@ -59,7 +59,7 @@ import {
   parseBackendDatetime,
 } from '@/lib/callbackFormat';
 import { useCurrentMinute } from '@/hooks/useCurrentMinute';
-import { SORT_OPTIONS, type SortKey } from '@/lib/sortProspects';
+import { sortProspects, SORT_OPTIONS, type SortKey } from '@/lib/sortProspects';
 
 interface ColumnConfig {
   status: CallStatus;
@@ -808,32 +808,21 @@ export default function ColdCallsTab() {
     );
   }, [prospects, callbackFilterActive, now]);
 
-  const sortByCallbackAsc = (a: CallProspect, b: CallProspect): number => {
-    // Only called in filtered view, where both have callback_at.
-    const av = a.callback_at ? parseBackendDatetime(a.callback_at).getTime() : Infinity;
-    const bv = b.callback_at ? parseBackendDatetime(b.callback_at).getTime() : Infinity;
-    return av - bv;
-  };
-
   const prospectsByStatus = useMemo(() => {
+    const sorted = sortProspects(visibleProspects, sortKey);
     const map: Record<CallStatus, CallProspect[]> = {
       [CallStatus.NEW]: [],
       [CallStatus.ATTEMPTED]: [],
       [CallStatus.CONNECTED]: [],
       [CallStatus.DEAD]: [],
     };
-    for (const p of visibleProspects) {
+    for (const p of sorted) {
       if (map[p.status]) {
         map[p.status].push(p);
       }
     }
-    if (callbackFilterActive) {
-      for (const s of Object.keys(map) as CallStatus[]) {
-        map[s].sort(sortByCallbackAsc);
-      }
-    }
     return map;
-  }, [visibleProspects, callbackFilterActive]);
+  }, [visibleProspects, sortKey]);
 
   // Step-based view: active only when a specific campaign is selected and it
   // has configured multi_touch_steps. Otherwise fall back to status kanban.
@@ -847,7 +836,8 @@ export default function ColdCallsTab() {
     const map: Record<number, CallProspect[]> = {};
     for (const s of stepColumns) map[s.step_number] = [];
     if (stepColumns.length === 0) return map;
-    for (const p of visibleProspects) {
+    const sorted = sortProspects(visibleProspects, sortKey);
+    for (const p of sorted) {
       const step = p.current_step ?? 1;
       if (map[step] !== undefined) {
         map[step].push(p);
@@ -856,13 +846,8 @@ export default function ColdCallsTab() {
         map[stepColumns[0].step_number].push(p);
       }
     }
-    if (callbackFilterActive) {
-      for (const k of Object.keys(map)) {
-        map[Number(k)].sort(sortByCallbackAsc);
-      }
-    }
     return map;
-  }, [visibleProspects, stepColumns, callbackFilterActive]);
+  }, [visibleProspects, stepColumns, sortKey]);
 
   const dueCount = useMemo(() => {
     let count = 0;
@@ -905,7 +890,16 @@ export default function ColdCallsTab() {
       value: dueCount,
       accent: 'orange',
       active: callbackFilterActive,
-      onClick: () => setCallbackFilterActive((v) => !v),
+      onClick: () => {
+        setCallbackFilterActive((prev) => {
+          const next = !prev;
+          // Turning ON the filter flips to callback_asc by default so the
+          // user sees soonest-due first. Leave the dropdown alone on OFF so
+          // the user's last-chosen sort sticks.
+          if (next) setSortKey('callback_asc');
+          return next;
+        });
+      },
     },
   ];
 
