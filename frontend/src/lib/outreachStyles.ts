@@ -86,6 +86,7 @@ export const statCardValueClasses = 'text-2xl font-bold';
 export type StatAccent =
   | 'blue'
   | 'amber'
+  | 'orange'
   | 'green'
   | 'emerald'
   | 'red'
@@ -96,6 +97,7 @@ export type StatAccent =
 export const statCardAccents: Record<StatAccent, string> = {
   blue: 'text-blue-400',
   amber: 'text-amber-400',
+  orange: 'text-orange-400',
   green: 'text-green-400',
   emerald: 'text-emerald-400',
   red: 'text-red-400',
