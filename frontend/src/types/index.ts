@@ -1656,6 +1656,14 @@ export enum CallStatus {
   DEAD = 'DEAD',
 }
 
+export enum ProspectTier {
+  S_TIER_FLAGSHIP = 'S_TIER_FLAGSHIP',
+  A_TIER_FLAGSHIP = 'A_TIER_FLAGSHIP',
+  B_TIER_FLAGSHIP = 'B_TIER_FLAGSHIP',
+  COMMERCIAL_SPECIALIST = 'COMMERCIAL_SPECIALIST',
+  DEVELOPMENTAL = 'DEVELOPMENTAL',
+}
+
 export interface CallProspect {
   id: number;
   business_name: string;
@@ -1678,6 +1686,7 @@ export interface CallProspect {
   description: string | null;
   notes: string | null;
   script_label?: string | null;
+  tier: ProspectTier | null;
   callback_at: string | null;
   callback_notes: string | null;
   status: CallStatus;
@@ -1711,6 +1720,7 @@ export interface CallProspectCreate {
   status?: CallStatus;
   campaign_id?: number | null;
   current_step?: number;
+  tier?: ProspectTier | null;
 }
 
 export interface CallProspectUpdate {
@@ -1738,6 +1748,7 @@ export interface CallProspectUpdate {
   status?: CallStatus;
   campaign_id?: number | null;
   current_step?: number;
+  tier?: ProspectTier | null;
 }
 
 export interface CallProspectCsvColumnMapping {

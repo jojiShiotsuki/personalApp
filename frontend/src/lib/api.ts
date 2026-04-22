@@ -94,6 +94,7 @@ import type {
   CallProspectUpdate,
   CallProspectCsvImportRequest,
   CallProspectCsvImportResponse,
+  ProspectTier,
 } from '../types/index';
 import {
   TaskStatus,
@@ -1644,6 +1645,17 @@ export const coldCallsApi = {
     const response = await api.post('/api/cold-calls/bulk-update-label', {
       ids,
       script_label,
+    });
+    return response.data;
+  },
+
+  bulkUpdateTier: async (
+    ids: number[],
+    tier: ProspectTier | null,
+  ): Promise<{ updated_count: number }> => {
+    const response = await api.post('/api/cold-calls/bulk-update-tier', {
+      ids,
+      tier,
     });
     return response.data;
   },
