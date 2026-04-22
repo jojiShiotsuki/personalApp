@@ -38,6 +38,8 @@ class CallProspectBase(BaseModel):
     script_label: Optional[str] = Field(None, max_length=50)
     campaign_id: Optional[int] = None
     current_step: int = 1
+    callback_at: Optional[datetime] = None
+    callback_notes: Optional[str] = Field(None, max_length=255)
 
 
 class CallProspectCreate(CallProspectBase):
@@ -68,6 +70,8 @@ class CallProspectUpdate(BaseModel):
     status: Optional[CallStatus] = None
     campaign_id: Optional[int] = None
     current_step: Optional[int] = Field(None, ge=1)
+    callback_at: Optional[datetime] = None
+    callback_notes: Optional[str] = Field(None, max_length=255)
 
 
 class CallProspectResponse(CallProspectBase):
