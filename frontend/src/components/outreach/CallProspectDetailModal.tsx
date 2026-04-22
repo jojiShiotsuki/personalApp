@@ -17,6 +17,7 @@ import { coldCallsApi } from '@/lib/api';
 import { CallProspect, CallStatus } from '@/types';
 import {
   fromLocalInputValue,
+  parseBackendDatetime,
   presetInOneHour,
   presetInTwoHours,
   presetNextMondayTenAm,
@@ -70,7 +71,7 @@ export default function CallProspectDetailModal({
   const [status, setStatus] = useState<CallStatus>(prospect.status);
   const [scriptLabel, setScriptLabel] = useState(prospect.script_label ?? '');
   const [callbackInput, setCallbackInput] = useState<string>(() =>
-    toLocalInputValue(prospect.callback_at ? new Date(prospect.callback_at) : null),
+    toLocalInputValue(prospect.callback_at ? parseBackendDatetime(prospect.callback_at) : null),
   );
   const [callbackNotes, setCallbackNotes] = useState(prospect.callback_notes ?? '');
   const [descExpanded, setDescExpanded] = useState(false);
@@ -83,7 +84,7 @@ export default function CallProspectDetailModal({
     setStatus(prospect.status);
     setScriptLabel(prospect.script_label ?? '');
     setCallbackInput(
-      toLocalInputValue(prospect.callback_at ? new Date(prospect.callback_at) : null),
+      toLocalInputValue(prospect.callback_at ? parseBackendDatetime(prospect.callback_at) : null),
     );
     setCallbackNotes(prospect.callback_notes ?? '');
     setDescExpanded(false);

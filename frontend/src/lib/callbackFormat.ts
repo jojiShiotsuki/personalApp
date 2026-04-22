@@ -131,3 +131,17 @@ export function fromLocalInputValue(value: string): Date | null {
   const d = new Date(value);
   return Number.isNaN(d.getTime()) ? null : d;
 }
+
+/**
+ * Parse an ISO datetime string coming from the backend.
+ *
+ * The backend stores `callback_at` as a naive `DateTime` column and Pydantic
+ * serializes it without a timezone suffix (e.g. `"2026-04-28T01:30:00"`).
+ * Our invariant is "backend stores UTC" — but bare `new Date(s)` on such a
+ * string parses as *local* time, producing an offset bug. Append `Z` when
+ * the string lacks a timezone indicator so JS parses it as UTC.
+ */
+export function parseBackendDatetime(value: string): Date {
+  const hasTz = /Z$|[+-]\d{2}:?\d{2}$/.test(value);
+  return new Date(hasTz ? value : `${value}Z`);
+}

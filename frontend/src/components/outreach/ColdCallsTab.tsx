@@ -56,6 +56,7 @@ import {
   callbackTier,
   formatCallbackLabel,
   isDueByEndOfToday,
+  parseBackendDatetime,
 } from '@/lib/callbackFormat';
 import { useCurrentMinute } from '@/hooks/useCurrentMinute';
 
@@ -193,7 +194,7 @@ interface CallbackPillProps {
 }
 
 function CallbackPill({ callbackAt, now }: CallbackPillProps) {
-  const at = new Date(callbackAt);
+  const at = parseBackendDatetime(callbackAt);
   const tier = callbackTier(at, now);
   const tokens = CALLBACK_PILL_TOKENS[tier];
   const label = formatCallbackLabel(at, now);
@@ -801,14 +802,14 @@ export default function ColdCallsTab() {
   const visibleProspects = useMemo(() => {
     if (!callbackFilterActive) return prospects;
     return prospects.filter(
-      (p) => p.callback_at && isDueByEndOfToday(new Date(p.callback_at), now),
+      (p) => p.callback_at && isDueByEndOfToday(parseBackendDatetime(p.callback_at), now),
     );
   }, [prospects, callbackFilterActive, now]);
 
   const sortByCallbackAsc = (a: CallProspect, b: CallProspect): number => {
     // Only called in filtered view, where both have callback_at.
-    const av = a.callback_at ? new Date(a.callback_at).getTime() : Infinity;
-    const bv = b.callback_at ? new Date(b.callback_at).getTime() : Infinity;
+    const av = a.callback_at ? parseBackendDatetime(a.callback_at).getTime() : Infinity;
+    const bv = b.callback_at ? parseBackendDatetime(b.callback_at).getTime() : Infinity;
     return av - bv;
   };
 
@@ -864,7 +865,7 @@ export default function ColdCallsTab() {
   const dueCount = useMemo(() => {
     let count = 0;
     for (const p of prospects) {
-      if (p.callback_at && isDueByEndOfToday(new Date(p.callback_at), now)) {
+      if (p.callback_at && isDueByEndOfToday(parseBackendDatetime(p.callback_at), now)) {
         count += 1;
       }
     }
