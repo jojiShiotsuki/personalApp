@@ -55,6 +55,7 @@ import { useWheelToHorizontalScroll } from '@/hooks/useWheelToHorizontalScroll';
 import {
   callbackTier,
   formatCallbackLabel,
+  isDueByEndOfToday,
 } from '@/lib/callbackFormat';
 import { useCurrentMinute } from '@/hooks/useCurrentMinute';
 
@@ -611,6 +612,7 @@ export default function ColdCallsTab() {
   const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
   const [isLabelPopoverOpen, setIsLabelPopoverOpen] = useState(false);
   const [labelInput, setLabelInput] = useState('');
+  const [callbackFilterActive, setCallbackFilterActive] = useState(false);
 
   const kanbanScrollRef = useRef<HTMLDivElement | null>(null);
   useWheelToHorizontalScroll(kanbanScrollRef);
@@ -796,6 +798,20 @@ export default function ColdCallsTab() {
     }
   };
 
+  const visibleProspects = useMemo(() => {
+    if (!callbackFilterActive) return prospects;
+    return prospects.filter(
+      (p) => p.callback_at && isDueByEndOfToday(new Date(p.callback_at), now),
+    );
+  }, [prospects, callbackFilterActive, now]);
+
+  const sortByCallbackAsc = (a: CallProspect, b: CallProspect): number => {
+    // Only called in filtered view, where both have callback_at.
+    const av = a.callback_at ? new Date(a.callback_at).getTime() : Infinity;
+    const bv = b.callback_at ? new Date(b.callback_at).getTime() : Infinity;
+    return av - bv;
+  };
+
   const prospectsByStatus = useMemo(() => {
     const map: Record<CallStatus, CallProspect[]> = {
       [CallStatus.NEW]: [],
@@ -803,13 +819,18 @@ export default function ColdCallsTab() {
       [CallStatus.CONNECTED]: [],
       [CallStatus.DEAD]: [],
     };
-    for (const p of prospects) {
+    for (const p of visibleProspects) {
       if (map[p.status]) {
         map[p.status].push(p);
       }
     }
+    if (callbackFilterActive) {
+      for (const s of Object.keys(map) as CallStatus[]) {
+        map[s].sort(sortByCallbackAsc);
+      }
+    }
     return map;
-  }, [prospects]);
+  }, [visibleProspects, callbackFilterActive]);
 
   // Step-based view: active only when a specific campaign is selected and it
   // has configured multi_touch_steps. Otherwise fall back to status kanban.
@@ -823,7 +844,7 @@ export default function ColdCallsTab() {
     const map: Record<number, CallProspect[]> = {};
     for (const s of stepColumns) map[s.step_number] = [];
     if (stepColumns.length === 0) return map;
-    for (const p of prospects) {
+    for (const p of visibleProspects) {
       const step = p.current_step ?? 1;
       if (map[step] !== undefined) {
         map[step].push(p);
@@ -832,8 +853,23 @@ export default function ColdCallsTab() {
         map[stepColumns[0].step_number].push(p);
       }
     }
+    if (callbackFilterActive) {
+      for (const k of Object.keys(map)) {
+        map[Number(k)].sort(sortByCallbackAsc);
+      }
+    }
     return map;
-  }, [prospects, stepColumns]);
+  }, [visibleProspects, stepColumns, callbackFilterActive]);
+
+  const dueCount = useMemo(() => {
+    let count = 0;
+    for (const p of prospects) {
+      if (p.callback_at && isDueByEndOfToday(new Date(p.callback_at), now)) {
+        count += 1;
+      }
+    }
+    return count;
+  }, [prospects, now]);
 
   const stats: HubStat[] = [
     {
@@ -859,6 +895,14 @@ export default function ColdCallsTab() {
       label: 'Dead',
       value: prospectsByStatus[CallStatus.DEAD].length,
       accent: 'rose',
+    },
+    {
+      icon: PhoneCall,
+      label: 'Callbacks Due',
+      value: dueCount,
+      accent: 'orange',
+      active: callbackFilterActive,
+      onClick: () => setCallbackFilterActive((v) => !v),
     },
   ];
 
