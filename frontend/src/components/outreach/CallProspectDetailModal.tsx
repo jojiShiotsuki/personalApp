@@ -14,7 +14,7 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { inputClasses, primaryButtonClasses, secondaryButtonClasses } from '@/lib/outreachStyles';
 import { coldCallsApi } from '@/lib/api';
-import { CallProspect, CallStatus } from '@/types';
+import { CallProspect, CallStatus, ProspectTier } from '@/types';
 import {
   fromLocalInputValue,
   parseBackendDatetime,
@@ -24,6 +24,7 @@ import {
   presetTomorrowTenAm,
   toLocalInputValue,
 } from '@/lib/callbackFormat';
+import { TIER_META, TIER_ORDER } from '@/lib/tierMeta';
 
 interface CallProspectDetailModalProps {
   prospect: CallProspect;
@@ -70,6 +71,7 @@ export default function CallProspectDetailModal({
   const [notes, setNotes] = useState(prospect.notes ?? '');
   const [status, setStatus] = useState<CallStatus>(prospect.status);
   const [scriptLabel, setScriptLabel] = useState(prospect.script_label ?? '');
+  const [tier, setTier] = useState<ProspectTier | null>(prospect.tier ?? null);
   const [callbackInput, setCallbackInput] = useState<string>(() =>
     toLocalInputValue(prospect.callback_at ? parseBackendDatetime(prospect.callback_at) : null),
   );
@@ -83,6 +85,7 @@ export default function CallProspectDetailModal({
     setNotes(prospect.notes ?? '');
     setStatus(prospect.status);
     setScriptLabel(prospect.script_label ?? '');
+    setTier(prospect.tier ?? null);
     setCallbackInput(
       toLocalInputValue(prospect.callback_at ? parseBackendDatetime(prospect.callback_at) : null),
     );
@@ -93,6 +96,7 @@ export default function CallProspectDetailModal({
     prospect.notes,
     prospect.status,
     prospect.script_label,
+    prospect.tier,
     prospect.callback_at,
     prospect.callback_notes,
   ]);
@@ -114,6 +118,7 @@ export default function CallProspectDetailModal({
         notes: notes.trim() ? notes : null,
         status,
         script_label: scriptLabel.trim() || null,
+        tier,
         callback_at: callbackDate ? callbackDate.toISOString() : null,
         callback_notes: callbackNotes.trim() || null,
       });
@@ -364,6 +369,27 @@ export default function CallProspectDetailModal({
                 placeholder="e.g. Script A"
                 className={inputClasses}
               />
+            </div>
+
+            {/* Tier — quality classification (S/A/B flagship, Commercial, Developmental) */}
+            <div>
+              <label className="block text-sm font-medium text-[--exec-text-secondary] mb-1.5">
+                Tier
+              </label>
+              <select
+                value={tier ?? ''}
+                onChange={(e) =>
+                  setTier((e.target.value as ProspectTier) || null)
+                }
+                className={cn(inputClasses, 'cursor-pointer appearance-none')}
+              >
+                <option value="">— None —</option>
+                {TIER_ORDER.map((t) => (
+                  <option key={t} value={t}>
+                    {TIER_META[t].fullLabel}
+                  </option>
+                ))}
+              </select>
             </div>
 
             {/* Callback — datetime picker + quick presets + optional note */}
