@@ -315,7 +315,14 @@ def export_call_prospects(
     return StreamingResponse(
         _generate(),
         media_type="text/csv; charset=utf-8",
-        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            # Mirror the global CORS expose_headers config for this route.
+            # Some middleware orderings drop the global Expose-Headers from
+            # streaming responses; setting it here guarantees the browser
+            # can read Content-Disposition from JS regardless.
+            "Access-Control-Expose-Headers": "Content-Disposition",
+        },
     )
 
 

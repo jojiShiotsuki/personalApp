@@ -50,6 +50,10 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    # Browsers hide non-safelisted response headers from JS by default;
+    # explicitly expose Content-Disposition so the frontend's CSV export
+    # can read the server-suggested filename.
+    expose_headers=["Content-Disposition"],
 )
 
 
