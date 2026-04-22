@@ -59,6 +59,7 @@ import {
   parseBackendDatetime,
 } from '@/lib/callbackFormat';
 import { useCurrentMinute } from '@/hooks/useCurrentMinute';
+import { SORT_OPTIONS, type SortKey } from '@/lib/sortProspects';
 
 interface ColumnConfig {
   status: CallStatus;
@@ -614,6 +615,7 @@ export default function ColdCallsTab() {
   const [isLabelPopoverOpen, setIsLabelPopoverOpen] = useState(false);
   const [labelInput, setLabelInput] = useState('');
   const [callbackFilterActive, setCallbackFilterActive] = useState(false);
+  const [sortKey, setSortKey] = useState<SortKey>('default');
 
   const kanbanScrollRef = useRef<HTMLDivElement | null>(null);
   useWheelToHorizontalScroll(kanbanScrollRef);
@@ -936,6 +938,26 @@ export default function ColdCallsTab() {
             {isStepView ? 'Call Sequence' : 'Call Pipeline'}
           </h3>
           <div className="flex items-center gap-2">
+            <label className="flex items-center gap-2 text-xs text-[--exec-text-muted]">
+              <span>Sort:</span>
+              <select
+                value={sortKey}
+                onChange={(e) => setSortKey(e.target.value as SortKey)}
+                className={cn(
+                  'min-w-[180px] max-w-[220px] px-3 py-1.5 rounded-lg text-xs',
+                  'bg-stone-800/50 border border-stone-600/40',
+                  'text-[--exec-text]',
+                  'focus:outline-none focus:ring-2 focus:ring-[--exec-accent]/20 focus:border-[--exec-accent]/50',
+                  'cursor-pointer appearance-none',
+                )}
+              >
+                {SORT_OPTIONS.map((opt) => (
+                  <option key={opt.key} value={opt.key}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            </label>
             <button
               onClick={() => setIsAddOpen(true)}
               className={smallPrimaryButtonClasses}
