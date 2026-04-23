@@ -1,7 +1,7 @@
 """
 Pydantic schemas for the Cold Calls pipeline (CallProspect).
 """
-from datetime import datetime
+from datetime import date, datetime
 from enum import Enum
 from typing import List, Optional
 
@@ -48,6 +48,8 @@ class CallProspectBase(BaseModel):
     current_step: int = 1
     callback_at: Optional[datetime] = None
     callback_notes: Optional[str] = Field(None, max_length=255)
+    follow_up_on: Optional[date] = None
+    follow_up_notes: Optional[str] = Field(None, max_length=255)
     tier: Optional[ProspectTier] = None
 
 
@@ -81,6 +83,8 @@ class CallProspectUpdate(BaseModel):
     current_step: Optional[int] = Field(None, ge=1)
     callback_at: Optional[datetime] = None
     callback_notes: Optional[str] = Field(None, max_length=255)
+    follow_up_on: Optional[date] = None
+    follow_up_notes: Optional[str] = Field(None, max_length=255)
     tier: Optional[ProspectTier] = None
 
 
