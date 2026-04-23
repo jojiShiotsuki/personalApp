@@ -30,6 +30,7 @@ import {
   X,
   Check,
   Download,
+  Bell,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
@@ -62,6 +63,11 @@ import {
   isDueByEndOfToday,
   parseBackendDatetime,
 } from '@/lib/callbackFormat';
+import {
+  followUpTier,
+  formatFollowUpLabel,
+  parseBackendDate,
+} from '@/lib/followUpFormat';
 import { useCurrentMinute } from '@/hooks/useCurrentMinute';
 import { sortProspects, SORT_OPTIONS, type SortKey } from '@/lib/sortProspects';
 import { TIER_META, TIER_ORDER } from '@/lib/tierMeta';
@@ -143,6 +149,18 @@ const CALLBACK_PILL_TOKENS: Record<
   future: 'bg-stone-500/20 text-stone-300',
 };
 
+const FOLLOW_UP_PILL_TOKENS: Record<
+  ReturnType<typeof followUpTier>,
+  string
+> = {
+  overdue:
+    'bg-red-500/20 text-red-400 animate-pulse',
+  today: 'bg-amber-500/20 text-amber-400',
+  tomorrow: 'bg-blue-500/20 text-blue-400',
+  thisweek: 'bg-stone-500/20 text-stone-300',
+  future: 'bg-stone-500/20 text-stone-300',
+};
+
 function firstNotePreview(notes: string | null): string | null {
   if (!notes) return null;
   const trimmed = notes.trim();
@@ -213,6 +231,30 @@ function CallbackPill({ callbackAt, now }: CallbackPillProps) {
       title={at.toLocaleString()}
     >
       <PhoneCall className="w-3 h-3" />
+      {label}
+    </span>
+  );
+}
+
+interface FollowUpPillProps {
+  followUpOn: string;
+  today: Date;
+}
+
+function FollowUpPill({ followUpOn, today }: FollowUpPillProps) {
+  const on = parseBackendDate(followUpOn);
+  const tier = followUpTier(on, today);
+  const tokens = FOLLOW_UP_PILL_TOKENS[tier];
+  const label = formatFollowUpLabel(on, today);
+  return (
+    <span
+      className={cn(
+        'inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-md mb-1',
+        tokens,
+      )}
+      title={on.toLocaleDateString()}
+    >
+      <Bell className="w-3 h-3" />
       {label}
     </span>
   );
@@ -358,6 +400,12 @@ function CallProspectCard({ prospect, index, onClick, isSelected, onToggleSelect
             {prospect.callback_at && (
               <div className="mb-1">
                 <CallbackPill callbackAt={prospect.callback_at} now={now} />
+              </div>
+            )}
+
+            {prospect.follow_up_on && (
+              <div className="mb-1">
+                <FollowUpPill followUpOn={prospect.follow_up_on} today={now} />
               </div>
             )}
 
