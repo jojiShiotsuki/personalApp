@@ -24,6 +24,15 @@ import {
   presetTomorrowTenAm,
   toLocalInputValue,
 } from '@/lib/callbackFormat';
+import {
+  fromLocalDateInputValue,
+  parseBackendDate,
+  presetInThreeDays,
+  presetInTwoWeeks,
+  presetNextMonday,
+  presetTomorrow,
+  toLocalDateInputValue,
+} from '@/lib/followUpFormat';
 import { TIER_META, TIER_ORDER } from '@/lib/tierMeta';
 
 interface CallProspectDetailModalProps {
@@ -76,6 +85,10 @@ export default function CallProspectDetailModal({
     toLocalInputValue(prospect.callback_at ? parseBackendDatetime(prospect.callback_at) : null),
   );
   const [callbackNotes, setCallbackNotes] = useState(prospect.callback_notes ?? '');
+  const [followUpInput, setFollowUpInput] = useState<string>(() =>
+    toLocalDateInputValue(prospect.follow_up_on ? parseBackendDate(prospect.follow_up_on) : null),
+  );
+  const [followUpNotes, setFollowUpNotes] = useState(prospect.follow_up_notes ?? '');
   const [descExpanded, setDescExpanded] = useState(false);
   const [descOverflows, setDescOverflows] = useState(false);
   const descRef = useRef<HTMLDivElement>(null);
@@ -90,6 +103,10 @@ export default function CallProspectDetailModal({
       toLocalInputValue(prospect.callback_at ? parseBackendDatetime(prospect.callback_at) : null),
     );
     setCallbackNotes(prospect.callback_notes ?? '');
+    setFollowUpInput(
+      toLocalDateInputValue(prospect.follow_up_on ? parseBackendDate(prospect.follow_up_on) : null),
+    );
+    setFollowUpNotes(prospect.follow_up_notes ?? '');
     setDescExpanded(false);
   }, [
     prospect.id,
@@ -99,6 +116,8 @@ export default function CallProspectDetailModal({
     prospect.tier,
     prospect.callback_at,
     prospect.callback_notes,
+    prospect.follow_up_on,
+    prospect.follow_up_notes,
   ]);
 
   // Detect whether the clamped description actually overflows. Only measures
@@ -114,6 +133,7 @@ export default function CallProspectDetailModal({
   const updateMutation = useMutation({
     mutationFn: () => {
       const callbackDate = fromLocalInputValue(callbackInput);
+      const followUpDate = fromLocalDateInputValue(followUpInput);
       return coldCallsApi.update(prospect.id, {
         notes: notes.trim() ? notes : null,
         status,
@@ -121,6 +141,8 @@ export default function CallProspectDetailModal({
         tier,
         callback_at: callbackDate ? callbackDate.toISOString() : null,
         callback_notes: callbackNotes.trim() || null,
+        follow_up_on: followUpDate ? toLocalDateInputValue(followUpDate) : null,
+        follow_up_notes: followUpNotes.trim() || null,
       });
     },
     onSuccess: () => {
@@ -162,6 +184,15 @@ export default function CallProspectDetailModal({
   const clearCallback = () => {
     setCallbackInput('');
     setCallbackNotes('');
+  };
+
+  const applyFollowUpPreset = (preset: (today: Date) => Date) => {
+    setFollowUpInput(toLocalDateInputValue(preset(new Date())));
+  };
+
+  const clearFollowUp = () => {
+    setFollowUpInput('');
+    setFollowUpNotes('');
   };
 
   const handleDelete = () => {
@@ -437,6 +468,55 @@ export default function CallProspectDetailModal({
                 onChange={(e) => setCallbackNotes(e.target.value)}
                 maxLength={255}
                 placeholder="Callback note (optional) — e.g. owner back from holiday"
+                className={cn(inputClasses, 'mt-2')}
+              />
+            </div>
+
+            {/* Follow-up — date picker + quick presets + optional note */}
+            <div>
+              <label className="block text-sm font-medium text-[--exec-text-secondary] mb-1.5">
+                Follow-up
+              </label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="date"
+                  value={followUpInput}
+                  onChange={(e) => setFollowUpInput(e.target.value)}
+                  className={cn(inputClasses, 'flex-1')}
+                />
+                {followUpInput && (
+                  <button
+                    type="button"
+                    onClick={clearFollowUp}
+                    className="px-3 py-2 text-xs font-medium text-[--exec-text-secondary] bg-stone-700/50 hover:bg-stone-600/50 rounded-lg transition-colors"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                {[
+                  { label: 'Tomorrow', fn: presetTomorrow },
+                  { label: 'In 3 days', fn: presetInThreeDays },
+                  { label: 'Next Mon', fn: presetNextMonday },
+                  { label: 'In 2 weeks', fn: presetInTwoWeeks },
+                ].map((p) => (
+                  <button
+                    key={p.label}
+                    type="button"
+                    onClick={() => applyFollowUpPreset(p.fn)}
+                    className="px-2.5 py-1 text-[11px] font-medium text-[--exec-text-secondary] bg-stone-700/50 hover:bg-stone-600/50 rounded-lg transition-colors"
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+              <input
+                type="text"
+                value={followUpNotes}
+                onChange={(e) => setFollowUpNotes(e.target.value)}
+                maxLength={255}
+                placeholder="Follow-up note (optional) — e.g. send proposal, check IG"
                 className={cn(inputClasses, 'mt-2')}
               />
             </div>
