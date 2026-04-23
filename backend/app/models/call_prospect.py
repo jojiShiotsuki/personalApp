@@ -10,7 +10,7 @@ workflow differ from email/LinkedIn outreach.
 import enum
 from datetime import datetime
 
-from sqlalchemy import JSON, Column, DateTime, Float, ForeignKey, Index, Integer, String, Text
+from sqlalchemy import JSON, Column, Date, DateTime, Float, ForeignKey, Index, Integer, String, Text
 
 from app.database import Base
 
@@ -71,6 +71,14 @@ class CallProspect(Base):
     callback_at = Column(DateTime, nullable=True, index=True)
     # Optional short context for the callback (e.g. "owner back from holiday").
     callback_notes = Column(String(255), nullable=True)
+    # Date-only follow-up reminder for the next non-call touch in the multi-step
+    # sequence (SMS, email, etc.). Distinct from `callback_at` — that captures
+    # an appointment time the prospect requested; this captures the user's own
+    # "circle back on this date" reminder. Calendar-day granularity, no time-of-day,
+    # no timezone conversion. NULL = no follow-up scheduled. Orthogonal to `status`.
+    follow_up_on = Column(Date, nullable=True, index=True)
+    # Optional short context (e.g. "send proposal", "check IG").
+    follow_up_notes = Column(String(255), nullable=True)
     status = Column(
         String(20),
         nullable=False,
