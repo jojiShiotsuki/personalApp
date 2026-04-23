@@ -1689,6 +1689,8 @@ export interface CallProspect {
   tier: ProspectTier | null;
   callback_at: string | null;
   callback_notes: string | null;
+  follow_up_on: string | null;
+  follow_up_notes: string | null;
   status: CallStatus;
   campaign_id: number | null;
   current_step: number;
@@ -1717,6 +1719,8 @@ export interface CallProspectCreate {
   notes?: string;
   callback_at?: string | null;
   callback_notes?: string | null;
+  follow_up_on?: string | null;
+  follow_up_notes?: string | null;
   status?: CallStatus;
   campaign_id?: number | null;
   current_step?: number;
@@ -1745,6 +1749,8 @@ export interface CallProspectUpdate {
   script_label?: string | null;
   callback_at?: string | null;
   callback_notes?: string | null;
+  follow_up_on?: string | null;
+  follow_up_notes?: string | null;
   status?: CallStatus;
   campaign_id?: number | null;
   current_step?: number;
