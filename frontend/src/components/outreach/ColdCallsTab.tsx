@@ -66,6 +66,7 @@ import {
 import {
   followUpTier,
   formatFollowUpLabel,
+  isFollowUpDueByEndOfToday,
   parseBackendDate,
 } from '@/lib/followUpFormat';
 import { useCurrentMinute } from '@/hooks/useCurrentMinute';
@@ -686,6 +687,7 @@ export default function ColdCallsTab() {
   const [isTierPopoverOpen, setIsTierPopoverOpen] = useState(false);
   const [labelInput, setLabelInput] = useState('');
   const [callbackFilterActive, setCallbackFilterActive] = useState(false);
+  const [followUpFilterActive, setFollowUpFilterActive] = useState(false);
   const [sortKey, setSortKey] = useState<SortKey>('default');
 
   const kanbanScrollRef = useRef<HTMLDivElement | null>(null);
@@ -933,11 +935,19 @@ export default function ColdCallsTab() {
   };
 
   const visibleProspects = useMemo(() => {
-    if (!callbackFilterActive) return prospects;
-    return prospects.filter(
-      (p) => p.callback_at && isDueByEndOfToday(parseBackendDatetime(p.callback_at), now),
-    );
-  }, [prospects, callbackFilterActive, now]);
+    if (!callbackFilterActive && !followUpFilterActive) return prospects;
+    return prospects.filter((p) => {
+      const callbackHit =
+        callbackFilterActive &&
+        Boolean(p.callback_at) &&
+        isDueByEndOfToday(parseBackendDatetime(p.callback_at as string), now);
+      const followUpHit =
+        followUpFilterActive &&
+        Boolean(p.follow_up_on) &&
+        isFollowUpDueByEndOfToday(parseBackendDate(p.follow_up_on as string), now);
+      return callbackHit || followUpHit;
+    });
+  }, [prospects, callbackFilterActive, followUpFilterActive, now]);
 
   const prospectsByStatus = useMemo(() => {
     const sorted = sortProspects(visibleProspects, sortKey);
@@ -990,6 +1000,16 @@ export default function ColdCallsTab() {
     return count;
   }, [prospects, now]);
 
+  const followUpDueCount = useMemo(() => {
+    let count = 0;
+    for (const p of prospects) {
+      if (p.follow_up_on && isFollowUpDueByEndOfToday(parseBackendDate(p.follow_up_on), now)) {
+        count += 1;
+      }
+    }
+    return count;
+  }, [prospects, now]);
+
   const stats: HubStat[] = [
     {
       icon: Circle,
@@ -1030,6 +1050,16 @@ export default function ColdCallsTab() {
           if (next) setSortKey('callback_asc');
           return next;
         });
+      },
+    },
+    {
+      icon: Bell,
+      label: 'Follow-ups Due',
+      value: followUpDueCount,
+      accent: 'blue',
+      active: followUpFilterActive,
+      onClick: () => {
+        setFollowUpFilterActive((prev) => !prev);
       },
     },
   ];
